@@ -1,0 +1,15 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  username: <%= ENV["DATABASE_USER"] || "user_501_health" %>
+  password: <%= ENV["DATABASE_PASSWORD"] || "password_501_health" %>
+  host: localhost
+  pool: 5
+
+development:
+  <<: *default
+  database: health_app_development
+
+test:
+  <<: *default
+  database: health_app_test

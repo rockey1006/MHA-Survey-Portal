@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  questionresponse_id: 1
+  competencyresponse_id: 1
+  question_id: 1
+  answer: MyString
+
+two:
+  questionresponse_id: 1
+  competencyresponse_id: 1
+  question_id: 1
+  answer: MyString

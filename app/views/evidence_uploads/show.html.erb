@@ -1,0 +1,10 @@
+<p style="color: green"><%= notice %></p>
+
+<%= render @evidence_upload %>
+
+<div>
+  <%= link_to "Edit this evidence upload", edit_evidence_upload_path(@evidence_upload) %> |
+  <%= link_to "Back to evidence uploads", evidence_uploads_path %>
+
+  <%= button_to "Destroy this evidence upload", @evidence_upload, method: :delete %>
+</div>

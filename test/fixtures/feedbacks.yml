@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  feedback_id: 1
+  advisor_id: 1
+  competency_id: 1
+  rating: 1
+  comments: MyString
+
+two:
+  feedback_id: 1
+  advisor_id: 1
+  competency_id: 1
+  rating: 1
+  comments: MyString

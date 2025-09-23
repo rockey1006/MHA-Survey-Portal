@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  student_id: 1
+  name: MyString
+  email: MyString
+  NetID: MyString
+  track: 1
+  adivsor_id: 1
+
+two:
+  student_id: 1
+  name: MyString
+  email: MyString
+  NetID: MyString
+  track: 1
+  adivsor_id: 1

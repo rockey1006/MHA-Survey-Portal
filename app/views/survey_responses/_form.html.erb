@@ -1,0 +1,47 @@
+<%= form_with(model: survey_response) do |form| %>
+  <% if survey_response.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(survey_response.errors.count, "error") %> prohibited this survey_response from being saved:</h2>
+
+      <ul>
+        <% survey_response.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :surveyresponse_id, style: "display: block" %>
+    <%= form.number_field :surveyresponse_id %>
+  </div>
+
+  <div>
+    <%= form.label :student_id, style: "display: block" %>
+    <%= form.number_field :student_id %>
+  </div>
+
+  <div>
+    <%= form.label :advisor_id, style: "display: block" %>
+    <%= form.number_field :advisor_id %>
+  </div>
+
+  <div>
+    <%= form.label :survey_id, style: "display: block" %>
+    <%= form.number_field :survey_id %>
+  </div>
+
+  <div>
+    <%= form.label :semester, style: "display: block" %>
+    <%= form.text_field :semester %>
+  </div>
+
+  <div>
+    <%= form.label :status, style: "display: block" %>
+    <%= form.number_field :status %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

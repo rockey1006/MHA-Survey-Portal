@@ -1,0 +1,2 @@
+class CompetencyResponse < ApplicationRecord
+end

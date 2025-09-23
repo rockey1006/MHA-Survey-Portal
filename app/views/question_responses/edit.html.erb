@@ -1,0 +1,12 @@
+<% content_for :title, "Editing question response" %>
+
+<h1>Editing question response</h1>
+
+<%= render "form", question_response: @question_response %>
+
+<br>
+
+<div>
+  <%= link_to "Show this question response", @question_response %> |
+  <%= link_to "Back to question responses", question_responses_path %>
+</div>

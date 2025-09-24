@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_23_225922) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_24_154224) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,9 +79,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_23_225922) do
     t.integer "evidenceupload_id"
     t.integer "questionresponse_id"
     t.integer "competencyresponse_id"
-    t.string "file_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "link"
   end
 
   create_table "feedbacks", force: :cascade do |t|

@@ -1,0 +1,12 @@
+<% content_for :title, "Editing evidence upload" %>
+
+<h1>Editing evidence upload</h1>
+
+<%= render "form", evidence_upload: @evidence_upload %>
+
+<br>
+
+<div>
+  <%= link_to "Show this evidence upload", @evidence_upload %> |
+  <%= link_to "Back to evidence uploads", evidence_uploads_path %>
+</div>

@@ -1,0 +1,2 @@
+class EvidenceUpload < ApplicationRecord
+end

@@ -14,8 +14,8 @@ class StudentsTest < ApplicationSystemTestCase
     visit students_url
     click_on "New student"
 
-    fill_in "Netid", with: @student.NetID
-    fill_in "Adivsor", with: @student.adivsor_id
+    fill_in "Netid", with: @student.net_id
+    fill_in "Advisor", with: @student.advisor_id
     fill_in "Email", with: @student.email
     fill_in "Name", with: @student.name
     fill_in "Student", with: @student.student_id
@@ -30,8 +30,8 @@ class StudentsTest < ApplicationSystemTestCase
     visit student_url(@student)
     click_on "Edit this student", match: :first
 
-    fill_in "Netid", with: @student.NetID
-    fill_in "Adivsor", with: @student.adivsor_id
+    fill_in "Netid", with: @student.net_id
+    fill_in "Advisor", with: @student.advisor_id
     fill_in "Email", with: @student.email
     fill_in "Name", with: @student.name
     fill_in "Student", with: @student.student_id

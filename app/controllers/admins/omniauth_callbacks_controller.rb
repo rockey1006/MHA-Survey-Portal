@@ -1,48 +1,48 @@
 class Admins::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   # Skip CSRF verification for OAuth callbacks since they come from external sources
-  skip_before_action :verify_authenticity_token, only: [:google_oauth2, :failure]
-  
+  skip_before_action :verify_authenticity_token, only: [ :google_oauth2, :failure ]
+
   def google_oauth2
     # Debug: Log the OAuth params
     Rails.logger.debug "OAuth params: #{request.env['omniauth.params']}"
-    
+
     # Get role from the request params (stored when user clicked login)
-    role = request.env['omniauth.params']['role']
+    role = request.env["omniauth.params"]["role"]
     Rails.logger.debug "Role from params: #{role}"
-    
+
     admin = Admin.from_google(**from_google_params.merge(role: role))
     Rails.logger.debug "Admin created/found: #{admin.inspect}"
     Rails.logger.debug "Admin role: #{admin.role}"
-    
+
     if admin.present?
       sign_out_all_scopes
-      flash[:success] = t 'devise.omniauth_callbacks.success', kind: 'Google'
+      flash[:success] = t "devise.omniauth_callbacks.success", kind: "Google"
       sign_in(admin, event: :authentication)
-      
+
       # Redirect based on role with fallback
       redirect_path = case admin.role
-                     when 'admin'
+      when "admin"
                        admin_dashboard_path
-                     when 'advisor'
+      when "advisor"
                        advisor_dashboard_path
-                     when 'student'
+      when "student"
                        student_dashboard_path
-                     else
+      else
                        # If no role set, use the login role parameter
                        case role
-                       when 'student'
+                       when "student"
                          student_dashboard_path
-                       when 'advisor'
+                       when "advisor"
                          advisor_dashboard_path
                        else
                          root_path
                        end
-                     end
-      
+      end
+
       Rails.logger.debug "Redirecting to: #{redirect_path}"
       redirect_to redirect_path
     else
-      flash[:alert] = t 'devise.omniauth_callbacks.failure', kind: 'Google', reason: "#{auth.info.email} is not authorized."
+      flash[:alert] = t "devise.omniauth_callbacks.failure", kind: "Google", reason: "#{auth.info.email} is not authorized."
       redirect_to new_admin_session_path
     end
   end
@@ -70,6 +70,6 @@ class Admins::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   end
 
   def auth
-    @auth ||= request.env['omniauth.auth']
+    @auth ||= request.env["omniauth.auth"]
   end
 end

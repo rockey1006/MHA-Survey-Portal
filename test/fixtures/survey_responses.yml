@@ -6,7 +6,7 @@ one:
   advisor_id: 1
   survey_id: 1
   semester: MyString
-  status: 1
+  status: in_progress
 
 two:
   surveyresponse_id: 1
@@ -14,4 +14,4 @@ two:
   advisor_id: 1
   survey_id: 1
   semester: MyString
-  status: 1
+  status: in_progress

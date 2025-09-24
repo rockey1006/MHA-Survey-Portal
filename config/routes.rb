@@ -1,5 +1,22 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  root to: 'dashboards#show'
+  
+  # Role-specific dashboard routes
+  get 'student_dashboard', to: 'dashboards#student', as: :student_dashboard
+  get 'advisor_dashboard', to: 'dashboards#advisor', as: :advisor_dashboard
+  get 'admin_dashboard', to: 'dashboards#admin', as: :admin_dashboard
+  
+  # Admin-specific management routes
+  get 'manage_members', to: 'dashboards#manage_members', as: :manage_members
+  patch 'update_roles', to: 'dashboards#update_roles', as: :update_roles
+  get 'debug_users', to: 'dashboards#debug_users', as: :debug_users
+  
+  devise_for :admins, controllers: { omniauth_callbacks: 'admins/omniauth_callbacks' }
+  
+  devise_scope :admin do
+    get 'admins/sign_in', to: 'admins/sessions#new', as: :new_admin_session
+    get 'admins/sign_out', to: 'admins/sessions#destroy', as: :destroy_admin_session
+  end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

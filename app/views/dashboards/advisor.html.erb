@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Advisor Dashboard - MHA Program</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <%= stylesheet_link_tag 'application', 'data-turbo-track': 'reload' %>
+</head>
+<body>
+  <%= render 'shared/advisor_navbar', active_page: 'home' %>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <section class="dashboard-section">
+      <div class="section-header">
+        <h1 class="section-title">Advisor Dashboard</h1>
+        <p class="section-subtitle">Student guidance for the MHA Program</p>
+      </div>
+      
+      <div class="dashboard-grid dashboard-grid-3">
+        <!-- Students -->
+        <div class="feature-item">
+          <div class="feature-icon">👨‍🎓</div>
+          <div class="feature-title">Students</div>
+          <div class="feature-description">0 assigned</div>
+        </div>
+
+        <!-- Surveys -->
+        <div class="feature-item">
+          <div class="feature-icon">📄</div>
+          <div class="feature-title">Surveys</div>
+          <div class="feature-description">0 active</div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="feature-item">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-title">Notifications</div>
+          <div class="feature-description">0 pending</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

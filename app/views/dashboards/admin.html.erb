@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard - MHA Program</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <%= stylesheet_link_tag 'application', 'data-turbo-track': 'reload' %>
+</head>
+<body>
+  <%= render 'shared/admin_navbar', active_page: 'home' %>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <section class="dashboard-section">
+      <div class="section-header">
+        <h1 class="section-title">Admin Dashboard</h1>
+        <p class="section-subtitle">System management for the MHA Program</p>
+      </div>
+      
+      <div class="dashboard-grid dashboard-grid-4">
+        <!-- Students -->
+        <div class="feature-item">
+          <div class="feature-icon">👨‍🎓</div>
+          <div class="feature-title">Students</div>
+          <div class="feature-description"><%= @total_students || 0 %> registered</div>
+        </div>
+
+        <!-- Surveys -->
+        <div class="feature-item">
+          <div class="feature-icon">📄</div>
+          <div class="feature-title">Surveys</div>
+          <div class="feature-description"><%= @total_surveys || 0 %> active</div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="feature-item">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-title">Notifications</div>
+          <div class="feature-description"><%= @total_notifications || 0 %> pending</div>
+        </div>
+
+        <!-- Members -->
+        <div class="feature-item admin-feature">
+          <%= link_to manage_members_path, class: "feature-link" do %>
+            <div class="feature-icon admin-icon">👨‍💼</div>
+            <div class="feature-title admin-title">Members</div>
+            <div class="feature-description"><%= @total_advisors || 0 %> advisors</div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

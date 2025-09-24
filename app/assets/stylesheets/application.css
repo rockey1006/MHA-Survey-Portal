@@ -8,3 +8,13 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+/*
+ *= require _variables
+ *= require _mixins
+ *= require _layout
+ *= require _flash_messages
+ *= require _forms
+ *= require _dashboards
+ *= require_self
+ */

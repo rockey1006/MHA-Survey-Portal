@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_24_213122) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_24_224817) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,7 +92,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_24_213122) do
     t.string "name"
     t.string "email"
     t.string "net_id"
-    t.integer "track"
+    t.string "track"
     t.integer "advisor_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -104,7 +104,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_24_213122) do
     t.integer "advisor_id"
     t.integer "survey_id"
     t.string "semester"
-    t.integer "status"
+    t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

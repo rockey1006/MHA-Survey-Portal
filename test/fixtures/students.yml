@@ -5,7 +5,7 @@ one:
   name: MyString
   email: MyString
   net_id: MyString
-  track: 1
+  track: executive
   advisor_id: 1
 
 two:
@@ -13,5 +13,5 @@ two:
   name: MyString
   email: MyString
   net_id: MyString
-  track: 1
+  track: executive
   advisor_id: 1

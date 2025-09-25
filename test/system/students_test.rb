@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class StudentsTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @student = students(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do

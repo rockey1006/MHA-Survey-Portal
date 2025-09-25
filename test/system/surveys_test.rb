@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class SurveysTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+  
   setup do
     @survey = surveys(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do

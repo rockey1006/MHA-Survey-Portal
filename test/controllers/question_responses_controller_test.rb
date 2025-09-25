@@ -2,7 +2,7 @@ require "test_helper"
 
 class QuestionResponsesControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
-  
+
   setup do
     @question_response = question_responses(:one)
     @admin = admins(:one)

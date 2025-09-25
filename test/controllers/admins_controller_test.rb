@@ -2,7 +2,7 @@ require "test_helper"
 
 class AdminsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
-  
+
   setup do
     @admin = admins(:one)
     sign_in @admin

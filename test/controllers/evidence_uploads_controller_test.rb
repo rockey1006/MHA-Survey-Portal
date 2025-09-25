@@ -2,7 +2,7 @@ require "test_helper"
 
 class EvidenceUploadsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
-  
+
   setup do
     @evidence_upload = evidence_uploads(:one)
     @admin = admins(:one)

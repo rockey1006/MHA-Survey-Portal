@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class EvidenceUploadsTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+  
   setup do
     @evidence_upload = evidence_uploads(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do

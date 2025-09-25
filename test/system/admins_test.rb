@@ -14,9 +14,11 @@ class AdminsTest < ApplicationSystemTestCase
     visit admins_url
     click_on "New admin"
 
-    fill_in "Admin", with: @admin.admin_id
+    fill_in "Full name", with: @admin.full_name
     fill_in "Email", with: @admin.email
-    fill_in "Name", with: @admin.name
+    fill_in "UID", with: @admin.uid
+    fill_in "Avatar url", with: @admin.avatar_url
+    fill_in "Role", with: @admin.role
     click_on "Create Admin"
 
     assert_text "Admin was successfully created"
@@ -27,9 +29,11 @@ class AdminsTest < ApplicationSystemTestCase
     visit admin_url(@admin)
     click_on "Edit this admin", match: :first
 
-    fill_in "Admin", with: @admin.admin_id
+    fill_in "Full name", with: @admin.full_name
     fill_in "Email", with: @admin.email
-    fill_in "Name", with: @admin.name
+    fill_in "UID", with: @admin.uid
+    fill_in "Avatar url", with: @admin.avatar_url
+    fill_in "Role", with: @admin.role
     click_on "Update Admin"
 
     assert_text "Admin was successfully updated"

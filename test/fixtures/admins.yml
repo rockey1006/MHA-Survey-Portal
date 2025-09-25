@@ -5,11 +5,15 @@
 # below each fixture, per the syntax in the comments below
 #
 one:
-  admin_id: 1
-  name: MyString
-  email: MyString
+  email: MyString1
+  full_name: MyString
+  role: MyString
+  uid: MyString
+  avatar_url: MyString
 
 two:
-  admin_id: 1
-  name: MyString
-  email: MyString
+  email: MyString2
+  full_name: MyString
+  role: MyString
+  uid: MyString
+  avatar_url: MyString

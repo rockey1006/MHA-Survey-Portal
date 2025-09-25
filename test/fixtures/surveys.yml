@@ -2,12 +2,16 @@
 
 one:
   survey_id: 1
+  title: MyString
+  semester: MyString
   assigned_date: 2025-09-23
   completion_date: 2025-09-23
   approval_date: 2025-09-23
 
 two:
   survey_id: 1
+  title: MyString
+  semester: MyString
   assigned_date: 2025-09-23
   completion_date: 2025-09-23
   approval_date: 2025-09-23

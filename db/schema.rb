@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_24_224817) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_25_200246) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -85,6 +85,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_24_224817) do
     t.string "question_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "question"
+    t.string "answer_options", default: [], array: true
   end
 
   create_table "students", force: :cascade do |t|
@@ -103,7 +105,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_24_224817) do
     t.integer "student_id"
     t.integer "advisor_id"
     t.integer "survey_id"
-    t.string "semester"
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -116,5 +117,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_24_224817) do
     t.date "approval_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "semester"
+    t.string "title"
   end
 end

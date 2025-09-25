@@ -15,7 +15,6 @@ class SurveyResponsesTest < ApplicationSystemTestCase
     click_on "New survey response"
 
     fill_in "Advisor", with: @survey_response.advisor_id
-    fill_in "Semester", with: @survey_response.semester
     fill_in "Status", with: @survey_response.status
     fill_in "Student", with: @survey_response.student_id
     fill_in "Survey", with: @survey_response.survey_id
@@ -31,7 +30,6 @@ class SurveyResponsesTest < ApplicationSystemTestCase
     click_on "Edit this survey response", match: :first
 
     fill_in "Advisor", with: @survey_response.advisor_id
-    fill_in "Semester", with: @survey_response.semester
     fill_in "Status", with: @survey_response.status
     fill_in "Student", with: @survey_response.student_id
     fill_in "Survey", with: @survey_response.survey_id

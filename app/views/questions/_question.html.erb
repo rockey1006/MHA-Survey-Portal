@@ -1,12 +1,12 @@
 <div id="<%= dom_id question %>">
   <p>
-    <strong>Question:</strong>
-    <%= question.question_id %>
+    <strong>Competency:</strong>
+    <%= question.competency_id %>
   </p>
 
   <p>
-    <strong>Competency:</strong>
-    <%= question.competency_id %>
+    <strong>Question:</strong>
+    <%= question.question %>
   </p>
 
   <p>
@@ -17,6 +17,11 @@
   <p>
     <strong>Question type:</strong>
     <%= question.question_type %>
+  </p>
+
+  <p>
+    <strong>Answer options:</strong>
+    <%= question.answer_options %>
   </p>
 
 </div>

@@ -17,7 +17,7 @@ class QuestionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create question" do
     assert_difference("Question.count") do
-      post questions_url, params: { question: { competency_id: @question.competency_id, question_id: @question.question_id, question_order: @question.question_order, question_type: @question.question_type } }
+      post questions_url, params: { question: { competency_id: @question.competency_id, question_id: @question.question_id, question: @question.question, question_order: @question.question_order, question_type: @question.question_type, answer_options: @question.answer_options } }
     end
 
     assert_redirected_to question_url(Question.last)
@@ -34,7 +34,7 @@ class QuestionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update question" do
-    patch question_url(@question), params: { question: { competency_id: @question.competency_id, question_id: @question.question_id, question_order: @question.question_order, question_type: @question.question_type } }
+    patch question_url(@question), params: { question: { competency_id: @question.competency_id, question_id: @question.question_id, question: @question.question, question_order: @question.question_order, question_type: @question.question_type, answer_options: @question.answer_options } }
     assert_redirected_to question_url(@question)
   end
 

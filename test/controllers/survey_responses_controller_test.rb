@@ -17,7 +17,7 @@ class SurveyResponsesControllerTest < ActionDispatch::IntegrationTest
 
   test "should create survey_response" do
     assert_difference("SurveyResponse.count") do
-      post survey_responses_url, params: { survey_response: { advisor_id: @survey_response.advisor_id, semester: @survey_response.semester, status: @survey_response.status, student_id: @survey_response.student_id, survey_id: @survey_response.survey_id, surveyresponse_id: @survey_response.surveyresponse_id } }
+      post survey_responses_url, params: { survey_response: { advisor_id: @survey_response.advisor_id, status: @survey_response.status, student_id: @survey_response.student_id, survey_id: @survey_response.survey_id, surveyresponse_id: @survey_response.surveyresponse_id } }
     end
 
     assert_redirected_to survey_response_url(SurveyResponse.last)
@@ -34,7 +34,7 @@ class SurveyResponsesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update survey_response" do
-    patch survey_response_url(@survey_response), params: { survey_response: { advisor_id: @survey_response.advisor_id, semester: @survey_response.semester, status: @survey_response.status, student_id: @survey_response.student_id, survey_id: @survey_response.survey_id, surveyresponse_id: @survey_response.surveyresponse_id } }
+    patch survey_response_url(@survey_response), params: { survey_response: { advisor_id: @survey_response.advisor_id, status: @survey_response.status, student_id: @survey_response.student_id, survey_id: @survey_response.survey_id, surveyresponse_id: @survey_response.surveyresponse_id } }
     assert_redirected_to survey_response_url(@survey_response)
   end
 

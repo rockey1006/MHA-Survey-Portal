@@ -13,7 +13,8 @@ class SurveysTest < ApplicationSystemTestCase
   test "should create survey" do
     visit surveys_url
     click_on "New survey"
-
+    fill_in "Title", with: @survey.title
+    fill_in "Semester", with: @survey.semester
     fill_in "Approval date", with: @survey.approval_date
     fill_in "Assigned date", with: @survey.assigned_date
     fill_in "Completion date", with: @survey.completion_date
@@ -27,7 +28,8 @@ class SurveysTest < ApplicationSystemTestCase
   test "should update Survey" do
     visit survey_url(@survey)
     click_on "Edit this survey", match: :first
-
+    fill_in "Title", with: @survey.title
+    fill_in "Semester", with: @survey.semester
     fill_in "Approval date", with: @survey.approval_date
     fill_in "Assigned date", with: @survey.assigned_date
     fill_in "Completion date", with: @survey.completion_date

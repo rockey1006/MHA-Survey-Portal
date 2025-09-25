@@ -1,8 +1,12 @@
 require "test_helper"
 
 class CompetenciesControllerTest < ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @competency = competencies(:one)
+    @admin = admins(:one)
+    sign_in @admin
   end
 
   test "should get index" do

@@ -56,7 +56,15 @@ class SurveysController < ApplicationController
       format.json { head :no_content }
     end
   end
+  # POST /surveys/1/submit
+  def submit
+    @survey = Survey.find(params[:id])
 
+
+    Rails.logger.info "Survey #{@survey.id} submitted with params: #{params.inspect}"
+
+    redirect_to student_dashboard_path, notice: "Survey submitted successfully!"
+  end
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_survey

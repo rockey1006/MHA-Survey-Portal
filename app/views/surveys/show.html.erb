@@ -1,10 +1,48 @@
-<p style="color: green"><%= notice %></p>
+<% survey_name =
+  case @survey.survey_id
+  when 1 then "Current Residential and Executive MHA Track Study Survey"
+  when 2 then "Competency Self-Assessment Survey"
+  when 3 then "Final Feedback Survey"
+  else "Survey ##{@survey.survey_id}"
+  end
+%>
 
-<%= render @survey %>
+<div class="survey-container">
+  <h1 class="survey-title"><%= survey_name %></h1>
 
-<div>
-  <%= link_to "Edit this survey", edit_survey_path(@survey) %> |
-  <%= link_to "Back to surveys", surveys_path %>
+  <%= form_with url: submit_survey_path(@survey), local: true, class: "survey-form" do |f| %>
+    <div class="form-group">
+      <%= f.label :track, "Which track are you in?", class: "form-label" %>
+      <%= f.select :track, ["Residential", "Executive"], {}, class: "form-control" %>
+    </div>
 
-  <%= button_to "Destroy this survey", @survey, method: :delete %>
+    <div class="form-group">
+      <%= f.label :skills, "Which skills have you improved?", class: "form-label" %>
+      <% ["Leadership", "Analytics", "Finance"].each do |skill| %>
+        <label class="form-check">
+          <%= f.check_box :skills, { multiple: true }, skill, nil %>
+          <span><%= skill %></span>
+        </label>
+      <% end %>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :confidence, "Do you feel confident about your progress?", class: "form-label" %><br>
+      <label class="form-check">
+        <%= f.radio_button :confidence, true %> True
+      </label>
+      <label class="form-check">
+        <%= f.radio_button :confidence, false %> False
+      </label>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :feedback, "Additional Feedback:", class: "form-label" %>
+      <%= f.text_area :feedback, rows: 3, class: "form-control" %>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit "Submit Survey", class: "btn btn-primary" %>
+    </div>
+  <% end %>
 </div>

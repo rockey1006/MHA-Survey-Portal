@@ -56,3 +56,28 @@ Admin.find_or_create_by(email: 'ruoqiwei@tamu.edu') do |admin|
   admin.role = 'admin'
   puts "Created admin user: #{admin.email}"
 end
+
+
+# Create some sample surveys
+Survey.find_or_create_by!(id: 1) do |s|
+  s.survey_id = "Survey 1"
+  s.assigned_date = Date.today
+  s.completion_date = nil
+  s.approval_date = nil
+end
+
+Survey.find_or_create_by!(id: 2) do |s|
+  s.survey_id = "Survey 2"
+  s.assigned_date = Date.today
+  s.completion_date = nil
+  s.approval_date = nil
+end
+
+Survey.find_or_create_by!(id: 3) do |s|
+  s.survey_id = "Survey 3"
+  s.assigned_date = Date.today
+  s.completion_date = nil
+  s.approval_date = nil
+end
+
+puts "Created default surveys"

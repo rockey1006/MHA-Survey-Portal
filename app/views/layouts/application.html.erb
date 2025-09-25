@@ -28,6 +28,9 @@
         <section class="flash flash__<%= key %>"><%= value.html_safe %></section>
       <% end -%>
     <% end %>
+
+    <%= render "shared/student_navbar" %>
+
     <%= yield %>
   </body>
 </html>

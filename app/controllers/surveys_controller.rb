@@ -65,6 +65,6 @@ class SurveysController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def survey_params
-      params.expect(survey: [ :survey_id, :assigned_date, :completion_date, :approval_date ])
+      params.expect(survey: [ :survey_id, :semester, :title, :assigned_date, :completion_date, :approval_date ])
     end
 end

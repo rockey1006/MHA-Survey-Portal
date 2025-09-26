@@ -1,3 +1,13 @@
 class SurveyResponse < ApplicationRecord
-    enum status: { not_started: 0, in_progress: 1, submitted: 2, under_review: 3, approved: 4 }
+  enum :status, {
+    not_started: "not_started",
+    in_progress: "in_progress",
+    submitted: "submitted",
+    under_review: "under_review",
+    approved: "approved"
+  }, prefix: true
+
+  belongs_to :survey, optional: true  
+  belongs_to :student, optional: true
+  belongs_to :advisor, optional: true
 end

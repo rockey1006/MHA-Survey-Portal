@@ -1,4 +1,7 @@
-
 class Student < ApplicationRecord
-        enum track: { residential: 0, executive: 1 }
+  enum :track, { residential: "residential", executive: "executive" }, prefix: true
+end
+
+class Survey < ApplicationRecord
+  has_many :survey_responses
 end

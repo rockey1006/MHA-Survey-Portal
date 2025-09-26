@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class StudentsTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @student = students(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do
@@ -14,7 +17,7 @@ class StudentsTest < ApplicationSystemTestCase
     visit students_url
     click_on "New student"
 
-    fill_in "Netid", with: @student.net_id
+    fill_in "Net id", with: @student.net_id
     fill_in "Advisor", with: @student.advisor_id
     fill_in "Email", with: @student.email
     fill_in "Name", with: @student.name
@@ -30,7 +33,7 @@ class StudentsTest < ApplicationSystemTestCase
     visit student_url(@student)
     click_on "Edit this student", match: :first
 
-    fill_in "Netid", with: @student.net_id
+    fill_in "Net id", with: @student.net_id
     fill_in "Advisor", with: @student.advisor_id
     fill_in "Email", with: @student.email
     fill_in "Name", with: @student.name

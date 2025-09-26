@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class EvidenceUploadsTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @evidence_upload = evidence_uploads(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do
@@ -16,7 +19,7 @@ class EvidenceUploadsTest < ApplicationSystemTestCase
 
     fill_in "Competencyresponse", with: @evidence_upload.competencyresponse_id
     fill_in "Evidenceupload", with: @evidence_upload.evidenceupload_id
-    fill_in "File type", with: @evidence_upload.file_type
+    fill_in "Link", with: @evidence_upload.link
     fill_in "Questionresponse", with: @evidence_upload.questionresponse_id
     click_on "Create Evidence upload"
 
@@ -30,7 +33,7 @@ class EvidenceUploadsTest < ApplicationSystemTestCase
 
     fill_in "Competencyresponse", with: @evidence_upload.competencyresponse_id
     fill_in "Evidenceupload", with: @evidence_upload.evidenceupload_id
-    fill_in "File type", with: @evidence_upload.file_type
+    fill_in "Link", with: @evidence_upload.link
     fill_in "Questionresponse", with: @evidence_upload.questionresponse_id
     click_on "Update Evidence upload"
 

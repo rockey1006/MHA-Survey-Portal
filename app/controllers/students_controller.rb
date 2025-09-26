@@ -38,7 +38,7 @@ class StudentsController < ApplicationController
   def update
     respond_to do |format|
       if @student.update(student_params)
-        format.html { redirect_to @student, notice: "Student was successfully updated.", status: :see_other }
+        format.html { redirect_to @student, notice: "Student was successfully updated." }
         format.json { render :show, status: :ok, location: @student }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -52,7 +52,7 @@ class StudentsController < ApplicationController
     @student.destroy!
 
     respond_to do |format|
-      format.html { redirect_to students_path, notice: "Student was successfully destroyed.", status: :see_other }
+      format.html { redirect_to students_path, notice: "Student was successfully destroyed." }
       format.json { head :no_content }
     end
   end
@@ -65,6 +65,13 @@ class StudentsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def student_params
-      params.expect(student: [ :student_id, :name, :email, :NetID, :track, :advisor_id ])
+      params.require(:student).permit(
+        :student_id,
+        :name,
+        :email,
+        :net_id,
+        :track,
+        :advisor_id
+      )
     end
 end

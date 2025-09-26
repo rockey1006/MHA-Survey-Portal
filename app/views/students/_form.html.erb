@@ -1,4 +1,4 @@
-<%= form_with(model: student) do |form| %>
+<%= form_with(model: student, local: true) do |form| %>
   <% if student.errors.any? %>
     <div style="color: red">
       <h2><%= pluralize(student.errors.count, "error") %> prohibited this student from being saved:</h2>
@@ -27,13 +27,13 @@
   </div>
 
   <div>
-    <%= form.label :NetID, style: "display: block" %>
-    <%= form.text_field :NetID %>
+    <%= form.label :net_id, "Net id", style: "display: block" %>
+    <%= form.text_field :net_id %>
   </div>
 
   <div>
     <%= form.label :track, style: "display: block" %>
-    <%= form.number_field :track %>
+    <%= form.text_field :track %>
   </div>
 
   <div>

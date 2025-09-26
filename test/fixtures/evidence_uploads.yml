@@ -4,10 +4,10 @@ one:
   evidenceupload_id: 1
   questionresponse_id: 1
   competencyresponse_id: 1
-  file_type: MyString
+  link: MyString
 
 two:
   evidenceupload_id: 1
   questionresponse_id: 1
   competencyresponse_id: 1
-  file_type: MyString
+  link: MyString

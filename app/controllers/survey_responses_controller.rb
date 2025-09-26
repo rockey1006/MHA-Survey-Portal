@@ -38,7 +38,7 @@ class SurveyResponsesController < ApplicationController
   def update
     respond_to do |format|
       if @survey_response.update(survey_response_params)
-        format.html { redirect_to @survey_response, notice: "Survey response was successfully updated.", status: :see_other }
+        format.html { redirect_to @survey_response, notice: "Survey response was successfully updated." }
         format.json { render :show, status: :ok, location: @survey_response }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -65,6 +65,12 @@ class SurveyResponsesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def survey_response_params
-      params.expect(survey_response: [ :surveyresponse_id, :student_id, :advisor_id, :survey_id, :semester, :status ])
+      params.require(:survey_response).permit(
+        :surveyresponse_id,
+        :student_id,
+        :advisor_id,
+        :survey_id,
+        :status
+      )
     end
 end

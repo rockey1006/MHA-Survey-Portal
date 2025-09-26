@@ -3,11 +3,15 @@
 one:
   question_id: 1
   competency_id: 1
+  question: MyString
   question_order: 1
   question_type: MyString
+  answer_options: ["Yes", "No"]
 
 two:
   question_id: 1
   competency_id: 1
+  question: MyString
   question_order: 1
   question_type: MyString
+  answer_options: ["Yes", "No"]

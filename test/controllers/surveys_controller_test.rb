@@ -1,8 +1,12 @@
 require "test_helper"
 
 class SurveysControllerTest < ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @survey = surveys(:one)
+    @admin = admins(:one)
+    sign_in @admin
   end
 
   test "should get index" do
@@ -17,7 +21,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
   test "should create survey" do
     assert_difference("Survey.count") do
-      post surveys_url, params: { survey: { approval_date: @survey.approval_date, assigned_date: @survey.assigned_date, completion_date: @survey.completion_date, survey_id: @survey.survey_id } }
+      post surveys_url, params: { survey: { title: @survey.title, semester: @survey.semester, approval_date: @survey.approval_date, assigned_date: @survey.assigned_date, completion_date: @survey.completion_date, survey_id: @survey.survey_id } }
     end
 
     assert_redirected_to survey_url(Survey.last)
@@ -34,7 +38,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update survey" do
-    patch survey_url(@survey), params: { survey: { approval_date: @survey.approval_date, assigned_date: @survey.assigned_date, completion_date: @survey.completion_date, survey_id: @survey.survey_id } }
+    patch survey_url(@survey), params: { survey: { title: @survey.title, semester: @survey.semester, approval_date: @survey.approval_date, assigned_date: @survey.assigned_date, completion_date: @survey.completion_date, survey_id: @survey.survey_id } }
     assert_redirected_to survey_url(@survey)
   end
 

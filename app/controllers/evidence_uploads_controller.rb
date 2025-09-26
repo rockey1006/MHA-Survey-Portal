@@ -65,6 +65,6 @@ class EvidenceUploadsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def evidence_upload_params
-      params.expect(evidence_upload: [ :evidenceupload_id, :questionresponse_id, :competencyresponse_id, :file_type ])
+      params.expect(evidence_upload: [ :evidenceupload_id, :questionresponse_id, :competencyresponse_id, :link ])
     end
 end

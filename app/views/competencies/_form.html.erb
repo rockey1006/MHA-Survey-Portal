@@ -1,4 +1,4 @@
-<%= form_with(model: competency) do |form| %>
+<%= form_with(model: competency, local: true) do |form| %>
   <% if competency.errors.any? %>
     <div style="color: red">
       <h2><%= pluralize(competency.errors.count, "error") %> prohibited this competency from being saved:</h2>

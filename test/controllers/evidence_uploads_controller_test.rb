@@ -1,8 +1,12 @@
 require "test_helper"
 
 class EvidenceUploadsControllerTest < ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @evidence_upload = evidence_uploads(:one)
+    @admin = admins(:one)
+    sign_in @admin
   end
 
   test "should get index" do
@@ -17,7 +21,7 @@ class EvidenceUploadsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create evidence_upload" do
     assert_difference("EvidenceUpload.count") do
-      post evidence_uploads_url, params: { evidence_upload: { competencyresponse_id: @evidence_upload.competencyresponse_id, evidenceupload_id: @evidence_upload.evidenceupload_id, file_type: @evidence_upload.file_type, questionresponse_id: @evidence_upload.questionresponse_id } }
+      post evidence_uploads_url, params: { evidence_upload: { competencyresponse_id: @evidence_upload.competencyresponse_id, evidenceupload_id: @evidence_upload.evidenceupload_id, link: @evidence_upload.link, questionresponse_id: @evidence_upload.questionresponse_id } }
     end
 
     assert_redirected_to evidence_upload_url(EvidenceUpload.last)
@@ -34,7 +38,7 @@ class EvidenceUploadsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update evidence_upload" do
-    patch evidence_upload_url(@evidence_upload), params: { evidence_upload: { competencyresponse_id: @evidence_upload.competencyresponse_id, evidenceupload_id: @evidence_upload.evidenceupload_id, file_type: @evidence_upload.file_type, questionresponse_id: @evidence_upload.questionresponse_id } }
+    patch evidence_upload_url(@evidence_upload), params: { evidence_upload: { competencyresponse_id: @evidence_upload.competencyresponse_id, evidenceupload_id: @evidence_upload.evidenceupload_id, link: @evidence_upload.link, questionresponse_id: @evidence_upload.questionresponse_id } }
     assert_redirected_to evidence_upload_url(@evidence_upload)
   end
 

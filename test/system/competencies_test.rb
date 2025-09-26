@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class CompetenciesTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @competency = competencies(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do

@@ -1,8 +1,11 @@
 require "application_system_test_case"
 
 class FeedbacksTest < ApplicationSystemTestCase
+  include Devise::Test::IntegrationHelpers
+
   setup do
     @feedback = feedbacks(:one)
+    sign_in admins(:one)
   end
 
   test "visiting the index" do

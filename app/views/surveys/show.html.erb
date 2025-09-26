@@ -56,7 +56,7 @@
 
 <div class="actions">
   <%= link_to "Edit this survey", edit_survey_path(@survey), class: "btn btn-secondary" %>
-  <%= link_to "Destroy this survey", survey_path(@survey), method: :delete, data: { confirm: "Are you sure?" }, class: "btn btn-danger" %>
+  <%= button_to "Destroy this survey", survey_path(@survey), method: :delete, data: { confirm: "Are you sure?" }, class: "btn btn-danger" %>
   <%= link_to "Back", surveys_path, class: "btn btn-link" %>
 </div>
 </div>

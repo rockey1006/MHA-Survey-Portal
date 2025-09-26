@@ -17,12 +17,12 @@ class QuestionsTest < ApplicationSystemTestCase
     visit questions_url
     click_on "New question"
 
-  fill_in "Competency id", with: @question.competency_id
-  fill_in "Question", with: @question.question
-  fill_in "Question order", with: @question.question_order
-  fill_in "Question type", with: @question.question_type
-  fill_in "Answer options", with: Array(@question.answer_options).join(", ")
-  click_button "Create Question", wait: 5
+  fill_in "question_competency_id", with: @question.competency_id
+  fill_in "question_question", with: @question.question
+  fill_in "question_question_order", with: @question.question_order
+  fill_in "question_question_type", with: @question.question_type
+  fill_in "question_answer_options", with: Array(@question.answer_options).join(", ")
+  find_button("Create Question").click
 
     assert_text "Question was successfully created"
     click_on "Back"
@@ -32,12 +32,12 @@ class QuestionsTest < ApplicationSystemTestCase
     visit question_url(@question)
     click_on "Edit this question", match: :first
 
-  fill_in "Competency id", with: @question.competency_id
-  fill_in "Question", with: @question.question
-  fill_in "Question order", with: @question.question_order
-  fill_in "Question type", with: @question.question_type
-  fill_in "Answer options", with: Array(@question.answer_options).join(", ")
-  click_button "Update Question", wait: 5
+  fill_in "question_competency_id", with: @question.competency_id
+  fill_in "question_question", with: @question.question
+  fill_in "question_question_order", with: @question.question_order
+  fill_in "question_question_type", with: @question.question_type
+  fill_in "question_answer_options", with: Array(@question.answer_options).join(", ")
+  find_button("Update Question").click
 
     assert_text "Question was successfully updated"
     click_on "Back"

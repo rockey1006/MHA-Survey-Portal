@@ -102,3 +102,11 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+      
+      - name: Upload tmp folder
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: tmp-artifacts
+          path: ${{ github.workspace }}/tmp/
+          if-no-files-found: ignore

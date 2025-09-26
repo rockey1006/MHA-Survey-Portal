@@ -37,6 +37,10 @@
   </div>
 
   <div>
-    <%= form.submit %>
+    <% if question.persisted? %>
+      <%= form.submit "Update Question" %>
+    <% else %>
+      <%= form.submit "Create Question" %>
+    <% end %>
   </div>
 <% end %>

@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Ensure binstubs
+        run: bundle exec rake app:update:bin
       - name: Setup DB
         run: bin/rails db:create db:schema:load --trace RAILS_ENV=test
       - name: Checkout code

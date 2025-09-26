@@ -5,7 +5,8 @@ class AdminsTest < ApplicationSystemTestCase
 
   setup do
     @admin = admins(:one)
-    sign_in admins(:one)
+    @other_admin = admins(:two)
+    sign_in @other_admin
   end
 
   test "visiting the index" do

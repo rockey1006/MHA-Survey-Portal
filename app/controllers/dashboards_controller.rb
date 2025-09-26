@@ -46,11 +46,11 @@ class DashboardsController < ApplicationController
         if survey.competencies.empty?
           comp = survey.competencies.create!(name: "Default competency #{survey.id}", description: "Auto-generated")
           # create five questions: select, checkbox, radio, text, text
-          comp.questions.create!(question_order: 1, question_type: 'select', question: 'Choose your primary focus', answer_options: 'Leadership,Analytics,Finance')
-          comp.questions.create!(question_order: 2, question_type: 'checkbox', question: 'Which skills improved', answer_options: 'Leadership,Analytics,Finance')
-          comp.questions.create!(question_order: 3, question_type: 'radio', question: 'Do you feel confident?', answer_options: 'Yes,No')
-          comp.questions.create!(question_order: 4, question_type: 'text', question: 'Please describe one achievement', answer_options: nil)
-          comp.questions.create!(question_order: 5, question_type: 'text', question: 'Any additional feedback', answer_options: nil)
+          comp.questions.create!(question_order: 1, question_type: "select", question: "Choose your primary focus", answer_options: "Leadership,Analytics,Finance")
+          comp.questions.create!(question_order: 2, question_type: "checkbox", question: "Which skills improved", answer_options: "Leadership,Analytics,Finance")
+          comp.questions.create!(question_order: 3, question_type: "radio", question: "Do you feel confident?", answer_options: "Yes,No")
+          comp.questions.create!(question_order: 4, question_type: "text", question: "Please describe one achievement", answer_options: nil)
+          comp.questions.create!(question_order: 5, question_type: "text", question: "Any additional feedback", answer_options: nil)
         end
 
         # create a SurveyResponse for this student if missing

@@ -24,13 +24,13 @@ class SurveyResponsesController < ApplicationController
       format.pdf do
         html = render_to_string(
           template: "survey_responses/show",
-          layout: 'pdf',
-          encoding: 'UTF-8',
+          layout: "pdf",
+          encoding: "UTF-8",
           locals: { :@survey_response => @survey_response, :@question_responses => @question_responses }
         )
         render pdf: "survey_response_#{@survey_response.id}",
                html: html,
-               encoding: 'UTF-8'
+               encoding: "UTF-8"
       end
     end
   end
@@ -44,7 +44,7 @@ class SurveyResponsesController < ApplicationController
   def edit
     # Only non-student users (advisors/admins) may edit
     if current_student && @survey_response.student_id == current_student.id
-      redirect_to @survey_response, alert: 'Students are not allowed to edit survey responses.'
+      redirect_to @survey_response, alert: "Students are not allowed to edit survey responses."
     end
   end
 
@@ -67,7 +67,7 @@ class SurveyResponsesController < ApplicationController
   def update
     # Prevent students from updating
     if current_student && @survey_response.student_id == current_student.id
-      redirect_to @survey_response, alert: 'Students are not allowed to update survey responses.' and return
+      redirect_to @survey_response, alert: "Students are not allowed to update survey responses." and return
     end
     respond_to do |format|
       if @survey_response.update(survey_response_params)
@@ -84,7 +84,7 @@ class SurveyResponsesController < ApplicationController
   def destroy
     # Prevent students from destroying
     if current_student && @survey_response.student_id == current_student.id
-      redirect_to survey_responses_path, alert: 'Students are not allowed to destroy survey responses.' and return
+      redirect_to survey_responses_path, alert: "Students are not allowed to destroy survey responses." and return
     end
     @survey_response.destroy!
 
@@ -99,9 +99,9 @@ class SurveyResponsesController < ApplicationController
     # Only allow reopening if current_student owns it
     if current_student && @survey_response.student_id == current_student.id
       @survey_response.update!(status: SurveyResponse.statuses[:not_started])
-      redirect_to student_dashboard_path, notice: 'Survey has been moved back to To-do.'
+      redirect_to student_dashboard_path, notice: "Survey has been moved back to To-do."
     else
-      redirect_to survey_responses_path, alert: 'Not authorized to reopen this survey.'
+      redirect_to survey_responses_path, alert: "Not authorized to reopen this survey."
     end
   end
 
@@ -115,7 +115,7 @@ class SurveyResponsesController < ApplicationController
       # Students may only view their own survey responses. Advisors and admins can view any.
       return unless current_student
       if @survey_response && @survey_response.student_id != current_student.id
-        redirect_to student_dashboard_path, alert: 'You are not authorized to view that survey response.'
+        redirect_to student_dashboard_path, alert: "You are not authorized to view that survey response."
       end
     end
 

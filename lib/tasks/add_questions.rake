@@ -3,9 +3,9 @@
 #   SURVEY=1 bundle exec rake survey:add_questions
 # This will try to find Survey by `survey_id` column first, then by primary `id`.
 namespace :survey do
-  desc 'Append three questions to a survey. Use SURVEY=... (survey_id or id).'
+  desc "Append three questions to a survey. Use SURVEY=... (survey_id or id)."
   task add_questions: :environment do
-    sid_str = ENV['SURVEY'] || ENV['SURVEY_ID'] || '1'
+    sid_str = ENV["SURVEY"] || ENV["SURVEY_ID"] || "1"
     sid = sid_str.to_i
 
     survey = Survey.find_by(survey_id: sid) || Survey.find_by(id: sid)
@@ -14,14 +14,14 @@ namespace :survey do
       next
     end
 
-    comp = survey.competencies.first || survey.competencies.create!(name: "Additional questions for survey #{survey.id}", description: 'Auto-added by rake task')
+    comp = survey.competencies.first || survey.competencies.create!(name: "Additional questions for survey #{survey.id}", description: "Auto-added by rake task")
 
     last_order = comp.questions.maximum(:question_order) || 0
 
     questions = [
-      { question_type: 'text', question: 'Describe one challenge you faced', answer_options: nil },
-      { question_type: 'radio', question: 'Would you recommend this program to a peer?', answer_options: 'Yes,No' },
-      { question_type: 'checkbox', question: 'Which resources did you use during the program?', answer_options: 'Library,Workshops,Online,Peers' }
+      { question_type: "text", question: "Describe one challenge you faced", answer_options: nil },
+      { question_type: "radio", question: "Would you recommend this program to a peer?", answer_options: "Yes,No" },
+      { question_type: "checkbox", question: "Which resources did you use during the program?", answer_options: "Library,Workshops,Online,Peers" }
     ]
 
     created = []

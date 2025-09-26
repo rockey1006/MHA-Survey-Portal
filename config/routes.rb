@@ -43,7 +43,7 @@ Rails.application.routes.draw do
   # root "posts#index"
 
   # Survey routes
-  resources :surveys, only: [:index, :show] do
+  resources :surveys, only: [ :index, :show ] do
     post :submit, on: :member
   end
 

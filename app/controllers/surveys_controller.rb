@@ -84,7 +84,7 @@ class SurveysController < ApplicationController
     end
 
     unless student
-      redirect_to student_dashboard_path, alert: 'Student record not found for current user.'
+      redirect_to student_dashboard_path, alert: "Student record not found for current user."
       return
     end
 
@@ -117,15 +117,15 @@ class SurveysController < ApplicationController
       # create or update existing question_response scoped to the competency_response
       qr = if comp_resp
              QuestionResponse.find_or_initialize_by(question_id: qid, competencyresponse_id: comp_resp.id)
-           else
+      else
              # Fallback: if no competency available, store with nil competencyresponse (legacy behavior)
              QuestionResponse.find_or_initialize_by(question_id: qid, competencyresponse_id: nil)
-           end
+      end
       qr.answer = response_value
       qr.save!
     end
 
-    redirect_to survey_response_path(survey_response), notice: 'Survey submitted successfully!'
+    redirect_to survey_response_path(survey_response), notice: "Survey submitted successfully!"
   end
   private
     # Use callbacks to share common setup or constraints between actions.

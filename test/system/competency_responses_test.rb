@@ -20,7 +20,7 @@ class CompetencyResponsesTest < ApplicationSystemTestCase
     fill_in "Competency", with: @competency_response.competency_id
     fill_in "Competencyresponse", with: @competency_response.competencyresponse_id
     fill_in "Surveyresponse", with: @competency_response.surveyresponse_id
-    click_on "Create CompetencyResponse"
+    click_on "Create Competency response"
 
     assert_text "Competency response was successfully created"
     click_on "Back"

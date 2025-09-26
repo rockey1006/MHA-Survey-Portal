@@ -1,4 +1,4 @@
 
 class Student < ApplicationRecord
-    enum track: [:residential, :executive]
+        enum track: [ :residential, :executive ]
 end

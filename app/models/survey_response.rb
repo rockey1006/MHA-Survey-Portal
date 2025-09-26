@@ -7,7 +7,7 @@ class SurveyResponse < ApplicationRecord
     approved: "approved"
   }, prefix: true
 
-  belongs_to :survey, optional: true  
+  belongs_to :survey, optional: true
   belongs_to :student, optional: true
   belongs_to :advisor, optional: true
 end

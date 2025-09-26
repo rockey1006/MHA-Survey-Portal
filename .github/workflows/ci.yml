@@ -90,7 +90,7 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
           PGHOST: localhost
-        run: bin/rails db:create db:schema:load --trace RAILS_ENV=test
+        run: bin/rails db:create db:migrate --trace RAILS_ENV=test
       - name: Run tests
         env:
           RAILS_ENV: test

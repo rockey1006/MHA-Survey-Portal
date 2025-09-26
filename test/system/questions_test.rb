@@ -21,7 +21,7 @@ class QuestionsTest < ApplicationSystemTestCase
     fill_in "Question", with: @question.question
     fill_in "Question order", with: @question.question_order
     fill_in "Question type", with: @question.question_type
-  fill_in "Answer options", with: Array(@question.answer_options).join(", ")
+    fill_in "Answer options", with: Array(@question.answer_options).join(", ")
     click_on "Create Question"
 
     assert_text "Question was successfully created"
@@ -36,7 +36,7 @@ class QuestionsTest < ApplicationSystemTestCase
     fill_in "Question", with: @question.question
     fill_in "Question order", with: @question.question_order
     fill_in "Question type", with: @question.question_type
-  fill_in "Answer options", with: Array(@question.answer_options).join(", ")
+    fill_in "Answer options", with: Array(@question.answer_options).join(", ")
     click_on "Update Question"
 
     assert_text "Question was successfully updated"

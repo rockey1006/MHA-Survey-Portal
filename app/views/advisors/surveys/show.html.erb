@@ -1,0 +1,28 @@
+<main class="main-content">
+  <section class="dashboard-section">
+    <div class="section-header">
+      <h1 class="section-title">Assign Survey</h1>
+      <p class="section-subtitle"><%= @survey[:title] %> — <%= @survey[:description] %></p>
+    </div>
+
+    <div class="dashboard-grid dashboard-grid-3">
+      <% @students.each do |s| %>
+        <div class="feature-item">
+          <div class="feature-icon" aria-hidden="true">🎓</div>
+          <div class="feature-title"><%= "#{s[:first_name]} #{s[:last_name]}" %></div>
+          <div class="feature-description">Click to assign this survey</div>
+          <div style="margin-top: 0.75rem;">
+            <%= button_to "Assign to #{s[:first_name]}",
+                          assign_advisors_survey_path(@survey[:id], student_id: s[:id]),
+                          method: :post,
+                          class: "btn" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div style="margin-top: 1rem;">
+      <%= link_to "← Back to Surveys", advisors_surveys_path %>
+    </div>
+  </section>
+</main>

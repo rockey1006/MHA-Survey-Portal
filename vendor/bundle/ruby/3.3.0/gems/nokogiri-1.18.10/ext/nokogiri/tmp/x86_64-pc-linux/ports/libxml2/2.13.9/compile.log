@@ -1,0 +1,96 @@
+make  all-recursive
+make[1]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9'
+Making all in include
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include'
+Making all in libxml
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include/libxml'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include/libxml'
+Making all in private
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include/private'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include/private'
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include'
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/include'
+Making all in .
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9'
+  CC       xmllint-xmllint.o
+  CC       libxml2_la-buf.lo
+  CC       libxml2_la-chvalid.lo
+  CC       libxml2_la-dict.lo
+  CC       libxml2_la-entities.lo
+entities.c: In function 'xmlEncodeEntitiesInternal':
+entities.c:542:68: warning: unused parameter 'attr' [-Wunused-parameter]
+  542 | xmlEncodeEntitiesInternal(xmlDocPtr doc, const xmlChar *input, int attr) {
+      |                                                                ~~~~^~~~
+  CC       libxml2_la-encoding.lo
+  CC       libxml2_la-error.lo
+  CC       libxml2_la-globals.lo
+  CC       libxml2_la-hash.lo
+  CC       libxml2_la-list.lo
+  CC       libxml2_la-parser.lo
+  CC       libxml2_la-parserInternals.lo
+  CC       libxml2_la-SAX2.lo
+  CC       libxml2_la-threads.lo
+  CC       libxml2_la-tree.lo
+  CC       libxml2_la-uri.lo
+  CC       libxml2_la-valid.lo
+  CC       libxml2_la-xmlIO.lo
+  CC       libxml2_la-xmlmemory.lo
+  CC       libxml2_la-xmlstring.lo
+  CC       libxml2_la-c14n.lo
+  CC       libxml2_la-catalog.lo
+  CC       libxml2_la-debugXML.lo
+  CC       libxml2_la-HTMLparser.lo
+  CC       libxml2_la-HTMLtree.lo
+  CC       libxml2_la-nanohttp.lo
+  CC       libxml2_la-legacy.lo
+  CC       libxml2_la-SAX.lo
+  CC       libxml2_la-xmlmodule.lo
+  CC       libxml2_la-xmlsave.lo
+  CC       libxml2_la-pattern.lo
+  CC       libxml2_la-xmlreader.lo
+  CC       libxml2_la-xmlregexp.lo
+  CC       libxml2_la-xmlunicode.lo
+  CC       libxml2_la-relaxng.lo
+  CC       libxml2_la-xmlschemas.lo
+  CC       libxml2_la-xmlschemastypes.lo
+  CC       libxml2_la-schematron.lo
+  CC       libxml2_la-xmlwriter.lo
+  CC       libxml2_la-xinclude.lo
+  CC       libxml2_la-xpath.lo
+  CC       libxml2_la-xlink.lo
+  CC       libxml2_la-xpointer.lo
+  CCLD     libxml2.la
+  CCLD     xmllint
+  CC       xmlcatalog-xmlcatalog.o
+  CCLD     xmlcatalog
+  CC       testdso.lo
+  CCLD     testdso.la
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9'
+Making all in doc
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/doc'
+Making all in .
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/doc'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/doc'
+Making all in devhelp
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/doc/devhelp'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/doc/devhelp'
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/doc'
+Making all in example
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/example'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/example'
+Making all in xstc
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/xstc'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/xstc'
+Making all in fuzz
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/fuzz'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9/fuzz'
+make[1]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxml2/2.13.9/libxml2-2.13.9'

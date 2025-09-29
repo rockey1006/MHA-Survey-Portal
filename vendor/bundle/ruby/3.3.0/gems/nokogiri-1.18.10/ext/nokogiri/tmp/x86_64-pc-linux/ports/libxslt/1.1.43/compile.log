@@ -1,0 +1,98 @@
+make  all-recursive
+make[1]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43'
+Making all in libxslt
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/libxslt'
+  CC       attrvt.lo
+  CC       xslt.lo
+  CC       xsltlocale.lo
+  CC       xsltutils.lo
+  CC       pattern.lo
+  CC       templates.lo
+  CC       variables.lo
+  CC       keys.lo
+  CC       numbers.lo
+  CC       extensions.lo
+  CC       extra.lo
+  CC       functions.lo
+  CC       namespaces.lo
+  CC       imports.lo
+  CC       attributes.lo
+  CC       documents.lo
+  CC       preproc.lo
+  CC       transform.lo
+  CC       security.lo
+  CCLD     libxslt.la
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/libxslt'
+Making all in libexslt
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/libexslt'
+  CC       libexslt_la-exslt.lo
+  CC       libexslt_la-common.lo
+  CC       libexslt_la-crypto.lo
+  CC       libexslt_la-math.lo
+  CC       libexslt_la-sets.lo
+  CC       libexslt_la-functions.lo
+  CC       libexslt_la-strings.lo
+  CC       libexslt_la-date.lo
+  CC       libexslt_la-saxon.lo
+  CC       libexslt_la-dynamic.lo
+  CCLD     libexslt.la
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/libexslt'
+Making all in xsltproc
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/xsltproc'
+  CC       xsltproc.o
+  CCLD     xsltproc
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/xsltproc'
+Making all in doc
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc'
+Making all in devhelp
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc/devhelp'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc/devhelp'
+Making all in EXSLT/devhelp
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc/EXSLT/devhelp'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc/EXSLT/devhelp'
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc'
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/doc'
+Making all in tests
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests'
+Making all in xmlspec
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/xmlspec'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/xmlspec'
+Making all in multiple
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/multiple'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/multiple'
+Making all in xinclude
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/xinclude'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/xinclude'
+Making all in XSLTMark
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/XSLTMark'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/XSLTMark'
+Making all in docbook
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/docbook'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/docbook'
+Making all in fuzz
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/fuzz'
+make[3]: Nothing to be done for 'all'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests/fuzz'
+make[3]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests'
+make[3]: Nothing to be done for 'all-am'.
+make[3]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests'
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43/tests'
+make[2]: Entering directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43'
+sed -e 's?\@XSLT_LIBDIR\@?-L/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ports/x86_64-linux/libxslt/1.1.43/lib?g' \
+    -e 's?\@XSLT_INCLUDEDIR\@?-I/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ports/x86_64-linux/libxslt/1.1.43/include?g' \
+    -e 's?\@VERSION\@?1.1.43?g' \
+    -e 's?\@XSLT_LIBS\@?-lxslt -L/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ports/x86_64-linux/libxml2/2.13.9/lib -lxml2 -lm ?g' \
+    -e 's?\@XSLT_PRIVATE_LIBS\@?-lm?g' \
+       < ./xsltConf.sh.in > xsltConf.tmp \
+&& mv xsltConf.tmp xsltConf.sh
+make[2]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43'
+make[1]: Leaving directory '/app/vendor/bundle/ruby/3.3.0/gems/nokogiri-1.18.10/ext/nokogiri/tmp/x86_64-pc-linux/ports/libxslt/1.1.43/libxslt-1.1.43'

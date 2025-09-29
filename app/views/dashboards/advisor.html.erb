@@ -7,18 +7,23 @@
     </div>
     
     <div class="dashboard-grid dashboard-grid-3">
+    
       <!-- Students -->
       <div class="feature-item">
+        <%= link_to advisors_students_path, class: "feature-item", style: "display:block; text-decoration:none; color:inherit;" do %>
         <div class="feature-icon">👨‍🎓</div>
         <div class="feature-title">Students</div>
         <div class="feature-description">0 assigned</div>
+      <% end %>
       </div>
 
       <!-- Surveys -->
       <div class="feature-item">
+      <%= link_to advisors_surveys_path, class: "feature-item", style: "display:block; text-decoration:none; color:inherit;" do %>
         <div class="feature-icon">📄</div>
         <div class="feature-title">Surveys</div>
         <div class="feature-description">0 active</div>
+      <% end %>
       </div>
 
       <!-- Notifications -->

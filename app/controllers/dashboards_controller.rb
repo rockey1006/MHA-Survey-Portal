@@ -22,6 +22,12 @@ class DashboardsController < ApplicationController
     @student = nil
     if defined?(current_admin) && current_admin.present?
       @student = Student.find_by(email: current_admin.email)
+
+    @pending_surveys = [
+      { id: 1, title: "Health & Wellness Survey" },
+      { id: 3, title: "Career Goals Survey" }
+    ]
+    @completed_surveys = []
     end
 
     if @student

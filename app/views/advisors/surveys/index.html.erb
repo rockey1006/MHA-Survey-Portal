@@ -1,0 +1,20 @@
+<main class="main-content">
+  <section class="dashboard-section">
+    <div class="section-header">
+      <h1 class="section-title">Available Surveys</h1>
+      <p class="section-subtitle">Pick a survey to assign to a student</p>
+    </div>
+
+    <div class="dashboard-grid dashboard-grid-3">
+      <% @surveys.each do |survey| %>
+        <%= link_to advisors_survey_path(survey[:id]),
+                    class: "feature-item",
+                    style: "display:block; text-decoration:none; color:inherit;" do %>
+          <div class="feature-icon" aria-hidden="true">📄</div>
+          <div class="feature-title"><%= survey[:title] %></div>
+          <div class="feature-description"><%= survey[:description] %></div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+</main>

@@ -36,8 +36,8 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   namespace :advisors, path: "advisor" do
-    resources :students, only: [:index]
-    resources :surveys, only: [:index, :show] do
+    resources :students, only: [ :index ]
+    resources :surveys, only: [ :index, :show ] do
       post :assign, on: :member
     end
   end

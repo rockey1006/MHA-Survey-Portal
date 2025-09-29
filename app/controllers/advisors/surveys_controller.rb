@@ -13,15 +13,16 @@ module Advisors
       { id: 4, first_name: "Daniel", last_name: "Patel" }
     ]
 
-    # List all surveys
+    # List all surveys (use real Survey records)
     def index
-      @surveys = MOCK_SURVEYS
+      @surveys = Survey.includes(:questions).all
     end
 
-    # Show one survey and allow assignment
+    # Show one survey and allow assignment (use real Survey and Student records)
     def show
-      @survey = MOCK_SURVEYS.find { |s| s[:id] == params[:id].to_i }
-      @students = MOCK_STUDENTS
+      @survey = Survey.find(params[:id])
+      @survey_number = Survey.order(:id).pluck(:id).index(@survey.id) + 1
+      @students = Student.all
     end
 
     # Assign survey to student (mock only)

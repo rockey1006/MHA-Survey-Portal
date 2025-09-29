@@ -7,16 +7,39 @@
     </div>
 
     <% if @students.present? %>
-      <div class="dashboard-grid dashboard-grid-3">
+      <div class="dashboard-grid dashboard-grid-1">
         <% @students.each do |s| %>
-          <div class="feature-item">
+          <div class="feature-item" style="margin-bottom:2em;">
             <div class="feature-icon" aria-hidden="true">🎓</div>
             <div class="feature-title">
-              <%= [s[:first_name], s[:last_name]].join(" ") %>
+              <%= s.name || s.email %>
             </div>
             <div class="feature-description">
-              <%= s[:email] %>
+              <%= s.email %>
             </div>
+            <% if s.survey_responses.any? %>
+              <div class="student-surveys" style="margin-top:1em;">
+                <strong>Survey Responses:</strong>
+                <ul>
+                  <% s.survey_responses.each do |sr| %>
+                    <li>
+                      <strong>Survey:</strong> <%= sr.survey&.title || 'N/A' %><br>
+                      <strong>Status:</strong> <%= sr.status %><br>
+                      <% if sr.respond_to?(:answers) && sr.answers.present? %>
+                        <strong>Answers:</strong>
+                        <ul>
+                          <% sr.answers.each do |q, a| %>
+                            <li><%= q %>: <%= a %></li>
+                          <% end %>
+                        </ul>
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            <% else %>
+              <div class="student-surveys" style="margin-top:1em; color:#888;">No survey responses.</div>
+            <% end %>
           </div>
         <% end %>
       </div>

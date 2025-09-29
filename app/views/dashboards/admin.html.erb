@@ -6,19 +6,23 @@
       <p class="section-subtitle">System management for the MHA Program</p>
     </div>
     
-    <div class="dashboard-grid dashboard-grid-4">
+  <div class="dashboard-grid dashboard-grid-4">
       <!-- Students -->
+
       <div class="feature-item">
         <div class="feature-icon">👨‍🎓</div>
         <div class="feature-title">Students</div>
         <div class="feature-description"><%= @total_students || 0 %> registered</div>
+  <div class="feature-description" style="color:#888; font-size:0.95em;">4 assigned</div>
       </div>
 
       <!-- Surveys -->
+
       <div class="feature-item">
         <div class="feature-icon">📄</div>
         <div class="feature-title">Surveys</div>
         <div class="feature-description"><%= @total_surveys || 0 %> active</div>
+  <div class="feature-description" style="color:#888; font-size:0.95em;">4 active</div>
       </div>
 
       <!-- Notifications -->
@@ -34,6 +38,14 @@
           <div class="feature-icon admin-icon">👨‍💼</div>
           <div class="feature-title admin-title">Members</div>
           <div class="feature-description"><%= @total_advisors || 0 %> advisors</div>
+        <% end %>
+      </div>
+
+      <!-- Advisor View Button -->
+      <div class="feature-item admin-feature">
+        <%= link_to advisor_dashboard_path, class: "btn", style: "display:block;text-align:center;" do %>
+          <div class="feature-icon admin-icon">🧑‍🏫</div>
+          <div class="feature-title admin-title">Advisor View</div>
         <% end %>
       </div>
     </div>

@@ -5,15 +5,16 @@
       <p class="section-subtitle">Pick a survey to assign to a student</p>
     </div>
 
-    <div class="dashboard-grid dashboard-grid-3">
-      <% @surveys.each do |survey| %>
-        <%= link_to advisors_survey_path(survey[:id]),
-                    class: "feature-item",
-                    style: "display:block; text-decoration:none; color:inherit;" do %>
+    <div class="dashboard-grid dashboard-grid-1">
+      <% @surveys.each_with_index do |survey, idx| %>
+        <div class="feature-item" style="margin-bottom:2em;">
           <div class="feature-icon" aria-hidden="true">📄</div>
-          <div class="feature-title"><%= survey[:title] %></div>
-          <div class="feature-description"><%= survey[:description] %></div>
-        <% end %>
+          <div class="feature-title">#<%= idx+1 %> <%= survey.title %></div>
+          <div class="feature-description"><%= survey.respond_to?(:description) ? survey.description : '' %></div>
+          <div style="margin-top:1em;">
+            <%= link_to 'Assign to Student', advisors_survey_path(survey), class: 'btn' %>
+          </div>
+        </div>
       <% end %>
     </div>
   </section>

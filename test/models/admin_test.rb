@@ -20,7 +20,7 @@ class AdminTest < ActiveSupport::TestCase
     uid = "123456789"
     avatar_url = "https://example.com/avatar.jpg"
     role = "admin"
-    
+
     admin = Admin.from_google(
       email: email,
       full_name: full_name,
@@ -28,7 +28,7 @@ class AdminTest < ActiveSupport::TestCase
       avatar_url: avatar_url,
       role: role
     )
-    
+
     assert admin.persisted?
     assert_equal email, admin.email
     assert_equal full_name, admin.full_name
@@ -40,7 +40,7 @@ class AdminTest < ActiveSupport::TestCase
     existing_admin = @admin
     original_email = existing_admin.email
     new_full_name = "Updated Name"
-    
+
     updated_admin = Admin.from_google(
       email: original_email,
       full_name: new_full_name,
@@ -48,7 +48,7 @@ class AdminTest < ActiveSupport::TestCase
       avatar_url: existing_admin.avatar_url,
       role: "admin"
     )
-    
+
     assert_equal existing_admin.id, updated_admin.id
     assert_equal new_full_name, updated_admin.full_name
   end
@@ -62,10 +62,10 @@ class AdminTest < ActiveSupport::TestCase
     if @admin.respond_to?(:advisor?)
       @admin.update(role: "admin") if @admin.respond_to?(:role=)
       assert @admin.advisor?
-      
+
       @admin.update(role: "advisor") if @admin.respond_to?(:role=)
       assert @admin.advisor?
-      
+
       @admin.update(role: "user") if @admin.respond_to?(:role=)
       assert_not @admin.advisor?
     end
@@ -75,7 +75,7 @@ class AdminTest < ActiveSupport::TestCase
     if @admin.respond_to?(:can_manage_roles?)
       @admin.update(role: "admin") if @admin.respond_to?(:role=)
       assert @admin.can_manage_roles?
-      
+
       @admin.update(role: "advisor") if @admin.respond_to?(:role=)
       assert_not @admin.can_manage_roles?
     end

@@ -24,7 +24,7 @@ class QuestionTest < ActiveSupport::TestCase
 
   test "should destroy dependent question_responses when question is destroyed" do
     question = Question.create!(question: "Test Question", question_type: "text")
-    
+
     initial_count = Question.count
     question.destroy
     assert_equal initial_count - 1, Question.count
@@ -32,7 +32,7 @@ class QuestionTest < ActiveSupport::TestCase
 
   test "should accept valid question types" do
     valid_types = %w[text select radio checkbox]
-    
+
     valid_types.each do |type|
       @question.question_type = type
       assert @question.valid?, "Question should be valid with question_type: #{type}"
@@ -41,11 +41,11 @@ class QuestionTest < ActiveSupport::TestCase
 
   test "should handle answer_options for select and radio questions" do
     @question.question_type = "select"
-    @question.answer_options = ["Option 1", "Option 2", "Option 3"]
+    @question.answer_options = [ "Option 1", "Option 2", "Option 3" ]
     assert @question.valid?
-    
+
     @question.question_type = "radio"
-    @question.answer_options = ["Yes", "No", "Maybe"]
+    @question.answer_options = [ "Yes", "No", "Maybe" ]
     assert @question.valid?
   end
 

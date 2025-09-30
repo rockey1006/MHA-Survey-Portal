@@ -20,7 +20,7 @@ class SurveyResponseTest < ActiveSupport::TestCase
 
   test "should accept valid status values" do
     valid_statuses = %w[not_started in_progress submitted under_review approved]
-    
+
     valid_statuses.each do |status|
       @survey_response.status = status
       assert @survey_response.valid?, "SurveyResponse should be valid with status: #{status}"
@@ -49,7 +49,7 @@ class SurveyResponseTest < ActiveSupport::TestCase
     @survey_response.update(status: "not_started")
     assert @survey_response.status_not_started?
     assert_not @survey_response.status_in_progress?
-    
+
     @survey_response.update(status: "submitted")
     assert @survey_response.status_submitted?
     assert_not @survey_response.status_not_started?
@@ -83,10 +83,10 @@ class SurveyResponseTest < ActiveSupport::TestCase
     student = students(:one)
     assert_respond_to SurveyResponse, :pending_for_student
     assert_respond_to SurveyResponse, :completed_for_student
-    
+
     pending = SurveyResponse.pending_for_student(student.id)
     completed = SurveyResponse.completed_for_student(student.id)
-    
+
     assert_kind_of ActiveRecord::Relation, pending
     assert_kind_of ActiveRecord::Relation, completed
   end

@@ -27,7 +27,7 @@ class AdvisorTest < ActiveSupport::TestCase
       @advisor.email = email
       assert @advisor.valid?, "#{email} should be valid"
     end
-    
+
     invalid_emails = %w[plainaddress @missingdomain.com missing@.com]
     invalid_emails.each do |email|
       @advisor.email = email
@@ -48,7 +48,7 @@ class AdvisorTest < ActiveSupport::TestCase
     if @advisor.respond_to?(:students)
       assert_respond_to @advisor, :students
     end
-    
+
     if @advisor.respond_to?(:survey_responses)
       assert_respond_to @advisor, :survey_responses
     end

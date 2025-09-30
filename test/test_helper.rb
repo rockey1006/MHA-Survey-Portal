@@ -1,30 +1,30 @@
 # Code coverage setup - must be before requiring Rails
-require 'simplecov'
+require "simplecov"
 
-SimpleCov.start 'rails' do
+SimpleCov.start "rails" do
   # Exclude files from coverage
-  add_filter '/bin/'
-  add_filter '/db/'
-  add_filter '/spec/'
-  add_filter '/test/'
-  add_filter '/vendor/'
-  add_filter '/config/'
-  add_filter 'app/channels/application_cable/'
-  add_filter 'app/jobs/application_job.rb'
-  add_filter 'app/mailers/application_mailer.rb'
-  
+  add_filter "/bin/"
+  add_filter "/db/"
+  add_filter "/spec/"
+  add_filter "/test/"
+  add_filter "/vendor/"
+  add_filter "/config/"
+  add_filter "app/channels/application_cable/"
+  add_filter "app/jobs/application_job.rb"
+  add_filter "app/mailers/application_mailer.rb"
+
   # Track specific directories
-  add_group 'Models', 'app/models'
-  add_group 'Controllers', 'app/controllers'
-  add_group 'Helpers', 'app/helpers'
-  add_group 'Mailers', 'app/mailers'
-  add_group 'Jobs', 'app/jobs'
-  
+  add_group "Models", "app/models"
+  add_group "Controllers", "app/controllers"
+  add_group "Helpers", "app/helpers"
+  add_group "Mailers", "app/mailers"
+  add_group "Jobs", "app/jobs"
+
   # Set minimum coverage
   minimum_coverage 80
-  
+
   # Generate HTML and terminal reports
-  coverage_dir 'coverage'
+  coverage_dir "coverage"
 end
 
 ENV["RAILS_ENV"] ||= "test"
@@ -45,7 +45,7 @@ module ActiveSupport
     fixtures :all
 
     # Custom helper methods for tests
-    
+
     # Create a test admin user
     def create_test_admin(email: "test_admin@tamu.edu", role: "admin")
       Admin.create!(
@@ -91,7 +91,7 @@ module ActiveSupport
         text: "Test question?",
         question_type: "select",
         question_order: 1,
-        answer_options: ["Excellent", "Good", "Fair", "Poor"]
+        answer_options: [ "Excellent", "Good", "Fair", "Poor" ]
       )
 
       { survey: survey, competency: competency, question: question }
@@ -106,11 +106,11 @@ module ActiveSupport
 
     # Custom assertion for testing associations
     def assert_association(model, association_name, association_type)
-      assert_respond_to model, association_name, 
+      assert_respond_to model, association_name,
         "#{model.class} should respond to #{association_name}"
-      
+
       reflection = model.class.reflect_on_association(association_name)
-      assert_not_nil reflection, 
+      assert_not_nil reflection,
         "#{model.class} should have #{association_name} association"
       assert_equal association_type, reflection.macro,
         "#{association_name} should be a #{association_type} association"
@@ -126,17 +126,17 @@ module ActiveSupport
 
     # Helper to test email validation
     def assert_email_validation(model, email_field = :email)
-      invalid_emails = ['plainaddress', '@missingdomain.com', 'missing@.com', 'missing.domain@.com']
+      invalid_emails = [ "plainaddress", "@missingdomain.com", "missing@.com", "missing.domain@.com" ]
       invalid_emails.each do |email|
         model.send("#{email_field}=", email)
         assert_not model.valid?, "#{email} should be invalid"
       end
 
-      valid_emails = ['test@example.com', 'user@tamu.edu', 'valid.email@domain.com']
+      valid_emails = [ "test@example.com", "user@tamu.edu", "valid.email@domain.com" ]
       valid_emails.each do |email|
         model.send("#{email_field}=", email)
         model.valid? # Trigger validation
-        assert_not model.errors[email_field].include?("is invalid"), 
+        assert_not model.errors[email_field].include?("is invalid"),
           "#{email} should be valid"
       end
     end
@@ -162,7 +162,7 @@ module IntegrationTestHelpers
     post admin_session_path, params: {
       admin: {
         email: admin.email,
-        password: 'password' # Adjust based on your auth setup
+        password: "password" # Adjust based on your auth setup
       }
     }
   end
@@ -172,7 +172,7 @@ module IntegrationTestHelpers
     post admin_session_path, params: {
       admin: {
         email: advisor.email,
-        password: 'password' # Adjust based on your auth setup
+        password: "password" # Adjust based on your auth setup
       }
     }
   end

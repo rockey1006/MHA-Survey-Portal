@@ -21,6 +21,7 @@ services:
     container_name: health-web
     environment:
       PGHOST: db
+      PGPORT: 5432
       PGUSER: dev_user
       PGPASSWORD: dev_pass
       RAILS_ENV: development

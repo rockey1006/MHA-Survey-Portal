@@ -15,7 +15,7 @@ class TestRunner
     OptionParser.new do |opts|
       opts.banner = "Usage: ruby run_tests.rb [options]"
 
-      opts.on("-t", "--type TYPE", @test_types, 
+      opts.on("-t", "--type TYPE", @test_types,
               "Select test type (#{@test_types.join(', ')})") do |type|
         @options[:type] = type
       end
@@ -41,10 +41,10 @@ class TestRunner
 
   def run
     parse_options
-    
+
     puts "🧪 Health Professions Test Suite Runner"
     puts "=" * 50
-    
+
     setup_environment
     run_tests
     generate_report
@@ -54,18 +54,18 @@ class TestRunner
 
   def setup_environment
     puts "📋 Setting up test environment..."
-    
+
     # Set test environment
     ENV['RAILS_ENV'] = 'test'
-    
+
     # Set database connection parameters for Docker PostgreSQL
     ENV['PGHOST'] = 'localhost'
     ENV['PGPORT'] = '5433'
     ENV['PGUSER'] = 'dev_user'
     ENV['PGPASSWORD'] = 'dev_pass'
-    
+
     puts "🔗 Database connection configured for Docker PostgreSQL (localhost:5433)"
-    
+
     # Add coverage tracking if requested
     if @options[:coverage]
       puts "📊 Coverage tracking enabled"
@@ -80,19 +80,19 @@ class TestRunner
         add_group 'Mailers', 'app/mailers'
       end
     end
-    
+
     puts "✅ Environment ready"
   end
 
   def run_tests
     test_command = build_test_command
-    
+
     puts "🚀 Running tests..."
     puts "Command: #{test_command}"
     puts "-" * 50
-    
+
     success = system(test_command)
-    
+
     if success
       puts "✅ All tests passed!"
     else
@@ -103,7 +103,7 @@ class TestRunner
 
   def build_test_command
     base_command = "rails test"
-    
+
     # Add specific test paths based on type
     case @options[:type]
     when 'models'
@@ -115,41 +115,41 @@ class TestRunner
     when 'system'
       base_command += " test/system"
     when 'all', nil
-      # Run all tests (default)
+         # Run all tests (default)
     end
-    
+
     # Add verbose flag
     base_command += " --verbose" if @options[:verbose]
-    
+
     base_command
   end
 
   def generate_report
     puts "\n📊 Test Report"
     puts "=" * 50
-    
+
     # Test counts by type
     puts "📈 Test Statistics:"
-    
+
     test_files = {
       'Models' => Dir['test/models/*_test.rb'].length,
       'Controllers' => Dir['test/controllers/*_test.rb'].length,
       'Integration' => Dir['test/integration/*_test.rb'].length,
       'System' => Dir['test/system/*_test.rb'].length
     }
-    
+
     test_files.each do |type, count|
       puts "  #{type}: #{count} test files"
     end
-    
+
     total_files = test_files.values.sum
     puts "  Total: #{total_files} test files"
-    
+
     # Coverage report if enabled
     if @options[:coverage]
       puts "\n📊 Coverage report will be generated in coverage/ directory"
     end
-    
+
     puts "\n🎉 Test run complete!"
     puts "💡 Tips:"
     puts "  - Run specific test types with -t option"

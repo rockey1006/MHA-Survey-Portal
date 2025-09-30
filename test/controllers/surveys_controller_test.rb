@@ -25,15 +25,15 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "admin should create survey with valid params" do
     sign_in @admin
     assert_difference("Survey.count") do
-      post surveys_url, params: { 
-        survey: { 
-          title: "New Test Survey", 
-          semester: "Fall 2024", 
-          approval_date: Date.current, 
-          assigned_date: Date.current + 1.day, 
-          completion_date: Date.current + 30.days, 
-          survey_id: 999 
-        } 
+      post surveys_url, params: {
+        survey: {
+          title: "New Test Survey",
+          semester: "Fall 2024",
+          approval_date: Date.current,
+          assigned_date: Date.current + 1.day,
+          completion_date: Date.current + 30.days,
+          survey_id: 999
+        }
       }
     end
     assert_redirected_to survey_url(Survey.last)
@@ -42,15 +42,15 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "admin should not create survey with invalid params" do
     sign_in @admin
     assert_no_difference("Survey.count") do
-      post surveys_url, params: { 
-        survey: { 
+      post surveys_url, params: {
+        survey: {
           title: "",  # Invalid: empty title
-          semester: "", 
-          approval_date: nil, 
-          assigned_date: nil, 
-          completion_date: nil, 
-          survey_id: nil 
-        } 
+          semester: "",
+          approval_date: nil,
+          assigned_date: nil,
+          completion_date: nil,
+          survey_id: nil
+        }
       }
     end
     assert_response :unprocessable_entity
@@ -71,15 +71,15 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "admin should update survey with valid params" do
     sign_in @admin
     new_title = "Updated Survey Title"
-    patch survey_url(@survey), params: { 
-      survey: { 
-        title: new_title, 
-        semester: @survey.semester, 
-        approval_date: @survey.approval_date, 
-        assigned_date: @survey.assigned_date, 
-        completion_date: @survey.completion_date, 
-        survey_id: @survey.survey_id 
-      } 
+    patch survey_url(@survey), params: {
+      survey: {
+        title: new_title,
+        semester: @survey.semester,
+        approval_date: @survey.approval_date,
+        assigned_date: @survey.assigned_date,
+        completion_date: @survey.completion_date,
+        survey_id: @survey.survey_id
+      }
     }
     assert_redirected_to survey_url(@survey)
     @survey.reload
@@ -89,11 +89,11 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "admin should not update survey with invalid params" do
     sign_in @admin
     original_title = @survey.title
-    patch survey_url(@survey), params: { 
-      survey: { 
+    patch survey_url(@survey), params: {
+      survey: {
         title: "",  # Invalid: empty title
-        semester: @survey.semester 
-      } 
+        semester: @survey.semester
+      }
     }
     assert_response :unprocessable_entity
     @survey.reload
@@ -124,11 +124,11 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
   test "should not create survey when not authenticated" do
     assert_no_difference("Survey.count") do
-      post surveys_url, params: { 
-        survey: { 
-          title: "Test Survey", 
-          semester: "Fall 2024" 
-        } 
+      post surveys_url, params: {
+        survey: {
+          title: "Test Survey",
+          semester: "Fall 2024"
+        }
       }
     end
     assert_redirected_to new_admin_session_path
@@ -146,16 +146,16 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     # Test that completion date should be after assigned date
     assert_no_difference("Survey.count") do
-      post surveys_url, params: { 
-        survey: { 
-          title: "Test Survey", 
-          semester: "Fall 2024", 
-          assigned_date: Date.current + 30.days, 
+      post surveys_url, params: {
+        survey: {
+          title: "Test Survey",
+          semester: "Fall 2024",
+          assigned_date: Date.current + 30.days,
           completion_date: Date.current,  # Invalid: completion before assignment
-          survey_id: 998 
-        } 
+          survey_id: 998
+        }
       }
     end
-    # Adjust assertion based on your actual validation logic
+       # Adjust assertion based on your actual validation logic
   end
 end

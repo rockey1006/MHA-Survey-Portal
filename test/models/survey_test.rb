@@ -28,15 +28,15 @@ class SurveyTest < ActiveSupport::TestCase
   test "should destroy dependent competencies when survey is destroyed" do
     survey = Survey.create!(title: "Test Survey", semester: "Fall 2024")
     competency = survey.competencies.create!(name: "Test Competency", description: "Test Comp Description")
-    
-    assert_difference('Competency.count', -1) do
+
+    assert_difference("Competency.count", -1) do
       survey.destroy
     end
   end
 
   test "should destroy dependent survey_responses when survey is destroyed" do
     survey = Survey.create!(title: "Test Survey", semester: "Fall 2024")
-    
+
     initial_count = Survey.count
     survey.destroy
     assert_equal initial_count - 1, Survey.count

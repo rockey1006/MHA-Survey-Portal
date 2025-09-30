@@ -29,15 +29,15 @@ class CompetencyTest < ActiveSupport::TestCase
   test "should destroy dependent questions when competency is destroyed" do
     competency = Competency.create!(name: "Test Competency", description: "Test Description")
     question = competency.questions.create!(question: "Test Question", question_type: "text")
-    
-    assert_difference('Question.count', -1) do
+
+    assert_difference("Question.count", -1) do
       competency.destroy
     end
   end
 
   test "should destroy dependent competency_responses when competency is destroyed" do
     competency = Competency.create!(name: "Test Competency", description: "Test Description")
-    
+
     initial_count = Competency.count
     competency.destroy
     assert_equal initial_count - 1, Competency.count

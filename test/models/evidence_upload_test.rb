@@ -14,7 +14,7 @@ class EvidenceUploadTest < ActiveSupport::TestCase
     evidence_upload = EvidenceUpload.new(
       link: "https://example.com/test_document.pdf"
     )
-    
+
     # Add other required attributes based on your model
     assert evidence_upload.valid? || evidence_upload.errors.any?, "EvidenceUpload should be valid or show specific errors"
   end
@@ -33,8 +33,8 @@ class EvidenceUploadTest < ActiveSupport::TestCase
           filename: "test.pdf",
           content_type: type
         )
-        # This test assumes you have content_type validation
-        # Adjust based on your actual validation logic
+           # This test assumes you have content_type validation
+           # Adjust based on your actual validation logic
       end
     end
   end
@@ -45,23 +45,23 @@ class EvidenceUploadTest < ActiveSupport::TestCase
         filename: "large_file.pdf",
         file_size: 50.megabytes
       )
-      # Test file size validation based on your requirements
-      # This assumes you have file size limits
+         # Test file size validation based on your requirements
+         # This assumes you have file size limits
     end
   end
 
   test "should belong to associated models" do
     evidence_upload = EvidenceUpload.new
-    
+
     # Test associations based on your model definition
     if evidence_upload.respond_to?(:student)
       assert_respond_to evidence_upload, :student
     end
-    
+
     if evidence_upload.respond_to?(:survey_response)
       assert_respond_to evidence_upload, :survey_response
     end
-    
+
     if evidence_upload.respond_to?(:competency_response)
       assert_respond_to evidence_upload, :competency_response
     end
@@ -71,7 +71,7 @@ class EvidenceUploadTest < ActiveSupport::TestCase
     evidence_upload = EvidenceUpload.new(
       link: "https://example.com/test_document.pdf"
     )
-    
+
     # Test that file paths are generated securely
     # This assumes you have methods for secure file handling
     if evidence_upload.respond_to?(:secure_link)

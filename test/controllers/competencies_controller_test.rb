@@ -26,13 +26,13 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
   test "admin should create competency with valid params" do
     sign_in @admin
     assert_difference("Competency.count") do
-      post competencies_url, params: { 
-        competency: { 
-          competency_id: 999, 
-          title: "New Competency", 
-          description: "New competency description", 
-          survey_id: @survey.id 
-        } 
+      post competencies_url, params: {
+        competency: {
+          competency_id: 999,
+          title: "New Competency",
+          description: "New competency description",
+          survey_id: @survey.id
+        }
       }
     end
     assert_redirected_to competency_url(Competency.last)
@@ -41,13 +41,13 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
   test "admin should not create competency with invalid params" do
     sign_in @admin
     assert_no_difference("Competency.count") do
-      post competencies_url, params: { 
-        competency: { 
-          competency_id: nil, 
-          title: "", 
-          description: "", 
-          survey_id: nil 
-        } 
+      post competencies_url, params: {
+        competency: {
+          competency_id: nil,
+          title: "",
+          description: "",
+          survey_id: nil
+        }
       }
     end
     assert_response :unprocessable_entity
@@ -68,13 +68,13 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
   test "admin should update competency with valid params" do
     sign_in @admin
     new_name = "Updated Competency Name"
-    patch competency_url(@competency), params: { 
-      competency: { 
-        competency_id: @competency.competency_id, 
-        name: new_name, 
-        description: @competency.description, 
-        survey_id: @competency.survey_id 
-      } 
+    patch competency_url(@competency), params: {
+      competency: {
+        competency_id: @competency.competency_id,
+        name: new_name,
+        description: @competency.description,
+        survey_id: @competency.survey_id
+      }
     }
     assert_redirected_to competency_url(@competency)
     @competency.reload
@@ -84,11 +84,11 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
   test "admin should not update competency with invalid params" do
     sign_in @admin
     original_name = @competency.name
-    patch competency_url(@competency), params: { 
-      competency: { 
+    patch competency_url(@competency), params: {
+      competency: {
         name: "",  # Invalid empty name
-        description: @competency.description 
-      } 
+        description: @competency.description
+      }
     }
     assert_response :unprocessable_entity
     @competency.reload
@@ -127,13 +127,13 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
   test "should create competency without survey association" do
     sign_in @admin
     assert_difference("Competency.count") do
-      post competencies_url, params: { 
-        competency: { 
-          competency_id: 998, 
-          title: "Standalone Competency", 
-          description: "Competency without survey", 
-          survey_id: nil 
-        } 
+      post competencies_url, params: {
+        competency: {
+          competency_id: 998,
+          title: "Standalone Competency",
+          description: "Competency without survey",
+          survey_id: nil
+        }
       }
     end
     assert_redirected_to competency_url(Competency.last)

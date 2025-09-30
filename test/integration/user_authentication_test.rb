@@ -43,17 +43,17 @@ class UserAuthenticationTest < ActionDispatch::IntegrationTest
 
   test "admin can access admin-only features" do
     sign_in @admin
-    
+
     # Admin should be able to access all CRUD operations
     get surveys_path
     assert_response :success
-    
+
     get new_survey_path
     assert_response :success
-    
+
     get competencies_path
     assert_response :success
-    
+
     get students_path
     assert_response :success
   end
@@ -61,11 +61,11 @@ class UserAuthenticationTest < ActionDispatch::IntegrationTest
   test "advisor has appropriate permissions" do
     # Assuming advisor has different permissions than admin
     sign_in @advisor
-    
+
     # Test that advisor can access surveys (adjust based on your permissions)
     get surveys_path
     assert_response :success
-    
+
     # Test other endpoints based on your authorization logic
     get students_path
     assert_response :success # or :forbidden based on your setup
@@ -89,14 +89,14 @@ class UserAuthenticationTest < ActionDispatch::IntegrationTest
 
   test "authenticated user can sign out" do
     sign_in @admin
-    
+
     # Verify user is signed in
     get surveys_path
     assert_response :success
-    
+
     # Sign out (this depends on your Devise setup)
     delete destroy_admin_session_path
-    
+
     # Verify user is signed out
     get surveys_path
     assert_redirected_to new_admin_session_path
@@ -147,14 +147,14 @@ class UserAuthenticationTest < ActionDispatch::IntegrationTest
 
   test "session persistence across requests" do
     sign_in @admin
-    
+
     # Make multiple requests to verify session persistence
     get surveys_path
     assert_response :success
-    
+
     get competencies_path
     assert_response :success
-    
+
     post surveys_path, params: {
       survey: {
         survey_id: 9999,
@@ -164,7 +164,7 @@ class UserAuthenticationTest < ActionDispatch::IntegrationTest
         completion_date: Date.current + 30.days
       }
     }
-    
+
     # Should be able to create without re-authentication
     assert_response :redirect
     assert Survey.exists?(survey_id: 9999)

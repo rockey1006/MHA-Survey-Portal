@@ -15,7 +15,7 @@ class FeedbackTest < ActiveSupport::TestCase
       comments: "This is test feedback",
       rating: 5
     )
-    
+
     # Add other required attributes based on your model
     assert feedback.valid? || feedback.errors.any?, "Feedback should be valid or show specific errors"
   end
@@ -36,12 +36,12 @@ class FeedbackTest < ActiveSupport::TestCase
 
   test "should belong to associated models" do
     feedback = Feedback.new
-    
+
     # Test associations based on your model definition
     if feedback.respond_to?(:student)
       assert_respond_to feedback, :student
     end
-    
+
     if feedback.respond_to?(:survey_response)
       assert_respond_to feedback, :survey_response
     end

@@ -137,9 +137,8 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   # Tests for edge cases
   test "should handle non-existent survey gracefully" do
     sign_in @admin
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get survey_url(99999)
-    end
+    get survey_url(99999)
+    assert_response :not_found
   end
 
   test "should validate date logic in surveys" do

@@ -7,7 +7,7 @@ class Admin < ApplicationRecord
 
     # Update attributes for both new and existing records
     admin.uid = uid if admin.uid.blank?
-    admin.full_name = full_name if admin.full_name.blank?
+    admin.full_name = full_name  # Always update full_name
     admin.avatar_url = avatar_url if admin.avatar_url.blank?
 
     # Always update role if provided and column exists

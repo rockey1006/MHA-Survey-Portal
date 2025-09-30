@@ -29,7 +29,7 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
       post competencies_url, params: {
         competency: {
           competency_id: 999,
-          title: "New Competency",
+          name: "New Competency",
           description: "New competency description",
           survey_id: @survey.id
         }
@@ -119,9 +119,8 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
   # Edge cases
   test "should handle non-existent competency gracefully" do
     sign_in @admin
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get competency_url(99999)
-    end
+    get competency_url(99999)
+    assert_response :not_found
   end
 
   test "should create competency without survey association" do
@@ -130,7 +129,7 @@ class CompetenciesControllerTest < ActionDispatch::IntegrationTest
       post competencies_url, params: {
         competency: {
           competency_id: 998,
-          title: "Standalone Competency",
+          name: "Standalone Competency",
           description: "Competency without survey",
           survey_id: nil
         }

@@ -14,3 +14,11 @@ development:
 test:
   <<: *default
   database: health_app_test
+
+production:
+  <<: *default
+  database: health_app_production
+  username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
+  password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
+  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
+  pool: 5

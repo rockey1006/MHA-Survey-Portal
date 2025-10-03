@@ -37,3 +37,5 @@
 
 # Ignore test coverage reports
 /coverage/
+# Ignore SimpleCov coverage reports
+/coverage/

@@ -1,6 +1,28 @@
+
+
+
+production: &production
+  adapter: postgresql
+  url: <%= ENV['DATABASE_URL'] %>
+  cache:
+    adapter: postgresql
+    url: <%= ENV['DATABASE_URL'] %>
+  queue:
+    adapter: postgresql
+    url: <%= ENV['DATABASE_URL'] %>
+  cable:
+    adapter: postgresql
+    url: <%= ENV['DATABASE_URL'] %>
+
+# Top-level cable config for gems that require it
+cable:
+  adapter: postgresql
+  url: <%= ENV['DATABASE_URL'] %>
+
 default: &default
   adapter: postgresql
   encoding: unicode
+<<<<<<< HEAD
   url: <%= ENV['DATABASE_URL'] if ENV['DATABASE_URL'].present? %>
   username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
   password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
@@ -30,20 +52,14 @@ cable:
   username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
   password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
   host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
+=======
+>>>>>>> origin/main
   pool: 5
 
 development:
   <<: *default
-  database: health_app_development
+  database: health_development
 
 test:
   <<: *default
-  database: health_app_test
-
-production:
-  <<: *default
-  database: health_app_production
-  username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
-  password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
-  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
-  pool: 5
+  database: health_test

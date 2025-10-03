@@ -60,11 +60,11 @@ class AdvisorsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_advisor
-      @advisor = Advisor.find(params.expect(:id))
+      @advisor = Advisor.find(params[:id])
     end
 
     # Only allow a list of trusted parameters through.
     def advisor_params
-      params.expect(advisor: [ :advisor_id, :name, :email ])
+      params.require(:advisor).permit(:advisor_id, :name, :email)
     end
 end

@@ -60,11 +60,11 @@ class CompetenciesController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_competency
-      @competency = Competency.find(params.expect(:id))
+      @competency = Competency.find(params[:id])
     end
 
     # Only allow a list of trusted parameters through.
     def competency_params
-      params.expect(competency: [ :competency_id, :survey_id, :name, :description ])
+      params.require(:competency).permit(:competency_id, :survey_id, :name, :description)
     end
 end

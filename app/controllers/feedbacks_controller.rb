@@ -60,11 +60,11 @@ class FeedbacksController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_feedback
-      @feedback = Feedback.find(params.expect(:id))
+      @feedback = Feedback.find(params[:id])
     end
 
     # Only allow a list of trusted parameters through.
     def feedback_params
-      params.expect(feedback: [ :feedback_id, :advisor_id, :competency_id, :rating, :comments ])
+      params.require(:feedback).permit(:feedback_id, :advisor_id, :competency_id, :rating, :comments)
     end
 end

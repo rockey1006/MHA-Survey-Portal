@@ -35,7 +35,11 @@ RUN apt-get update -qq && \
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
-RUN bundle install && \
+# During build we allow Bundler to resolve/update the lockfile/platforms. The final image still
+# runs with BUNDLE_DEPLOYMENT=1 at runtime. This avoids "Bundler found incorrect dependencies in the lockfile" errors
+# when the lockfile was generated on a different platform (e.g. Windows).
+RUN bundle config set deployment false && \
+    bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 

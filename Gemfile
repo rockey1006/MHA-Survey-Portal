@@ -70,6 +70,10 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 
+  # RSpec for behavior-driven tests (optional, installed if you want to run rspec)
+  gem "rspec-rails"
+  gem "rspec"
+
   # Code coverage analysis
   gem "simplecov", require: false
   gem "simplecov-html", require: false

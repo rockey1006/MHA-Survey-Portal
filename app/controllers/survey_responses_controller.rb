@@ -121,6 +121,6 @@ class SurveyResponsesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def survey_response_params
-      params.expect(survey_response: [ :surveyresponse_id, :student_id, :advisor_id, :survey_id, :semester, :status ])
+      params.require(:survey_response).permit(:surveyresponse_id, :student_id, :advisor_id, :survey_id, :semester, :status)
     end
 end

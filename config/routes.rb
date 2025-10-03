@@ -16,6 +16,11 @@ Rails.application.routes.draw do
   devise_scope :admin do
     get "admins/sign_in", to: "admins/sessions#new", as: :new_admin_session
     delete "admins/sign_out", to: "admins/sessions#destroy", as: :destroy_admin_session
+    # Accept GET requests to /admins/sign_out safely by redirecting to root
+    # This avoids GET requests (from bots or cached links) being treated as
+    # Admin resource IDs (e.g. /admins/sign_out -> AdminsController#show with id="sign_out").
+    # Devise expects DELETE for sign_out; this GET handler is a harmless redirect.
+    get "admins/sign_out", to: "admins/sessions#sign_out_get_fallback"
   end
 
   resources :admins

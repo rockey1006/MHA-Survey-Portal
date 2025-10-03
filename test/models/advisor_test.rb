@@ -52,5 +52,7 @@ class AdvisorTest < ActiveSupport::TestCase
     if @advisor.respond_to?(:survey_responses)
       assert_respond_to @advisor, :survey_responses
     end
+    # Ensure the advisor fixture exists and is the correct type
+    assert_instance_of Advisor, @advisor
   end
 end

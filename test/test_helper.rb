@@ -23,7 +23,7 @@ SimpleCov.start "rails" do
   # Set minimum coverage - adjusted for current test suite coverage
   # Only enforce minimum coverage in CI or when explicitly requested to avoid
   # failing local runs where coverage may be lower during incremental work.
-  if ENV['CI'] == 'true' || ENV['ENFORCE_COVERAGE'] == '1'
+  if ENV["CI"] == "true" || ENV["ENFORCE_COVERAGE"] == "1"
     minimum_coverage 30
   end
 

@@ -60,11 +60,11 @@ class AdminsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_admin
-      @admin = Admin.find(params.expect(:id))
+      @admin = Admin.find(params[:id])
     end
 
     # Only allow a list of trusted parameters through.
     def admin_params
-      params.expect(admin: [ :admin_id, :name, :email ])
+      params.require(:admin).permit(:admin_id, :name, :email)
     end
 end

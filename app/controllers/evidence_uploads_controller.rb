@@ -60,11 +60,11 @@ class EvidenceUploadsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_evidence_upload
-      @evidence_upload = EvidenceUpload.find(params.expect(:id))
+      @evidence_upload = EvidenceUpload.find(params[:id])
     end
 
     # Only allow a list of trusted parameters through.
     def evidence_upload_params
-      params.expect(evidence_upload: [ :evidenceupload_id, :questionresponse_id, :competencyresponse_id, :link ])
+      params.require(:evidence_upload).permit(:evidenceupload_id, :questionresponse_id, :competencyresponse_id, :link)
     end
 end

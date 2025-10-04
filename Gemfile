@@ -1,3 +1,5 @@
+ruby "3.4.5"
+
 gem "wicked_pdf"
 gem "wkhtmltopdf-binary"
 source "https://rubygems.org"

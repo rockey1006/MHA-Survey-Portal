@@ -52,9 +52,12 @@
               <div class="profile-menu-icon">⚙️</div>
               <span>Settings</span>
             </div>
-            <div class="profile-menu-item danger">
-              <%= button_to destroy_user_session_path, method: :delete, form: { class: 'inline-signout-form' }, class: 'profile-menu-button', style: 'background:none;border:none;padding:0;color:inherit;text-decoration:none;cursor:pointer;' do %>
-                <div class="profile-menu-icon">🚪</div>
+            <div class="profile-menu-item">
+              <div class="profile-menu-icon">🚪</div>
+              <%= button_to destroy_user_session_path,
+                            method: :delete,
+                            form: { class: "inline-signout-form" },
+                            class: "profile-menu-item danger profile-menu-button" do %>
                 <span>Sign Out</span>
               <% end %>
             </div>

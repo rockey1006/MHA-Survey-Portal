@@ -129,3 +129,28 @@ Troubleshooting notes
 
 If you'd like, I can remove the obsolete top-level `version:` key from `docker-compose.yml` to suppress the startup warning.
 
+## Heroku review apps & PR previews
+
+For temporary PR deployments, enable [Heroku Review Apps](https://devcenter.heroku.com/articles/github-integration-review-apps). The repository now includes an `app.json` manifest (see below) that automatically provisions a isolated Postgres add-on and runs database migrations after each review app is deployed.
+
+Setup checklist:
+
+1. Create or link a Heroku pipeline to your GitHub repository: `heroku pipelines:create <pipeline-name> --app <staging-app>`.
+2. Enable Review Apps in the Heroku dashboard or via CLI: `heroku pipelines:enable-review-app --pipeline <pipeline-name>`.
+3. Ensure the pipeline and its review apps share the same `RAILS_MASTER_KEY`: `heroku pipelines:config:set RAILS_MASTER_KEY=$(cat config/master.key) --pipeline <pipeline-name>`.
+4. Optional: add any additional env vars (OAuth secrets, etc.) to the pipeline config so every review app inherits them.
+
+Once enabled, each PR will:
+
+- Spin up a dedicated Heroku app with the add-ons listed in `app.json`.
+- Run `bundle exec rails db:migrate` automatically after deploy, creating the database schema without manual intervention.
+- Destroy itself automatically when the PR is closed (configurable).
+
+### Adding seed data for review apps
+
+If you want sample data in every PR environment, provide a `postdeploy` script in `app.json` (already set to run migrations) and extend it to invoke seeds, e.g. `bundle exec rails db:seed`. Keep seeds idempotent so repeated deploys stay stable.
+
+### Local favicon asset
+
+The layout now serves a TAMU logo from `app/assets/images/tamu-logo.png` as the site favicon. If you update that asset, redeploy so Propshaft re-bundles the new icon.
+

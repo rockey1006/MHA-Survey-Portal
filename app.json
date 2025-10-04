@@ -1,0 +1,22 @@
+{
+  "name": "Health Review App",
+  "description": "Temporary Heroku app for PR previews of the Health project.",
+  "scripts": {
+    "postdeploy": "bundle exec rails db:migrate"
+  },
+  "env": {
+    "RAILS_ENV": {
+      "value": "production"
+    },
+    "RAILS_MASTER_KEY": {
+      "required": true,
+      "description": "Copy from config/master.key so Rails can boot in production mode."
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:mini",
+      "as": "DATABASE"
+    }
+  ]
+}

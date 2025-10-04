@@ -1,0 +1,13 @@
+student:
+  advisor: advisor
+  uin: "123456789"
+  track: Residential
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+other_student:
+  advisor: other_advisor
+  uin: "987654321"
+  track: Executive
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

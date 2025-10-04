@@ -1,0 +1,121 @@
+<main class="student-records-page">
+  <div class="student-records-header">
+    <h1>Student Records</h1>
+    <p class="subtitle">Browse survey progress by semester for your assigned students.</p>
+  </div>
+
+  <% if @students.blank? %>
+    <div class="empty-state">
+      <div class="icon" aria-hidden="true">📭</div>
+      <p>No students were found for your account.</p>
+    </div>
+  <% elsif @student_records.blank? %>
+    <div class="empty-state">
+      <div class="icon" aria-hidden="true">🗂️</div>
+      <p>No surveys have been scheduled yet for the selected students.</p>
+    </div>
+  <% else %>
+    <div class="accordion-stack">
+      <% @student_records.each do |semester_block| %>
+        <details class="accordion semester-panel" open>
+          <summary class="accordion-summary">
+            <span class="summary-title"><%= semester_block[:semester] %></span>
+            <span class="summary-meta"><%= pluralize(semester_block[:surveys].size, "survey") %></span>
+          </summary>
+
+          <% semester_block[:surveys].each do |survey_block| %>
+            <% survey = survey_block[:survey] %>
+            <details class="accordion survey-panel">
+              <summary class="accordion-summary">
+                <div class="summary-title"><%= survey.title %></div>
+                <div class="summary-meta">
+                  Assigned <%= l(survey.created_at.to_date, format: :long) rescue survey.created_at.to_s(:long) %>
+                </div>
+              </summary>
+
+              <div class="survey-table-wrapper">
+                <table class="student-records-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Student</th>
+                      <th>Advisor</th>
+                      <th>Track / Cohort</th>
+                      <th>Status</th>
+                      <th>Completion</th>
+                      <th>Survey</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% survey_block[:rows].each_with_index do |row, idx| %>
+                      <% student = row[:student] %>
+                      <% advisor = row[:advisor] %>
+                      <% response = row[:response] %>
+                      <% status_text = response&.status || SurveyResponse.statuses[:not_started] %>
+                      <% status_class = case status_text
+                                         when SurveyResponse.statuses[:submitted] then "status-submitted"
+                                         when SurveyResponse.statuses[:approved] then "status-approved"
+                                         when SurveyResponse.statuses[:in_progress] then "status-in-progress"
+                                         when SurveyResponse.statuses[:under_review] then "status-review"
+                                         else "status-not-started"
+                                       end %>
+                      <% completion_date = response&.completion_date %>
+                      <% survey_link_path = response ? survey_response_path(response) : survey_path(survey) %>
+                      <% survey_link_label = response ? "View Response" : "View Survey" %>
+
+                      <tr>
+                        <td class="row-index" data-label="#"><%= idx + 1 %></td>
+                        <td class="student-cell" data-label="Student">
+                          <div class="primary"><%= student.user&.name || "Unknown Student" %></div>
+                          <div class="secondary">
+                            <% if student.user&.email.present? %>
+                              <span>Email: <%= student.user.email %></span>
+                            <% end %>
+                            <% if student.uin.present? %>
+                              <span>UIN: <%= student.uin %></span>
+                            <% end %>
+                          </div>
+                        </td>
+                        <td class="advisor-cell" data-label="Advisor">
+                          <% if advisor.present? %>
+                            <div class="primary"><%= advisor.name %></div>
+                            <% if advisor.email.present? %>
+                              <div class="secondary"><%= advisor.email %></div>
+                            <% end %>
+                          <% else %>
+                            <div class="primary muted">Unassigned</div>
+                          <% end %>
+                        </td>
+                        <td class="track-cell" data-label="Track / Cohort">
+                          <% if student.track.present? %>
+                            <div class="primary"><%= student.track.titleize %></div>
+                          <% else %>
+                            <div class="primary muted">Track unknown</div>
+                          <% end %>
+                          <div class="secondary">Cohort <%= student.created_at&.year || "—" %></div>
+                        </td>
+                        <td class="status-cell" data-label="Status">
+                          <span class="status-badge <%= status_class %>"><%= status_text %></span>
+                        </td>
+                        <td class="completion-cell" data-label="Completion">
+                          <% if completion_date.present? %>
+                            <span><%= l(completion_date, format: :long) rescue completion_date.to_s %></span>
+                          <% else %>
+                            <span class="muted">Not completed</span>
+                          <% end %>
+                        </td>
+                        <td class="action-cell" data-label="Survey">
+                          <%= link_to survey_link_label, survey_link_path, class: "btn btn-secondary" %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          <% end %>
+        </details>
+      <% end %>
+    </div>
+  <% end %>
+</main>

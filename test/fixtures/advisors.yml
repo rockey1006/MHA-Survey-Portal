@@ -1,0 +1,7 @@
+advisor:
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+other_advisor:
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

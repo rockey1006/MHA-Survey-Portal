@@ -30,6 +30,8 @@ Rails.application.routes.draw do
   get "advisor_dashboard", to: "dashboards#advisor", as: :advisor_dashboard
   get "admin_dashboard", to: "dashboards#admin", as: :admin_dashboard
 
+  get "student_records", to: "student_records#index", as: :student_records
+
   # Admin-specific management routes
   get "manage_members", to: "dashboards#manage_members", as: :manage_members
   patch "update_roles", to: "dashboards#update_roles", as: :update_roles
@@ -51,7 +53,6 @@ Rails.application.routes.draw do
   end
 
   namespace :advisors do
-    resources :students, only: :index
     resources :surveys, only: %i[index show] do
       post :assign, on: :member
     end

@@ -6,17 +6,17 @@
       <p class="section-subtitle">System management for the MHA Program</p>
     </div>
     
-  <div class="dashboard-grid dashboard-grid-4">
-      <!-- Students -->
-
+    <div class="dashboard-grid dashboard-grid-4">
+      <!-- Students Records -->
       <div class="feature-item">
-        <div class="feature-icon">👨‍🎓</div>
-        <div class="feature-title">Students</div>
-        <div class="feature-description"><%= @role_counts[:student] || 0 %> registered</div>
+        <%= link_to student_records_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
+          <div class="feature-icon">👨‍🎓</div>
+          <div class="feature-title">Students Records</div>
+          <div class="feature-description"><%= @role_counts[:student] || 0 %> registered</div>
+        <% end %>
       </div>
 
       <!-- Surveys -->
-
       <div class="feature-item">
         <div class="feature-icon">📄</div>
         <div class="feature-title">Surveys</div>

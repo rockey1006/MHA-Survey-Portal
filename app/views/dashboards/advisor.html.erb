@@ -7,11 +7,11 @@
     </div>
     
     <div class="dashboard-grid dashboard-grid-3">
-      <!-- Students -->
+      <!-- Students Records -->
       <div class="feature-item">
-        <%= link_to advisors_students_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
+  <%= link_to student_records_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
           <div class="feature-icon">👨‍🎓</div>
-          <div class="feature-title">Students</div>
+          <div class="feature-title">Students Records</div>
           <div class="feature-description"><%= pluralize(@advisee_count, "assigned student") %></div>
         <% end %>
       </div>

@@ -1,22 +1,9 @@
 module Advisors
+  # Legacy controller maintained temporarily to ensure any stale links
+  # or bookmarks redirect to the new shared student records page.
   class StudentsController < BaseController
     def index
-      @students = load_students
-    end
-
-    private
-
-    def load_students
-      scope = if current_user.role_admin?
-        Student.includes(:user)
-      else
-        current_advisor_profile&.advisees&.includes(:user) || Student.none
-      end
-
-      scope
-        .left_joins(:user)
-        .includes(survey_responses: [ :survey, { question_responses: :question } ])
-        .order(Arel.sql("LOWER(users.name) ASC"))
+      redirect_to student_records_path
     end
   end
 end

@@ -68,7 +68,8 @@ class SurveysController < ApplicationController
   def submit
     student = current_student
     unless student
-      redirect_to student_dashboard_path, alert: "Student record not found for current user." and return
+      redirect_to student_dashboard_path, alert: "Student record not found for current user."
+      return
     end
 
     survey_response = SurveyResponse.find_or_initialize_by(student_id: student.id, survey_id: @survey.id)

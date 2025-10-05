@@ -1,22 +1,24 @@
 <h1>Surveys</h1>
 
 <div class="survey-list">
-  <% @surveys.each do |survey| %>
-    <div class="survey-card">
-      <h2>
-
-        <% survey_name =
-          case survey.id
-          when 1 then "Current Residential and Executive MHA Track Study Survey"
-          when 2 then "Competency Self-Assessment Survey"
-          when 3 then "Final Feedback Survey"
-          else "Survey ##{survey.id}"
-          end
-        %>
-
-        <%= link_to survey_name, survey_path(survey), class: "survey-link" %>
-      </h2>
-    </div>
+  <% if @surveys.present? %>
+    <% @surveys.each do |survey| %>
+      <div class="survey-card">
+        <h2>
+          <% survey_name =
+            case survey.id
+            when 1 then "Current Residential and Executive MHA Track Study Survey"
+            when 2 then "Competency Self-Assessment Survey"
+            when 3 then "Final Feedback Survey"
+            else "Survey ##{survey.id}"
+            end
+          %>
+          <%= link_to survey_name, survey_path(survey), class: "survey-link" %>
+        </h2>
+      </div>
+    <% end %>
+  <% else %>
+  <div class="alert alert-info">No available surveys for your track or login.</div>
   <% end %>
 </div>
 

@@ -15,14 +15,12 @@ class DashboardsController < ApplicationController
   end
 
   def student
-    @student = current_student
-    ensure_demo_surveys_for(@student)
-
-    responses = @student.survey_responses.includes(:survey)
-    @pending_survey_responses = responses.pending
-    @completed_survey_responses = responses.completed
-    @pending_surveys = Survey.where(id: @pending_survey_responses.pluck(:survey_id))
-    @completed_surveys = Survey.where(id: @completed_survey_responses.pluck(:survey_id))
+  @student = current_student
+  responses = @student.survey_responses.includes(:survey)
+  @pending_survey_responses = responses.pending
+  @completed_survey_responses = responses.completed
+  @pending_surveys = Survey.where(id: @pending_survey_responses.pluck(:survey_id))
+  @completed_surveys = Survey.where(id: @completed_survey_responses.pluck(:survey_id))
   end
 
   def advisor

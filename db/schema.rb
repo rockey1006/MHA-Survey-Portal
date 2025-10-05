@@ -10,115 +10,123 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_26_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_03_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "admins", force: :cascade do |t|
-    t.string "email", null: false
-    t.string "full_name"
-    t.string "uid"
-    t.string "avatar_url"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "role", default: "student"
-    t.index ["email"], name: "index_admins_on_email", unique: true
-  end
-
-  create_table "advisors", force: :cascade do |t|
-    t.integer "advisor_id"
-    t.string "name"
-    t.string "email"
+  create_table "admins", primary_key: "admin_id", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
-  create_table "competencies", force: :cascade do |t|
-    t.integer "competency_id"
-    t.integer "survey_id"
-    t.string "name"
-    t.string "description"
+  create_table "advisors", primary_key: "advisor_id", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
-  create_table "competency_responses", force: :cascade do |t|
-    t.integer "competencyresponse_id"
-    t.integer "surveyresponse_id"
-    t.integer "competency_id"
+  create_table "categories", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.string "name", null: false
+    t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["survey_id"], name: "index_categories_on_survey_id"
   end
 
-  create_table "evidence_uploads", force: :cascade do |t|
-    t.integer "evidenceupload_id"
-    t.integer "questionresponse_id"
-    t.integer "competencyresponse_id"
+  create_table "feedback", primary_key: "feedback_id", force: :cascade do |t|
+    t.bigint "advisor_id", null: false
+    t.bigint "category_id", null: false
+    t.bigint "surveyresponse_id", null: false
+    t.integer "score"
+    t.text "comments"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "link"
+    t.index ["advisor_id", "category_id", "surveyresponse_id"], name: "index_feedback_on_advisor_category_response", unique: true
+    t.index ["advisor_id"], name: "index_feedback_on_advisor_id"
+    t.index ["category_id"], name: "index_feedback_on_category_id"
+    t.index ["surveyresponse_id"], name: "index_feedback_on_surveyresponse_id"
   end
 
-  create_table "feedbacks", force: :cascade do |t|
-    t.integer "feedback_id"
-    t.integer "advisor_id"
-    t.integer "competency_id"
-    t.integer "rating"
-    t.string "comments"
+  create_table "question_responses", primary_key: "questionresponse_id", force: :cascade do |t|
+    t.bigint "surveyresponse_id", null: false
+    t.bigint "question_id", null: false
+    t.text "answer"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["question_id"], name: "index_question_responses_on_question_id"
+    t.index ["surveyresponse_id", "question_id"], name: "index_question_responses_on_survey_and_question", unique: true
+    t.index ["surveyresponse_id"], name: "index_question_responses_on_surveyresponse_id"
   end
 
-  create_table "question_responses", force: :cascade do |t|
-    t.integer "questionresponse_id"
-    t.integer "competencyresponse_id"
-    t.integer "question_id"
-    t.string "answer"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "questions", force: :cascade do |t|
-    t.integer "question_id"
-    t.integer "competency_id"
-    t.integer "question_order"
-    t.string "question_type"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "question"
+  create_table "questions", primary_key: "question_id", force: :cascade do |t|
+    t.bigint "category_id", null: false
+    t.string "question", null: false
+    t.integer "question_order", null: false
+    t.string "question_type", null: false
     t.text "answer_options"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id", "question_order"], name: "index_questions_on_category_id_and_question_order", unique: true
+    t.index ["category_id"], name: "index_questions_on_category_id"
   end
 
-  create_table "students", force: :cascade do |t|
-    t.integer "student_id"
-    t.string "name"
-    t.string "email"
-    t.string "net_id"
+  create_table "students", primary_key: "student_id", force: :cascade do |t|
+    t.string "uin"
+    t.bigint "advisor_id"
     t.string "track"
-    t.integer "advisor_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["advisor_id"], name: "index_students_on_advisor_id"
+    t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
 
-  create_table "survey_responses", force: :cascade do |t|
-    t.integer "surveyresponse_id"
-    t.integer "student_id"
-    t.integer "advisor_id"
-    t.integer "survey_id"
-    t.string "status"
-    t.string "semester"
+  create_table "survey_responses", primary_key: "surveyresponse_id", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "advisor_id"
+    t.bigint "survey_id", null: false
+    t.date "completion_date"
+    t.date "approval_date"
+    t.string "status", default: "Not Started", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["advisor_id"], name: "index_survey_responses_on_advisor_id"
+    t.index ["status"], name: "index_survey_responses_on_status"
+    t.index ["student_id"], name: "index_survey_responses_on_student_id"
+    t.index ["survey_id"], name: "index_survey_responses_on_survey_id"
   end
 
   create_table "surveys", force: :cascade do |t|
-    t.integer "survey_id"
-    t.date "assigned_date"
-    t.date "completion_date"
-    t.date "approval_date"
+    t.string "title", null: false
+    t.string "semester", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "semester"
-    t.string "title"
   end
+
+  create_table "users", primary_key: "user_id", force: :cascade do |t|
+    t.string "email", null: false
+    t.string "name", null: false
+    t.string "uid"
+    t.string "avatar_url"
+    t.string "role", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["role"], name: "index_users_on_role"
+    t.index ["uid"], name: "index_users_on_uid", unique: true
+  end
+
+  add_foreign_key "admins", "users", column: "admin_id", primary_key: "user_id", on_delete: :cascade
+  add_foreign_key "advisors", "users", column: "advisor_id", primary_key: "user_id", on_delete: :cascade
+  add_foreign_key "categories", "surveys"
+  add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
+  add_foreign_key "feedback", "categories", on_delete: :cascade
+  add_foreign_key "feedback", "survey_responses", column: "surveyresponse_id", primary_key: "surveyresponse_id", on_delete: :cascade
+  add_foreign_key "question_responses", "questions", primary_key: "question_id", on_delete: :cascade
+  add_foreign_key "question_responses", "survey_responses", column: "surveyresponse_id", primary_key: "surveyresponse_id", on_delete: :cascade
+  add_foreign_key "questions", "categories"
+  add_foreign_key "students", "advisors", primary_key: "advisor_id", on_delete: :nullify
+  add_foreign_key "students", "users", column: "student_id", primary_key: "user_id", on_delete: :cascade
+  add_foreign_key "survey_responses", "advisors", primary_key: "advisor_id", on_delete: :nullify
+  add_foreign_key "survey_responses", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "survey_responses", "surveys"
 end

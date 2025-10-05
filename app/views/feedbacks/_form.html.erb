@@ -12,23 +12,23 @@
   <% end %>
 
   <div>
-    <%= form.label :feedback_id, style: "display: block" %>
-    <%= form.number_field :feedback_id %>
-  </div>
-
-  <div>
     <%= form.label :advisor_id, style: "display: block" %>
     <%= form.number_field :advisor_id %>
   </div>
 
   <div>
-    <%= form.label :competency_id, style: "display: block" %>
-    <%= form.number_field :competency_id %>
+    <%= form.label :category_id, style: "display: block" %>
+    <%= form.collection_select :category_id, Category.order(:name), :id, :name, include_blank: true %>
   </div>
 
   <div>
-    <%= form.label :rating, style: "display: block" %>
-    <%= form.number_field :rating %>
+    <%= form.label :surveyresponse_id, "Survey Response", style: "display: block" %>
+    <%= form.number_field :surveyresponse_id %>
+  </div>
+
+  <div>
+    <%= form.label :score, style: "display: block" %>
+    <%= form.number_field :score %>
   </div>
 
   <div>

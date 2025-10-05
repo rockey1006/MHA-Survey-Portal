@@ -1,16 +1,7 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+advisor:
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
 
-one:
-  advisor_id: 1
-  name: "Dr. Smith"
-  email: "smith@tamu.edu"
-
-two:
-  advisor_id: 2
-  name: "Dr. Johnson"
-  email: "johnson@tamu.edu"
-
-three:
-  advisor_id: 3
-  name: "Dr. Williams"
-  email: "williams@tamu.edu"
+other_advisor:
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

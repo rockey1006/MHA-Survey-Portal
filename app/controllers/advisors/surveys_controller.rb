@@ -1,37 +1,45 @@
 module Advisors
-  class SurveysController < ApplicationController
-    MOCK_SURVEYS = [
-      { id: 1, title: "Health & Wellness Survey", description: "Semester check-in on student health." },
-      { id: 2, title: "Academic Progress Survey", description: "Evaluate student course performance." },
-      { id: 3, title: "Career Goals Survey", description: "Explore future career planning." }
-    ]
+  class SurveysController < BaseController
+    before_action :set_survey, only: %i[show assign]
 
-    MOCK_STUDENTS = [
-      { id: 1, first_name: "Alice", last_name: "Nguyen" },
-      { id: 2, first_name: "Brian", last_name: "Smith" },
-      { id: 3, first_name: "Cara", last_name: "Lee" },
-      { id: 4, first_name: "Daniel", last_name: "Patel" }
-    ]
-
-    # List all surveys (use real Survey records)
     def index
-      @surveys = Survey.includes(:questions).all
+      @surveys = Survey.includes(:categories, :questions).order(:created_at)
     end
 
-    # Show one survey and allow assignment (use real Survey and Student records)
     def show
-      @survey = Survey.find(params[:id])
-      @survey_number = Survey.order(:id).pluck(:id).index(@survey.id) + 1
-      @students = Student.all
+      @survey_number = Survey.order(:created_at).pluck(:id).index(@survey.id)&.next || 1
+      @students = assignable_students
     end
 
-    # Assign survey to student (mock only)
     def assign
-      @survey_id = params[:id].to_i
-      @student_id = params[:student_id].to_i
+      student = assignable_students.find_by!(student_id: params[:student_id])
 
-      flash[:notice] = "Survey ##{@survey_id} assigned to student ##{@student_id}!"
-      redirect_to advisors_surveys_path
+      survey_response = SurveyResponse.find_or_initialize_by(
+        survey_id: @survey.id,
+        student_id: student.student_id
+      )
+
+      survey_response.advisor_id ||= current_advisor_profile&.advisor_id
+      survey_response.status ||= SurveyResponse.statuses[:not_started]
+      survey_response.save!
+
+      redirect_to advisors_surveys_path, notice: "Assigned '#{@survey.title}' to #{student.full_name || student.email}."
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to advisors_survey_path(@survey), alert: e.record.errors.full_messages.to_sentence
+    end
+
+    private
+
+    def set_survey
+      @survey = Survey.find(params[:id])
+    end
+
+    def assignable_students
+      if current_user.role_admin?
+        Student.includes(:user)
+      else
+        (current_advisor_profile&.advisees || Student.none).includes(:user)
+      end
     end
   end
 end

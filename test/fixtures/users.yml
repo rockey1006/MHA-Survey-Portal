@@ -1,0 +1,44 @@
+admin:
+  email: admin@example.com
+  name: Admin User
+  role: admin
+  uid: admin-uid
+  avatar_url: https://example.com/admin.png
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+student:
+  email: student@example.com
+  name: Student User
+  role: student
+  uid: student-uid
+  avatar_url: https://example.com/student.png
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+advisor:
+  email: advisor@example.com
+  name: Advisor User
+  role: advisor
+  uid: advisor-uid
+  avatar_url: https://example.com/advisor.png
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+other_advisor:
+  email: advisor2@example.com
+  name: Advisor Two
+  role: advisor
+  uid: advisor2-uid
+  avatar_url: https://example.com/advisor2.png
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+other_student:
+  email: student2@example.com
+  name: Student Two
+  role: student
+  uid: student2-uid
+  avatar_url: https://example.com/student2.png
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

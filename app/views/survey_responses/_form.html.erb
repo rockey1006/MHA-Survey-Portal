@@ -12,11 +12,6 @@
   <% end %>
 
   <div>
-    <%= form.label :surveyresponse_id, style: "display: block" %>
-    <%= form.number_field :surveyresponse_id %>
-  </div>
-
-  <div>
     <%= form.label :student_id, style: "display: block" %>
     <%= form.number_field :student_id %>
   </div>
@@ -32,8 +27,18 @@
   </div>
 
   <div>
+    <%= form.label :completion_date, style: "display: block" %>
+    <%= form.date_field :completion_date %>
+  </div>
+
+  <div>
+    <%= form.label :approval_date, style: "display: block" %>
+    <%= form.date_field :approval_date %>
+  </div>
+
+  <div>
     <%= form.label :status, style: "display: block" %>
-    <%= form.text_field :status %>
+    <%= form.select :status, SurveyResponse.statuses.values.map { |value| [value, value] }, include_blank: true %>
   </div>
 
   <div>

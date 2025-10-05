@@ -1,9 +1,8 @@
 class DashboardsController < ApplicationController
-  before_action :authenticate_admin!
+  before_action :ensure_profile_present, only: %i[student advisor]
 
   def show
-    # Default dashboard - redirect based on role
-    case current_admin.role
+    case current_user.role
     when "student"
       redirect_to student_dashboard_path
     when "advisor"
@@ -11,187 +10,118 @@ class DashboardsController < ApplicationController
     when "admin"
       redirect_to admin_dashboard_path
     else
-      # Fallback - if no role is set, redirect to student for now
       redirect_to student_dashboard_path
     end
   end
 
   def student
-    # Student dashboard
-    # Try to map the signed-in admin to a Student record by email
-    @student = nil
-    if defined?(current_admin) && current_admin.present?
-      @student = Student.find_by(email: current_admin.email)
+    @student = current_student
+    ensure_demo_surveys_for(@student)
 
-    @pending_surveys = [
-      { id: 1, title: "Health & Wellness Survey" },
-      { id: 3, title: "Career Goals Survey" }
-    ]
-    @completed_surveys = []
-    end
-
-    if @student
-      # Ensure there are at least 3 surveys in the system and each has 5 questions
-      (1..3).each do |i|
-        # Attempt to find or create by the external survey_id. In rare cases a
-        # create can fail with a unique constraint on the primary key (sequence
-        # out of sync or race). Rescue and fetch the existing record instead of
-        # letting the request raise 404.
-        begin
-          survey = Survey.find_or_create_by(survey_id: i) do |s|
-            s.assigned_date = Date.today
-          end
-        rescue ActiveRecord::RecordNotUnique => e
-          Rails.logger.warn "Survey create conflict for survey_id=#{i}: #{e.message}"
-          survey = Survey.find_by(survey_id: i)
-          # If we still can't find the survey something else is wrong — re-raise
-          raise unless survey
-        end
-
-        # ensure 5 questions for this survey via competencies -> questions; we'll create a single competency to hold them
-        if survey.competencies.empty?
-          comp = survey.competencies.create!(name: "Default competency #{survey.id}", description: "Auto-generated")
-          # create five questions: select, checkbox, radio, text, text
-          comp.questions.create!(question_order: 1, question_type: "select", question: "Choose your primary focus", answer_options: "Leadership,Analytics,Finance")
-          comp.questions.create!(question_order: 2, question_type: "checkbox", question: "Which skills improved", answer_options: "Leadership,Analytics,Finance")
-          comp.questions.create!(question_order: 3, question_type: "radio", question: "Do you feel confident?", answer_options: "Yes,No")
-          comp.questions.create!(question_order: 4, question_type: "text", question: "Please describe one achievement", answer_options: nil)
-          comp.questions.create!(question_order: 5, question_type: "text", question: "Any additional feedback", answer_options: nil)
-        end
-
-        # create a SurveyResponse for this student if missing
-        sr = SurveyResponse.find_or_initialize_by(student_id: @student.id, survey_id: survey.id)
-        if sr.new_record?
-          sr.status = SurveyResponse.statuses[:not_started]
-          sr.advisor_id = @student.advisor_id
-          sr.save!
-        end
-      end
-
-      # pending: not submitted
-      @pending_survey_responses = SurveyResponse.pending_for_student(@student.id)
-      @pending_surveys = Survey.where(id: @pending_survey_responses.pluck(:survey_id))
-
-      # completed: submitted
-      @completed_survey_responses = SurveyResponse.completed_for_student(@student.id)
-      @completed_surveys = Survey.where(id: @completed_survey_responses.pluck(:survey_id))
-    else
-      @pending_surveys = []
-      @completed_surveys = []
-    end
+    responses = @student.survey_responses.includes(:survey)
+    @pending_survey_responses = responses.pending
+    @completed_survey_responses = responses.completed
+    @pending_surveys = Survey.where(id: @pending_survey_responses.pluck(:survey_id))
+    @completed_surveys = Survey.where(id: @completed_survey_responses.pluck(:survey_id))
   end
 
   def advisor
-       # Advisor dashboard (also used by admins with additional features)
+    @advisor = current_advisor_profile || current_user.admin_profile&.user&.advisor_profile
+    @advisees = @advisor&.advisees&.includes(:user) || []
+    @recent_feedback = Feedback.where(advisor_id: @advisor&.advisor_id).order(created_at: :desc).limit(5).includes(:category, :survey_response)
+    @advisee_count = @advisees.size
+    @active_survey_count = Survey.count
+    @pending_notifications_count = if @advisor
+      SurveyResponse.where(advisor_id: @advisor.advisor_id).pending.count
+    else
+      0
+    end
   end
 
   def admin
-    # Admin dashboard - loads data for admin view
-    @total_students = Admin.where(role: "student").count
-    @total_advisors = Admin.where(role: "advisor").count
-    @total_surveys = 0 # Placeholder for when surveys are implemented
-    @total_notifications = 0 # Placeholder for notifications
-    @total_users = Admin.count
-    @recent_logins = Admin.order(updated_at: :desc).limit(5)
+    @role_counts = {
+      student: User.students.count,
+      advisor: User.advisors.count,
+      admin: User.admins.count
+    }
+
+    @total_surveys = Survey.count
+    @total_responses = SurveyResponse.count
+    @recent_logins = User.order(updated_at: :desc).limit(5)
   end
 
   def manage_members
-    # Admin-only action for managing member roles
-    unless current_admin.admin?
-      redirect_to root_path, alert: "Access denied. Admin privileges required."
-      return
-    end
-
-    # Load all users with their roles
-    @users = Admin.all.order(:full_name, :email)
+    ensure_admin!
+    @users = User.order(:name, :email)
     @role_counts = {
-      student: Admin.where(role: "student").count,
-      advisor: Admin.where(role: "advisor").count,
-      admin: Admin.where(role: "admin").count
+      student: User.students.count,
+      advisor: User.advisors.count,
+      admin: User.admins.count
     }
   end
 
   def update_roles
-    # Admin-only action for updating user roles
-    unless current_admin.admin?
-      redirect_to root_path, alert: "Access denied. Admin privileges required."
+    ensure_admin!
+
+    role_updates = params[:role_updates] || {}
+    if role_updates.empty?
+      redirect_to manage_members_path, alert: "No role changes were submitted."
       return
     end
 
-    begin
-      role_updates = params[:role_updates] || {}
-      changes_made = 0
-      successful_updates = []
-      failed_updates = []
+    allowed_roles = User.roles.values
+    successful_updates = []
+    failed_updates = []
 
-      if role_updates.empty?
-        redirect_to manage_members_path, alert: "No role changes were submitted."
-        return
-      end
-
-      ActiveRecord::Base.transaction do
-        role_updates.each do |user_id, new_role|
-          begin
-            user = Admin.find(user_id.to_i)
-            current_role = user.role || "student"
-
-            # Skip if it's the current admin or if role is unchanged
-            if user == current_admin
-              next
-            end
-
-            if current_role == new_role
-              next
-            end
-
-            if %w[student advisor admin].include?(new_role)
-              user.update!(role: new_role)
-              changes_made += 1
-              successful_updates << "#{user.email}: #{current_role} → #{new_role}"
-            else
-              failed_updates << "#{user.email}: invalid role '#{new_role}'"
-            end
-          rescue ActiveRecord::RecordNotFound => e
-            failed_updates << "User ID #{user_id}: not found"
-          rescue => e
-            Rails.logger.error "Error updating user #{user_id}: #{e.message}"
-            failed_updates << "User ID #{user_id}: #{e.message}"
-          end
+    ActiveRecord::Base.transaction do
+      role_updates.each do |user_id, new_role|
+        user = User.find_by(user_id: user_id)
+        unless user
+          failed_updates << "User ID #{user_id}: not found"
+          next
         end
-      end
 
-      if changes_made > 0
-        success_message = "Successfully updated #{changes_made} user role#{'s' if changes_made > 1}."
-        if failed_updates.any?
-          success_message += " Some updates failed: #{failed_updates.join(', ')}"
+        if user == current_user
+          failed_updates << "#{user.email}: cannot change your own role"
+          next
         end
-        redirect_to manage_members_path, notice: success_message
-      elsif failed_updates.any?
-        error_message = "Role update errors: #{failed_updates.join(', ')}"
-        redirect_to manage_members_path, alert: error_message
-      else
-        redirect_to manage_members_path, notice: "No role changes were needed."
-      end
 
-    rescue => e
-      Rails.logger.error "Critical error in update_roles: #{e.message}"
-      redirect_to manage_members_path, alert: "An error occurred while updating user roles. Please try again."
+        unless allowed_roles.include?(new_role)
+          failed_updates << "#{user.email}: invalid role '#{new_role}'"
+          next
+        end
+
+        next if user.role == new_role
+
+        previous_role = user.role
+        user.update!(role: new_role)
+        successful_updates << "#{user.email}: #{previous_role} → #{new_role}"
+      rescue StandardError => e
+        Rails.logger.error "Error updating user #{user_id}: #{e.message}"
+        failed_updates << "User ID #{user_id}: #{e.message}"
+      end
+    end
+
+    if successful_updates.present?
+      message = "Updated #{successful_updates.size} user role#{'s' if successful_updates.size > 1}."
+      message += " Failures: #{failed_updates.join(', ')}" if failed_updates.present?
+      redirect_to manage_members_path, notice: message
+    elsif failed_updates.present?
+      redirect_to manage_members_path, alert: "Role update errors: #{failed_updates.join(', ')}"
+    else
+      redirect_to manage_members_path, notice: "No role changes were needed."
     end
   end
 
   def debug_users
-    # Debug endpoint to check user roles
-    unless current_admin.admin?
-      render json: { error: "Access denied" }, status: 403
-      return
-    end
+    ensure_admin!
 
-    users = Admin.all.map do |user|
+    users = User.order(:name).map do |user|
       {
-        id: user.id,
+        id: user.user_id,
         email: user.email,
-        full_name: user.full_name,
-        role: user.role || "student",
+        name: user.name,
+        role: user.role,
         updated_at: user.updated_at
       }
     end
@@ -199,11 +129,86 @@ class DashboardsController < ApplicationController
     render json: {
       users: users,
       role_counts: {
-        student: Admin.where(role: "student").count,
-        advisor: Admin.where(role: "advisor").count,
-        admin: Admin.where(role: "admin").count
+        student: User.students.count,
+        advisor: User.advisors.count,
+        admin: User.admins.count
       },
       timestamp: Time.current
     }
+  end
+
+  private
+
+  def ensure_profile_present
+    return if current_user.role_admin?
+
+    if current_user.role_student? && current_student.nil?
+      current_user.create_student_profile unless current_user.student_profile
+    elsif current_user.role_advisor? && current_advisor_profile.nil?
+      current_user.create_advisor_profile unless current_user.advisor_profile
+    end
+  end
+
+  def ensure_admin!
+    return if current_user.role_admin?
+
+    redirect_to dashboard_path, alert: "Access denied. Admin privileges required."
+    false
+  end
+
+  def ensure_demo_surveys_for(student)
+    return unless student
+
+    sample_surveys.each do |survey_attrs|
+      survey = Survey.find_or_create_by!(survey_attrs.slice(:title, :semester))
+      category = survey.categories.find_or_create_by!(name: survey_attrs[:category_name]) do |cat|
+        cat.description = survey_attrs[:category_description]
+      end
+
+      ensure_questions_for(category, survey_attrs[:questions])
+
+      SurveyResponse.find_or_create_by!(student_id: student.id, survey_id: survey.id) do |response|
+        response.advisor_id = student.advisor_id
+        response.status = SurveyResponse.statuses[:not_started]
+      end
+    end
+  end
+
+  def sample_surveys
+    [
+      {
+        title: "Health & Wellness Survey",
+        semester: "Fall 2025",
+        category_name: "Wellness",
+        category_description: "Student health and wellbeing",
+        questions: [
+          { order: 1, type: :multiple_choice, text: "How would you rate your current stress level?", options: "Low,Moderate,High" },
+          { order: 2, type: :scale, text: "On a scale from 1-5, how satisfied are you with your work-life balance?", options: "1,2,3,4,5" },
+          { order: 3, type: :short_answer, text: "Describe one strategy you use to maintain your wellbeing." },
+          { order: 4, type: :evidence, text: "Upload evidence supporting your wellness activities." }
+        ]
+      },
+      {
+        title: "Career Goals Survey",
+        semester: "Fall 2025",
+        category_name: "Professional Development",
+        category_description: "Goals and milestones toward career objectives",
+        questions: [
+          { order: 1, type: :multiple_choice, text: "Which industry are you targeting after graduation?", options: "Finance,Technology,Consulting,Other" },
+          { order: 2, type: :short_answer, text: "What is your top career goal for the next six months?" },
+          { order: 3, type: :scale, text: "Rate your confidence in achieving this goal.", options: "1,2,3,4,5" }
+        ]
+      }
+    ]
+  end
+
+  def ensure_questions_for(category, questions)
+    questions.each do |question_attrs|
+  question = category.questions.find_or_initialize_by(question_order: question_attrs[:order])
+  question.question = question_attrs[:text]
+  question.question_type = question_attrs[:type]
+  question.answer_options = question_attrs[:options]
+  question.save!
+    end
   end
 end

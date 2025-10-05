@@ -13,9 +13,8 @@
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
+  <%= favicon_link_tag "tamu-logo.png", rel: "icon", type: "image/png" %>
+  <%= favicon_link_tag "tamu-logo.png", rel: "apple-touch-icon", type: "image/png" %>
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
@@ -26,12 +25,11 @@
     <% if flash.any? %>
       <% flash.each do |key, value| -%>
         <section class="flash flash__<%= key %>"><%= value.html_safe %></section>
-        <div id="flash_<%= key %>"><%= value %></div>
       <% end -%>
     <% end %>
 
-    <% if admin_signed_in? %>
-      <% case current_admin.role %>
+    <% if user_signed_in? %>
+      <% case current_user.role %>
       <% when "student" %>
         <%= render "shared/student_navbar" %>
       <% when "advisor" %>

@@ -33,7 +33,18 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
-/config/master.key
-
 # Ignore test coverage reports
 /coverage/
+
+# Ignore vendored gems and caches
+/vendor/bundle/
+/vendor/cache/
+
+# JavaScript dependencies (if present)
+/node_modules/
+
+# Editor and OS cruft
+.DS_Store
+/.idea/
+/.vscode/
+/.byebug_history

@@ -1,3 +1,5 @@
+ruby "3.4.6"
+
 gem "wicked_pdf"
 gem "wkhtmltopdf-binary"
 source "https://rubygems.org"
@@ -69,6 +71,10 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+
+  # RSpec for behavior-driven tests (optional, installed if you want to run rspec)
+  gem "rspec-rails"
+  gem "rspec"
 
   # Code coverage analysis
   gem "simplecov", require: false

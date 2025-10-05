@@ -12,13 +12,8 @@
   <% end %>
 
   <div>
-    <%= form.label :question_id, style: "display: block" %>
-    <%= form.number_field :question_id %>
-  </div>
-
-  <div>
-    <%= form.label :competency_id, style: "display: block" %>
-    <%= form.number_field :competency_id %>
+    <%= form.label :category_id, style: "display: block" %>
+    <%= form.collection_select :category_id, Category.order(:name), :id, :name, include_blank: true %>
   </div>
 
   <div>
@@ -33,12 +28,13 @@
 
   <div>
     <%= form.label :question_type, style: "display: block" %>
-    <%= form.text_field :question_type %>
+    <%= form.select :question_type, Question.question_types.keys.map { |key| [key.titleize, key] }, include_blank: true %>
   </div>
 
   <div>
     <%= form.label :answer_options, "Answer options", style: "display: block" %>
     <%= form.text_field :answer_options %>
+    <small>Comma-separated list for multiple choice and scale questions.</small>
   </div>
 
   <div>

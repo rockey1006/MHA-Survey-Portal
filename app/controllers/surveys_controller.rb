@@ -8,24 +8,12 @@ class SurveysController < ApplicationController
 
   # GET /surveys/1 or /surveys/1.json
   def show
-    # If a student is signed in (via current_admin), collect existing answers so the
-    # survey form can pre-fill previously submitted responses for editing/resubmission.
+    @survey_response = nil
     @existing_answers = {}
-    if defined?(current_admin) && current_admin.present?
-      student = Student.find_by(email: current_admin.email)
-      if student
-        # Find the survey_response for this student & survey
-        sr = SurveyResponse.find_by(student_id: student.id, survey_id: @survey.id)
-        if sr
-          # Collect question responses only for this survey_response
-          question_ids = @survey.respond_to?(:questions) ? @survey.questions.pluck(:id) : []
-          cr_ids = CompetencyResponse.where(surveyresponse_id: sr.id).pluck(:id)
-          qrs = QuestionResponse.where(question_id: question_ids, competencyresponse_id: cr_ids)
-          qrs.each do |qr|
-            @existing_answers[qr.question_id] = qr.answer
-          end
-        end
-      end
+
+    if current_student
+      @survey_response = SurveyResponse.find_by(student_id: current_student.id, survey_id: @survey.id)
+      @existing_answers = @survey_response&.question_responses&.index_by(&:question_id) || {}
     end
   end
 
@@ -75,59 +63,54 @@ class SurveysController < ApplicationController
       format.json { head :no_content }
     end
   end
-  # POST /surveys/1/submit
-  def submit
-    # identify the acting student: try to match current_admin (Devise) to Student by email
-    student = nil
-    if defined?(current_admin) && current_admin.present?
-      student = Student.find_by(email: current_admin.email)
-    end
 
+  # POST /surveys/:id/submit
+  def submit
+    student = current_student
     unless student
       redirect_to student_dashboard_path, alert: "Student record not found for current user."
       return
     end
 
-    # Find or create survey_response and mark submitted
     survey_response = SurveyResponse.find_or_initialize_by(student_id: student.id, survey_id: @survey.id)
     survey_response.status = SurveyResponse.statuses[:submitted]
     survey_response.advisor_id ||= student.advisor_id
-    survey_response.semester ||= params[:semester]
-    survey_response.save!
+    survey_response.completion_date ||= Date.current
 
-    # Save question responses if provided
-    answers = params[:answers] || {}
-    answers.each do |question_id_str, answer_value|
-      # question ids might be 'sample_text' fallback — skip non-integer keys
-      next unless question_id_str.to_s =~ /^\d+$/
-      qid = question_id_str.to_i
-      q = Question.find_by(id: qid)
-      next unless q
+    ActiveRecord::Base.transaction do
+      survey_response.save!
 
-      # Find or create the competency_response for this survey_response and question's competency
-      comp = Competency.find_by(id: q.competency_id)
-      comp_resp = nil
-      if comp
-        comp_resp = CompetencyResponse.find_or_create_by!(surveyresponse_id: survey_response.id, competency_id: comp.id)
+      answers = params.fetch(:answers, {})
+      answers.each do |question_id_str, raw_answer|
+        next unless question_id_str.to_s =~ /^\d+$/
+        question = Question.find_by(question_id: question_id_str.to_i)
+        next unless question
+
+        response_value = normalize_answer(raw_answer)
+        question_response = QuestionResponse.find_or_initialize_by(
+          surveyresponse_id: survey_response.id,
+          question_id: question.question_id
+        )
+        question_response.answer = response_value
+        question_response.save!
       end
-
-      # normalize checkbox arrays into JSON/string
-      response_value = answer_value
-
-      # create or update existing question_response scoped to the competency_response
-      qr = if comp_resp
-             QuestionResponse.find_or_initialize_by(question_id: qid, competencyresponse_id: comp_resp.id)
-      else
-             # Fallback: if no competency available, store with nil competencyresponse (legacy behavior)
-             QuestionResponse.find_or_initialize_by(question_id: qid, competencyresponse_id: nil)
-      end
-      qr.answer = response_value
-      qr.save!
     end
 
-    redirect_to survey_response_path(survey_response), notice: "Survey submitted successfully!"
+    respond_to do |format|
+      format.html { redirect_to survey_response_path(survey_response), notice: "Survey submitted successfully!" }
+      format.json { render json: { survey_response_id: survey_response.id }, status: :ok }
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    respond_to do |format|
+      format.html do
+        redirect_to survey_path(@survey), alert: "Unable to submit survey: #{e.record.errors.full_messages.to_sentence}"
+      end
+      format.json { render json: { error: e.record.errors.full_messages }, status: :unprocessable_entity }
+    end
   end
+
   private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_survey
       @survey = Survey.find(params[:id])
@@ -135,6 +118,19 @@ class SurveysController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def survey_params
-      params.require(:survey).permit(:survey_id, :assigned_date, :completion_date, :approval_date, :title, :semester)
+      params.require(:survey).permit(:title, :semester)
+    end
+
+    def normalize_answer(raw_answer)
+      case raw_answer
+      when ActionController::Parameters
+        normalize_answer(raw_answer.permit!.to_h)
+      when Hash
+        raw_answer.transform_values { |value| normalize_answer(value) }
+      when Array
+        raw_answer.map { |value| normalize_answer(value) }.reject { |value| value.respond_to?(:blank?) ? value.blank? : value.nil? }
+      else
+        raw_answer
+      end
     end
 end

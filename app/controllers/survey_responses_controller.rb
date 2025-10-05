@@ -9,15 +9,7 @@ class SurveyResponsesController < ApplicationController
 
   # GET /survey_responses/1 or /survey_responses/1.json
   def show
-    # collect all question ids for this survey (through competencies)
-    survey = @survey_response.survey
-    question_ids = []
-    if survey && survey.respond_to?(:competencies)
-      survey.competencies.each do |comp|
-        question_ids.concat(comp.questions.pluck(:id)) if comp.respond_to?(:questions)
-      end
-    end
-    @question_responses = QuestionResponse.where(question_id: question_ids)
+    @question_responses = @survey_response.question_responses.includes(:question)
 
     respond_to do |format|
       format.html
@@ -121,6 +113,6 @@ class SurveyResponsesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def survey_response_params
-      params.expect(survey_response: [ :surveyresponse_id, :student_id, :advisor_id, :survey_id, :semester, :status ])
+      params.require(:survey_response).permit(:student_id, :advisor_id, :survey_id, :completion_date, :approval_date, :status)
     end
 end

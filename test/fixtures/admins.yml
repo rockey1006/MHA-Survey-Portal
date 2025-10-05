@@ -1,22 +1,3 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
-one:
-  email: "admin@tamu.edu"
-  full_name: "John Admin"
-  role: "admin"
-  uid: "123456789"
-  avatar_url: "https://example.com/admin_avatar.jpg"
-
-two:
-  email: "advisor@tamu.edu"
-  full_name: "Jane Advisor"
-  role: "advisor"
-  uid: "987654321"
-  avatar_url: "https://example.com/advisor_avatar.jpg"
-
-three:
-  email: "user@tamu.edu"
-  full_name: "Bob User"
-  role: "user"
-  uid: "555666777"
-  avatar_url: "https://example.com/user_avatar.jpg"
+admin:
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

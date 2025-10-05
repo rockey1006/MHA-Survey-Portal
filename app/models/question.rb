@@ -1,7 +1,17 @@
 class Question < ApplicationRecord
-  belongs_to :competency, optional: true
+  self.primary_key = :question_id
+
+  enum :question_type, {
+    multiple_choice: "multiple_choice",
+    scale: "scale",
+    short_answer: "short_answer",
+    evidence: "evidence"
+  }, prefix: true
+
+  belongs_to :category
   has_many :question_responses, foreign_key: :question_id, dependent: :destroy
 
-     # question_type could be 'text', 'select', 'radio', 'checkbox'
-     # answer_options stored as serialized array in DB or as JSON string; existing schema comment says 'Answer Options: String List'
+  validates :question, presence: true
+  validates :question_order, presence: true
+  validates :question_type, presence: true, inclusion: { in: question_types.values }
 end

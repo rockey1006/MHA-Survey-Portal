@@ -15,6 +15,7 @@
  *= require _layout
  *= require _flash_messages
  *= require _forms
+ *= require student_records
  *= require _dashboards
  *= require_self
  */

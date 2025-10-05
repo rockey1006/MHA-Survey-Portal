@@ -1,49 +1,33 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  url: <%= ENV['DATABASE_URL'] if ENV['DATABASE_URL'].present? %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
   username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
   password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
   host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
-  port: <%= ENV['PGPORT'] || ENV['DATABASE_PORT'] || '5433' %>
-  pool: 5
-
-cache:
-  <<: *default
-  database: health_app_cache_production
-  username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
-  password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
-  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
-  pool: 5
-
-queue:
-  <<: *default
-  database: health_app_queue_production
-  username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
-  password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
-  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
-  pool: 5
-
-cable:
-  <<: *default
-  database: health_app_cable_production
-  username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
-  password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
-  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
-  pool: 5
+  port: <%= ENV['PGPORT'] || ENV['DATABASE_PORT'] || 5432 %>
 
 development:
   <<: *default
-  database: health_app_development
+  database: <%= ENV['DATABASE'] || "health_development" %>
 
 test:
   <<: *default
-  database: health_app_test
+  database: <%= ENV['TEST_DATABASE'] || "health_test" %>
 
 production:
   <<: *default
-  database: health_app_production
-  username: <%= ENV['PGUSER'] || ENV['DATABASE_USER'] || ENV['POSTGRES_USER'] || 'dev_user' %>
-  password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || ENV['POSTGRES_PASSWORD'] || 'dev_pass' %>
-  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
-  pool: 5
+  url: <%= ENV['DATABASE_URL'] %>
+
+# Optional named databases used by some features (cache, queue, cable)
+cache:
+  <<: *default
+  database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
+
+queue:
+  <<: *default
+  database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
+
+cable:
+  <<: *default
+  database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>

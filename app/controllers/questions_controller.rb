@@ -60,11 +60,16 @@ class QuestionsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_question
-      @question = Question.find(params.expect(:id))
+      @question = Question.find(params[:id])
     end
 
     # Only allow a list of trusted parameters through.
     def question_params
-      params.expect(question: [ :question_id, :competency_id, :question_order, :question_type ])
+      # Support both `question` and `text` keys coming from different callers/tests.
+      if params[:question] && params[:question][:text].present?
+        params[:question][:question] = params[:question].delete(:text)
+      end
+
+      params.require(:question).permit(:category_id, :question_order, :question_type, :question, :answer_options)
     end
 end

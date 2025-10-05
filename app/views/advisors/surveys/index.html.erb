@@ -5,17 +5,28 @@
       <p class="section-subtitle">Pick a survey to assign to a student</p>
     </div>
 
-    <div class="dashboard-grid dashboard-grid-1">
-      <% @surveys.each_with_index do |survey, idx| %>
-        <div class="feature-item" style="margin-bottom:2em;">
-          <div class="feature-icon" aria-hidden="true">📄</div>
-          <div class="feature-title">#<%= idx+1 %> <%= survey.title %></div>
-          <div class="feature-description"><%= survey.respond_to?(:description) ? survey.description : '' %></div>
-          <div style="margin-top:1em;">
-            <%= link_to 'Assign to Student', advisors_survey_path(survey), class: 'btn' %>
+    <% if @surveys.present? %>
+      <div class="dashboard-grid dashboard-grid-1">
+        <% @surveys.each_with_index do |survey, idx| %>
+          <div class="feature-item" style="margin-bottom:2em;">
+            <div class="feature-icon" aria-hidden="true">📄</div>
+            <div class="feature-title">#<%= idx + 1 %> <%= survey.title %></div>
+            <% description = survey.try(:description) || survey.categories.limit(3).map(&:name).join(", ") %>
+            <% if description.present? %>
+              <div class="feature-description"><%= description %></div>
+            <% end %>
+            <div style="margin-top:1em;">
+              <%= link_to 'Assign to Student', advisors_survey_path(survey), class: 'btn' %>
+            </div>
           </div>
-        </div>
-      <% end %>
-    </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="feature-item" style="max-width: 560px; margin: 0 auto;">
+        <div class="feature-icon" aria-hidden="true">📭</div>
+        <div class="feature-title">No surveys available</div>
+        <div class="feature-description">Create a survey first to begin assigning it to students.</div>
+      </div>
+    <% end %>
   </section>
 </main>

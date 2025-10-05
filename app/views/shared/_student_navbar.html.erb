@@ -21,25 +21,25 @@
     <div class="user-section">
       <div class="user-profile">
         <div class="user-avatar"
-             title="<%= current_admin&.full_name %>"
-             <% if current_admin&.avatar_url.present? %>
-               style="background-image: url('<%= current_admin.avatar_url %>');"
+             title="<%= current_user&.full_name %>"
+             <% if current_user&.avatar_url.present? %>
+               style="background-image: url('<%= current_user.avatar_url %>');"
              <% end %>>
-          <% unless current_admin&.avatar_url.present? %>👤<% end %>
+          <% unless current_user&.avatar_url.present? %>👤<% end %>
         </div>
 
         <!-- Profile Dropdown -->
         <div class="profile-dropdown">
           <div class="profile-header">
             <div class="user-avatar"
-                 <% if current_admin&.avatar_url.present? %>
-                   style="background-image: url('<%= current_admin.avatar_url %>');"
+                 <% if current_user&.avatar_url.present? %>
+                   style="background-image: url('<%= current_user.avatar_url %>');"
                  <% end %>>
-              <% unless current_admin&.avatar_url.present? %>👤<% end %>
+              <% unless current_user&.avatar_url.present? %>👤<% end %>
             </div>
             <div class="profile-info">
-              <h3><%= current_admin&.full_name || "Student User" %></h3>
-              <p><%= current_admin&.email %></p>
+              <h3><%= current_user&.full_name || "Student User" %></h3>
+              <p><%= current_user&.email %></p>
             </div>
           </div>
 
@@ -52,11 +52,12 @@
               <div class="profile-menu-icon">⚙️</div>
               <span>Settings</span>
             </div>
-            <div class="profile-menu-item danger">
-              <%= link_to destroy_admin_session_path, method: :delete,
-                    class: "profile-menu-item danger",
-                    style: "color: inherit; text-decoration: none;" do %>
-                <div class="profile-menu-icon">🚪</div>
+            <div class="profile-menu-item">
+              <div class="profile-menu-icon">🚪</div>
+              <%= button_to destroy_user_session_path,
+                            method: :delete,
+                            form: { class: "inline-signout-form" },
+                            class: "profile-menu-item danger profile-menu-button" do %>
                 <span>Sign Out</span>
               <% end %>
             </div>

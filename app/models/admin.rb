@@ -1,45 +1,45 @@
 class Admin < ApplicationRecord
-  devise :omniauthable, omniauth_providers: [ :google_oauth2 ]
+  self.primary_key = :admin_id
 
-  def self.from_google(email:, full_name:, uid:, avatar_url:, role: nil)
-    # Use find_or_initialize_by to handle missing role column gracefully
-    admin = find_or_initialize_by(email: email)
+  belongs_to :user, foreign_key: :admin_id, primary_key: :user_id, inverse_of: :admin_profile
 
-    # Update attributes for both new and existing records
-    admin.uid = uid if admin.uid.blank?
-    admin.full_name = full_name  # Always update full_name
-    admin.avatar_url = avatar_url if admin.avatar_url.blank?
+  delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, :uid, :uid=, :created_at, :updated_at, to: :user
 
-    # Always update role if provided and column exists
-    if role.present? && admin.respond_to?(:role=)
-      admin.role = role
-    end
-
-    admin.save! if admin.changed?
-    admin
+  def full_name
+    name
   end
 
-  # Fallback method for role if column doesn't exist yet
+  def full_name=(value)
+    self.name = value
+  end
+
   def role
-    if self.class.column_names.include?("role")
-      super
-    else
-      nil # Return nil if role column doesn't exist
-    end
+    user.role
   end
 
-  # Check if user is admin (has all advisor powers + role management)
+  def role=(value)
+    user.role = value
+  end
+
   def admin?
-    role == "admin"
+    user.role_admin?
   end
 
-  # Check if user has advisor-level permissions (advisor or admin)
   def advisor?
-    %w[advisor admin].include?(role)
+    user.role_advisor? || admin?
   end
 
-  # Check if user can manage roles (promote/demote advisors)
   def can_manage_roles?
     admin?
+  end
+
+  def save(*args, &block)
+    user.save! if user&.changed?
+    super
+  end
+
+  def save!(*args, &block)
+    user.save! if user&.changed?
+    super
   end
 end

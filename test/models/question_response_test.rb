@@ -1,42 +1,22 @@
 require "test_helper"
 
 class QuestionResponseTest < ActiveSupport::TestCase
-  def setup
-    @question_response = question_responses(:one)
+  test "answer serialization preserves arrays" do
+    survey_response = survey_responses(:student_fall)
+    question = questions(:fall_q1)
+
+    qr = QuestionResponse.new(survey_response: survey_response, question: question)
+    qr.answer = [ "Option A", "Option B" ]
+    assert_equal [ "Option A", "Option B" ], qr.answer
+    assert_equal [ "Option A", "Option B" ].to_json, qr.read_attribute(:answer)
   end
 
-  test "should be valid with valid attributes" do
-    assert @question_response.valid?
-  end
+  test "answer accepts strings" do
+    survey_response = survey_responses(:student_fall)
+    question = questions(:fall_q1)
 
-  test "should belong to question" do
-    assert_respond_to @question_response, :question
-  end
-
-  test "should store response answer" do
-    @question_response.answer = "This is a test response"
-    assert_equal "This is a test response", @question_response.answer
-  end
-
-  test "should handle different response types" do
-    # Test text response
-    @question_response.answer = "Long text response here"
-    assert @question_response.valid?
-
-    # Test select/radio response
-    @question_response.answer = "Option 1"
-    assert @question_response.valid?
-
-    # Test checkbox response (could be JSON array or comma-separated)
-    @question_response.answer = "Option 1,Option 2"
-    assert @question_response.valid?
-  end
-
-  test "should allow empty answer" do
-    @question_response.answer = ""
-    assert @question_response.valid?
-
-    @question_response.answer = nil
-    assert @question_response.valid?
+    qr = QuestionResponse.new(survey_response: survey_response, question: question)
+    qr.answer = "Yes"
+    assert_equal "Yes", qr.answer
   end
 end

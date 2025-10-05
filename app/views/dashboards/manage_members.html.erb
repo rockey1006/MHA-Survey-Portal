@@ -50,7 +50,7 @@
             </thead>
             <tbody>
               <% @users.each do |user| %>
-                <tr class="user-row <%= 'current-admin' if user == current_admin %>">
+                <tr class="user-row <%= 'current-user' if user == current_user %>">
                   <td class="user-avatar-cell">
                     <div class="user-table-avatar"
                          <% if user.avatar_url.present? %>
@@ -62,7 +62,7 @@
                   
                   <td class="user-name-cell">
                     <div class="user-name"><%= user.full_name || "N/A" %></div>
-                    <% if user == current_admin %>
+                    <% if user == current_user %>
                       <span class="current-user-badge">You</span>
                     <% end %>
                   </td>
@@ -78,34 +78,30 @@
                   </td>
                   
                   <td class="user-new-role-cell">
-                    <% if user == current_admin %>
+                    <% if user == current_user %>
                       <span class="role-locked">Role Locked</span>
                     <% else %>
                       <div class="role-selector">
-                        <%= select_tag "role_updates[#{user.id}]", 
-                            options_for_select([
-                              ['Student', 'student'],
-                              ['Advisor', 'advisor'],
-                              ['Admin', 'admin']
-                            ], user.role || 'student'),
+                        <%= select_tag "role_updates[#{user.user_id}]", 
+                            options_for_select(User.roles.map { |key, value| [key.titleize, key] }, user.role || 'student'),
                             { 
                               class: 'role-select', 
                               data: { 
-                                user_id: user.id, 
+                                user_id: user.user_id, 
                                 current_role: user.role || 'student',
                                 original_role: user.role || 'student'
                               },
-                              id: "role_select_#{user.id}"
+                              id: "role_select_#{user.user_id}"
                             } %>
                       </div>
                     <% end %>
                   </td>
                   
                   <td class="user-actions-cell">
-                    <% if user == current_admin %>
+                    <% if user == current_user %>
                       <span class="action-disabled">-</span>
                     <% else %>
-                      <span class="role-change-indicator" data-user-id="<%= user.id %>">
+                      <span class="role-change-indicator" data-user-id="<%= user.user_id %>">
                         No changes
                       </span>
                     <% end %>

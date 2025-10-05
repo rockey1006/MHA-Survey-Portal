@@ -39,7 +39,7 @@
               <% unless current_user&.avatar_url.present? %>👤<% end %>
             </div>
             <div class="profile-info">
-              <h3><%= current_user&.full_name || "Advisor User" %></h3>
+              <h3><%= current_user&.name || "Advisor User" %></h3>
               <p><%= current_user&.email %></p>
             </div>
           </div>

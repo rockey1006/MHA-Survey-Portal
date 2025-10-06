@@ -24,21 +24,23 @@ class SurveysController < ApplicationController
             @existing_answers[qr.question_id] = qr.answer
           end
 
-          # Load existing evidence uploads for this student and surveyresponse, grouped by category
+          # For evidence-type questions, previous submissions are read from QuestionResponse.answer
           @existing_evidence_by_category = {}
-          eus = EvidenceUpload.includes(question_response: { question: :category }).where(student_id: student.id)
-          # Filter to only those evidence uploads attached to question_responses that belong to this survey_response
-          eus = eus.select { |e| e.question_response&.surveyresponse_id.to_i == sr.id }
-          # Group by category id (if available)
-          eus.group_by { |e| e.question_response&.question&.category_id }.each do |cid, arr|
-            # sort by created_at desc so latest first
-            @existing_evidence_by_category[cid] = arr.sort_by { |x| x.created_at || Time.at(0) }.reverse
-          end
-          # Also group evidence uploads by question id for showing in each question block
           @existing_evidence_by_question = {}
-          eus.group_by { |e| e.question_response&.question_id }.each do |qid, arr|
-            @existing_evidence_by_question[qid] = arr.sort_by { |x| x.created_at || Time.at(0) }.reverse
+          # collect all question_responses for this survey_response and group them
+          qrs = QuestionResponse.where(surveyresponse_id: sr.id).includes(:question)
+          qrs.each do |qr|
+            q = qr.question
+            next unless q && q.question_type == 'evidence'
+            cid = q.category_id
+            @existing_evidence_by_category[cid] ||= []
+            @existing_evidence_by_category[cid] << qr
+            @existing_evidence_by_question[qr.question_id] ||= []
+            @existing_evidence_by_question[qr.question_id] << qr
           end
+          # sort entries by created_at desc
+          @existing_evidence_by_category.each { |k, arr| arr.sort_by! { |x| x.created_at || Time.at(0) }.reverse! }
+          @existing_evidence_by_question.each { |k, arr| arr.sort_by! { |x| x.created_at || Time.at(0) }.reverse! }
           # Pre-compute which questions should be marked required in the UI so view logic is simple
           @computed_required = {}
           @survey.categories.includes(:questions).each do |cat2|
@@ -223,79 +225,8 @@ class SurveysController < ApplicationController
         qr.save!
       end
 
-      # Persist evidence answers that were submitted via answers[<question_id>] for evidence-type questions
-      @survey.categories.includes(:questions).each do |cat|
-        cat.questions.each do |q|
-          next unless q.question_type == "evidence"
-          link = answers[q.id.to_s]
-          next if link.blank?
-
-          eu = EvidenceUpload.new(student_id: student.id, link: link, created_by: student.id)
-          unless eu.valid?
-            flash[:alert] = "Invalid evidence link for question #{q.id}: #{eu.errors.full_messages.join(', ')}"
-            redirect_to survey_path(@survey) and return
-          end
-
-          qr = QuestionResponse.find_or_initialize_by(surveyresponse_id: survey_response.id, question_id: q.id)
-          qr.answer = link
-          qr.save!
-
-          eu.questionresponse_id = qr.id
-          eu.save!
-        end
-      end
-
-      # Persist legacy per-question evidence links
-      evidence_links.each do |question_id_str, link|
-        next if link.blank?
-        qid = question_id_str.to_i
-  q = Question.find_by(question_id: qid)
-        next unless q && q.question_type == "evidence"
-
-        eu = EvidenceUpload.new(student_id: student.id, link: link, created_by: student.id)
-        unless eu.valid?
-          flash[:alert] = "Invalid evidence link for question #{qid}: #{eu.errors.full_messages.join(', ')}"
-          redirect_to survey_path(@survey) and return
-        end
-
-        qr = QuestionResponse.find_or_initialize_by(surveyresponse_id: survey_response.id, question_id: qid)
-        qr.answer = link
-        qr.save!
-
-        eu.questionresponse_id = qr.id
-        eu.save!
-      end
-
-      # Persist new per-category evidence links: attach provided link(s) to that category's evidence question(s)
-      evidence_links_by_category.each do |category_id_str, link|
-        next if link.blank?
-        cid = category_id_str.to_i
-        cat = Category.find_by(id: cid)
-        next unless cat
-
-        # Find or create an evidence-type question in this category (attach to this category even if question missing)
-        eq = cat.questions.find_by(question_type: "evidence")
-        if eq.nil?
-          # create a simple evidence question to record this link
-          next_order = (cat.questions.maximum(:question_order) || 0) + 1
-          eq = cat.questions.create!(question: "Upload evidence", question_type: "evidence", question_order: next_order)
-        end
-
-        # Validate
-        eu = EvidenceUpload.new(student_id: student.id, link: link, created_by: student.id)
-        unless eu.valid?
-          flash[:alert] = "Invalid evidence link for competency #{cat.name}: #{eu.errors.full_messages.join(', ')}"
-          redirect_to survey_path(@survey) and return
-        end
-
-        # Ensure a QuestionResponse exists for that evidence question and survey_response
-        qr = QuestionResponse.find_or_initialize_by(surveyresponse_id: survey_response.id, question_id: eq.id)
-        qr.answer = link
-        qr.save!
-
-        eu.questionresponse_id = qr.id
-        eu.save!
-      end
+      # Evidence is stored directly on QuestionResponse.answer for evidence-type questions.
+      # The saved answers loop above already persisted question responses, including evidence links.
     end
 
     redirect_to survey_response_path(survey_response), notice: "Survey submitted successfully!"

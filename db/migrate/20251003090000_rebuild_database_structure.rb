@@ -2,7 +2,6 @@ class RebuildDatabaseStructure < ActiveRecord::Migration[8.0]
   def up
     # Drop legacy tables that will be replaced by the new schema
     %i[
-      evidence_uploads
       competency_responses
       competencies
       feedbacks

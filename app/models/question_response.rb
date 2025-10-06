@@ -42,7 +42,7 @@ class QuestionResponse < ApplicationRecord
 
   # Returns true when the associated question is an evidence type
   def evidence_question?
-    question.present? && question.question_type == 'evidence'
+    question.present? && question.question_type == "evidence"
   end
 
   # Strip surrounding whitespace/newlines from stored answer (if string)

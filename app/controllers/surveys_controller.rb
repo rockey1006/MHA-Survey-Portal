@@ -31,7 +31,7 @@ class SurveysController < ApplicationController
           qrs = QuestionResponse.where(surveyresponse_id: sr.id).includes(:question)
           qrs.each do |qr|
             q = qr.question
-            next unless q && q.question_type == 'evidence'
+            next unless q && q.question_type == "evidence"
             cid = q.category_id
             @existing_evidence_by_category[cid] ||= []
             @existing_evidence_by_category[cid] << qr
@@ -218,15 +218,15 @@ class SurveysController < ApplicationController
       answers.each do |question_id_str, answer_value|
         next unless question_id_str.to_s =~ /^\d+$/
         qid = question_id_str.to_i
-  q = Question.find_by(question_id: qid)
+        q = Question.find_by(question_id: qid)
         next unless q
         qr = QuestionResponse.find_or_initialize_by(surveyresponse_id: survey_response.id, question_id: qid)
         qr.answer = answer_value
         qr.save!
       end
 
-      # Evidence is stored directly on QuestionResponse.answer for evidence-type questions.
-      # The saved answers loop above already persisted question responses, including evidence links.
+         # Evidence is stored directly on QuestionResponse.answer for evidence-type questions.
+         # The saved answers loop above already persisted question responses, including evidence links.
     end
 
     redirect_to survey_response_path(survey_response), notice: "Survey submitted successfully!"

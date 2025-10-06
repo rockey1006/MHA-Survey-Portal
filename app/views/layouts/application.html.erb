@@ -23,9 +23,10 @@
 
   <body>
     <% if flash.any? %>
-      <% flash.each do |key, value| -%>
-        <section class="flash flash__<%= key %>"><%= value.html_safe %></section>
-      <% end -%>
+      <% flash.each do |key, value| %>
+        <% messages = Array(value).map(&:to_s) %>
+        <section class="flash flash__<%= key %>"><%= safe_join(messages.map(&:html_safe), tag.br) %></section>
+      <% end %>
     <% end %>
 
     <% if user_signed_in? %>

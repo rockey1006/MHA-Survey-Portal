@@ -106,8 +106,12 @@
 </div>
 
   <script>
-    // Toggle dependent questions visibility
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize survey UI controls. Works both on full page loads and Turbo visits.
+    function initSurveyControls() {
+      if (window._surveyControlsInitialized) return;
+      window._surveyControlsInitialized = true;
+
+      // Toggle dependent questions visibility
       function evaluateDependency(qBlock) {
         var dependsOn = qBlock.dataset.dependsOnQuestionId;
         var dependsValue = qBlock.dataset.dependsOnValue;
@@ -151,15 +155,24 @@
           group.querySelectorAll('.mc-btn').forEach(function(lb){ lb.classList.remove('selected'); });
           // select this
           target.classList.add('selected');
-          // check the hidden radio input
-          var radio = group.querySelector('input[type="radio"][value="' + value + '"]');
-          if (radio) radio.checked = true;
-          // trigger change event
-          var evt = new Event('change', { bubbles: true });
-          if (radio) radio.dispatchEvent(evt);
+
+          // Find the matching hidden radio input by name and value (more robust than value-only selector)
+          var radios = group.querySelectorAll('input[type="radio"]');
+          var matched = null;
+          radios.forEach(function(r){
+            if (r.name === 'answers[' + qid + ']' && r.value == value) matched = r;
+          });
+          if (matched) {
+            matched.checked = true;
+            // trigger change event on the radio so other listeners (dependencies) react
+            matched.dispatchEvent(new Event('change', { bubbles: true }));
+          }
         });
       });
-    });
+    }
+
+    document.addEventListener('DOMContentLoaded', initSurveyControls);
+    document.addEventListener('turbo:load', initSurveyControls);
   </script>
 
 </div>

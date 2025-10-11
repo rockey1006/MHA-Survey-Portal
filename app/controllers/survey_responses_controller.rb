@@ -24,9 +24,9 @@ class SurveyResponsesController < ApplicationController
   # Render the actual HTML partial into a string, then render that
   # string into the PDF layout using `inline:` so the layout's
   # <%= yield %> receives the full body content reliably.
-  inner = render_to_string(partial: 'survey_responses/survey_response', formats: [:html], locals: { survey_response: @survey_response })
-  html = render_to_string(inline: inner, layout: 'pdf', formats: [:html], encoding: 'UTF-8')
-      send_data WickedPdf.new.pdf_from_string(html), filename: "survey_response_#{@survey_response.surveyresponse_id || @survey_response.id}.pdf", disposition: 'attachment', type: 'application/pdf'
+  inner = render_to_string(partial: "survey_responses/survey_response", formats: [ :html ], locals: { survey_response: @survey_response })
+  html = render_to_string(inline: inner, layout: "pdf", formats: [ :html ], encoding: "UTF-8")
+      send_data WickedPdf.new.pdf_from_string(html), filename: "survey_response_#{@survey_response.surveyresponse_id || @survey_response.id}.pdf", disposition: "attachment", type: "application/pdf"
     rescue => e
       logger.error "Download PDF failed for SurveyResponse #{ @survey_response&.surveyresponse_id }: #{e.class} - #{e.message}\n#{e.backtrace.join("\n") }"
       head :internal_server_error
@@ -46,12 +46,12 @@ class SurveyResponsesController < ApplicationController
       format.html
       format.pdf do
         begin
-              inner = render_to_string(partial: 'survey_responses/survey_response', formats: [:html], locals: { survey_response: @survey_response })
-              html = render_to_string(inline: inner, layout: 'pdf', formats: [:html], encoding: 'UTF-8')
+              inner = render_to_string(partial: "survey_responses/survey_response", formats: [ :html ], locals: { survey_response: @survey_response })
+              html = render_to_string(inline: inner, layout: "pdf", formats: [ :html ], encoding: "UTF-8")
          render pdf: "survey_response_#{@survey_response.id}",
            html: html,
            encoding: "UTF-8",
-           disposition: 'attachment',
+           disposition: "attachment",
            filename: "survey_response_#{@survey_response.surveyresponse_id || @survey_response.id}.pdf"
         rescue => e
           # Log the full error for debugging and fall back gracefully to HTML view

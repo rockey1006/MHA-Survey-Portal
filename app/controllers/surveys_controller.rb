@@ -200,7 +200,7 @@ class SurveysController < ApplicationController
     # Validate per-question evidence answers
     @survey.categories.includes(:questions).each do |cat|
       cat.questions.each do |q|
-        next unless q.question_type == 'evidence'
+        next unless q.question_type == "evidence"
         val = answers[q.id.to_s]
         next if val.blank?
         val_str = val.is_a?(String) ? val : val.to_s
@@ -220,7 +220,7 @@ class SurveysController < ApplicationController
     end
 
     if invalid_links.any?
-      flash[:alert] = "One or more upload links are invalid: " + invalid_links.join('; ')
+      flash[:alert] = "One or more upload links are invalid: " + invalid_links.join("; ")
       redirect_to survey_path(@survey) and return
     end
 

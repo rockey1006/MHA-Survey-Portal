@@ -23,17 +23,14 @@ services:
       PGUSER: dev_user
       PGPASSWORD: dev_pass
       RAILS_ENV: development
-      BUNDLE_PATH: /csce431/501_health/vendor/bundle
     ports:
       - "3000:3000"
     volumes:
       - .:/csce431/501_health:cached
-      - bundle-cache:/csce431/501_health/vendor/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
-    command: bash -lc "bundle install && bin/rails tailwindcss:build && bin/rails s -b 0.0.0.0 -p 3000"
+    command: bash -lc "bundle install && bin/rails s -b 0.0.0.0 -p 3000"
 
 volumes:
   db-data:
-  bundle-cache:

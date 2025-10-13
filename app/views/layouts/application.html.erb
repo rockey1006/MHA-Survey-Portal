@@ -16,8 +16,8 @@
   <%= favicon_link_tag "tamu-logo.png", rel: "icon", type: "image/png" %>
   <%= favicon_link_tag "tamu-logo.png", rel: "apple-touch-icon", type: "image/png" %>
 
-    <%# Load the consolidated application stylesheet (Propshaft imports component CSS) %>
-    <%= stylesheet_link_tag "application", "_variables", "_mixins", "_layout", "_flash_messages", "_forms", "student_records", "surveys", "_dashboards", "data-turbo-track": "reload" %>
+    <%# Includes all stylesheet files consolidated in application.css %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 

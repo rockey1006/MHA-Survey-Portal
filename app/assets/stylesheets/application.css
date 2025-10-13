@@ -1,92 +1,18 @@
 /*
  * This is a manifest file that'll be compiled into application.css.
  *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
+ * With Propshaft, assets are served efficiently without preprocessing steps.
+ * Use CSS @import statements to include other stylesheets.
+ * CSS precedence will follow the standard cascading order.
  *
  * Consider organizing styles into separate files for maintainability.
  */
 
-/*
- *= require _variables
- *= require _mixins
- *= require _layout
- *= require _flash_messages
- *= require _forms
- *= require student_records
- *= require _dashboards
- *= require_self
- */
-/* Survey container */
-.survey-container {
-  max-width: 700px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-/* Title */
-.survey-title {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 1.8rem;
-  color: #500000; /* TAMU */
-}
-
-/* Form groups */
-.form-group {
-  margin-bottom: 1.2rem;
-}
-
-.form-label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-/* Inputs */
-.form-control {
-  width: 100%;
-  padding: 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-/* Checkboxes and radios */
-.form-check {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.4rem;
-  font-size: 1rem;
-}
-
-.form-check input {
-  margin-right: 0.5rem;
-}
-
-/* Submit button */
-.btn-primary {
-  background: #500000;
-  color: white;
-  padding: 0.6rem 1.4rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.btn-primary:hover {
-  background: #7a0000;
-}
-
-/* Align button center */
-.form-actions {
-  text-align: center;
-  margin-top: 1.5rem;
-}
+@import "_variables.css";
+@import "_mixins.css";
+@import "_layout.css";
+@import "_flash_messages.css";
+@import "_forms.css";
+@import "student_records.css";
+@import "surveys.css";
+@import "_dashboards.css";

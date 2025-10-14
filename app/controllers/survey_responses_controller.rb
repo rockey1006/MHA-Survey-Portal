@@ -71,6 +71,13 @@ class SurveyResponsesController < ApplicationController
     end
 
     @question_responses = @survey_response.question_responses.includes(:question)
+    # If WickedPdf isn't available in this environment (gem removed to shrink image),
+    # instruct clients to use the front-end print/download flow instead.
+    unless defined?(WickedPdf)
+      logger.warn "Server-side PDF generation requested but WickedPdf is not available"
+      render plain: "Server-side PDF generation unavailable. Please use the 'Download as PDF' button which uses your browser's Print/Save-as-PDF feature.", status: :service_unavailable and return
+    end
+
     begin
   # Render the actual HTML partial into a string, then render that
   # string into the PDF layout using `inline:` so the layout's

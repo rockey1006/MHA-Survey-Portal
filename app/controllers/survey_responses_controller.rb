@@ -61,7 +61,7 @@ class SurveyResponsesController < ApplicationController
           exe = WickedPdf.config[:exe_path]
           if exe && File.exist?(exe)
             stat = File.stat(exe)
-            logger.error "wkhtmltopdf exists at #{exe} (mode: #{sprintf('%o', stat.mode)}, size: #{stat.size})"
+            logger.error "wkhtmltopdf exists at #{exe} (mode: #{sprintf("%o", stat.mode)}, size: #{stat.size})"
           else
             logger.error "wkhtmltopdf binary not found at #{exe.inspect}"
           end
@@ -74,7 +74,7 @@ class SurveyResponsesController < ApplicationController
       begin
         size = pdf_data.bytesize
         snippet_bytes = pdf_data.byteslice(0, 32)
-        hex_snippet = snippet_bytes.bytes.map { |b| sprintf('%02x', b) }.join
+  hex_snippet = snippet_bytes.bytes.map { |b| sprintf("%02x", b) }.join
         logger.info "Generated PDF for SurveyResponse=#{@survey_response.id}: size=#{size} bytes, first_bytes_hex=#{hex_snippet}"
       rescue => inner_e
         logger.warn "Could not compute PDF metadata: #{inner_e.class} - #{inner_e.message}"
@@ -82,9 +82,9 @@ class SurveyResponsesController < ApplicationController
 
       # Set explicit response headers to avoid intermediaries changing content-type/disposition
       filename = "survey_response_#{@survey_response.surveyresponse_id || @survey_response.id}.pdf"
-      response.headers['Content-Type'] = 'application/pdf'
-      response.headers['Content-Disposition'] = %(attachment; filename="#{filename}")
-      response.headers['Content-Length'] = pdf_data.bytesize.to_s
+  response.headers["Content-Type"] = "application/pdf"
+  response.headers["Content-Disposition"] = %(attachment; filename="#{filename}")
+  response.headers["Content-Length"] = pdf_data.bytesize.to_s
 
       send_data pdf_data, filename: filename, disposition: "attachment", type: "application/pdf"
     rescue => e

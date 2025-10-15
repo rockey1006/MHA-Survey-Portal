@@ -51,12 +51,15 @@ class DashboardsController < ApplicationController
       total_count = required_ids.present? ? required_ids.size : survey.questions.count
       completed_at = responses.map { |entry| entry[:updated_at] }.compact.max
 
+      survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
         survey: survey,
         answered_count: answered_count,
         total_count: total_count,
         completed_at: completed_at,
-        required: required_ids.present?
+        required: required_ids.present?,
+        survey_response: survey_response,
+        download_token: survey_response.signed_download_token
       }
 
       if required_ids.present?

@@ -79,12 +79,16 @@ class StudentRecordsController < ApplicationController
                 answered_ids.any?
               end
 
+              survey_response = SurveyResponse.build(student: student, survey: survey)
+
               {
                 student: student,
                 advisor: student.advisor,
                 status: completed ? "Completed" : "Pending",
                 completed_at: responses.map { |entry| entry[:updated_at] }.compact.max,
-                survey: survey
+                survey: survey,
+                survey_response: survey_response,
+                download_token: survey_response.signed_download_token
               }
             end
           }

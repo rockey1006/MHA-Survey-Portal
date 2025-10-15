@@ -80,6 +80,8 @@
         <% if @completed_surveys.present? %>
           <% @completed_surveys.each do |entry| %>
             <% survey = entry[:survey] %>
+            <% survey_response = entry[:survey_response] %>
+            <% download_token = entry[:download_token] %>
             <div class="completed-item">
               <div class="survey-icon"></div>
               <div class="survey-title"><%= survey.title %></div>
@@ -92,6 +94,7 @@
               <div class="survey-actions">
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                   <%= link_to 'Review', survey_path(survey), class: tailwind_button_classes(:secondary) %>
+                  <%= link_to 'Download PDF', download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
                 </div>
               </div>
             </div>

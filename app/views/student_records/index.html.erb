@@ -54,6 +54,8 @@
                         <% completion_date = row[:completed_at] %>
                         <% survey_link_path = survey_path(row[:survey]) %>
                         <% survey_link_label = status_text == "Completed" ? "Review" : "Open" %>
+                        <% survey_response = row[:survey_response] %>
+                        <% download_token = row[:download_token] %>
 
                         <tr class="transition hover:bg-slate-50">
                           <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-[#500000]"><%= idx + 1 %></td>
@@ -97,7 +99,12 @@
                             <% end %>
                           </td>
                           <td class="px-4 py-3 text-right text-sm">
-                            <%= link_to survey_link_label, survey_link_path, class: tailwind_button_classes(:secondary) %>
+                            <div class="flex flex-wrap justify-end gap-2">
+                              <%= link_to survey_link_label, survey_link_path, class: tailwind_button_classes(:secondary) %>
+                              <% if status_text == "Completed" %>
+                                <%= link_to "Download PDF", download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
+                              <% end %>
+                            </div>
                           </td>
                         </tr>
                       <% end %>

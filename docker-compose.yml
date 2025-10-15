@@ -16,6 +16,7 @@ services:
       context: .
       args:
         RUBY_VERSION: 3.4.6
+      target: dev
     container_name: health-web
     environment:
       PGHOST: db
@@ -23,10 +24,12 @@ services:
       PGUSER: dev_user
       PGPASSWORD: dev_pass
       RAILS_ENV: development
+      BUNDLE_WITHOUT: ""
     ports:
       - "3000:3000"
     volumes:
       - .:/csce431/501_health:cached
+      - bundle-cache:/usr/local/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
@@ -37,6 +40,7 @@ services:
       context: .
       args:
         RUBY_VERSION: 3.4.6
+      target: dev
     container_name: health-css
     environment:
       PGHOST: db
@@ -44,8 +48,10 @@ services:
       PGUSER: dev_user
       PGPASSWORD: dev_pass
       RAILS_ENV: development
+      BUNDLE_WITHOUT: ""
     volumes:
       - .:/csce431/501_health:cached
+      - bundle-cache:/usr/local/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
@@ -53,3 +59,4 @@ services:
 
 volumes:
   db-data:
+  bundle-cache:

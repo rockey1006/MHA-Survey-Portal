@@ -78,7 +78,7 @@ class SurveyResponsesController < ApplicationController
 
   def generate_pdf
     html = render_to_string(
-      template: "survey_responses/show.pdf",
+      template: "survey_responses/show",
       layout: "pdf",
       formats: [ :html ],
       encoding: "UTF-8",

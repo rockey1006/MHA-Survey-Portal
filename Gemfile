@@ -21,6 +21,11 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
+group :development do
+  # Provide wkhtmltopdf binary for local PDF generation
+  gem "wkhtmltopdf-binary"
+end
+
 # Server-rendered PDF generation via wkhtmltopdf/WickedPdf
 gem "wicked_pdf"
 

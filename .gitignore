@@ -28,7 +28,27 @@
 !/tmp/storage/
 !/tmp/storage/.keep
 
+
+# Rails asset pipeline output (generated during deployment)
 /public/assets
+
+# Heroku build artifacts
+/Aptfile.lock
+/slugignore.generated
+
+# Local bundler installs (should not be committed)
+/vendor
+/vendor/bundle
+/vendor/cache
+
+# Front-end build outputs
+/node_modules
+/app/assets/builds
+/app/javascript/packs
+
+# Build pack / deployment helpers
+/.apt
+/tmp/cache
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key

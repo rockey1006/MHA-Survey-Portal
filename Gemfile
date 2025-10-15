@@ -23,7 +23,6 @@ gem "jbuilder"
 
 # Server-rendered PDF generation via wkhtmltopdf/WickedPdf
 gem "wicked_pdf"
-gem "wkhtmltopdf-binary", platforms: %i[ mri mingw x64_mingw windows ]
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"

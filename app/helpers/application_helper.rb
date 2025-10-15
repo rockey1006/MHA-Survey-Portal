@@ -57,7 +57,7 @@ module ApplicationHelper
       "bg-slate-700 text-white hover:bg-slate-800 focus-visible:outline-slate-700"
     end
 
-    [base, variant_classes, extra_classes.presence].compact.join(" ")
+    [ base, variant_classes, extra_classes.presence ].compact.join(" ")
   end
 
   def survey_status_badge_classes(status)

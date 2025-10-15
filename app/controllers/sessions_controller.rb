@@ -1,5 +1,5 @@
 class SessionsController < Devise::SessionsController
-  layout "auth", only: [:new]
+  layout "auth", only: [ :new ]
 
   def after_sign_out_path_for(_resource_or_scope)
     new_user_session_path

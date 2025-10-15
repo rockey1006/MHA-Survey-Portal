@@ -1,0 +1,20 @@
+<% allowed = Rails.env.development? || Rails.env.test? %>
+<% return unless allowed %>
+
+<div class="mb-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600 shadow-inner">
+  <div class="mb-3 flex items-center justify-between">
+    <p class="font-semibold text-slate-700">Role Switcher (dev/test only)</p>
+    <span class="text-xs uppercase tracking-wide text-slate-500">Testing helper</span>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <% User.roles.each do |key, value| %>
+      <% if current_user.role == value %>
+        <span class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+          <%= key.to_s.titleize %> (current)
+        </span>
+      <% else %>
+        <%= button_to "Switch to #{key.to_s.titleize}", switch_role_path(role: value), method: :post, data: { turbo: false }, class: tailwind_button_classes(:secondary, extra_classes: "text-xs") %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

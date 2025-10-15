@@ -52,18 +52,11 @@ class User < ApplicationRecord
   def ensure_role_profile!
     case role
     when self.class.roles[:admin]
-      admin_profile || build_admin_profile.save!
-      advisor_profile&.destroy
-      student_profile&.destroy
+      admin_profile || create_admin_profile!
     when self.class.roles[:advisor]
-      advisor_profile || build_advisor_profile.save!
-      admin_profile&.destroy
-      # keep student profile separate – advisors should not have student record
-      student_profile&.destroy
+      advisor_profile || create_advisor_profile!
     when self.class.roles[:student]
-      student_profile || build_student_profile.save!
-      admin_profile&.destroy
-      advisor_profile&.destroy
+      student_profile || create_student_profile!
     end
   end
 end

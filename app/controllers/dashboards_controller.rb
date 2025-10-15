@@ -1,5 +1,6 @@
 class DashboardsController < ApplicationController
   before_action :ensure_profile_present, only: %i[student advisor]
+  before_action :ensure_role_switch_allowed, only: :switch_role
 
   def show
     case current_user.role
@@ -24,16 +25,25 @@ class DashboardsController < ApplicationController
   end
 
   def advisor
-    @advisor = current_advisor_profile || current_user.admin_profile&.user&.advisor_profile
-    @advisees = @advisor&.advisees&.includes(:user) || []
-    @recent_feedback = Feedback.where(advisor_id: @advisor&.advisor_id).order(created_at: :desc).limit(5).includes(:category, :survey_response)
+    @advisor = current_advisor_profile
+    admin_impersonating_advisor = current_user.admin_profile.present? && !current_user.role_admin?
+
+    if admin_impersonating_advisor
+      @advisees = Student.left_joins(:user).includes(:advisor).order(Arel.sql("LOWER(users.name) ASC"))
+      @recent_feedback = Feedback.order(created_at: :desc).limit(5).includes(:category, :survey_response)
+      @pending_notifications_count = SurveyResponse.pending.count
+    else
+      @advisees = @advisor&.advisees&.includes(:user) || []
+      @recent_feedback = Feedback.where(advisor_id: @advisor&.advisor_id).order(created_at: :desc).limit(5).includes(:category, :survey_response)
+      @pending_notifications_count = if @advisor
+        SurveyResponse.where(advisor_id: @advisor.advisor_id).pending.count
+      else
+        0
+      end
+    end
+
     @advisee_count = @advisees.size
     @active_survey_count = Survey.count
-    @pending_notifications_count = if @advisor
-      SurveyResponse.where(advisor_id: @advisor.advisor_id).pending.count
-    else
-      0
-    end
   end
 
   def admin
@@ -135,6 +145,28 @@ class DashboardsController < ApplicationController
     }
   end
 
+  def switch_role
+    new_role = params[:role].to_s.downcase
+
+    unless User.roles.values.include?(new_role)
+      redirect_back fallback_location: dashboard_path, alert: "Unrecognized role selection." and return
+    end
+
+    if current_user.role == new_role
+      redirect_to dashboard_path_for_role(new_role), notice: "Already viewing the #{new_role.titleize} dashboard." and return
+    end
+
+    begin
+      current_user.update!(role: new_role)
+      flash[:notice] = "Role switched to #{new_role.titleize} for testing."
+    rescue StandardError => e
+      Rails.logger.error "Role switch failed for user #{current_user.id}: #{e.message}"
+      redirect_back fallback_location: dashboard_path, alert: "Unable to switch roles: #{e.message}" and return
+    end
+
+    redirect_to dashboard_path_for_role(new_role)
+  end
+
   private
 
   def ensure_profile_present
@@ -207,6 +239,25 @@ class DashboardsController < ApplicationController
   question.question_type = question_attrs[:type]
   question.answer_options = question_attrs[:options]
   question.save!
+    end
+  end
+
+  def ensure_role_switch_allowed
+    return if Rails.env.development? || Rails.env.test?
+
+    redirect_to dashboard_path, alert: "Role switching is only available in development and test environments."
+  end
+
+  def dashboard_path_for_role(role)
+    case role
+    when User.roles[:student]
+      student_dashboard_path
+    when User.roles[:advisor]
+      advisor_dashboard_path
+    when User.roles[:admin]
+      admin_dashboard_path
+    else
+      dashboard_path
     end
   end
 end

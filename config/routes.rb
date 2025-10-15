@@ -29,6 +29,7 @@ Rails.application.routes.draw do
   get "student_dashboard", to: "dashboards#student", as: :student_dashboard
   get "advisor_dashboard", to: "dashboards#advisor", as: :advisor_dashboard
   get "admin_dashboard", to: "dashboards#admin", as: :admin_dashboard
+  post "switch_role", to: "dashboards#switch_role", as: :switch_role
 
   get "student_records", to: "student_records#index", as: :student_records
 

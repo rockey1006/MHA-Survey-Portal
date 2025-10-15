@@ -15,7 +15,9 @@ class StudentRecordsController < ApplicationController
   end
 
   def load_students
-    scope = if current_user&.role_admin?
+    has_admin_privileges = current_user&.role_admin? || current_user&.admin_profile.present?
+
+    scope = if has_admin_privileges
       Student.includes(:user, advisor: :user)
     else
       current_advisor_profile&.advisees&.includes(:user, advisor: :user) || Student.none

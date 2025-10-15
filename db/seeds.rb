@@ -48,11 +48,11 @@ advisors = []
 advisor_profiles = advisors.map(&:advisor_profile)
 
 students_seed = [
-  { email: "faqiangmei@gmail.com", name: "Faqiang Mei", net_id: "fmei", track: "Residential", advisor: advisor_profiles.first },
-  { email: "j.belew714@gmail.com", name: "J Belew", net_id: "jbelew714", track: "Residential", advisor: advisor_profiles.first },
-  { email: "rainsuds123@gmail.com", name: "Tee Li", net_id: "rainsuds123", track: "Executive", advisor: advisor_profiles.last },
-  { email: "anthuan374@gmail.com", name: "Anthuan", net_id: "anthuan374", track: "Residential", advisor: advisor_profiles.last },
-  { email: "meif7749@gmail.com", name: "Executive Test", net_id: "meif7749", track: "Executive", advisor: advisor_profiles.last }
+  { email: "faqiangmei@tamu.edu", name: "Faqiang Mei", net_id: "123456789", track: "Residential", advisor: advisor_profiles.first },
+  { email: "j.belew714@tamu.edu", name: "J Belew", net_id: "123456789", track: "Residential", advisor: advisor_profiles.first },
+  { email: "rainsuds123@tamu.edu", name: "Tee Li", net_id: "123456789", track: "Executive", advisor: advisor_profiles.last },
+  { email: "anthuan374@tamu.edu", name: "Anthuan", net_id: "123456789", track: "Residential", advisor: advisor_profiles.last },
+  { email: "meif7749@tamu.edu", name: "Executive Test", net_id: "123456789", track: "Executive", advisor: advisor_profiles.last }
 ]
 
 puts "• Creating student users..."

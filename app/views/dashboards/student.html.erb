@@ -20,7 +20,7 @@
               <div class="survey-meta">Status: <%= response.status.titleize %></div>
               <div class="survey-actions">
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-                  <%= link_to 'Open', survey_path(survey), class: 'btn btn-primary' %>
+                  <%= link_to 'Open', survey_path(survey), class: tailwind_button_classes(:primary) %>
                 </div>
               </div>
             </div>
@@ -80,7 +80,7 @@
               <div class="survey-meta">Submitted on <%= response.updated_at&.to_date || 'N/A' %></div>
               <div class="survey-actions">
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-                  <%= link_to 'View response', survey_response_path(response), class: 'btn btn-primary' %>
+                  <%= link_to 'View response', survey_response_path(response), class: tailwind_button_classes(:primary) %>
                 </div>
               </div>
             </div>

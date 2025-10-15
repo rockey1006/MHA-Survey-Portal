@@ -1,15 +1,17 @@
-<p style="color: green"><%= notice %></p>
+<div class="mx-auto flex max-w-5xl flex-col gap-6">
+  <% if notice.present? %>
+    <p class="text-sm font-medium text-emerald-700"><%= notice %></p>
+  <% end %>
 
-<div class="survey-response-actions" style="margin-bottom: 1rem;">
-  <%= link_to "← Back", student_dashboard_path, class: "btn btn-secondary" %>
-  &nbsp;
-  <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token, format: :pdf), class: "btn btn-primary", target: "_blank" %>
-</div>
+  <div class="flex flex-wrap items-center gap-3">
+    <%= link_to "← Back", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
+    <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token, format: :pdf), class: tailwind_button_classes(:primary), target: "_blank" %>
+  </div>
 
-<%= render @survey_response %>
+  <%= render @survey_response %>
 
-<div class="survey-response-actions" style="margin-top: 1rem;">
-  <%= link_to "← Back", student_dashboard_path, class: "btn btn-secondary" %>
-  &nbsp;
-  <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token, format: :pdf), class: "btn btn-primary", target: "_blank" %>
+  <div class="flex flex-wrap items-center gap-3">
+    <%= link_to "← Back", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
+    <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token, format: :pdf), class: tailwind_button_classes(:primary), target: "_blank" %>
+  </div>
 </div>

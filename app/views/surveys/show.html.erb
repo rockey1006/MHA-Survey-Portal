@@ -7,16 +7,20 @@
   end
 %>
 
-<div class="survey-container">
-  <h1 class="survey-title"><%= survey_name %></h1>
-  <%= form_with url: submit_survey_path(@survey), local: true, class: "survey-form" do |f| %>
+<div class="mx-auto flex max-w-5xl flex-col gap-8 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+  <div class="space-y-1">
+    <h1 class="text-3xl font-semibold text-[#500000]"><%= survey_name %></h1>
+    <p class="text-sm text-slate-500">Please complete each required competency question before submitting.</p>
+  </div>
+
+  <%= form_with url: submit_survey_path(@survey), local: true, class: "survey-form space-y-6" do |f| %>
     <% if @survey.respond_to?(:categories) && @survey.categories.any? %>
       <%# global question counter across categories (number dependent questions as same number as parent) %>
       <% q_number = 0 %>
       <%# Render questions grouped by category (competency) so evidence fields appear under each competency %>
       <% @survey.categories.order(:id).each do |cat| %>
-        <div class="category-block">
-          <h3 class="category-title"><%= cat.name %></h3>
+        <section class="space-y-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+          <h3 class="text-xl font-semibold text-slate-800"><%= cat.name %></h3>
           <% if cat.questions.any? %>
             <% cat.questions.order(:question_order).each do |q| %>
               <% depends_on_qid = q.depends_on_question_id %>
@@ -30,27 +34,27 @@
               <%# detect simple Yes/No multiple choice questions to exclude them from required-star behavior %>
               <% raw_opts = (q.answer_options || '').to_s %>
               <% parsed_opts = raw_opts.gsub(/[\[\]\"“”]/, '').split(',').map(&:strip).map(&:downcase) rescue [] %>
-              <% yes_no_q = (q.question_type == 'multiple_choice' && parsed_opts == ['yes','no']) %>
               <%# Per UX: any numbered question is required. Dependents (If yes/If no) remain unnumbered and not required. %>
               <% data_required = numbered %>
-              <div class="form-group question-block" data-question-id="<%= q.id %>" data-depends-on-question-id="<%= depends_on_qid %>" data-depends-on-value="<%= depends_on_val %>" data-numbered="<%= numbered %>" data-question-number="<%= (numbered ? q_number : '') %>" data-required="<%= data_required %>">
-                <label class="form-label">
-                  <div class="question-text text-sm leading-snug">
-                    <% if numbered %>
-                      <span class="question-number text-sm font-medium text-gray-800"><%= q_number %>.&nbsp;</span>
-                      <span class="question-body"><%= q.question || "Question #{q.id}" %></span>
-                    <% else %>
-                      <span class="question-body"><%= q.question || "Question #{q.id}" %></span>
-                    <% end %>
+              <div class="question-block space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-question-id="<%= q.id %>" data-depends-on-question-id="<%= depends_on_qid %>" data-depends-on-value="<%= depends_on_val %>" data-numbered="<%= numbered %>" data-question-number="<%= (numbered ? q_number : '') %>" data-required="<%= data_required %>">
+                <label class="flex items-start gap-2 text-sm font-medium text-slate-800">
+                  <% if numbered %>
+                    <span class="text-sm font-semibold text-[#500000]"><%= q_number %>.</span>
+                  <% end %>
+                  <span class="leading-6">
+                    <%= q.question || "Question #{q.id}" %>
                     <% if data_required %>
-                      <span class="required-star" style="color:#e3342f; font-weight:600; margin-left:.5rem;">*</span>
+                      <span class="ml-2 text-xs font-semibold uppercase tracking-wide text-rose-600">Required</span>
                     <% end %>
-                  </div>
+                  </span>
                 </label>
 
                 <% case q.question_type %>
                 <% when 'short_answer' %>
-                  <%= text_area_tag "answers[#{q.id}]", (@existing_answers[q.id] || nil), class: 'form-control w-full max-w-full break-words p-2 border rounded', rows: 3, style: 'resize: none; overflow:auto;' %>
+                  <%= text_area_tag "answers[#{q.id}]",
+                                    (@existing_answers[q.id] || nil),
+                                    class: "w-full max-w-full break-words rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#500000] resize-none",
+                                    rows: 3 %>
                 <% when 'multiple_choice' %>
                   <% raw_opts = (q.answer_options || '').to_s %>
                   <% parsed = begin
@@ -61,67 +65,78 @@
                      else
                        options = raw_opts.gsub(/[\[\]\"“”]/, '').split(',').map(&:strip)
                      end %>
-                  <div class="multiple-choice-options btn-group flex flex-wrap gap-2" role="group" aria-label="Options">
+                  <div class="multiple-choice-options flex flex-wrap gap-2" role="group" aria-label="Options">
                     <% options.each do |opt| %>
                       <% checked = (@existing_answers[q.id].to_s == opt.to_s) %>
-                      <label class="mc-btn inline-flex items-center gap-2 px-3 py-1 border rounded cursor-pointer <%= 'selected bg-blue-100 border-blue-400' if checked %>" data-value="<%= opt %>" data-qid="<%= q.id %>">
-                        <%= radio_button_tag "answers[#{q.id}]", opt, checked, data: { question_id: q.id }, style: 'display:none;' %>
-                        <span class="mc-circle w-3 h-3 rounded-full border inline-block" aria-hidden="true"></span>
-                        <span class="mc-label text-sm"><%= opt %></span>
+                      <label class="mc-btn inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 shadow-sm transition data-[checked=true]:border-[#500000] data-[checked=true]:bg-[#f9f2f2] data-[checked=true]:text-[#500000]" data-value="<%= opt %>" data-qid="<%= q.id %>" data-checked="<%= checked %>">
+                        <%= radio_button_tag "answers[#{q.id}]", opt, checked, data: { question_id: q.id }, class: "hidden" %>
+                        <span class="mc-circle inline-flex h-3 w-3 items-center justify-center rounded-full border border-slate-400" aria-hidden="true"></span>
+                        <span class="mc-label"><%= opt %></span>
                       </label>
                     <% end %>
                   </div>
                 <% when 'scale' %>
                   <% options = (1..5).to_a.map(&:to_s) %>
-                  <%= select_tag "answers[#{q.id}]", options_for_select(options, @existing_answers[q.id]&.to_s), include_blank: true, class: 'form-control w-full max-w-xs p-2 border rounded' %>
+                  <%= select_tag "answers[#{q.id}]",
+                                  options_for_select(options, @existing_answers[q.id]&.to_s),
+                                  include_blank: true,
+                                  class: "w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#500000]" %>
                 <% when 'evidence' %>
-                  <div class="evidence-input">
-                    <%= label_tag "answers[#{q.id}]", 'Google Drive link (file or folder):' %>
+                  <div class="evidence-input space-y-2">
+                    <%= label_tag "answers[#{q.id}]", 'Google Drive link (file or folder):', class: "text-sm font-medium text-slate-700" %>
                     <%# prefill with latest existing evidence for this question if present, fallback to stored answer %>
                     <% latest_q_link = @existing_evidence_by_question && @existing_evidence_by_question[q.id]&.first&.link %>
-                    <%= text_field_tag "answers[#{q.id}]", (latest_q_link || @existing_answers[q.id] || nil), class: 'form-control w-full max-w-full p-2 border rounded', placeholder: 'https://drive.google.com/...'%>
-                    <small class="form-text text-muted">Paste a Google Drive file or folder link here. Previous submissions are shown below for audit.</small>
+                    <%= text_field_tag "answers[#{q.id}]",
+                                       (latest_q_link || @existing_answers[q.id] || nil),
+                                       class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#500000]",
+                                       placeholder: 'https://drive.google.com/...'%>
+                    <p class="text-sm text-slate-500">Paste a Google Drive file or folder link here. Previous submissions are shown below for audit.</p>
 
                     <%# Show history attached specifically to this question (if any) %>
                     <% if @existing_evidence_by_question && @existing_evidence_by_question[q.id] %>
-                      <div class="existing-evidence-list" style="margin-top:0.5rem;">
-                        <strong>Previous submissions for this question:</strong>
-                        <ul>
+                      <div class="existing-evidence-list space-y-2">
+                        <p class="text-sm font-semibold text-slate-700">Previous submissions for this question:</p>
+                        <ul class="list-disc space-y-1 pl-5 text-sm text-slate-600">
                           <% @existing_evidence_by_question[q.id].each do |eu| %>
-                            <li><a href="<%= eu.link %>" target="_blank" rel="noopener noreferrer"><%= eu.link %></a> — <small><%= eu.created_at.strftime('%F %T') rescue eu.created_at %></small></li>
+                            <li><a class="text-[#500000] underline hover:text-[#330000]" href="<%= eu.link %>" target="_blank" rel="noopener noreferrer"><%= eu.link %></a> — <span class="text-xs text-slate-500"><%= eu.created_at.strftime('%F %T') rescue eu.created_at %></span></li>
                           <% end %>
                         </ul>
                       </div>
                     <% end %>
                   </div>
                 <% else %>
-                  <%= text_field_tag "answers[#{q.id}]", (@existing_answers[q.id] || nil), class: 'form-control' %>
+                  <%= text_field_tag "answers[#{q.id}]",
+                                     (@existing_answers[q.id] || nil),
+                                     class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#500000]" %>
                 <% end %>
               </div>
             <% end %>
           <% else %>
-            <div class="form-group"><em>No questions for this competency.</em></div>
+            <p class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">No questions for this competency.</p>
           <% end %>
 
           <!-- Per-category evidence upload (render after questions for the competency) -->
-          <div class="category-evidence-upload" style="margin-top:0.75rem;">
+          <div class="category-evidence-upload space-y-2">
             <% latest_cat_link = @existing_evidence_by_category && @existing_evidence_by_category[cat.id]&.first&.link %>
-            <%= label_tag "evidence_links_by_category[#{cat.id}]", 'Upload evidence for this competency (Google Drive link):' %>
-            <%= text_field_tag "evidence_links_by_category[#{cat.id}]", (latest_cat_link || ''), class: 'form-control w-full max-w-full p-2 border rounded', placeholder: 'https://drive.google.com/...'%>
-            <small class="form-text text-muted">This link will be attached to the competency. If there is an evidence question defined it will be used; otherwise a question will be created to record this upload.</small>
+            <%= label_tag "evidence_links_by_category[#{cat.id}]", 'Upload evidence for this competency (Google Drive link):', class: "text-sm font-medium text-slate-700" %>
+            <%= text_field_tag "evidence_links_by_category[#{cat.id}]",
+                               (latest_cat_link || ''),
+                               class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#500000]",
+                               placeholder: 'https://drive.google.com/...'%>
+            <p class="text-sm text-slate-500">This link will be attached to the competency. If there is an evidence question defined it will be used; otherwise a question will be created to record this upload.</p>
           </div>
-        </div>
+        </section>
       <% end %>
     <% else %>
       <!-- Fallback sample questions if none exist in DB -->
-      <div class="form-group">
-        <label class="form-label">Sample free text</label>
-        <%= text_area_tag "answers[sample_text]", nil, class: 'form-control', style: 'resize: none; overflow:auto;' %>
+      <div class="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <label class="text-sm font-semibold text-slate-700">Sample free text</label>
+        <%= text_area_tag "answers[sample_text]", nil, class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#500000] resize-none" %>
       </div>
     <% end %>
 
-    <div class="form-actions">
-      <%= f.submit "Submit Survey", class: "btn btn-primary" %>
+    <div class="flex justify-end">
+      <%= f.submit "Submit Survey", class: tailwind_button_classes(:primary) %>
     </div>
   <% end %>
 </div>
@@ -167,17 +182,22 @@
 
       // multiple choice nice buttons: clicking label toggles radio and selected state
       document.querySelectorAll('.multiple-choice-options').forEach(function(group){
+        group.querySelectorAll('.mc-btn').forEach(function(btn){
+          btn.dataset.checked = btn.querySelector('input[type="radio"]').checked ? 'true' : 'false';
+        });
+
         group.addEventListener('click', function(e){
           var target = e.target.closest('.mc-btn');
           if (!target) return;
           var qid = target.dataset.qid;
           var value = target.dataset.value;
-          // unselect siblings
-          group.querySelectorAll('.mc-btn').forEach(function(lb){ lb.classList.remove('selected'); });
-          // select this
-          target.classList.add('selected');
 
-          // Find the matching hidden radio input by name and value (more robust than value-only selector)
+          group.querySelectorAll('.mc-btn').forEach(function(lb){
+            lb.dataset.checked = 'false';
+          });
+
+          target.dataset.checked = 'true';
+
           var radios = group.querySelectorAll('input[type="radio"]');
           var matched = null;
           radios.forEach(function(r){
@@ -185,7 +205,6 @@
           });
           if (matched) {
             matched.checked = true;
-            // trigger change event on the radio so other listeners (dependencies) react
             matched.dispatchEvent(new Event('change', { bubbles: true }));
           }
         });
@@ -203,9 +222,7 @@
         var existing = qBlock.querySelector('.inline-error');
         if (!existing) {
           existing = document.createElement('div');
-          existing.className = 'inline-error';
-          // inline style to ensure visibility even without Tailwind
-          existing.setAttribute('style', 'color:#e3342f; font-weight:600; margin-top:0.25rem;');
+          existing.className = 'inline-error mt-1 text-sm font-semibold text-rose-600';
           existing.setAttribute('role', 'alert');
           qBlock.appendChild(existing);
         }

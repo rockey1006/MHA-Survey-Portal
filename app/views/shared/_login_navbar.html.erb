@@ -1,0 +1,17 @@
+<!-- Login Navigation Header -->
+<header class="bg-[#500000] text-white shadow">
+  <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-md bg-[url('<%= asset_path('tamu-logo.png') %>')] bg-cover bg-center"></div>
+      <p class="text-base font-semibold leading-tight">
+        TEXAS A&M<br>
+        UNIVERSITY
+      </p>
+    </div>
+    <button type="button"
+            class="inline-flex items-center rounded-md border border-white/30 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            onclick="document.querySelector('#login-sections').scrollIntoView({ behavior: 'smooth' })">
+      Login
+    </button>
+  </div>
+</header>

@@ -30,7 +30,26 @@ services:
     working_dir: /csce431/501_health
     depends_on:
       - db
-    command: bash -lc "bundle install && bin/rails s -b 0.0.0.0 -p 3000"
+    command: bash -lc "rm -f tmp/pids/server.pid && bin/rails tailwindcss:build && bin/rails s -b 0.0.0.0 -p 3000"
+
+  css:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: 3.4.6
+    container_name: health-css
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: dev_user
+      PGPASSWORD: dev_pass
+      RAILS_ENV: development
+    volumes:
+      - .:/csce431/501_health:cached
+    working_dir: /csce431/501_health
+    depends_on:
+      - db
+    command: bash -lc "bin/rails tailwindcss:watch"
 
 volumes:
   db-data:

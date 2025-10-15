@@ -1,7 +1,9 @@
 advisor:
+  advisor_id: <%= ActiveRecord::FixtureSet.identify(:advisor) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
 other_advisor:
+  advisor_id: <%= ActiveRecord::FixtureSet.identify(:other_advisor) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>

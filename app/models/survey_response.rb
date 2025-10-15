@@ -1,50 +1,128 @@
-class SurveyResponse < ApplicationRecord
-  self.primary_key = :surveyresponse_id
+class SurveyResponse
+  include ActiveModel::Model
 
-  enum :status, {
-    not_started: "Not Started",
-    in_progress: "In Progress",
-    submitted: "Submitted",
-    under_review: "Under Review",
-    approved: "Approved"
-  }, prefix: true
+  attr_reader :student, :survey
 
-  belongs_to :survey
-  belongs_to :student
-  belongs_to :advisor, optional: true
+  class << self
+    def build(student:, survey:)
+      new(student: student, survey: survey)
+    end
 
-  has_many :question_responses, foreign_key: :surveyresponse_id, dependent: :destroy
-  has_many :feedbacks, foreign_key: :surveyresponse_id, dependent: :destroy, class_name: "Feedback"
+    def find_from_param(raw_id)
+      student_id, survey_id = raw_id.to_s.split("-", 2)
+      raise ActiveRecord::RecordNotFound if student_id.blank? || survey_id.blank?
 
-  scope :for_student, ->(student_id) { where(student_id: student_id) }
-  scope :pending, -> { where(status: [ statuses[:not_started], statuses[:in_progress], statuses[:under_review] ]) }
-  scope :completed, -> { where(status: [ statuses[:submitted], statuses[:approved] ]) }
+      student = Student.find(student_id)
+      survey = Survey.find(survey_id)
+      build(student: student, survey: survey)
+    end
 
-  def approval_pending?
-    status_under_review? || status_submitted?
+    def find_by_signed_download_token(token)
+      raw_id = verifier.verify(token)
+      find_from_param(raw_id)
+    rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound
+      nil
+    end
+
+    private
+
+    def verifier
+      Rails.application.message_verifier("survey-response")
+    end
+  end
+
+  def initialize(student:, survey:)
+    @student = student
+    @survey = survey
+  end
+
+  def id
+    "#{student.student_id}-#{survey.id}"
+  end
+
+  def to_param
+    id
+  end
+
+  def advisor
+    student.advisor
+  end
+
+  def advisor_id
+    advisor&.advisor_id
+  end
+
+  def student_id
+    student.student_id
+  end
+
+  def survey_id
+    survey.id
+  end
+
+  def status
+    return :not_started if answered_count.zero?
+    answered_count == total_questions ? :submitted : :in_progress
+  end
+
+  def completion_date
+    @completion_date ||= question_responses.maximum(:updated_at)
+  end
+
+  def answered_count
+    @answered_count ||= question_responses.select { |record| present_answer?(record.answer) }.count
+  end
+
+  def total_questions
+    @total_questions ||= survey.questions.count
+  end
+
+  def signed_download_token
+    self.class.send(:verifier).generate(id)
+  end
+
+  def question_responses
+    @question_responses ||= StudentQuestion
+                              .joins(question: :survey_questions)
+                              .where(student_id: student.student_id, survey_questions: { survey_id: survey.id })
+                              .includes(question: { category_questions: :category })
   end
 
   def answers
-    question_responses.includes(:question).map do |response|
-      question_text = response.question&.question
-      next if question_text.blank?
-
-      answer_value = response.answer
-      answer_text = answer_value.is_a?(Array) ? answer_value.join(", ") : answer_value
-      [ question_text, answer_text ]
-    end.compact.to_h
+    @answers ||= question_responses.index_by(&:question_id).transform_values(&:answer)
   end
 
-  # Generate a signed, time-limited token for download links.
-  # Uses Rails' message verifier via signed_id with purpose.
-  def signed_download_token(expires_in: 1.hour)
-    signed_id(purpose: :download_survey_response, expires_in: expires_in)
+  def evidence_history_by_category
+    @evidence_history_by_category ||= begin
+      grouped = Hash.new { |hash, key| hash[key] = [] }
+      question_responses.each do |response|
+        question = response.question
+        next unless question&.question_type_evidence?
+
+        question.categories.each do |category|
+          grouped[category.id] << response
+        end
+      end
+
+      grouped.each_value do |responses|
+        responses.sort_by! { |record| record.updated_at || record.created_at || Time.at(0) }
+        responses.reverse!
+      end
+
+      grouped
+    end
   end
 
-  # Verify a signed token and return the SurveyResponse if valid
-  def self.find_by_signed_download_token(token)
-    find_signed!(token, purpose: :download_survey_response)
-  rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveSupport::MessageVerifier::InvalidMessage, ActiveSupport::MessageVerifier::SignatureExpired => _e
-    nil
+  private
+
+  def present_answer?(value)
+    case value
+    when String
+      value.strip.present?
+    when Array
+      value.any?(&:present?)
+    else
+      value.present?
+    end
   end
 end

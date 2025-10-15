@@ -1,5 +1,6 @@
 <!-- Main Content for Admin Dashboard - layout provides html/head/body and navbar -->
 <main class="main-content">
+  <%= render "shared/role_switcher" %>
   <section class="dashboard-section">
     <div class="section-header">
       <h1 class="section-title">Admin Dashboard</h1>
@@ -23,6 +24,20 @@
         <div class="feature-description"><%= @total_surveys || 0 %> active</div>
       </div>
 
+      <!-- Survey Responses -->
+      <div class="feature-item">
+        <div class="feature-icon">✅</div>
+        <div class="feature-title">Survey Responses</div>
+        <div class="feature-description"><%= @total_responses || 0 %> submitted</div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="feature-item">
+        <div class="feature-icon">🔔</div>
+        <div class="feature-title">Notifications</div>
+        <div class="feature-description"><%= pluralize(@pending_notifications_count, "pending item") %></div>
+      </div>
+
       <!-- Members -->
       <div class="feature-item admin-feature">
         <%= link_to manage_members_path, class: "feature-link" do %>
@@ -32,20 +47,6 @@
         <% end %>
       </div>
 
-      <!-- Advisor View Button -->
-      <div class="feature-item admin-feature">
-        <%= link_to advisor_dashboard_path, class: "btn", style: "display:block;text-align:center;" do %>
-          <div class="feature-icon admin-icon">🧑‍🏫</div>
-          <div class="feature-title admin-title">Advisor View</div>
-        <% end %>
-      </div>
-
-      <!-- Survey Responses -->
-      <div class="feature-item">
-        <div class="feature-icon">✅</div>
-        <div class="feature-title">Survey Responses</div>
-        <div class="feature-description"><%= @total_responses || 0 %> submitted</div>
-      </div>
     </div>
   </section>
 

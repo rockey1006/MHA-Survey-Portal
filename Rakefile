@@ -4,3 +4,7 @@
 require_relative "config/application"
 
 Rails.application.load_tasks
+
+if Rake::Task.task_defined?("test") && Rake::Task.task_defined?("tailwindcss:build")
+     Rake::Task["test"].enhance([ "tailwindcss:build" ])
+end

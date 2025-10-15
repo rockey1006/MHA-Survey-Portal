@@ -3,9 +3,11 @@ class Student < ApplicationRecord
 
   enum :track, { residential: "Residential", executive: "Executive" }, prefix: true
 
-  belongs_to :user, foreign_key: :student_id, primary_key: :user_id, inverse_of: :student_profile
+  belongs_to :user, foreign_key: :student_id, primary_key: :id, inverse_of: :student_profile
   belongs_to :advisor, optional: true
-  has_many :survey_responses, foreign_key: :student_id, dependent: :destroy
+  has_many :student_questions, dependent: :destroy
+  has_many :questions, through: :student_questions
+  has_many :feedbacks, foreign_key: :student_id
 
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 

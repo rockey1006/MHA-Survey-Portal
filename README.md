@@ -61,62 +61,38 @@ bin/rails db:create db:migrate db:seed
 
 ## Docker (recommended for team reproducibility)
 
-If you prefer Docker so every developer gets the same environment, add a simple `docker-compose.yml` with a Postgres service and the app. Example (minimal):
+The repository already includes a Tailwind-enabled `docker-compose.yml` with three services:
 
-```yaml
-version: '3.8'
-services:
-	db:
-		image: postgres:14
-		environment:
-			POSTGRES_USER: dev_user
-			POSTGRES_PASSWORD: dev_pass
-			POSTGRES_DB: health_app_development
-		ports:
-			- "5433:5432"
-		volumes:
-			- db-data:/var/lib/postgresql/data
-	web:
-		build: .
-		command: bash -lc "bundle install && bin/rails db:create db:migrate db:seed && bin/rails s -b 0.0.0.0"
-		volumes:
-			- .:/app
-		ports:
-			- "3000:3000"
-		depends_on:
-			- db
-volumes:
-	db-data:
-```
+| service | purpose |
+|---------|---------|
+| `db`    | Postgres 14 with a bind-mounted volume for persistent data |
+| `web`   | Rails application container (serves the app, runs migrations, etc.) |
+| `css`   | Lightweight container that runs `bin/rails tailwindcss:watch` to rebuild CSS on the fly |
 
-Start with:
+All services mount the project directory into `/csce431/501_health`, so you can run Rails commands without additional `cd` steps.
+
+### Docker quickstart
+
+Build the image and bring everything online (web + Tailwind watcher + Postgres):
 
 ```bash
-docker compose up --build
+docker compose up --build web css db
 ```
 
-This approach ensures everyone runs the same DB and Ruby environment in containers and avoids touching shared/production databases.
+You can leave the `css` service running in a separate terminal during development so Tailwind rebuilds instantly whenever you edit view templates or Tailwind source files.
 
-### Docker quickstart (project-specific)
+Run one-off Rails commands via compose:
 
-The repository includes a `docker-compose.yml` that mounts the repository into the web container. The compose file sets the web service working directory to the mounted path so you don't need to `cd` inside the container before running Rails commands.
-
-Recommended commands (from your host shell):
-
-Create the DB, run migrations and seed default data:
 ```bash
-docker-compose run --rm web bin/rails db:create db:migrate db:seed
-```
+# Create, migrate, and seed the development database
+docker compose run --rm web bin/rails db:prepare db:seed
 
-Run the app (build first if you changed Dockerfile/gems):
-```bash
-docker-compose up -d --build
-```
+# Rails console / runner
+docker compose run --rm web bin/rails console
+docker compose run --rm web bin/rails runner "puts Survey.count"
 
-Run the rails console or runners without cd:
-```bash
-docker-compose run --rm web bin/rails console
-docker-compose run --rm web bin/rails runner "puts Survey.count"
+# Execute the test suite (Tailwind assets auto-build before tests boot)
+docker compose run --rm web bin/rails test
 ```
 
 What the seeds add
@@ -125,9 +101,7 @@ What the seeds add
 
 Troubleshooting notes
 - If seeds abort with an enum validation (e.g. invalid `track`), check `app/models/student.rb` for valid values (`residential`, `executive`).
-- If you still see the older built-in copy of the project inside the container (`/rails`), rebuild the web image and restart with `docker-compose up -d --build` to ensure the compose `working_dir` change is active.
-
-If you'd like, I can remove the obsolete top-level `version:` key from `docker-compose.yml` to suppress the startup warning.
+- If you still see the older built-in copy of the project inside the container (`/rails`), rebuild the web image with `docker compose build web` and restart the stack.
 
 ## Heroku review apps & PR previews
 

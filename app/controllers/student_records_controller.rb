@@ -15,7 +15,9 @@ class StudentRecordsController < ApplicationController
   end
 
   def load_students
-    scope = if current_user&.role_admin?
+    has_admin_privileges = current_user&.role_admin? || current_user&.admin_profile.present?
+
+    scope = if has_admin_privileges
       Student.includes(:user, advisor: :user)
     else
       current_advisor_profile&.advisees&.includes(:user, advisor: :user) || Student.none
@@ -23,7 +25,7 @@ class StudentRecordsController < ApplicationController
 
     scope
       .left_joins(:user)
-      .includes(:advisor, survey_responses: :survey)
+      .includes(:advisor)
       .order(Arel.sql("LOWER(users.name) ASC"))
   end
 
@@ -32,9 +34,29 @@ class StudentRecordsController < ApplicationController
 
     student_ids = students.map(&:student_id)
 
-    surveys = Survey
-      .includes(survey_responses: [ :student, { advisor: :user } ])
-      .order(created_at: :desc)
+    surveys = Survey.includes(:questions).order(created_at: :desc)
+    return [] if surveys.blank?
+
+    survey_ids = surveys.map(&:id)
+
+    required_ids_by_survey = surveys.index_with do |survey|
+      survey.questions.select { |question| required_question?(question) }.map(&:id)
+    end
+
+    responses_matrix = Hash.new do |hash, student_id|
+      hash[student_id] = Hash.new { |inner, survey_id| inner[survey_id] = [] }
+    end
+
+    StudentQuestion
+      .joins(question: :survey_questions)
+      .where(student_id: student_ids, survey_questions: { survey_id: survey_ids })
+      .select("student_questions.id, student_questions.student_id, survey_questions.survey_id, student_questions.question_id, student_questions.updated_at")
+      .find_each do |record|
+        responses_matrix[record.student_id][record.survey_id] << {
+          question_id: record.question_id,
+          updated_at: record.updated_at
+        }
+      end
 
     grouped = surveys.group_by(&:semester)
 
@@ -44,15 +66,29 @@ class StudentRecordsController < ApplicationController
       {
         semester: semester.presence || "Unscheduled",
         surveys: grouped[semester].map do |survey|
-          responses_map = survey.survey_responses.select { |resp| student_ids.include?(resp.student_id) }.index_by(&:student_id)
+          required_ids = required_ids_by_survey[survey.id]
 
           {
             survey: survey,
             rows: students.map do |student|
+              responses = responses_matrix[student.student_id][survey.id]
+              answered_ids = responses.map { |entry| entry[:question_id] }.uniq
+              completed = if required_ids.present?
+                (required_ids - answered_ids).empty?
+              else
+                answered_ids.any?
+              end
+
+              survey_response = SurveyResponse.build(student: student, survey: survey)
+
               {
                 student: student,
                 advisor: student.advisor,
-                response: responses_map[student.student_id]
+                status: completed ? "Completed" : "Pending",
+                completed_at: responses.map { |entry| entry[:updated_at] }.compact.max,
+                survey: survey,
+                survey_response: survey_response,
+                download_token: survey_response.signed_download_token
               }
             end
           }
@@ -74,5 +110,16 @@ class StudentRecordsController < ApplicationController
     end
 
     [ year_value, term_value ]
+  end
+
+  def required_question?(question)
+    return false unless question
+
+    return true if question.required?
+
+    return false unless question.question_type_multiple_choice?
+
+    options = question.answer_options_list.map(&:strip).map(&:downcase)
+    !(options == %w[yes no] || options == %w[no yes])
   end
 end

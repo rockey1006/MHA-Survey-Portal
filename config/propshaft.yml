@@ -1,0 +1,8 @@
+paths:
+  - app/assets
+  - app/assets/builds
+  - app/javascript
+  - vendor/assets
+
+precompile:
+  - tailwind.css

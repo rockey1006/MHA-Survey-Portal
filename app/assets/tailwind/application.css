@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@layer components {
+	.mc-btn[data-checked="true"] {
+		background-color: #f9f2f2;
+		color: #500000;
+		border-color: #500000;
+	}
+
+	.mc-btn[data-checked="true"] .mc-circle {
+		background-color: #500000;
+		border-color: #500000;
+	}
+
+	.inline-error {
+		margin-top: 0.25rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #e3342f;
+	}
+}

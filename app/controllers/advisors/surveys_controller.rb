@@ -14,16 +14,21 @@ module Advisors
     def assign
       student = assignable_students.find_by!(student_id: params[:student_id])
 
-      survey_response = SurveyResponse.find_or_initialize_by(
-        survey_id: @survey.id,
-        student_id: student.student_id
-      )
+      ActiveRecord::Base.transaction do
+        @survey.questions.find_each do |question|
+          StudentQuestion.find_or_create_by!(student_id: student.student_id, question_id: question.id) do |record|
+            record.advisor_id = current_advisor_profile&.advisor_id
+          end
+        end
 
-      survey_response.advisor_id ||= current_advisor_profile&.advisor_id
-      survey_response.status ||= SurveyResponse.statuses[:not_started]
-      survey_response.save!
+        Notification.create!(
+          notifiable: student,
+          title: "New survey assigned",
+          message: "#{current_user.name} assigned '#{@survey.title}' to you."
+        )
+      end
 
-      redirect_to advisors_surveys_path, notice: "Assigned '#{@survey.title}' to #{student.full_name || student.email}."
+      redirect_to advisors_surveys_path, notice: "Assigned '#{@survey.title}' to #{student.full_name || student.user.email}."
     rescue ActiveRecord::RecordInvalid => e
       redirect_to advisors_survey_path(@survey), alert: e.record.errors.full_messages.to_sentence
     end

@@ -1,6 +1,6 @@
-class Question < ApplicationRecord
-  self.primary_key = :question_id
+require "json"
 
+class Question < ApplicationRecord
   enum :question_type, {
     multiple_choice: "multiple_choice",
     scale: "scale",
@@ -8,25 +8,28 @@ class Question < ApplicationRecord
     evidence: "evidence"
   }, prefix: true
 
-  belongs_to :category
-  has_many :question_responses, foreign_key: :question_id, dependent: :destroy
-  # optional self-referential association for conditional questions
-  belongs_to :depends_on_question, class_name: "Question", foreign_key: :depends_on_question_id, optional: true
+  has_many :survey_questions, dependent: :destroy
+  has_many :surveys, through: :survey_questions
+  has_many :category_questions, dependent: :destroy
+  has_many :categories, through: :category_questions
+  has_many :student_questions, dependent: :destroy
+  has_many :students, through: :student_questions
 
   validates :question, presence: true
   validates :question_order, presence: true
   validates :question_type, presence: true, inclusion: { in: question_types.values }
 
-  # expose reader methods expected by views
-  def depends_on_question_id
-    self[:depends_on_question_id]
-  end
+  scope :ordered, -> { order(:question_order) }
 
-  def depends_on_value
-    self[:depends_on_value]
-  end
+  def answer_options_list
+    raw = answer_options.to_s
+    return [] if raw.blank?
 
-  def required
-    self[:required]
+    parsed = JSON.parse(raw) rescue nil
+    if parsed.is_a?(Array)
+      parsed
+    else
+      raw.gsub(/[\[\]\"“”]/, "").split(",").map(&:strip).reject(&:empty?)
+    end
   end
 end

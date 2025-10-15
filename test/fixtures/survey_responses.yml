@@ -1,7 +1,0 @@
-student_fall:
-  student: student
-  advisor: advisor
-  survey: fall_2025
-  status: Not Started
-  created_at: <%= Time.zone.now %>
-  updated_at: <%= Time.zone.now %>

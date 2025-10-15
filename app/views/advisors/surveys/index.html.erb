@@ -16,7 +16,7 @@
               <div class="feature-description"><%= description %></div>
             <% end %>
             <div style="margin-top:1em;">
-              <%= link_to 'Assign to Student', advisors_survey_path(survey), class: 'btn' %>
+              <%= link_to 'Assign to Student', advisors_survey_path(survey), class: tailwind_button_classes(:secondary) %>
             </div>
           </div>
         <% end %>

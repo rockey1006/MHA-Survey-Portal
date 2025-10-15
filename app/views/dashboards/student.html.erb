@@ -1,6 +1,7 @@
 <!-- app/views/dashboards/student.html.erb -->
 
 <main class="main-content">
+  <%= render "shared/role_switcher" %>
   <div class="dashboard-grid dashboard-grid-2">
     
     <!-- To-Do Section -->
@@ -11,16 +12,21 @@
       </h2>
       
       <div class="todo-list">
-        <% if @pending_survey_responses.present? %>
-          <% @pending_survey_responses.each do |response| %>
-            <% survey = response.survey %>
+        <% if @pending_surveys.present? %>
+          <% @pending_surveys.each do |entry| %>
+            <% survey = entry[:survey] %>
             <div class="todo-item">
               <div class="survey-icon"></div>
               <div class="survey-title"><%= survey.title %></div>
-              <div class="survey-meta">Status: <%= response.status.titleize %></div>
+              <div class="survey-meta">
+                Status: <%= entry[:status] %>
+                <% if entry[:total_count].to_i.positive? %>
+                  <span class="survey-progress">&bull; <%= entry[:answered_count] %>/<%= entry[:total_count] %> answered</span>
+                <% end %>
+              </div>
               <div class="survey-actions">
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-                  <%= link_to 'Open', survey_path(survey), class: 'btn btn-primary' %>
+                  <%= link_to 'Open', survey_path(survey), class: tailwind_button_classes(:primary) %>
                 </div>
               </div>
             </div>
@@ -71,16 +77,24 @@
       </h2>
 
       <div class="completed-list">
-        <% if @completed_survey_responses.present? %>
-          <% @completed_survey_responses.each do |response| %>
-            <% survey = response.survey %>
+        <% if @completed_surveys.present? %>
+          <% @completed_surveys.each do |entry| %>
+            <% survey = entry[:survey] %>
+            <% survey_response = entry[:survey_response] %>
+            <% download_token = entry[:download_token] %>
             <div class="completed-item">
               <div class="survey-icon"></div>
               <div class="survey-title"><%= survey.title %></div>
-              <div class="survey-meta">Submitted on <%= response.updated_at&.to_date || 'N/A' %></div>
+              <div class="survey-meta">
+                Completed on <%= entry[:completed_at]&.to_date || 'N/A' %>
+                <% if entry[:total_count].to_i.positive? %>
+                  <span class="survey-progress">&bull; <%= entry[:answered_count] %>/<%= entry[:total_count] %> answered</span>
+                <% end %>
+              </div>
               <div class="survey-actions">
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-                  <%= link_to 'View response', survey_response_path(response), class: 'btn btn-primary' %>
+                  <%= link_to 'Review', survey_path(survey), class: tailwind_button_classes(:secondary) %>
+                  <%= link_to 'Download PDF', download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
                 </div>
               </div>
             </div>

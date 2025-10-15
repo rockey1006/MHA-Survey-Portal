@@ -10,7 +10,15 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
     role = request.env["omniauth.params"]["role"]
     Rails.logger.debug "Role from params: #{role}"
 
-    user = User.from_google(**from_google_params.merge(role: role))
+    email = auth.info.email.to_s.downcase
+
+    unless tamu_email?(email)
+      Rails.logger.warn "Blocked OAuth login for non-TAMU email: #{email}"
+      flash[:alert] = "Please sign in with your TAMU email (@tamu.edu)."
+      redirect_to new_user_session_path and return
+    end
+
+    user = User.from_google(**from_google_params.merge(email:, role: role))
     Rails.logger.debug "User created/found: #{user.inspect}"
     Rails.logger.debug "User role: #{user.role}"
 
@@ -62,7 +70,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
   def from_google_params
     @from_google_params ||= {
       uid: auth.uid,
-      email: auth.info.email,
+      email: auth.info.email.to_s.downcase,
       name: auth.info.name,
       avatar_url: auth.info.image
     }
@@ -70,5 +78,12 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
   def auth
     @auth ||= request.env["omniauth.auth"]
+  end
+
+  def tamu_email?(email)
+    return false if email.blank?
+
+    normalized_email = email.downcase
+    normalized_email.ends_with?("@tamu.edu") || normalized_email.ends_with?("@email.tamu.edu")
   end
 end

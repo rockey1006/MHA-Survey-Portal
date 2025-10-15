@@ -1,5 +1,4 @@
-fall_clinical:
-  survey: fall_2025
+clinical_skills:
   name: Clinical Skills
   description: Evaluation of clinical practice
   created_at: <%= Time.zone.now %>

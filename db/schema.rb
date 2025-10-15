@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_05_130000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,53 +25,72 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_130000) do
   end
 
   create_table "categories", force: :cascade do |t|
-    t.bigint "survey_id", null: false
     t.string "name", null: false
-    t.text "description"
+    t.string "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["survey_id"], name: "index_categories_on_survey_id"
   end
 
-  create_table "feedback", primary_key: "feedback_id", force: :cascade do |t|
+  create_table "category_questions", force: :cascade do |t|
+    t.bigint "category_id", null: false
+    t.bigint "question_id", null: false
+    t.string "display_label"
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id", "question_id"], name: "index_category_questions_on_category_id_and_question_id", unique: true
+    t.index ["category_id"], name: "index_category_questions_on_category_id"
+    t.index ["question_id"], name: "index_category_questions_on_question_id"
+  end
+
+  create_table "feedback", force: :cascade do |t|
+    t.bigint "student_id", null: false
     t.bigint "advisor_id", null: false
     t.bigint "category_id", null: false
-    t.bigint "surveyresponse_id", null: false
-    t.integer "score"
-    t.text "comments"
+    t.bigint "survey_id", null: false
+    t.float "average_score"
+    t.string "comments"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["advisor_id", "category_id", "surveyresponse_id"], name: "index_feedback_on_advisor_category_response", unique: true
     t.index ["advisor_id"], name: "index_feedback_on_advisor_id"
     t.index ["category_id"], name: "index_feedback_on_category_id"
-    t.index ["surveyresponse_id"], name: "index_feedback_on_surveyresponse_id"
+    t.index ["student_id"], name: "index_feedback_on_student_id"
+    t.index ["survey_id"], name: "index_feedback_on_survey_id", unique: true
   end
 
-  create_table "question_responses", primary_key: "questionresponse_id", force: :cascade do |t|
-    t.bigint "surveyresponse_id", null: false
-    t.bigint "question_id", null: false
-    t.text "answer"
+  create_table "notifications", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "message"
+    t.string "notifiable_type", null: false
+    t.bigint "notifiable_id", null: false
+    t.datetime "read_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["question_id"], name: "index_question_responses_on_question_id"
-    t.index ["surveyresponse_id", "question_id"], name: "index_question_responses_on_survey_and_question", unique: true
-    t.index ["surveyresponse_id"], name: "index_question_responses_on_surveyresponse_id"
+    t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable"
   end
 
-  create_table "questions", primary_key: "question_id", force: :cascade do |t|
-    t.bigint "category_id", null: false
+  create_table "questions", force: :cascade do |t|
     t.string "question", null: false
     t.integer "question_order", null: false
+    t.boolean "required", default: false, null: false
     t.string "question_type", null: false
     t.text "answer_options"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "depends_on_question_id"
-    t.string "depends_on_value"
-    t.boolean "required", default: false, null: false
-    t.index ["category_id", "question_order"], name: "index_questions_on_category_id_and_question_order", unique: true
-    t.index ["category_id"], name: "index_questions_on_category_id"
-    t.index ["depends_on_question_id"], name: "index_questions_on_depends_on_question_id"
+    t.index ["question_order"], name: "index_questions_on_question_order"
+  end
+
+  create_table "student_questions", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "advisor_id"
+    t.bigint "question_id", null: false
+    t.string "response_value"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["advisor_id"], name: "index_student_questions_on_advisor_id"
+    t.index ["question_id"], name: "index_student_questions_on_question_id"
+    t.index ["student_id", "question_id"], name: "index_student_questions_on_student_id_and_question_id", unique: true
+    t.index ["student_id"], name: "index_student_questions_on_student_id"
   end
 
   create_table "students", primary_key: "student_id", force: :cascade do |t|
@@ -84,19 +103,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_130000) do
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
 
-  create_table "survey_responses", primary_key: "surveyresponse_id", force: :cascade do |t|
-    t.bigint "student_id", null: false
-    t.bigint "advisor_id"
+  create_table "survey_questions", force: :cascade do |t|
     t.bigint "survey_id", null: false
-    t.date "completion_date"
-    t.date "approval_date"
-    t.string "status", default: "Not Started", null: false
+    t.bigint "question_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["advisor_id"], name: "index_survey_responses_on_advisor_id"
-    t.index ["status"], name: "index_survey_responses_on_status"
-    t.index ["student_id"], name: "index_survey_responses_on_student_id"
-    t.index ["survey_id"], name: "index_survey_responses_on_survey_id"
+    t.index ["question_id"], name: "index_survey_questions_on_question_id"
+    t.index ["survey_id", "question_id"], name: "index_survey_questions_on_survey_id_and_question_id", unique: true
+    t.index ["survey_id"], name: "index_survey_questions_on_survey_id"
   end
 
   create_table "surveys", force: :cascade do |t|
@@ -106,7 +120,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_130000) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "users", primary_key: "user_id", force: :cascade do |t|
+  create_table "users", force: :cascade do |t|
     t.string "email", null: false
     t.string "name", null: false
     t.string "uid"
@@ -119,19 +133,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_130000) do
     t.index ["uid"], name: "index_users_on_uid", unique: true
   end
 
-  add_foreign_key "admins", "users", column: "admin_id", primary_key: "user_id", on_delete: :cascade
-  add_foreign_key "advisors", "users", column: "advisor_id", primary_key: "user_id", on_delete: :cascade
-  add_foreign_key "categories", "surveys"
+  add_foreign_key "admins", "users", column: "admin_id", on_delete: :cascade
+  add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
+  add_foreign_key "category_questions", "categories", on_delete: :cascade
+  add_foreign_key "category_questions", "questions", on_delete: :cascade
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
-  add_foreign_key "feedback", "survey_responses", column: "surveyresponse_id", primary_key: "surveyresponse_id", on_delete: :cascade
-  add_foreign_key "question_responses", "questions", primary_key: "question_id", on_delete: :cascade
-  add_foreign_key "question_responses", "survey_responses", column: "surveyresponse_id", primary_key: "surveyresponse_id", on_delete: :cascade
-  add_foreign_key "questions", "categories"
-  add_foreign_key "questions", "questions", column: "depends_on_question_id", primary_key: "question_id", on_delete: :nullify
-  add_foreign_key "students", "advisors", primary_key: "advisor_id", on_delete: :nullify
-  add_foreign_key "students", "users", column: "student_id", primary_key: "user_id", on_delete: :cascade
-  add_foreign_key "survey_responses", "advisors", primary_key: "advisor_id", on_delete: :nullify
-  add_foreign_key "survey_responses", "students", primary_key: "student_id", on_delete: :cascade
-  add_foreign_key "survey_responses", "surveys"
+  add_foreign_key "feedback", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "feedback", "surveys", on_delete: :cascade
+  add_foreign_key "student_questions", "advisors", primary_key: "advisor_id", on_delete: :cascade
+  add_foreign_key "student_questions", "questions", on_delete: :cascade
+  add_foreign_key "student_questions", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "students", "advisors", primary_key: "advisor_id", on_delete: :cascade
+  add_foreign_key "students", "users", column: "student_id", on_delete: :cascade
+  add_foreign_key "survey_questions", "questions", on_delete: :cascade
+  add_foreign_key "survey_questions", "surveys", on_delete: :cascade
 end

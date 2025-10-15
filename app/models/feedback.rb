@@ -1,11 +1,11 @@
 class Feedback < ApplicationRecord
   self.table_name = "feedback"
-  self.primary_key = :feedback_id
 
-  belongs_to :advisor
+  belongs_to :student, foreign_key: :student_id, primary_key: :student_id
+  belongs_to :advisor, foreign_key: :advisor_id, primary_key: :advisor_id
   belongs_to :category
-  belongs_to :survey_response, foreign_key: :surveyresponse_id, primary_key: :surveyresponse_id
+  belongs_to :survey
 
-  validates :score, numericality: { allow_nil: true, only_integer: true }
-  validates :advisor_id, uniqueness: { scope: [ :category_id, :surveyresponse_id ] }
+  validates :average_score, numericality: true, allow_nil: true
+  validates :survey_id, uniqueness: true
 end

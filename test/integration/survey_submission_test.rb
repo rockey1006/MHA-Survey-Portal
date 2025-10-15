@@ -2,29 +2,29 @@ require "test_helper"
 
 class SurveySubmissionTest < ActionDispatch::IntegrationTest
   setup do
-    @survey = surveys(:fall_2025)
-    @student_user = users(:student)
-    @student = students(:student)
-    @question = questions(:fall_q1)
+  @student_user = users(:student)
+  @student = students(:student)
+  @advisor = advisors(:advisor)
+
+    @survey = Survey.create!(title: "Integration Survey", semester: "Fall 2025")
+    @question = Question.create!(question: "How confident are you?", question_order: 1, question_type: "short_answer", required: true)
+    SurveyQuestion.create!(survey: @survey, question: @question)
+
+    sign_in @student_user
   end
 
   test "student can submit survey responses" do
-    sign_in @student_user
-
-    assert_difference("SurveyResponse.where(student: @student, survey: @survey, status: SurveyResponse.statuses[:submitted]).count", 1) do
-      post submit_survey_path(@survey), params: {
-        answers: {
-          @question.question_id => "Confident"
-        }
+    post submit_survey_path(@survey), params: {
+      answers: {
+        @question.id => "Confident"
       }
-    end
+    }
 
-    survey_response = SurveyResponse.find_by(student: @student, survey: @survey)
-    assert survey_response.status_submitted?
-    assert_equal "Confident", survey_response.question_responses.find_by(question: @question).answer
+  expected_response_id = "#{@student.student_id}-#{@survey.id}"
+  assert_redirected_to survey_response_path(expected_response_id)
 
-    assert_redirected_to survey_response_path(survey_response)
-    follow_redirect!
-    assert_response :success
+    student_question = StudentQuestion.find_by(student_id: @student.student_id, question_id: @question.id)
+    assert_not_nil student_question
+    assert_equal "Confident", student_question.answer
   end
 end

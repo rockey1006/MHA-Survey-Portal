@@ -1,280 +1,246 @@
-<% survey_name =
-  case @survey.id
-  when 1 then "Current Residential and Executive MHA Track Study Survey"
-  when 2 then "Competency Self-Assessment Survey"
-  when 3 then "Final Feedback Survey"
-  else "Survey ##{@survey.id}"
-  end
-%>
+<% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
-<div class="survey-container">
-  <h1 class="survey-title"><%= survey_name %></h1>
-  <%= form_with url: submit_survey_path(@survey), local: true, class: "survey-form" do |f| %>
-    <% if @survey.respond_to?(:categories) && @survey.categories.any? %>
-      <%# global question counter across categories (number dependent questions as same number as parent) %>
-      <% q_number = 0 %>
-      <%# Render questions grouped by category (competency) so evidence fields appear under each competency %>
-      <% @survey.categories.order(:id).each do |cat| %>
-        <div class="category-block">
-          <h3 class="category-title"><%= cat.name %></h3>
-          <% if cat.questions.any? %>
-            <% cat.questions.order(:question_order).each do |q| %>
-              <% depends_on_qid = q.depends_on_question_id %>
-              <% depends_on_val = q.depends_on_value %>
-              <% # Treat questions as dependent if they are explicitly marked as depending on another question or their text starts with 'If yes'/'If no' %>
-              <% dependent_by_text = q.question.to_s.strip.match?(/^\s*If\s+(yes|no)/i) rescue false %>
-              <% numbered = depends_on_qid.blank? && !dependent_by_text %>
-              <% if numbered %>
-                <% q_number += 1 %>
+<div class="survey-container mx-auto max-w-5xl space-y-6">
+  <h1 class="survey-title text-2xl font-semibold text-center text-slate-900"><%= survey_title %></h1>
+
+  <%= form_with url: submit_survey_path(@survey), method: :post, local: true, class: "survey-form space-y-10" do |f| %>
+    <% question_counter = 0 %>
+
+    <% @category_groups.each do |category| %>
+      <% category_questions = category.category_questions.sort_by { |cq| cq.question&.question_order || Float::INFINITY } %>
+      <% non_evidence_questions = category_questions.select { |cq| cq.question && !cq.question.question_type_evidence? } %>
+      <% evidence_questions = category_questions.select { |cq| cq.question&.question_type_evidence? } %>
+
+      <section class="category-block space-y-4 border border-slate-200 rounded-lg p-6 shadow-sm bg-white">
+        <header>
+          <h2 class="category-title text-xl font-semibold text-slate-800"><%= category.name %></h2>
+          <% if category.description.present? %>
+            <p class="text-sm text-slate-600"><%= category.description %></p>
+          <% end %>
+        </header>
+
+        <% non_evidence_questions.each do |category_question| %>
+          <% question = category_question.question %>
+          <% next unless question %>
+          <% question_counter += 1 %>
+          <% required = @computed_required[question.id] %>
+          <% field_name = "answers[#{question.id}]" %>
+          <% current_value = @existing_answers[question.id] %>
+
+          <div class="question-block space-y-2" data-question-id="<%= question.id %>" data-required="<%= required %>" data-question-type="<%= question.question_type %>">
+            <label class="block text-sm font-medium text-slate-900">
+              <span>
+                <span class="question-number font-semibold mr-1"><%= question_counter %>.</span>
+                <%= question.question %>
+              </span>
+              <% if required %>
+                <span class="ml-1 text-red-600" aria-hidden="true">*</span>
               <% end %>
-              <%# detect simple Yes/No multiple choice questions to exclude them from required-star behavior %>
-              <% raw_opts = (q.answer_options || '').to_s %>
-              <% parsed_opts = raw_opts.gsub(/[\[\]\"“”]/, '').split(',').map(&:strip).map(&:downcase) rescue [] %>
-              <% yes_no_q = (q.question_type == 'multiple_choice' && parsed_opts == ['yes','no']) %>
-              <%# Per UX: any numbered question is required. Dependents (If yes/If no) remain unnumbered and not required. %>
-              <% data_required = numbered %>
-              <div class="form-group question-block" data-question-id="<%= q.id %>" data-depends-on-question-id="<%= depends_on_qid %>" data-depends-on-value="<%= depends_on_val %>" data-numbered="<%= numbered %>" data-question-number="<%= (numbered ? q_number : '') %>" data-required="<%= data_required %>">
-                <label class="form-label">
-                  <div class="question-text text-sm leading-snug">
-                    <% if numbered %>
-                      <span class="question-number text-sm font-medium text-gray-800"><%= q_number %>.&nbsp;</span>
-                      <span class="question-body"><%= q.question || "Question #{q.id}" %></span>
-                    <% else %>
-                      <span class="question-body"><%= q.question || "Question #{q.id}" %></span>
-                    <% end %>
-                    <% if data_required %>
-                      <span class="required-star" style="color:#e3342f; font-weight:600; margin-left:.5rem;">*</span>
-                    <% end %>
-                  </div>
-                </label>
+            </label>
 
-                <% case q.question_type %>
-                <% when 'short_answer' %>
-                  <%= text_area_tag "answers[#{q.id}]", (@existing_answers[q.id] || nil), class: 'form-control w-full max-w-full break-words p-2 border rounded', rows: 3, style: 'resize: none; overflow:auto;' %>
-                <% when 'multiple_choice' %>
-                  <% raw_opts = (q.answer_options || '').to_s %>
-                  <% parsed = begin
-                    JSON.parse(raw_opts) rescue nil
-                  end %>
-                  <% if parsed.is_a?(Array)
-                       options = parsed.map(&:to_s)
-                     else
-                       options = raw_opts.gsub(/[\[\]\"“”]/, '').split(',').map(&:strip)
-                     end %>
-                  <div class="multiple-choice-options btn-group flex flex-wrap gap-2" role="group" aria-label="Options">
-                    <% options.each do |opt| %>
-                      <% checked = (@existing_answers[q.id].to_s == opt.to_s) %>
-                      <label class="mc-btn inline-flex items-center gap-2 px-3 py-1 border rounded cursor-pointer <%= 'selected bg-blue-100 border-blue-400' if checked %>" data-value="<%= opt %>" data-qid="<%= q.id %>">
-                        <%= radio_button_tag "answers[#{q.id}]", opt, checked, data: { question_id: q.id }, style: 'display:none;' %>
-                        <span class="mc-circle w-3 h-3 rounded-full border inline-block" aria-hidden="true"></span>
-                        <span class="mc-label text-sm"><%= opt %></span>
-                      </label>
-                    <% end %>
-                  </div>
-                <% when 'scale' %>
-                  <% options = (1..5).to_a.map(&:to_s) %>
-                  <%= select_tag "answers[#{q.id}]", options_for_select(options, @existing_answers[q.id]&.to_s), include_blank: true, class: 'form-control w-full max-w-xs p-2 border rounded' %>
-                <% when 'evidence' %>
-                  <div class="evidence-input">
-                    <%= label_tag "answers[#{q.id}]", 'Google Drive link (file or folder):' %>
-                    <%# prefill with latest existing evidence for this question if present, fallback to stored answer %>
-                    <% latest_q_link = @existing_evidence_by_question && @existing_evidence_by_question[q.id]&.first&.link %>
-                    <%= text_field_tag "answers[#{q.id}]", (latest_q_link || @existing_answers[q.id] || nil), class: 'form-control w-full max-w-full p-2 border rounded', placeholder: 'https://drive.google.com/...'%>
-                    <small class="form-text text-muted">Paste a Google Drive file or folder link here. Previous submissions are shown below for audit.</small>
-
-                    <%# Show history attached specifically to this question (if any) %>
-                    <% if @existing_evidence_by_question && @existing_evidence_by_question[q.id] %>
-                      <div class="existing-evidence-list" style="margin-top:0.5rem;">
-                        <strong>Previous submissions for this question:</strong>
-                        <ul>
-                          <% @existing_evidence_by_question[q.id].each do |eu| %>
-                            <li><a href="<%= eu.link %>" target="_blank" rel="noopener noreferrer"><%= eu.link %></a> — <small><%= eu.created_at.strftime('%F %T') rescue eu.created_at %></small></li>
-                          <% end %>
-                        </ul>
-                      </div>
-                    <% end %>
-                  </div>
-                <% else %>
-                  <%= text_field_tag "answers[#{q.id}]", (@existing_answers[q.id] || nil), class: 'form-control' %>
+            <% case question.question_type %>
+            <% when "short_answer" %>
+              <%= text_area_tag field_name, current_value, rows: 3, class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+            <% when "multiple_choice" %>
+              <% options = question.answer_options_list.presence || [] %>
+              <div class="flex flex-wrap gap-2" role="radiogroup">
+                <% options.each do |option| %>
+                  <% checked = current_value.to_s == option.to_s %>
+                  <label class="survey-option inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm shadow-sm cursor-pointer <%= checked ? 'is-selected bg-blue-100 border-blue-400 text-blue-900' : 'border-slate-300 text-slate-700' %>" data-value="<%= option %>">
+                    <%= radio_button_tag field_name, option, checked, class: "sr-only survey-option-input" %>
+                    <span class="survey-option-indicator h-2.5 w-2.5 rounded-full border <%= checked ? 'bg-blue-500 border-blue-600' : 'border-slate-400' %>"></span>
+                    <span><%= option %></span>
+                  </label>
                 <% end %>
               </div>
+            <% when "scale" %>
+              <% options = (1..5).map(&:to_s) %>
+              <%= select_tag field_name, options_for_select(options, current_value&.to_s), include_blank: true, class: "w-32 rounded-md border border-slate-300 px-2 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+            <% else %>
+              <%= text_field_tag field_name, current_value, class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
             <% end %>
-          <% else %>
-            <div class="form-group"><em>No questions for this competency.</em></div>
+          </div>
+        <% end %>
+
+        <% history = (@existing_evidence_by_category[category.id] || []) %>
+        <% latest_evidence = history.first %>
+        <div class="category-evidence-block space-y-2 border-t border-dashed border-slate-200 pt-4" data-category-id="<%= category.id %>">
+          <label class="block text-sm font-semibold text-slate-900">Evidence for this category</label>
+          <%= text_field_tag "category_evidence[#{category.id}]", latest_evidence&.answer, placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+
+          <% if history.size > 1 %>
+            <details class="text-sm text-slate-600">
+              <summary class="cursor-pointer font-medium text-blue-700">View previous submissions</summary>
+              <ul class="mt-2 space-y-1">
+                <% history.drop(1).each do |entry| %>
+                  <li>
+                    <a href="<%= entry.answer %>" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline hover:text-blue-500"><%= entry.answer %></a>
+                    <% if entry.updated_at.present? %>
+                      <span class="ml-2 text-xs text-slate-500">Updated <%= entry.updated_at.strftime("%Y-%m-%d %H:%M") %></span>
+                    <% end %>
+                  </li>
+                <% end %>
+              </ul>
+            </details>
+          <% elsif latest_evidence&.answer.present? %>
+            <div class="text-sm space-y-1">
+              <a href="<%= latest_evidence.answer %>" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline hover:text-blue-500"><%= latest_evidence.answer %></a>
+              <% if latest_evidence&.updated_at.present? %>
+                <span class="ml-2 text-xs text-slate-500">Updated <%= latest_evidence.updated_at.strftime("%Y-%m-%d %H:%M") %></span>
+              <% end %>
+            </div>
           <% end %>
 
-          <!-- Per-category evidence upload (render after questions for the competency) -->
-          <div class="category-evidence-upload" style="margin-top:0.75rem;">
-            <% latest_cat_link = @existing_evidence_by_category && @existing_evidence_by_category[cat.id]&.first&.link %>
-            <%= label_tag "evidence_links_by_category[#{cat.id}]", 'Upload evidence for this competency (Google Drive link):' %>
-            <%= text_field_tag "evidence_links_by_category[#{cat.id}]", (latest_cat_link || ''), class: 'form-control w-full max-w-full p-2 border rounded', placeholder: 'https://drive.google.com/...'%>
-            <small class="form-text text-muted">This link will be attached to the competency. If there is an evidence question defined it will be used; otherwise a question will be created to record this upload.</small>
-          </div>
+          <% evidence_questions.each do |category_question|
+               question = category_question.question
+               next unless question %>
+            <% stored_value = @existing_answers[question.id] %>
+            <% next if stored_value.blank? %>
+            <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <div class="font-medium">Linked evidence question: <%= question.question %></div>
+              <div class="mt-1">
+                <a href="<%= stored_value %>" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline hover:text-blue-500"><%= stored_value %></a>
+              </div>
+            </div>
+          <% end %>
         </div>
-      <% end %>
-    <% else %>
-      <!-- Fallback sample questions if none exist in DB -->
-      <div class="form-group">
-        <label class="form-label">Sample free text</label>
-        <%= text_area_tag "answers[sample_text]", nil, class: 'form-control', style: 'resize: none; overflow:auto;' %>
-      </div>
+      </section>
     <% end %>
 
-    <div class="form-actions">
-      <%= f.submit "Submit Survey", class: "btn btn-primary" %>
+    <div class="form-actions flex justify-end">
+      <%= f.submit "Submit Survey", class: "inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
     </div>
   <% end %>
 </div>
 
-  <script>
-    // Initialize survey UI controls. Works both on full page loads and Turbo visits.
-    function initSurveyControls() {
-      if (window._surveyControlsInitialized) return;
-      window._surveyControlsInitialized = true;
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const form = document.querySelector(".survey-form");
+    if (!form) { return; }
 
-      // Toggle dependent questions visibility
-      function evaluateDependency(qBlock) {
-        var dependsOn = qBlock.dataset.dependsOnQuestionId;
-        var dependsValue = qBlock.dataset.dependsOnValue;
-        if (!dependsOn || dependsOn === "") { qBlock.style.display = ''; return; }
-        var selector = '[name="answers[' + dependsOn + ']"]';
-        var el = document.querySelector(selector);
-        var visible = false;
-        if (!el) {
-          // maybe radio buttons
-          var radios = document.querySelectorAll('input[name="answers['+dependsOn+']"]');
-          radios.forEach(function(r){ if (r.checked && (dependsValue==='' || r.value==dependsValue)) visible = true; });
-        } else {
-          var val = el.value;
-          if (dependsValue === '' || val == dependsValue) visible = true;
-        }
-        qBlock.style.display = visible ? '' : 'none';
+    const ACTIVE_OPTION_CLASSES = ["is-selected", "bg-blue-100", "border-blue-400", "text-blue-900"];
+    const INACTIVE_OPTION_CLASSES = ["border-slate-300", "text-slate-700"];
+    const DRIVE_LINK_REGEX = /^https?:\/\/(?:drive\.google\.com|docs\.google\.com)\/(?:file\/d\/|drive\/folders\/|document\/d\/|spreadsheets\/d\/|forms\/d\/|open\?).+/i;
+
+    const escapeCSS = (value) => {
+      if (window.CSS && CSS.escape) { return CSS.escape(value); }
+      return value.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+    };
+
+    function ensureErrorElement(container) {
+      let error = container.querySelector(".inline-error");
+      if (!error) {
+        error = document.createElement("p");
+        error.className = "inline-error mt-1 text-sm text-red-600";
+        error.setAttribute("role", "alert");
+        container.appendChild(error);
       }
-
-      document.querySelectorAll('.question-block').forEach(function(qb) {
-        evaluateDependency(qb);
-      });
-
-      document.body.addEventListener('change', function(e){
-        if (!e.target.name) return;
-        var m = e.target.name.match(/^answers\[(\d+)\]/);
-        if (!m) return;
-        var changedQid = m[1];
-        document.querySelectorAll('.question-block').forEach(function(qb){
-          if (qb.dataset.dependsOnQuestionId === changedQid) evaluateDependency(qb);
-        });
-      });
-
-      // multiple choice nice buttons: clicking label toggles radio and selected state
-      document.querySelectorAll('.multiple-choice-options').forEach(function(group){
-        group.addEventListener('click', function(e){
-          var target = e.target.closest('.mc-btn');
-          if (!target) return;
-          var qid = target.dataset.qid;
-          var value = target.dataset.value;
-          // unselect siblings
-          group.querySelectorAll('.mc-btn').forEach(function(lb){ lb.classList.remove('selected'); });
-          // select this
-          target.classList.add('selected');
-
-          // Find the matching hidden radio input by name and value (more robust than value-only selector)
-          var radios = group.querySelectorAll('input[type="radio"]');
-          var matched = null;
-          radios.forEach(function(r){
-            if (r.name === 'answers[' + qid + ']' && r.value == value) matched = r;
-          });
-          if (matched) {
-            matched.checked = true;
-            // trigger change event on the radio so other listeners (dependencies) react
-            matched.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-      });
+      return error;
     }
 
-    document.addEventListener('DOMContentLoaded', initSurveyControls);
-    document.addEventListener('turbo:load', initSurveyControls);
-  </script>
+    function clearInlineError(container) {
+      const error = container.querySelector(".inline-error");
+      if (error) { error.remove(); }
+    }
 
-  <script>
-    // Client-side validation for required numbered questions (except simple yes/no)
-    (function(){
-      function showInlineError(qBlock, msg) {
-        var existing = qBlock.querySelector('.inline-error');
-        if (!existing) {
-          existing = document.createElement('div');
-          existing.className = 'inline-error';
-          // inline style to ensure visibility even without Tailwind
-          existing.setAttribute('style', 'color:#e3342f; font-weight:600; margin-top:0.25rem;');
-          existing.setAttribute('role', 'alert');
-          qBlock.appendChild(existing);
+    function updateOptionState(optionLabel, selected) {
+      if (!optionLabel) { return; }
+
+      const indicator = optionLabel.querySelector(".survey-option-indicator");
+      if (selected) {
+        optionLabel.classList.add(...ACTIVE_OPTION_CLASSES);
+        optionLabel.classList.remove(...INACTIVE_OPTION_CLASSES);
+        if (indicator) {
+          indicator.classList.add("bg-blue-500", "border-blue-600");
+          indicator.classList.remove("border-slate-400");
         }
-        existing.textContent = msg;
-      }
-      function clearInlineError(qBlock){
-        var existing = qBlock.querySelector('.inline-error');
-        if (existing) existing.remove();
-      }
-
-  var form = document.querySelector('.survey-form');
-      if (!form) return;
-
-  // Drive link regex for client-side validation (matches Drive/docs/spreadsheets/forms and open?id patterns)
-  var driveRegex = /^https?:\/\/(?:drive\.google\.com|docs\.google\.com)\/(?:file\/d\/|drive\/folders\/|document\/d\/|spreadsheets\/d\/|forms\/d\/|open\?).+/i;
-
-      form.addEventListener('submit', function(e){
-        var invalid = [];
-        var invalidCategoryLinks = [];
-
-        // Validate per-category evidence link inputs (only when a value is present)
-        document.querySelectorAll('.category-evidence-upload').forEach(function(catDiv){
-          var input = catDiv.querySelector('input[name^="evidence_links_by_category"]');
-          if (!input) return;
-          var v = input.value ? input.value.toString().trim() : '';
-          if (!v) {
-            // clear any previous inline error
-            clearInlineError(catDiv);
-            return;
-          }
-          if (!driveRegex.test(v)) {
-            invalidCategoryLinks.push(catDiv);
-            showInlineError(catDiv, 'Invalid Google Drive link. Please enter a valid file or folder link.');
-          } else {
-            clearInlineError(catDiv);
-          }
-        });
-        document.querySelectorAll('.question-block').forEach(function(qb){
-          var required = qb.dataset.required === 'true' || qb.getAttribute('data-required') === 'true';
-          if (!required) { clearInlineError(qb); return; }
-          var qid = qb.dataset.questionId;
-          var name = 'answers[' + qid + ']';
-          var val = null;
-          // Prefer explicit radio-group check: radios may exist and should be checked for .checked
-          var radios = qb.querySelectorAll('input[type="radio"][name="' + name + '"]');
-          if (radios && radios.length > 0) {
-            radios.forEach(function(r){ if (r.checked) val = r.value; });
-          } else {
-            var input = qb.querySelector('[name="' + name + '"]');
-            if (input) val = input.value;
-          }
-          if (!val || val.toString().trim() === '') {
-            invalid.push(qb);
-            showInlineError(qb, 'This question is required — please answer before submitting.');
-          } else {
-            clearInlineError(qb);
-          }
-        });
-        if (invalid.length) {
-          e.preventDefault();
-          // scroll to first invalid
-          invalid[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        optionLabel.classList.remove(...ACTIVE_OPTION_CLASSES);
+        optionLabel.classList.add(...INACTIVE_OPTION_CLASSES);
+        if (indicator) {
+          indicator.classList.remove("bg-blue-500", "border-blue-600");
+          indicator.classList.add("border-slate-400");
         }
-        if (invalidCategoryLinks.length) {
-          e.preventDefault();
-          invalidCategoryLinks[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    form.addEventListener("change", function(event) {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement) || input.type !== "radio") { return; }
+
+      const groupName = input.name;
+      if (!groupName) { return; }
+
+      const groupSelector = `input[type="radio"][name="${escapeCSS(groupName)}"]`;
+      form.querySelectorAll(groupSelector).forEach((radio) => {
+        const label = radio.closest(".survey-option");
+        updateOptionState(label, radio.checked);
+      });
+    });
+
+    form.querySelectorAll(".survey-option-input").forEach((input) => {
+      const label = input.closest(".survey-option");
+      updateOptionState(label, input.checked);
+    });
+
+    form.addEventListener("submit", function(event) {
+      const invalidBlocks = [];
+      const invalidCategoryBlocks = [];
+
+      form.querySelectorAll(".question-block").forEach((block) => {
+        const required = block.dataset.required === "true";
+        if (!required) {
+          block.classList.remove("ring-2", "ring-red-500");
+          clearInlineError(block);
+          return;
+        }
+
+        let valid = false;
+        if (block.dataset.questionType === "multiple_choice") {
+          valid = Boolean(block.querySelector("input[type=radio]:checked"));
+        } else {
+          const input = block.querySelector("textarea, input:not([type=hidden]), select");
+          if (input) {
+            valid = Boolean((input.value || "").trim());
+          }
+        }
+
+        if (!valid) {
+          invalidBlocks.push(block);
+          block.classList.add("ring-2", "ring-red-500");
+          const error = ensureErrorElement(block);
+          error.textContent = "This question is required — please answer before submitting.";
+        } else {
+          block.classList.remove("ring-2", "ring-red-500");
+          clearInlineError(block);
         }
       });
-    })();
-  </script>
 
-</div>
+      form.querySelectorAll(".category-evidence-block").forEach((block) => {
+        const input = block.querySelector('input[name^="category_evidence"]');
+        if (!input) {
+          clearInlineError(block);
+          block.classList.remove("ring-2", "ring-red-500");
+          return;
+        }
+
+        const value = (input.value || "").trim();
+        if (value && !DRIVE_LINK_REGEX.test(value)) {
+          invalidCategoryBlocks.push(block);
+          block.classList.add("ring-2", "ring-red-500");
+          const error = ensureErrorElement(block);
+          error.textContent = "Please enter a valid Google Drive link.";
+        } else {
+          block.classList.remove("ring-2", "ring-red-500");
+          clearInlineError(block);
+        }
+      });
+
+      const firstInvalidBlock = invalidBlocks[0] || invalidCategoryBlocks[0];
+      if (firstInvalidBlock) {
+        event.preventDefault();
+        firstInvalidBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+  });
+</script>

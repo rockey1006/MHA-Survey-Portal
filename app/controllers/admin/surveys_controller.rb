@@ -1,29 +1,30 @@
 class Admin::SurveysController < Admin::BaseController
-    before_action :set_survey, only: %i[edit update destroy preview]
-    before_action :load_bulk_support, only: %i[index bulk_update]
-    before_action :load_form_data, only: %i[new create edit update]
+  before_action :set_survey, only: %i[edit update destroy preview]
+  before_action :load_bulk_support, only: %i[index bulk_update]
+  before_action :load_form_data, only: %i[new create edit update]
+  before_action :set_sorting, only: :index
 
-    def index
-      @group_by = permitted_grouping
-      @query = params[:q].to_s.strip
-      @selected_track = params[:track].presence
-      @selected_semester = params[:semester].presence
+  def index
+    @group_by = permitted_grouping
+    @query = params[:q].to_s.strip
+    @selected_track = params[:track].presence
+    @selected_semester = params[:semester].presence
 
-  scope = Survey.includes(:categories, assigned_advisors: :user, tagged_categories: :category)
-      scope = scope.where(track: @selected_track) if @selected_track
-      scope = scope.where(semester: @selected_semester) if @selected_semester
+    scope = Survey.includes(:categories, assigned_advisors: :user, tagged_categories: :category)
+    scope = scope.where(track: @selected_track) if @selected_track
+    scope = scope.where(semester: @selected_semester) if @selected_semester
 
-      if @query.present?
-        pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
-        scope = scope.where(Survey.arel_table[:title].matches(pattern))
-      end
-
-      @surveys = scope.order(created_at: :desc)
-      @total_surveys = @surveys.size
-      @grouped_surveys = group_surveys(@surveys, @group_by)
-      @semester_options = Survey.distinct.order(:semester).pluck(:semester).compact
-      @audit_logs = SurveyAuditLog.includes(admin: :user, survey: []).recent_first.limit(10)
+    if @query.present?
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+      scope = scope.where(Survey.arel_table[:title].matches(pattern))
     end
+
+    @surveys = sorted_surveys(scope)
+    @total_surveys = @surveys.size
+    @grouped_surveys = group_surveys(@surveys, @group_by)
+    @semester_options = Survey.distinct.order(:semester).pluck(:semester).compact
+    @audit_logs = SurveyAuditLog.includes(admin: :user, survey: []).recent_first.limit(10)
+  end
 
     def new
       @survey = Survey.new
@@ -175,41 +176,40 @@ class Admin::SurveysController < Admin::BaseController
       "track"
     end
 
-    def group_surveys(surveys, group_by)
-      grouped = Hash.new { |hash, key| hash[key] = [] }
+  def group_surveys(surveys, group_by)
+    grouped = Hash.new { |hash, key| hash[key] = [] }
 
-      surveys.each do |survey|
-        case group_by
-        when "advisor"
-          advisors = survey.assigned_advisors
-          if advisors.any?
-            advisors.each do |advisor|
-              grouped[advisor.display_name] << survey
-            end
-          else
-            grouped["Unassigned Advisors"] << survey
+    surveys.each do |survey|
+      case group_by
+      when "advisor"
+        advisors = survey.assigned_advisors
+        if advisors.any?
+          advisors.each do |advisor|
+            grouped[advisor.display_name] << survey
           end
-        when "category"
-          categories = survey.tagged_categories.presence || survey.categories
-          if categories.any?
-            categories.each do |category|
-              grouped[category.name] << survey
-            end
-          else
-            grouped["Uncategorized"] << survey
-          end
-        when "semester"
-          grouped[survey.semester.presence || "Unscheduled Semester"] << survey
         else
-          grouped[survey.track.presence || "Unassigned Track"] << survey
+          grouped["Unassigned Advisors"] << survey
         end
+      when "category"
+        categories = survey.tagged_categories.presence || survey.categories
+        if categories.any?
+          categories.each do |category|
+            grouped[category.name] << survey
+          end
+        else
+          grouped["Uncategorized"] << survey
+        end
+      when "semester"
+        grouped[survey.semester.presence || "Unscheduled Semester"] << survey
+      else
+        grouped[survey.track.presence || "Unassigned Track"] << survey
       end
-
-      grouped.map do |group_name, list|
-        sorted_surveys = list.uniq.sort_by { |survey| [survey.semester.to_s, survey.title.downcase] }
-        [group_name, sorted_surveys]
-      end.sort_by { |group_name, _| group_name.to_s.downcase }
     end
+
+    grouped.map do |group_name, list|
+      [group_name, deduplicate_preserving_order(list)]
+    end.sort_by { |group_name, _| group_name.to_s.downcase }
+  end
 
     def load_bulk_support
       @advisors = Advisor.includes(:user).references(:users).order(Arel.sql("LOWER(users.name) ASC"))
@@ -358,19 +358,89 @@ class Admin::SurveysController < Admin::BaseController
       Array(ids).map { |question_id| @question_lookup[question_id.to_i] || "Question ##{question_id}" }
     end
 
-    def log_survey_action(action, survey, survey_id: nil, metadata: {})
-      admin_profile = current_admin_profile || current_user&.create_admin_profile
-      return unless admin_profile
+  def log_survey_action(action, survey, survey_id: nil, metadata: {})
+    admin_profile = current_admin_profile || current_user&.create_admin_profile
+    return unless admin_profile
 
-      SurveyAuditLog.create!(
-        admin: admin_profile,
-        survey: survey,
-        survey_id: survey_id || survey&.id,
-        action: action,
-        metadata: metadata.merge(
-          performed_by: current_user.email,
-          performed_at: Time.current
-        )
+    SurveyAuditLog.create!(
+      admin: admin_profile,
+      survey: survey,
+      survey_id: survey_id || survey&.id,
+      action: action,
+      metadata: metadata.merge(
+        performed_by: current_user.email,
+        performed_at: Time.current
       )
+    )
+  end
+
+  SORTABLE_COLUMNS = {
+    "title" => { mode: :sql, expression: "LOWER(surveys.title)" },
+    "semester" => { mode: :sql, expression: "LOWER(surveys.semester)" },
+    "track" => { mode: :sql, expression: "LOWER(surveys.track)" },
+    "created_at" => { mode: :sql, expression: "surveys.created_at" },
+    "categories" => { mode: :ruby, accessor: :survey_category_sort_key },
+    "advisors" => { mode: :ruby, accessor: :survey_advisor_sort_key }
+  }.freeze
+
+  def set_sorting
+    requested_sort = params[:sort].to_s
+    @sort_column = SORTABLE_COLUMNS.key?(requested_sort) ? requested_sort : "title"
+
+    requested_direction = params[:direction].to_s.downcase
+    @sort_direction = %w[asc desc].include?(requested_direction) ? requested_direction : "asc"
+  end
+
+  def sort_order_clause
+    strategy = SORTABLE_COLUMNS[@sort_column]
+    return unless strategy && strategy[:mode] == :sql
+
+    "#{strategy[:expression]} #{@sort_direction.upcase}, surveys.id ASC"
+  end
+
+  def deduplicate_preserving_order(list)
+    seen = {}
+    ordered = []
+
+    list.each do |survey|
+      next if seen[survey.id]
+
+      ordered << survey
+      seen[survey.id] = true
+    end
+
+    ordered
+  end
+
+  def sorted_surveys(scope)
+    strategy = SORTABLE_COLUMNS[@sort_column]
+    return scope.order(Arel.sql("LOWER(surveys.title) #{@sort_direction.upcase}, surveys.id ASC")).to_a unless strategy
+
+    case strategy[:mode]
+    when :sql
+      clause = sort_order_clause
+      clause ? scope.order(Arel.sql(clause)).to_a : scope.to_a
+    when :ruby
+      records = scope.to_a
+      accessor = method(strategy[:accessor])
+      records.sort_by! { |survey| normalize_sort_value(accessor.call(survey)) }
+      records.reverse! if @sort_direction == "desc"
+      records
+    else
+      scope.to_a
+    end
+  end
+
+  def normalize_sort_value(value)
+    Array(value).flatten.compact.map { |item| item.to_s.downcase }.join("|")
+  end
+
+  def survey_category_sort_key(survey)
+    categories = survey.tagged_categories.presence || survey.categories
+    categories.map(&:name).map(&:to_s).sort
+  end
+
+  def survey_advisor_sort_key(survey)
+    survey.assigned_advisors.map(&:display_name).map(&:to_s).sort
   end
 end

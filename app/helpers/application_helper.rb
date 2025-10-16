@@ -1,5 +1,6 @@
 module ApplicationHelper
   FLASH_BASE_CLASSES = "mb-4 flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 shadow-sm".freeze
+  SURVEY_SORTABLE_KEYS = %w[q track semester group_by].freeze
 
   def flash_classes(key)
     tone = key.to_sym
@@ -106,6 +107,22 @@ module ApplicationHelper
     fragments = fragments.compact
     fragments = ["No recorded changes"] if fragments.empty?
     fragments.first(3).join(" | ")
+  end
+
+  def sortable_header(label, column)
+    active = @sort_column == column
+    next_direction = active && @sort_direction == "asc" ? "desc" : "asc"
+
+    preserved_query = request.query_parameters.slice(*SURVEY_SORTABLE_KEYS)
+    target_params = preserved_query.merge("sort" => column, "direction" => next_direction)
+
+    classes = ["sortable-header"]
+    classes << "is-active" if active
+
+    indicator = active ? content_tag(:span, "(#{@sort_direction})", class: "sort-indicator") : nil
+    label_content = indicator ? safe_join([label, indicator], " ") : label
+
+    link_to label_content, admin_surveys_path(target_params), class: classes.join(" ")
   end
 
   private

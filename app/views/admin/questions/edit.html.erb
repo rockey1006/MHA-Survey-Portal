@@ -1,0 +1,15 @@
+<main class="main-content">
+  <section class="dashboard-section">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Edit Question</h1>
+        <p class="section-subtitle">Update the prompt content, order, and tags.</p>
+      </div>
+      <div class="section-actions">
+        <%= link_to "Back to Question Bank", admin_questions_path, class: "btn" %>
+      </div>
+    </div>
+
+    <%= render "form", question: @question %>
+  </section>
+</main>

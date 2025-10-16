@@ -1,35 +1,71 @@
-<main class="main-content">
-  <section class="dashboard-section">
-    <div class="section-header">
-      <div>
+<main class="main-content admin-surveys-page">
+  <% active_filters = [] %>
+  <% active_filters << { label: "Search", value: @query, param: :q } if @query.present? %>
+  <% active_filters << { label: "Semester", value: @selected_semester, param: :semester } if @selected_semester.present? %>
+  <% active_filters << { label: "Track", value: @selected_track, param: :track } if @selected_track.present? %>
+  <% active_filters << { label: "Group By", value: @group_by.titleize, param: :group_by } if @group_by.present? && @group_by != "track" %>
+  <% filters_active = active_filters.any? %>
+  <% filters_open = false %>
+
+  <section class="admin-surveys-section">
+    <div class="admin-surveys-header" data-controller="filters-panel" data-filters-panel-default-open-value="<%= filters_open %>" data-filters-panel-active-value="<%= filters_active %>">
+      <div class="admin-surveys-header__title">
         <h1 class="section-title">Survey Management</h1>
         <p class="section-subtitle">Create, organize, and monitor surveys before they reach advisors.</p>
       </div>
-      <div class="section-actions">
-        <%= link_to "Create New Survey", new_admin_survey_path, class: "btn btn-primary" %>
+
+      <div class="admin-surveys-header__controls">
+        <button type="button"
+          class="admin-surveys-filters-toggle"
+          data-action="filters-panel#toggle"
+          data-filters-panel-target="trigger"
+          aria-controls="admin-surveys-filters-panel"
+          aria-expanded="<%= filters_open %>"
+          aria-label="Toggle survey filters">
+          <span class="admin-surveys-filters-toggle__icon" aria-hidden="true"></span>
+          <span class="admin-surveys-filters-toggle__text">Filters</span>
+        </button>
       </div>
-    </div>
 
-    <div class="survey-toolbar">
-      <%= form_with url: admin_surveys_path, method: :get, local: true, class: "survey-filter-form" do |form| %>
-        <div class="filter-grid">
-          <div class="filter-field">
-            <%= form.label :q, "Search", class: "filter-label" %>
-            <%= form.search_field :q, value: @query, placeholder: "Search by title", class: "input" %>
+      <% filters_form_attributes = {
+        class: "admin-surveys-header__filters",
+        data: { filters_panel_target: "panel" },
+        id: "admin-surveys-filters-panel"
+      } %>
+      <% filters_form_attributes[:hidden] = true unless filters_open %>
+
+      <%= form_with url: admin_surveys_path, method: :get, local: true, html: filters_form_attributes do |form| %>
+        <%= form.hidden_field :sort, value: @sort_column %>
+        <%= form.hidden_field :direction, value: @sort_direction %>
+
+        <div class="admin-surveys-header__filters-grid">
+          <div class="admin-surveys-field admin-surveys-field--full">
+            <%= form.label :q, "Search", class: "admin-surveys-field__label" %>
+            <%= form.search_field :q,
+              value: @query,
+              placeholder: "Search surveys...",
+              class: "input admin-surveys-field__control",
+              aria: { label: "Search surveys" } %>
           </div>
 
-          <div class="filter-field">
-            <%= form.label :semester, "Semester", class: "filter-label" %>
-            <%= form.select :semester, options_for_select(@semester_options, @selected_semester), include_blank: "All semesters", class: "input" %>
+          <div class="admin-surveys-field">
+            <%= form.label :semester, "Semester", class: "admin-surveys-field__label" %>
+            <%= form.select :semester,
+              options_for_select(@semester_options, @selected_semester),
+              { include_blank: "All semesters" },
+              { class: "input admin-surveys-field__control" } %>
           </div>
 
-          <div class="filter-field">
-            <%= form.label :track, "Track", class: "filter-label" %>
-            <%= form.select :track, options_for_select(@track_options, @selected_track), include_blank: "All tracks", class: "input" %>
+          <div class="admin-surveys-field">
+            <%= form.label :track, "Track", class: "admin-surveys-field__label" %>
+            <%= form.select :track,
+              options_for_select(@track_options, @selected_track),
+              { include_blank: "All tracks" },
+              { class: "input admin-surveys-field__control" } %>
           </div>
 
-          <div class="filter-field">
-            <%= form.label :group_by, "Group By", class: "filter-label" %>
+          <div class="admin-surveys-field">
+            <%= form.label :group_by, "Group By", class: "admin-surveys-field__label" %>
             <%= form.select :group_by,
               options_for_select([
                 ["Track", "track"],
@@ -38,154 +74,245 @@
                 ["Semester", "semester"]
               ], @group_by),
               {},
-              class: "input" %>
-          </div>
-
-          <div class="filter-actions">
-            <%= form.submit "Apply Filters", class: "btn btn-secondary" %>
-            <%= link_to "Reset", admin_surveys_path, class: "btn" %>
+              { class: "input admin-surveys-field__control" } %>
           </div>
         </div>
+
+        <div class="admin-surveys-header__filters-actions">
+          <%= form.submit "Apply", class: "btn btn-secondary" %>
+          <%= link_to "Reset", admin_surveys_path, class: "btn" %>
+        </div>
       <% end %>
-    </div>
-  </section>
 
-  <section class="dashboard-section">
-    <div class="section-header">
-      <div>
-        <h2 class="section-title">Surveys (<%= @total_surveys %>)</h2>
-        <p class="section-subtitle">Select surveys to update groupings or open them to review details.</p>
-      </div>
-    </div>
-
-    <%= form_with url: bulk_update_admin_surveys_path, method: :patch, local: true, html: { class: "survey-bulk-form", data: { controller: "survey-bulk" } } do %>
-      <div class="bulk-select-all">
-        <label class="select-all">
-          <%= check_box_tag "bulk_select_all", "1", false, name: nil, data: { action: "change->survey-bulk#toggleAll", "survey-bulk-target": "selectAll" } %>
-          Select all listed surveys
-        </label>
-      </div>
-
-      <% if @grouped_surveys.blank? %>
-        <p class="empty-state">No surveys match the current filters.</p>
-      <% else %>
-        <div class="survey-groups">
-          <% @grouped_surveys.each do |group_name, surveys| %>
-            <details class="survey-group" open>
-              <summary>
-                <span class="group-title"><%= group_name %></span>
-                <span class="group-count"><%= pluralize(surveys.size, "survey") %></span>
-              </summary>
-
-              <div class="survey-group-body">
-                <% surveys.each do |survey| %>
-                  <article class="survey-row">
-                    <div class="survey-select-cell">
-                      <%= check_box_tag "survey_ids[]", survey.id, false,
-                        class: "survey-select",
-                        data: {
-                          action: "change->survey-bulk#markChanged",
-                          "survey-bulk-target": "checkbox",
-                          "survey-bulk-survey-id": survey.id
-                        } %>
-                    </div>
-                    <div class="survey-info">
-                      <h3 class="survey-name"><%= survey.title %></h3>
-                      <div class="survey-meta">
-                        <span><strong>Semester:</strong> <%= survey.semester %></span>
-                        <span><strong>Track:</strong> <%= survey.track.presence || "Unassigned" %></span>
-                        <span><strong>Categories:</strong> <%= ((survey.tagged_categories.presence || survey.categories).map(&:name).uniq.presence || ["None"]).join(", ") %></span>
-                        <span><strong>Advisors:</strong> <%= (survey.assigned_advisors.map(&:display_name).presence || ["Hidden"]).join(", ") %></span>
-                      </div>
-                    </div>
-                    <div class="survey-actions">
-                      <%= link_to "Preview", preview_admin_survey_path(survey), class: "btn" %>
-                      <%= link_to "Edit", edit_admin_survey_path(survey), class: "btn btn-secondary" %>
-                      <%= link_to "Delete", admin_survey_path(survey),
-                        data: { turbo_method: :delete, turbo_confirm: "Delete '#{survey.title}'? This cannot be undone." },
-                        class: "btn btn-danger" %>
-                    </div>
-                  </article>
+      <% if active_filters.any? %>
+        <div class="admin-surveys-active-filters">
+          <span class="admin-surveys-active-filters__label">Active filters</span>
+          <ul class="admin-surveys-active-filters__list">
+            <% active_filters.each do |filter| %>
+              <% filtered_params = request.query_parameters.except(filter[:param].to_s, "commit") %>
+              <li>
+                <%= link_to admin_surveys_path(filtered_params),
+                  class: "admin-surveys-chip admin-surveys-chip--dismissible",
+                  aria: { label: "Remove #{filter[:label]} filter" } do %>
+                  <span class="admin-surveys-chip__label"><%= filter[:label] %>:</span>
+                  <span class="admin-surveys-chip__value"><%= filter[:value] %></span>
+                  <span class="admin-surveys-chip__icon" aria-hidden="true">&times;</span>
                 <% end %>
-              </div>
-            </details>
-          <% end %>
+              </li>
+            <% end %>
+          </ul>
+          <%= link_to "Clear all", admin_surveys_path, class: "admin-surveys-active-filters__clear" %>
         </div>
       <% end %>
+    </div>
 
-      <div class="bulk-actions">
-        <h3 class="bulk-title">Group Selected Surveys</h3>
-        <div class="bulk-grid">
-          <div class="bulk-field">
-            <label for="bulk-track">Track</label>
-            <input id="bulk-track" name="track" list="bulk-track-options" placeholder="Leave blank to keep track unchanged" class="input" />
-            <datalist id="bulk-track-options">
-              <% @track_options.each do |track_option| %>
-                <option value="<%= track_option %>"></option>
-              <% end %>
-            </datalist>
-          </div>
-
-          <div class="bulk-field">
-            <label for="bulk-advisors">Advisors</label>
-            <select id="bulk-advisors" name="assigned_advisor_ids[]" multiple size="6" class="multi-select">
-              <% @advisors.each do |advisor| %>
-                <option value="<%= advisor.advisor_id %>"><%= advisor.display_name %></option>
-              <% end %>
-            </select>
-            <p class="field-hint">Leave unselected to keep current advisor visibility.</p>
-          </div>
-
-          <div class="bulk-field">
-            <label for="bulk-categories">Competency Categories</label>
-            <select id="bulk-categories" name="tagged_category_ids[]" multiple size="6" class="multi-select">
-              <% @categories.each do |category| %>
-                <option value="<%= category.id %>"><%= category.name %></option>
-              <% end %>
-            </select>
-            <p class="field-hint">Leave unselected to keep existing tags.</p>
-          </div>
-        </div>
-
-        <div class="bulk-actions-footer">
-          <button type="submit" class="btn btn-primary" data-survey-bulk-target="submit" disabled>Apply Grouping</button>
-        </div>
-      </div>
-    <% end %>
-  </section>
-
-  <section class="dashboard-section">
-    <div class="section-header">
-      <div>
-        <h2 class="section-title">Recent Survey Activity</h2>
-        <p class="section-subtitle">Audit log of survey changes for accountability.</p>
+    <div class="admin-surveys-summary">
+      <div class="admin-surveys-summary__card">
+        <h3>Current view</h3>
+        <ul class="admin-surveys-summary__stats">
+          <li>
+            <span>Visible surveys</span>
+            <strong><%= @total_surveys %></strong>
+          </li>
+          <li>
+            <% track_count = @surveys.map(&:track).compact.uniq.size %>
+            <span>Distinct tracks</span>
+            <strong><%= track_count %></strong>
+          </li>
+          <li>
+            <% advisor_count = @surveys.flat_map(&:assigned_advisors).uniq.size %>
+            <span>Advisor audiences</span>
+            <strong><%= advisor_count %></strong>
+          </li>
+        </ul>
       </div>
     </div>
 
-    <div class="audit-log-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Action</th>
-            <th>Survey</th>
-            <th>Details</th>
-            <th>Performed By</th>
-            <th>When</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @audit_logs.each do |log| %>
-            <% metadata = log.metadata.with_indifferent_access %>
+    <div class="admin-surveys-table-card">
+      <div class="admin-surveys-table-card__heading">
+        <div>
+          <h2 class="section-title">Surveys (<%= @total_surveys %>)</h2>
+          <p class="section-subtitle">All surveys are listed below—use the actions to manage each one.</p>
+        </div>
+        <div class="admin-surveys-table-card__meta">
+          <%= link_to "Create New Survey", new_admin_survey_path, class: "btn btn-primary" %>
+          <span class="admin-surveys-chip admin-surveys-chip--subtle">Grouped by <strong><%= @group_by.titleize %></strong></span>
+        </div>
+      </div>
+
+      <%= form_with url: bulk_update_admin_surveys_path, method: :patch, local: true, html: { class: "admin-surveys-table-form", data: { controller: "survey-bulk" } } do %>
+        <% if @grouped_surveys.blank? %>
+          <p class="admin-surveys-empty-state">No surveys match the current filters.</p>
+        <% else %>
+          <div class="admin-surveys-table-container">
+            <table class="admin-surveys-table">
+              <thead>
+                <tr>
+                  <th>
+                    <%= check_box_tag "bulk_select_all", "1", false,
+                      name: nil,
+                      aria: { label: "Select all surveys" },
+                      data: { action: "change->survey-bulk#toggleAll", "survey-bulk-target": "selectAll" } %>
+                  </th>
+                  <th><%= sortable_header("Title", "title") %></th>
+                  <th><%= sortable_header("Semester", "semester") %></th>
+                  <th><%= sortable_header("Track", "track") %></th>
+                  <th><%= sortable_header("Created", "created_at") %></th>
+                  <th><%= sortable_header("Advisors", "advisors") %></th>
+                  <th class="admin-surveys-table__actions-heading">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @grouped_surveys.each do |group_name, surveys| %>
+                  <tr class="admin-surveys-table__group-row">
+                    <th colspan="7">
+                      <div class="admin-surveys-table__group-header">
+                        <span class="admin-surveys-table__group-name"><%= group_name %></span>
+                        <span class="admin-surveys-table__group-count"><%= pluralize(surveys.size, "survey") %></span>
+                      </div>
+                    </th>
+                  </tr>
+                  <% surveys.each do |survey| %>
+                    <tr>
+                      <td class="admin-surveys-table__select">
+                        <%= check_box_tag "survey_ids[]", survey.id, false,
+                          class: "admin-surveys-table__checkbox",
+                          aria: { label: "Select #{survey.title}" },
+                          data: {
+                            action: "change->survey-bulk#markChanged",
+                            "survey-bulk-target": "checkbox",
+                            "survey-bulk-survey-id": survey.id
+                          } %>
+                      </td>
+                      <td class="admin-surveys-table__title"><%= survey.title %></td>
+                      <td class="admin-surveys-table__meta"><span><%= survey.semester.presence || "Unscheduled" %></span></td>
+                      <td class="admin-surveys-table__meta"><span><%= survey.track.presence || "Unassigned" %></span></td>
+                      <td class="admin-surveys-table__meta"><span><%= l(survey.created_at, format: :short) %></span></td>
+                      <td class="admin-surveys-table__meta admin-surveys-table__meta--chips">
+                        <% advisor_names = survey.assigned_advisors.map(&:display_name).uniq %>
+                        <% if advisor_names.present? %>
+                          <%= safe_join(advisor_names.map { |name| content_tag(:span, name, class: "admin-surveys-chip") }, " ") %>
+                        <% else %>
+                          <span class="admin-surveys-chip admin-surveys-chip--muted">Hidden</span>
+                        <% end %>
+                      </td>
+                      <td class="admin-surveys-table__actions">
+                        <%= link_to "View", preview_admin_survey_path(survey), class: "btn" %>
+                        <%= link_to "Edit", edit_admin_survey_path(survey), class: "btn btn-secondary" %>
+                        <%= link_to "Delete", admin_survey_path(survey),
+                          data: { turbo_method: :delete, turbo_confirm: "Delete '#{survey.title}'? This cannot be undone." },
+                          class: "btn btn-danger" %>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+
+        <div class="admin-surveys-bulk">
+          <div class="admin-surveys-bulk__title-row">
+            <h3 class="admin-surveys-bulk__title">Group Selected Surveys</h3>
+            <span class="admin-surveys-tooltip" tabindex="0" title="Use the checkboxes to pick surveys, then update only the fields you want to change." aria-label="Bulk update tips">?</span>
+          </div>
+
+          <div class="admin-surveys-selection-summary" data-survey-bulk-target="counter" role="status" aria-live="polite">
+            No surveys selected.
+          </div>
+
+          <div class="admin-surveys-bulk__grid">
+            <div class="admin-surveys-bulk__field">
+              <div class="admin-surveys-field__label-row">
+                <label for="bulk-track" class="admin-surveys-field__label">Track</label>
+                <span class="admin-surveys-tooltip" tabindex="0" title="Leave blank to keep each survey's existing track." aria-label="Track field guidance">?</span>
+              </div>
+              <input id="bulk-track" name="track" list="bulk-track-options" placeholder="Leave blank to keep track unchanged" class="input admin-surveys-field__control" aria-describedby="bulk-track-help" />
+              <datalist id="bulk-track-options">
+                <% @track_options.each do |track_option| %>
+                  <option value="<%= track_option %>"></option>
+                <% end %>
+              </datalist>
+              <span id="bulk-track-help" class="sr-only">Leave blank to keep each survey's existing track.</span>
+            </div>
+
+            <div class="admin-surveys-bulk__field">
+              <div class="admin-surveys-field__label-row">
+                <label for="bulk-advisors" class="admin-surveys-field__label">Advisors</label>
+                <span class="admin-surveys-tooltip" tabindex="0" title="Leave unselected to keep current advisor visibility." aria-label="Advisor selection guidance">?</span>
+              </div>
+              <select id="bulk-advisors" name="assigned_advisor_ids[]" multiple size="6" class="multi-select admin-surveys-field__control" aria-describedby="bulk-advisors-help">
+                <% @advisors.each do |advisor| %>
+                  <option value="<%= advisor.advisor_id %>"><%= advisor.display_name %></option>
+                <% end %>
+              </select>
+              <span id="bulk-advisors-help" class="sr-only">Leave unselected to keep current advisor visibility.</span>
+            </div>
+
+            <div class="admin-surveys-bulk__field">
+              <div class="admin-surveys-field__label-row">
+                <label for="bulk-categories" class="admin-surveys-field__label">Competency Categories</label>
+                <span class="admin-surveys-tooltip" tabindex="0" title="Leave unselected to keep the existing competency tags." aria-label="Category selection guidance">?</span>
+              </div>
+              <select id="bulk-categories" name="tagged_category_ids[]" multiple size="6" class="multi-select admin-surveys-field__control" aria-describedby="bulk-categories-help">
+                <% @categories.each do |category| %>
+                  <option value="<%= category.id %>"><%= category.name %></option>
+                <% end %>
+              </select>
+              <span id="bulk-categories-help" class="sr-only">Leave unselected to keep the existing competency tags.</span>
+            </div>
+          </div>
+
+          <div class="admin-surveys-bulk__actions">
+            <button type="submit" class="btn btn-primary" data-survey-bulk-target="submit" disabled>Apply Grouping</button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="admin-surveys-section">
+    <div class="admin-surveys-card">
+      <div class="admin-surveys-card__header">
+        <div>
+          <h2 class="section-title">Recent Survey Activity</h2>
+          <p class="section-subtitle">Audit log of survey changes for accountability.</p>
+        </div>
+      </div>
+
+      <div class="admin-surveys-audit">
+        <table class="admin-surveys-audit__table">
+          <thead>
             <tr>
-              <td><%= log.action.titleize %></td>
-              <td><%= log.survey&.title || "Survey ##{log.survey_id}" %></td>
-              <td><%= summarize_survey_audit_metadata(metadata) %></td>
-              <td><%= log.admin&.name || metadata[:performed_by] %></td>
-              <td><%= l(log.created_at, format: :long) %></td>
+              <th>Action</th>
+              <th>Survey</th>
+              <th>Details</th>
+              <th>Performed By</th>
+              <th>When</th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% @audit_logs.each do |log| %>
+              <% metadata = log.metadata.with_indifferent_access %>
+              <tr>
+                <td><%= log.action.titleize %></td>
+                <td><%= log.survey&.title || "Survey ##{log.survey_id}" %></td>
+                <td><%= summarize_survey_audit_metadata(metadata) %></td>
+                <td><%= log.admin&.name || metadata[:performed_by] %></td>
+                <td><%= l(log.created_at, format: :long) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="admin-surveys-section">
+    <div class="admin-surveys-report">
+      <%= link_to "Generate Report", "#", class: "btn btn-secondary", data: { turbo: false }, aria: { describedby: "admin-surveys-report-help" } %>
+      <span id="admin-surveys-report-help" class="sr-only">Reporting workflow coming soon.</span>
+      <span class="admin-surveys-tooltip" tabindex="0" title="Reporting workflow coming soon." aria-label="Reporting workflow coming soon">?</span>
     </div>
   </section>
 </main>

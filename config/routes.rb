@@ -48,6 +48,8 @@ Rails.application.routes.draw do
         get :preview
       end
     end
+
+    resources :questions, except: :show
   end
 
   resources :categories

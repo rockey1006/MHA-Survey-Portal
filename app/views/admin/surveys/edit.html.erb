@@ -1,8 +1,52 @@
 <main class="main-content">
   <section class="dashboard-section">
     <div class="section-header">
-      <h1 class="section-title">Edit Survey</h1>
-      <p class="section-subtitle">Update survey details, questions, and assignments for advisors.</p>
+      <div>
+        <h1 class="section-title">Edit Survey</h1>
+        <p class="section-subtitle">Fine-tune survey details, assignments, and prompts before publishing.</p>
+      </div>
+      <div class="section-actions">
+        <%= link_to "Preview", preview_admin_survey_path(@survey), class: "btn" %>
+        <%= link_to "Back to Surveys", admin_surveys_path, class: "btn btn-secondary" %>
+      </div>
+    </div>
+
+    <div class="survey-context">
+      <div class="summary-card">
+        <h3>Survey summary</h3>
+        <dl class="summary-dl">
+          <div>
+            <dt>Semester</dt>
+            <dd><%= @survey.semester.presence || "Unscheduled" %></dd>
+          </div>
+          <div>
+            <dt>Track</dt>
+            <dd><%= @survey.track.presence || "Unassigned" %></dd>
+          </div>
+          <div>
+            <dt>Created</dt>
+            <dd><%= l(@survey.created_at, format: :short) %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="summary-card">
+        <h3>Quick stats</h3>
+        <ul class="summary-list">
+          <li>
+            <span>Advisor access</span>
+            <strong><%= @survey.assigned_advisor_ids.count %></strong>
+          </li>
+          <li>
+            <span>Tagged categories</span>
+            <strong><%= @survey.tagged_category_ids.count %></strong>
+          </li>
+          <li>
+            <span>Questions included</span>
+            <strong><%= @survey.question_ids.count %></strong>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <%= render "form", survey: @survey %>

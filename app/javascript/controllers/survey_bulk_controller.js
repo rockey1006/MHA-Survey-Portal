@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Handles bulk selection and grouping interactions on the admin survey index
 export default class extends Controller {
-  static targets = ["checkbox", "selectAll", "submit"]
+  static targets = ["checkbox", "selectAll", "submit", "counter"]
 
   connect() {
     this.updateSubmitState()
@@ -40,6 +40,16 @@ export default class extends Controller {
 
       selectAll.indeterminate = selectedCount > 0 && selectedCount < totalCount
       selectAll.checked = selectedCount > 0 && selectedCount === totalCount
+    }
+
+    if (this.hasCounterTarget) {
+      const totalLabel = totalCount === 1 ? "survey" : "surveys"
+      const message = selectedCount === 0
+        ? "No surveys selected."
+        : `Selected ${selectedCount} of ${totalCount} ${totalLabel}.`
+
+      this.counterTarget.textContent = message
+      this.counterTarget.classList.toggle("admin-surveys-selection-summary--active", selectedCount > 0)
     }
   }
 

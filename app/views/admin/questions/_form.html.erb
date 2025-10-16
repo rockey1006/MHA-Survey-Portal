@@ -1,0 +1,73 @@
+<%= form_with(model: [:admin, question], class: "survey-form") do |form| %>
+  <% if question.errors.any? %>
+    <div class="form-errors">
+      <h2><%= pluralize(question.errors.count, "error") %> prevented the question from being saved:</h2>
+      <ul>
+        <% question.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="survey-form-layout">
+    <div class="survey-form-main">
+      <section class="form-card">
+        <header class="form-card-header">
+          <span class="step-pill">Question Details</span>
+          <div>
+            <h2 class="section-heading">Prompt content</h2>
+            <p class="section-subtext">Define the prompt, type, and ordering so it appears correctly in surveys.</p>
+          </div>
+        </header>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <%= form.label :question, "Question text" %>
+            <%= form.text_area :question, rows: 4, class: "input", required: true, placeholder: "Describe the question you want to ask" %>
+          </div>
+
+          <div class="form-field">
+            <%= form.label :question_type, "Question type" %>
+            <%= form.select :question_type, Question.question_types.keys.map { |type| [type.humanize, type] }, {}, class: "input", required: true %>
+          </div>
+
+          <div class="form-field">
+            <%= form.label :question_order, "Display order" %>
+            <%= form.number_field :question_order, class: "input", min: 1, required: true %>
+            <p class="field-hint">Controls where this question appears relative to other prompts.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <header class="form-card-header">
+          <span class="step-pill">Configuration</span>
+          <div>
+            <h2 class="section-heading">Answer options & tags</h2>
+            <p class="section-subtext">Add category tags and optional predefined answers for multiple choice prompts.</p>
+          </div>
+        </header>
+
+        <div class="form-columns">
+          <div class="form-column">
+            <label class="section-subheading" for="question_category_ids">Categories</label>
+            <p class="field-hint">Tagged categories help advisors filter and find related prompts.</p>
+            <%= form.collection_select :category_ids, @categories, :id, :name, { include_hidden: false }, { multiple: true, size: 8, class: "multi-select" } %>
+          </div>
+
+          <div class="form-column">
+            <%= form.label :answer_options, "Answer options" %>
+            <%= form.text_area :answer_options, rows: 6, class: "input", placeholder: "Provide comma separated options or JSON array (used for multiple choice)." %>
+            <p class="field-hint">Leave blank for free-form answers. Example: [\"Strongly Agree\", \"Agree\", \"Neutral\", \"Disagree\", \"Strongly Disagree\"].</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <%= form.submit(question.persisted? ? "Update Question" : "Create Question", class: "btn btn-primary") %>
+        <%= link_to "Cancel", admin_questions_path, class: "btn btn-secondary" %>
+      </div>
+    </div>
+  </div>
+<% end %>

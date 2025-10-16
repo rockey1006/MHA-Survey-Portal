@@ -10,47 +10,85 @@
       </div>
     </div>
 
-    <div class="survey-preview-meta">
-      <div class="meta-card">
-        <span class="meta-label">Semester</span>
-        <span class="meta-value"><%= @survey.semester %></span>
-      </div>
-      <div class="meta-card">
-        <span class="meta-label">Track</span>
-        <span class="meta-value"><%= @survey.track.presence || "Unassigned" %></span>
-      </div>
-      <div class="meta-card">
-        <span class="meta-label">Advisors</span>
-        <span class="meta-value"><%= @advisor_names.presence&.join(", ") || "Hidden" %></span>
-      </div>
-      <div class="meta-card">
-        <span class="meta-label">Competency Categories</span>
-        <span class="meta-value"><%= @category_names.presence&.join(", ") || "None" %></span>
-      </div>
-    </div>
+    <div class="survey-preview-layout">
+      <aside class="survey-preview-sidebar">
+        <div class="summary-card">
+          <h3>Survey details</h3>
+          <dl class="summary-dl">
+            <div>
+              <dt>Semester</dt>
+              <dd><%= @survey.semester %></dd>
+            </div>
+            <div>
+              <dt>Track</dt>
+              <dd><%= @survey.track.presence || "Unassigned" %></dd>
+            </div>
+            <div>
+              <dt>Advisor audience</dt>
+              <dd><%= @advisor_names.presence&.join(", ") || "Hidden" %></dd>
+            </div>
+            <div>
+              <dt>Competency tags</dt>
+              <dd><%= @category_names.presence&.join(", ") || "None" %></dd>
+            </div>
+          </dl>
+        </div>
 
-    <div class="survey-preview-questions">
-      <% @questions.each_with_index do |question, index| %>
-        <article class="question-card">
-          <header class="question-header">
-            <h2>Question <%= index + 1 %></h2>
-            <span class="question-type"><%= question.question_type.humanize %></span>
-          </header>
-          <p class="question-body"><%= question.question %></p>
-          <% if question.categories.any? %>
-            <p class="question-categories">Categories: <%= question.categories.map(&:name).join(", ") %></p>
-          <% end %>
-        </article>
-      <% end %>
+        <div class="summary-card">
+          <h3>Question mix</h3>
+          <% question_type_counts = @questions.group_by(&:question_type).transform_values(&:count) %>
+          <ul class="summary-list">
+            <% question_type_counts.sort_by { |type, _| type }.each do |type, count| %>
+              <li>
+                <span><%= type.humanize %></span>
+                <strong><%= count %></strong>
+              </li>
+            <% end %>
+            <li>
+              <span>Total questions</span>
+              <strong><%= @questions.count %></strong>
+            </li>
+          </ul>
+        </div>
 
-      <% if @questions.empty? %>
-        <p class="empty-state">No questions are currently assigned to this survey.</p>
-      <% end %>
-    </div>
+        <div class="summary-card">
+          <h3>Next steps</h3>
+          <ul class="summary-notes">
+            <li>Share this preview with advisors to confirm the flow.</li>
+            <li>Use the edit action to reorder or add new prompts.</li>
+            <li>Audit log captures every preview, edit, and grouping update.</li>
+          </ul>
+        </div>
+      </aside>
 
-    <div class="preview-actions">
-      <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: "btn btn-secondary" %>
-      <%= link_to "Manage Surveys", admin_surveys_path, class: "btn btn-primary" %>
+      <section class="survey-preview-content">
+        <% if @questions.empty? %>
+          <p class="empty-state">No questions are currently assigned to this survey.</p>
+        <% else %>
+          <ol class="question-list">
+            <% @questions.each do |question| %>
+              <li class="question-card">
+                <header class="question-header">
+                  <span class="question-type-pill"><%= question.question_type.humanize %></span>
+                  <% if question.categories.any? %>
+                    <ul class="category-chips">
+                      <% question.categories.map(&:name).sort.each do |category_name| %>
+                        <li><%= category_name %></li>
+                      <% end %>
+                    </ul>
+                  <% end %>
+                </header>
+                <p class="question-body"><%= question.question %></p>
+              </li>
+            <% end %>
+          </ol>
+        <% end %>
+
+        <div class="preview-actions">
+          <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: "btn btn-secondary" %>
+          <%= link_to "Manage Surveys", admin_surveys_path, class: "btn btn-primary" %>
+        </div>
+      </section>
     </div>
   </section>
 </main>

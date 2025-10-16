@@ -223,19 +223,19 @@ class DashboardsController < ApplicationController
     redirect_to dashboard_path_for_role(new_role)
   end
 
-  def manage_students 
+  def manage_students
     @students = load_students
     @advisors = Advisor.joins(:user).order(Arel.sql("LOWER(users.name) ASC"))
   end
 
-  def update_student_advisor 
+  def update_student_advisor
     @student = Student.find(params[:id])
     if @student.update(student_params)
       redirect_to manage_students_path, notice: "Advisor updated successfully."
     else
       redirect_to manage_students_path, alert: "Failed to update advisor."
     end
-  end 
+  end
   private
 
   def ensure_profile_present

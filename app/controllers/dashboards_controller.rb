@@ -223,6 +223,19 @@ class DashboardsController < ApplicationController
     redirect_to dashboard_path_for_role(new_role)
   end
 
+  def manage_students
+    @students = load_students
+    @advisors = Advisor.joins(:user).order(Arel.sql("LOWER(users.name) ASC"))
+  end
+
+  def update_student_advisor
+    @student = Student.find(params[:id])
+    if @student.update(student_params)
+      redirect_to manage_students_path, notice: "Advisor updated successfully."
+    else
+      redirect_to manage_students_path, alert: "Failed to update advisor."
+    end
+  end
   private
 
   def ensure_profile_present
@@ -270,5 +283,26 @@ class DashboardsController < ApplicationController
 
     options = question.answer_options_list.map(&:strip).map(&:downcase)
     !(options == %w[yes no] || options == %w[no yes])
+  end
+
+
+
+  def load_students
+    has_admin_privileges = current_user&.role_admin? || current_user&.admin_profile.present?
+
+    scope = if has_admin_privileges
+      Student.includes(:user, advisor: :user)
+    else
+      current_advisor_profile&.advisees&.includes(:user, advisor: :user) || Student.none
+    end
+
+    scope
+      .left_joins(:user)
+      .includes(:advisor)
+      .order(Arel.sql("LOWER(users.name) ASC"))
+  end
+
+  def student_params
+    params.require(:student).permit(:advisor_id)
   end
 end

@@ -33,6 +33,8 @@ Rails.application.routes.draw do
 
   get "student_records", to: "student_records#index", as: :student_records
 
+  get "manage_students", to: "dashboards#manage_students", as: :manage_students
+
   # Admin-specific management routes
   get "manage_members", to: "dashboards#manage_members", as: :manage_members
   patch "update_roles", to: "dashboards#update_roles", as: :update_roles
@@ -41,6 +43,11 @@ Rails.application.routes.draw do
   resources :categories
   resources :feedbacks
   resources :questions
+
+  resources :students, only: [:index, :update]
+  patch '/students/:id/update_advisor', to: 'dashboards#update_student_advisor', as: 'update_student_advisor'
+
+
 
   resources :surveys do
     post :submit, on: :member

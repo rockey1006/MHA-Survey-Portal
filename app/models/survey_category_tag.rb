@@ -1,3 +1,4 @@
+# Tagging model connecting surveys to reusable categories.
 class SurveyCategoryTag < ApplicationRecord
   belongs_to :survey
   belongs_to :category

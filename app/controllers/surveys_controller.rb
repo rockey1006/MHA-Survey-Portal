@@ -1,10 +1,17 @@
+# Handles student-facing survey listing, completion, and submission flows.
 class SurveysController < ApplicationController
   before_action :set_survey, only: %i[show submit]
 
+  # Lists active surveys ordered by display priority.
+  #
+  # @return [void]
   def index
     @surveys = Survey.active.ordered
   end
 
+  # Presents the survey form, pre-populating answers and required flags.
+  #
+  # @return [void]
   def show
     @category_groups = @survey.categories.includes(:questions).order(:id)
     @existing_answers = {}
@@ -35,6 +42,10 @@ class SurveysController < ApplicationController
     end
   end
 
+  # Processes survey submissions, validating required answers and evidence
+  # links before persisting student responses.
+  #
+  # @return [void]
   def submit
     student = current_student
 
@@ -96,6 +107,9 @@ class SurveysController < ApplicationController
 
   private
 
+  # Finds the survey requested by the route.
+  #
+  # @return [void]
   def set_survey
     @survey = Survey.find(params[:id])
   end

@@ -1,3 +1,5 @@
+# Profile for student users, including survey responses and advisor
+# relationships.
 class Student < ApplicationRecord
   self.primary_key = :student_id
 
@@ -13,15 +15,22 @@ class Student < ApplicationRecord
 
   validates :uin, uniqueness: true, allow_nil: true
 
+  # @return [String] the student's preferred full name
   def full_name
     user.full_name
   end
 
+  # Saves the student and any pending user changes.
+  #
+  # @return [Boolean]
   def save(*args, &block)
     user.save! if user&.changed?
     super
   end
 
+  # Saves the student and underlying user, raising on failure.
+  #
+  # @return [Boolean]
   def save!(*args, &block)
     user.save! if user&.changed?
     super

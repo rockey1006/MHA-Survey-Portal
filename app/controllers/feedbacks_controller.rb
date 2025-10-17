@@ -1,25 +1,35 @@
+# CRUD endpoints for advisor feedback records associated with survey
+# responses.
 class FeedbacksController < ApplicationController
   before_action :set_feedback, only: %i[ show edit update destroy ]
 
-  # GET /feedbacks or /feedbacks.json
+  # Lists all feedback entries.
+  #
+  # @return [void]
   def index
     @feedbacks = Feedback.all
   end
 
-  # GET /feedbacks/1 or /feedbacks/1.json
-  def show
-  end
+  # Displays a single feedback entry.
+  #
+  # @return [void]
+  def show; end
 
-  # GET /feedbacks/new
+  # Renders the new feedback form.
+  #
+  # @return [void]
   def new
     @feedback = Feedback.new
   end
 
-  # GET /feedbacks/1/edit
-  def edit
-  end
+  # Renders the edit form for existing feedback.
+  #
+  # @return [void]
+  def edit; end
 
-  # POST /feedbacks or /feedbacks.json
+  # Creates a feedback record from submitted attributes.
+  #
+  # @return [void]
   def create
     @feedback = Feedback.new(feedback_params)
 
@@ -34,7 +44,9 @@ class FeedbacksController < ApplicationController
     end
   end
 
-  # PATCH/PUT /feedbacks/1 or /feedbacks/1.json
+  # Updates an existing feedback entry.
+  #
+  # @return [void]
   def update
     respond_to do |format|
       if @feedback.update(feedback_params)
@@ -47,7 +59,9 @@ class FeedbacksController < ApplicationController
     end
   end
 
-  # DELETE /feedbacks/1 or /feedbacks/1.json
+  # Deletes feedback and redirects back to the index.
+  #
+  # @return [void]
   def destroy
     @feedback.destroy!
 
@@ -58,13 +72,17 @@ class FeedbacksController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_feedback
-      @feedback = Feedback.find(params[:id])
-    end
+  # Finds the feedback referenced in the request.
+  #
+  # @return [void]
+  def set_feedback
+    @feedback = Feedback.find(params[:id])
+  end
 
-    # Only allow a list of trusted parameters through.
-    def feedback_params
-      params.require(:feedback).permit(:advisor_id, :category_id, :surveyresponse_id, :score, :comments)
-    end
+  # Strong parameters for feedback creation/update.
+  #
+  # @return [ActionController::Parameters]
+  def feedback_params
+    params.require(:feedback).permit(:advisor_id, :category_id, :surveyresponse_id, :score, :comments)
+  end
 end

@@ -1,4 +1,7 @@
+# Survey definition composed of categories and questions, with track-based
+# assignments and change logging.
 class Survey < ApplicationRecord
+  # Predefined track labels administrators can assign.
   TRACK_OPTIONS = [
     "Residential",
     "Executive",
@@ -22,14 +25,22 @@ class Survey < ApplicationRecord
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
 
+  # @return [ActiveRecord::Relation<Survey>] newest surveys first
   scope :ordered, -> { order(created_at: :desc) }
+  # @return [ActiveRecord::Relation<Survey>] surveys currently active
   scope :active, -> { where(is_active: true) }
+  # @return [ActiveRecord::Relation<Survey>] surveys marked inactive
   scope :archived, -> { where(is_active: false) }
 
+  # @return [Array<String>] unique tracks assigned to the survey
   def track_list
     survey_assignments.order(:track).pluck(:track)
   end
 
+  # Replaces the survey's track assignments with the provided list.
+  #
+  # @param tracks [Enumerable<String>]
+  # @return [void]
   def assign_tracks!(tracks)
     normalized = normalize_track_values(tracks)
 
@@ -41,6 +52,12 @@ class Survey < ApplicationRecord
     end
   end
 
+  # Records an administrative change to the survey.
+  #
+  # @param admin [Admin]
+  # @param action [String]
+  # @param description [String, nil]
+  # @return [SurveyChangeLog]
   def log_change!(admin:, action:, description: nil)
     survey_change_logs.create!(admin: admin, action: action, description: description)
   end

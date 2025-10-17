@@ -1,6 +1,11 @@
+# Provides rollup views of survey completion status across students for staff
+# members (advisors and admins).
 class StudentRecordsController < ApplicationController
   before_action :require_staff_access!
 
+  # Displays student survey completion matrices grouped by semester/survey.
+  #
+  # @return [void]
   def index
     @students = load_students
     @student_records = build_student_records(@students)
@@ -8,12 +13,18 @@ class StudentRecordsController < ApplicationController
 
   private
 
+  # Ensures only advisors and admins can access student records.
+  #
+  # @return [void]
   def require_staff_access!
     return if current_user&.role_admin? || current_user&.role_advisor?
 
     redirect_to dashboard_path, alert: "Advisor or admin access required."
   end
 
+  # Loads students accessible to the current staff member.
+  #
+  # @return [ActiveRecord::Relation<Student>]
   def load_students
     has_admin_privileges = current_user&.role_admin? || current_user&.admin_profile.present?
 
@@ -29,6 +40,11 @@ class StudentRecordsController < ApplicationController
       .order(Arel.sql("LOWER(users.name) ASC"))
   end
 
+  # Builds a nested data structure summarizing survey completion for each
+  # student.
+  #
+  # @param students [Enumerable<Student>]
+  # @return [Array<Hash>]
   def build_student_records(students)
     return [] if students.blank?
 
@@ -97,6 +113,10 @@ class StudentRecordsController < ApplicationController
     end.reject { |block| block[:surveys].blank? }
   end
 
+  # Produces a sortable key for semester labels (e.g., "Fall 2024").
+  #
+  # @param semester [String, nil]
+  # @return [Array<Integer>]
   def semester_sort_key(semester)
     return [ 0, 0 ] if semester.blank?
 
@@ -112,6 +132,10 @@ class StudentRecordsController < ApplicationController
     [ year_value, term_value ]
   end
 
+  # Determines whether a question counts toward completion metrics.
+  #
+  # @param question [Question, nil]
+  # @return [Boolean]
   def required_question?(question)
     return false unless question
 

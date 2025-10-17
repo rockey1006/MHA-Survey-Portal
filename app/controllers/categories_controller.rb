@@ -1,18 +1,35 @@
+# CRUD interface for survey categories exposed to admins via the main
+# application namespace.
 class CategoriesController < ApplicationController
   before_action :set_category, only: %i[ show edit update destroy ]
 
+  # Lists categories grouped by survey.
+  #
+  # @return [void]
   def index
     @categories = Category.includes(:survey).order(:survey_id, :name)
   end
 
+  # Displays a single category.
+  #
+  # @return [void]
   def show; end
 
+  # Renders the new-category form.
+  #
+  # @return [void]
   def new
     @category = Category.new
   end
 
+  # Renders the edit form for an existing category.
+  #
+  # @return [void]
   def edit; end
 
+  # Persists a new category from submitted parameters.
+  #
+  # @return [void]
   def create
     @category = Category.new(category_params)
 
@@ -27,6 +44,9 @@ class CategoriesController < ApplicationController
     end
   end
 
+  # Updates the selected category with the provided attributes.
+  #
+  # @return [void]
   def update
     respond_to do |format|
       if @category.update(category_params)
@@ -39,6 +59,9 @@ class CategoriesController < ApplicationController
     end
   end
 
+  # Deletes a category from the system.
+  #
+  # @return [void]
   def destroy
     @category.destroy!
 
@@ -50,10 +73,16 @@ class CategoriesController < ApplicationController
 
   private
 
+  # Finds the category matching the request identifier.
+  #
+  # @return [void]
   def set_category
     @category = Category.find(params[:id])
   end
 
+  # Strong parameters for category creation/update.
+  #
+  # @return [ActionController::Parameters]
   def category_params
     params.require(:category).permit(:survey_id, :name, :description)
   end

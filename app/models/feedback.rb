@@ -1,3 +1,4 @@
+# Stores advisor feedback summaries linked to students and surveys.
 class Feedback < ApplicationRecord
   self.table_name = "feedback"
 

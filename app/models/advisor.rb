@@ -1,3 +1,5 @@
+# Profile for users serving as advisors, including relationships to advisees and
+# delegated user attributes.
 class Advisor < ApplicationRecord
   self.primary_key = :advisor_id
 
@@ -7,19 +9,27 @@ class Advisor < ApplicationRecord
   has_many :feedbacks, foreign_key: :advisor_id
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 
+  # @return [String] a friendly name with email fallback
   def display_name
     name.presence || email
   end
 
+  # @return [String] the role stored on the associated user
   def role
     user.role
   end
 
+  # Saves the advisor and any pending changes on the associated user.
+  #
+  # @return [Boolean]
   def save(*args, &block)
     user.save! if user&.changed?
     super
   end
 
+  # Saves the advisor and user, raising on failure.
+  #
+  # @return [Boolean]
   def save!(*args, &block)
     user.save! if user&.changed?
     super

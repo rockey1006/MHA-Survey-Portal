@@ -1,7 +1,15 @@
+# Admin interface for building, editing, and tracking lifecycle events for
+# surveys. Provides search, filtering, and management capabilities for survey
+# definitions used throughout the program.
 class Admin::SurveysController < Admin::BaseController
   before_action :set_survey, only: %i[edit update destroy preview archive activate]
   before_action :prepare_supporting_data, only: %i[new create edit update]
 
+  # Lists active and archived surveys with optional search and track filters.
+  # Sets instance variables consumed by the index template, including recent
+  # change logs and available track filters.
+  #
+  # @return [void]
   def index
     @search_query = params[:q].to_s.strip
     @selected_track = params[:track].presence
@@ -49,7 +57,7 @@ class Admin::SurveysController < Admin::BaseController
     active_scope = active_scope.order(Arel.sql("#{order_expression} #{@sort_direction}"))
     active_scope = active_scope.order("surveys.id ASC")
 
-  @active_surveys = active_scope.preload(:survey_assignments).load
+    @active_surveys = active_scope.preload(:survey_assignments).load
 
     @track_filter_options = (
       Survey::TRACK_OPTIONS +
@@ -61,11 +69,18 @@ class Admin::SurveysController < Admin::BaseController
     @recent_logs = SurveyChangeLog.recent.includes(:survey, :admin).limit(12)
   end
 
+  # Renders the form for creating a new survey, seeding it with a default
+  # category and question so admins can begin editing immediately.
+  #
+  # @return [void]
   def new
     @survey = Survey.new(creator: current_user, semester: default_semester)
     build_default_structure(@survey)
   end
 
+  # Creates a new survey, assigns tracks, and logs the change for auditing.
+  #
+  # @return [void]
   def create
     @survey = Survey.new(survey_params)
     @survey.creator ||= current_user
@@ -83,10 +98,18 @@ class Admin::SurveysController < Admin::BaseController
     end
   end
 
+  # Presents the edit form for a survey, ensuring each category has at least
+  # one question block ready for editing.
+  #
+  # @return [void]
   def edit
     build_default_structure(@survey)
   end
 
+  # Updates survey attributes, persisted category/question structure, and track
+  # assignments while capturing a human-readable change summary.
+  #
+  # @return [void]
   def update
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
@@ -102,6 +125,9 @@ class Admin::SurveysController < Admin::BaseController
     end
   end
 
+  # Deletes a survey and records the action in the change log.
+  #
+  # @return [void]
   def destroy
     summary = "Survey deleted (#{@survey.title})"
     @survey.log_change!(admin: current_user, action: "delete", description: summary)
@@ -109,6 +135,9 @@ class Admin::SurveysController < Admin::BaseController
     redirect_to admin_surveys_path, notice: "Survey deleted successfully."
   end
 
+  # Archives a survey, removing any track assignments and recording the action.
+  #
+  # @return [void]
   def archive
     if @survey.update(is_active: false)
       @survey.assign_tracks!([])
@@ -119,6 +148,9 @@ class Admin::SurveysController < Admin::BaseController
     end
   end
 
+  # Reactivates a previously archived survey and records the action.
+  #
+  # @return [void]
   def activate
     if @survey.update(is_active: true)
       @survey.log_change!(admin: current_user, action: "activate", description: "Survey reactivated")
@@ -128,6 +160,10 @@ class Admin::SurveysController < Admin::BaseController
     end
   end
 
+  # Displays a read-only preview of the survey structure and captures a log
+  # entry noting the preview action.
+  #
+  # @return [void]
   def preview
     @categories = @survey.categories.includes(:questions).order(:id)
     @questions = @survey.questions.includes(:category).order(:question_order)
@@ -138,10 +174,17 @@ class Admin::SurveysController < Admin::BaseController
 
   private
 
+  # Looks up the survey referenced by the request parameters.
+  #
+  # @return [void]
   def set_survey
     @survey = Survey.find(params[:id])
   end
 
+  # Strong parameters for survey creation/update, including nested category and
+  # question attributes.
+  #
+  # @return [ActionController::Parameters]
   def survey_params
     params.require(:survey).permit(
       :title,
@@ -167,6 +210,9 @@ class Admin::SurveysController < Admin::BaseController
     )
   end
 
+  # Extracts and normalizes track selections from the submitted parameters.
+  #
+  # @return [Array<String>] list of unique track identifiers chosen by the admin
   def selected_tracks
     permitted = params.fetch(:survey, {}).permit(track_list: [], additional_track_names: "")
     base = Array(permitted[:track_list]).map(&:to_s)
@@ -174,6 +220,10 @@ class Admin::SurveysController < Admin::BaseController
     (base + extras).map(&:strip).reject(&:blank?).uniq
   end
 
+  # Loads supporting data such as available tracks and question types for the
+  # survey form.
+  #
+  # @return [void]
   def prepare_supporting_data
     @available_tracks = (
       Survey::TRACK_OPTIONS +
@@ -183,6 +233,11 @@ class Admin::SurveysController < Admin::BaseController
     @question_types = Question.question_types.keys
   end
 
+  # Ensures the survey has at least one category with a question scaffolded for
+  # editing.
+  #
+  # @param survey [Survey]
+  # @return [void]
   def build_default_structure(survey)
     if survey.categories.empty?
       category = survey.categories.build(name: "New Category")
@@ -194,6 +249,10 @@ class Admin::SurveysController < Admin::BaseController
     end
   end
 
+  # Adds a placeholder question to a category if none exist.
+  #
+  # @param category [Category]
+  # @return [void]
   def build_default_question(category)
     category.questions.build(
       question_text: "New question",
@@ -204,6 +263,9 @@ class Admin::SurveysController < Admin::BaseController
     )
   end
 
+  # Determines the semester label to use when a survey does not specify one.
+  #
+  # @return [String]
   def default_semester
     current = Time.zone.today
     year = current.year
@@ -215,6 +277,10 @@ class Admin::SurveysController < Admin::BaseController
     "#{season} #{year}"
   end
 
+  # Builds a snapshot of salient survey attributes for before/after comparisons.
+  #
+  # @param survey [Survey]
+  # @return [Hash]
   def survey_snapshot(survey)
     {
       title: survey.title,
@@ -231,6 +297,13 @@ class Admin::SurveysController < Admin::BaseController
     }
   end
 
+  # Produces a human-readable summary of differences between two survey
+  # snapshots.
+  #
+  # @param before [Hash]
+  # @param after [Hash]
+  # @param tracks [Array<String>]
+  # @return [String]
   def change_summary(before, after, tracks)
     diffs = []
     %i[title semester description is_active].each do |attribute|
@@ -252,6 +325,9 @@ class Admin::SurveysController < Admin::BaseController
     diffs.present? ? diffs.join("; ") : "No structural changes detected"
   end
 
+  # Token representing surveys with no track assignments when filtering.
+  #
+  # @return [String]
   def unassigned_track_token
     "__unassigned"
   end

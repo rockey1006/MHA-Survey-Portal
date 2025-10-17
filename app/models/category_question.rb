@@ -1,3 +1,4 @@
+# Join model linking questions to categories.
 class CategoryQuestion < ApplicationRecord
   belongs_to :category
   belongs_to :question

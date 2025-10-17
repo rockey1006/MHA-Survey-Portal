@@ -1,3 +1,4 @@
+# Grouping for survey questions, tied to a parent survey.
 class Category < ApplicationRecord
   belongs_to :survey
   has_many :questions, inverse_of: :category, dependent: :destroy
@@ -7,5 +8,6 @@ class Category < ApplicationRecord
 
   validates :name, presence: true
 
+  # @return [ActiveRecord::Relation<Category>] categories ordered alphabetically
   scope :ordered, -> { order(:name) }
 end

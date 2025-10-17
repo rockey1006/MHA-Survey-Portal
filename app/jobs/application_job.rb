@@ -1,3 +1,4 @@
+# Base job class for the application. Configure retry/ discard behavior here.
 class ApplicationJob < ActiveJob::Base
      # Automatically retry jobs that encountered a deadlock
      # retry_on ActiveRecord::Deadlocked

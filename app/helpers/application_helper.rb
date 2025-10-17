@@ -1,7 +1,16 @@
+# Helpers shared across views for formatting flash messages, buttons, and audit
+# metadata.
 module ApplicationHelper
+module ApplicationHelper
+  # Base Tailwind utility classes applied to flash messages.
   FLASH_BASE_CLASSES = "mb-4 flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 shadow-sm".freeze
+  # Query string keys that should be preserved when building sortable headers.
   SURVEY_SORTABLE_KEYS = %w[q track semester group_by].freeze
 
+  # Computes alert styling classes based on the flash key.
+  #
+  # @param key [Symbol, String]
+  # @return [String]
   def flash_classes(key)
     tone = key.to_sym
 
@@ -19,6 +28,10 @@ module ApplicationHelper
     end
   end
 
+  # Provides a human-friendly heading for a flash message key.
+  #
+  # @param key [Symbol, String]
+  # @return [String]
   def flash_title(key)
     {
       notice: "Heads up",
@@ -30,6 +43,10 @@ module ApplicationHelper
     }.fetch(key.to_sym, key.to_s.titleize)
   end
 
+  # Emits a stylesheet tag for Tailwind, with a fallback if the asset pipeline
+  # is unavailable (e.g., during development).
+  #
+  # @return [String, nil]
   def tailwind_stylesheet_tag
     stylesheet_link_tag("tailwind", "data-turbo-track": "reload")
   rescue StandardError => e
@@ -44,6 +61,11 @@ module ApplicationHelper
     nil
   end
 
+  # Builds Tailwind button classes for the provided variant.
+  #
+  # @param variant [Symbol]
+  # @param extra_classes [String]
+  # @return [String]
   def tailwind_button_classes(variant = :primary, extra_classes: "")
     base = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 
@@ -61,6 +83,10 @@ module ApplicationHelper
     [ base, variant_classes, extra_classes.presence ].compact.join(" ")
   end
 
+  # Returns CSS classes for a survey status pill.
+  #
+  # @param status [String, Symbol]
+  # @return [String]
   def survey_status_badge_classes(status)
     base = "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide"
 
@@ -76,6 +102,10 @@ module ApplicationHelper
     "#{base} #{variant}"
   end
 
+  # Generates a concise summary string from survey audit metadata.
+  #
+  # @param metadata [Hash]
+  # @return [String]
   def summarize_survey_audit_metadata(metadata)
     data = metadata.with_indifferent_access
     fragments = []
@@ -109,6 +139,11 @@ module ApplicationHelper
     fragments.first(3).join(" | ")
   end
 
+  # Renders a sortable column header link, preserving existing filters.
+  #
+  # @param label [String]
+  # @param column [String]
+  # @return [String]
   def sortable_header(label, column)
     active = @sort_column == column
     next_direction = active && @sort_direction == "asc" ? "desc" : "asc"
@@ -131,6 +166,10 @@ module ApplicationHelper
 
   private
 
+  # Humanizes single audit attribute values for display.
+  #
+  # @param value [Object]
+  # @return [String]
   def humanize_audit_value(value)
     return "none" if value.nil?
     return humanize_audit_list(value) if value.is_a?(Array)
@@ -139,6 +178,10 @@ module ApplicationHelper
     string.present? ? string : "none"
   end
 
+  # Humanizes audit value arrays into comma-separated strings.
+  #
+  # @param values [Array]
+  # @return [String]
   def humanize_audit_list(values)
     items = Array(values).map { |item| item.to_s.strip }.reject(&:blank?)
     return "none" if items.empty?

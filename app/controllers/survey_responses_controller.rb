@@ -1,11 +1,19 @@
+# Presents individual survey responses for viewing, printing, or exporting,
+# enforcing authorization rules for admins, advisors, and students.
 class SurveyResponsesController < ApplicationController
   before_action :set_survey_response
   before_action :authorize_view!
 
+  # Shows a survey response within the standard layout.
+  #
+  # @return [void]
   def show
     @question_responses = preload_question_responses
   end
 
+  # Renders the print-friendly layout for a survey response.
+  #
+  # @return [void]
   def print
     @question_responses = preload_question_responses
 
@@ -14,6 +22,10 @@ class SurveyResponsesController < ApplicationController
     end
   end
 
+  # Streams a PDF version of the survey response when WickedPdf is available.
+  # Falls back with an error when server-side rendering is disabled.
+  #
+  # @return [void]
   def download
     @question_responses = preload_question_responses
 
@@ -40,6 +52,9 @@ class SurveyResponsesController < ApplicationController
 
   private
 
+  # Finds the survey response by signed token or ID parameter.
+  #
+  # @return [void]
   def set_survey_response
     token = params[:token].presence
 
@@ -55,6 +70,9 @@ class SurveyResponsesController < ApplicationController
     head :not_found
   end
 
+  # Ensures the current user is permitted to view the response.
+  #
+  # @return [void]
   def authorize_view!
     return if params[:token].present? # signed token grants access without session
 
@@ -72,10 +90,16 @@ class SurveyResponsesController < ApplicationController
     head :unauthorized
   end
 
+  # Preloads related question responses for rendering.
+  #
+  # @return [ActiveRecord::Associations::CollectionProxy<QuestionResponse>]
   def preload_question_responses
     @survey_response.question_responses
   end
 
+  # Generates a PDF payload from the survey response using WickedPdf.
+  #
+  # @return [String, nil]
   def generate_pdf
     html = render_to_string(
       template: "survey_responses/show",

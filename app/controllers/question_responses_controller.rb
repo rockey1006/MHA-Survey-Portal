@@ -1,25 +1,34 @@
+# CRUD controller for individual responses to survey questions.
 class QuestionResponsesController < ApplicationController
   before_action :set_question_response, only: %i[ show edit update destroy ]
 
-  # GET /question_responses or /question_responses.json
+  # Lists all recorded question responses.
+  #
+  # @return [void]
   def index
     @question_responses = QuestionResponse.all
   end
 
-  # GET /question_responses/1 or /question_responses/1.json
-  def show
-  end
+  # Displays a single question response.
+  #
+  # @return [void]
+  def show; end
 
-  # GET /question_responses/new
+  # Renders the form for creating a new response.
+  #
+  # @return [void]
   def new
     @question_response = QuestionResponse.new
   end
 
-  # GET /question_responses/1/edit
-  def edit
-  end
+  # Renders the edit form for an existing response.
+  #
+  # @return [void]
+  def edit; end
 
-  # POST /question_responses or /question_responses.json
+  # Persists a newly submitted response.
+  #
+  # @return [void]
   def create
     @question_response = QuestionResponse.new(question_response_params)
 
@@ -34,7 +43,9 @@ class QuestionResponsesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /question_responses/1 or /question_responses/1.json
+  # Updates a stored response.
+  #
+  # @return [void]
   def update
     respond_to do |format|
       if @question_response.update(question_response_params)
@@ -47,7 +58,9 @@ class QuestionResponsesController < ApplicationController
     end
   end
 
-  # DELETE /question_responses/1 or /question_responses/1.json
+  # Removes a response from the system.
+  #
+  # @return [void]
   def destroy
     @question_response.destroy!
 
@@ -58,13 +71,17 @@ class QuestionResponsesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_question_response
-      @question_response = QuestionResponse.find(params[:id])
-    end
+  # Finds the question response referenced by params.
+  #
+  # @return [void]
+  def set_question_response
+    @question_response = QuestionResponse.find(params[:id])
+  end
 
-    # Only allow a list of trusted parameters through.
-    def question_response_params
-      params.require(:question_response).permit(:surveyresponse_id, :question_id, :answer)
-    end
+  # Strong parameters for response creation/update.
+  #
+  # @return [ActionController::Parameters]
+  def question_response_params
+    params.require(:question_response).permit(:surveyresponse_id, :question_id, :answer)
+  end
 end

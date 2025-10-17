@@ -1,7 +1,13 @@
+# Handles authentication callbacks from external identity providers (Google)
+# and enforces TAMU email restrictions while wiring users into Devise.
 class OmniauthCallbacksController < Devise::OmniauthCallbacksController
   # Skip CSRF verification for OAuth callbacks since they come from external sources
   skip_before_action :verify_authenticity_token, only: [ :google_oauth2, :failure ]
 
+  # Processes the Google OAuth callback, provisioning users as needed and
+  # routing them to an appropriate dashboard based on role.
+  #
+  # @return [void]
   def google_oauth2
     # Debug: Log the OAuth params
     Rails.logger.debug "OAuth params: #{request.env['omniauth.params']}"
@@ -56,10 +62,18 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
   protected
 
+  # Location to send a user after an OmniAuth failure.
+  #
+  # @return [String]
   def after_omniauth_failure_path_for(_scope)
     new_user_session_path
   end
 
+  # Determines the path after a successful sign in, defaulting to the
+  # dashboard if no stored location exists.
+  #
+  # @param resource_or_scope [Object]
+  # @return [String]
   def after_sign_in_path_for(resource_or_scope)
     # This method is overridden by our custom logic above
     stored_location_for(resource_or_scope) || dashboard_path
@@ -67,6 +81,9 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
   private
 
+  # Normalized attributes extracted from the omniauth payload.
+  #
+  # @return [Hash]
   def from_google_params
     @from_google_params ||= {
       uid: auth.uid,
@@ -76,10 +93,17 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
     }
   end
 
+  # Memoized OmniAuth payload for the current request.
+  #
+  # @return [OmniAuth::AuthHash]
   def auth
     @auth ||= request.env["omniauth.auth"]
   end
 
+  # Validates that an email address belongs to a TAMU domain.
+  #
+  # @param email [String]
+  # @return [Boolean]
   def tamu_email?(email)
     return false if email.blank?
 

@@ -1,9 +1,14 @@
 require "set"
 
+# Presents role-aware dashboards and administrative utilities for students,
+# advisors, and administrators within the main application.
 class DashboardsController < ApplicationController
   before_action :ensure_profile_present, only: %i[student advisor]
   before_action :ensure_role_switch_allowed, only: :switch_role
 
+  # Redirects the signed-in user to their primary role dashboard.
+  #
+  # @return [void]
   def show
     case current_user.role
     when "student"
@@ -17,6 +22,10 @@ class DashboardsController < ApplicationController
     end
   end
 
+  # Renders the student dashboard with survey completion summaries and
+  # download links.
+  #
+  # @return [void]
   def student
     @student = current_student
 
@@ -80,6 +89,10 @@ class DashboardsController < ApplicationController
     end
   end
 
+  # Displays advisor-specific information such as advisees and recent feedback.
+  # Handles admin impersonation of advisor dashboards.
+  #
+  # @return [void]
   def advisor
     @advisor = current_advisor_profile
     admin_impersonating_advisor = current_user.admin_profile.present? && !current_user.role_admin?
@@ -102,6 +115,9 @@ class DashboardsController < ApplicationController
     @active_survey_count = Survey.count
   end
 
+  # Shows high-level system metrics for administrators.
+  #
+  # @return [void]
   def admin
     @role_counts = {
       student: User.students.count,
@@ -114,6 +130,9 @@ class DashboardsController < ApplicationController
     @recent_logins = User.order(updated_at: :desc).limit(5)
   end
 
+  # Lists all members and role counts for admin management.
+  #
+  # @return [void]
   def manage_members
     ensure_admin!
     @users = User.order(:name, :email)
@@ -124,6 +143,9 @@ class DashboardsController < ApplicationController
     }
   end
 
+  # Applies role updates submitted by admins, reporting successes and failures.
+  #
+  # @return [void]
   def update_roles
     ensure_admin!
 
@@ -177,12 +199,15 @@ class DashboardsController < ApplicationController
     end
   end
 
+  # Returns a JSON payload summarizing users and role counts for troubleshooting.
+  #
+  # @return [void]
   def debug_users
     ensure_admin!
 
     users = User.order(:name).map do |user|
       {
-  id: user.id,
+        id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
@@ -201,6 +226,10 @@ class DashboardsController < ApplicationController
     }
   end
 
+  # Allows role switching in non-production environments for testing nested
+  # dashboards.
+  #
+  # @return [void]
   def switch_role
     new_role = params[:role].to_s.downcase
 
@@ -223,11 +252,17 @@ class DashboardsController < ApplicationController
     redirect_to dashboard_path_for_role(new_role)
   end
 
+  # Lists students and advisors for assignment management.
+  #
+  # @return [void]
   def manage_students
     @students = load_students
     @advisors = Advisor.joins(:user).order(Arel.sql("LOWER(users.name) ASC"))
   end
 
+  # Updates the advisor assigned to a student.
+  #
+  # @return [void]
   def update_student_advisor
     @student = Student.find(params[:id])
     if @student.update(student_params)
@@ -236,8 +271,12 @@ class DashboardsController < ApplicationController
       redirect_to manage_students_path, alert: "Failed to update advisor."
     end
   end
+
   private
 
+  # Ensures the current user has the necessary profile record for their role.
+  #
+  # @return [void]
   def ensure_profile_present
     return if current_user.role_admin?
 
@@ -248,6 +287,9 @@ class DashboardsController < ApplicationController
     end
   end
 
+  # Raises an alert when a non-admin attempts to access admin-only actions.
+  #
+  # @return [Boolean] false when access is denied
   def ensure_admin!
     return if current_user.role_admin?
 
@@ -255,12 +297,19 @@ class DashboardsController < ApplicationController
     false
   end
 
+  # Gatekeeps the role-switch feature to development and test environments.
+  #
+  # @return [void]
   def ensure_role_switch_allowed
     return if Rails.env.development? || Rails.env.test?
 
     redirect_to dashboard_path, alert: "Role switching is only available in development and test environments."
   end
 
+  # Resolves the dashboard path for a given role value.
+  #
+  # @param role [String]
+  # @return [String]
   def dashboard_path_for_role(role)
     case role
     when User.roles[:student]
@@ -274,6 +323,10 @@ class DashboardsController < ApplicationController
     end
   end
 
+  # Determines whether a question must be answered to count toward completion.
+  #
+  # @param question [Question, nil]
+  # @return [Boolean]
   def required_question?(question)
     return false unless question
 
@@ -286,7 +339,9 @@ class DashboardsController < ApplicationController
   end
 
 
-
+  # Loads students visible to the current user, respecting admin/advisor scope.
+  #
+  # @return [ActiveRecord::Relation<Student>]
   def load_students
     has_admin_privileges = current_user&.role_admin? || current_user&.admin_profile.present?
 
@@ -302,6 +357,9 @@ class DashboardsController < ApplicationController
       .order(Arel.sql("LOWER(users.name) ASC"))
   end
 
+  # Strong parameters for assigning an advisor to a student.
+  #
+  # @return [ActionController::Parameters]
   def student_params
     params.require(:student).permit(:advisor_id)
   end

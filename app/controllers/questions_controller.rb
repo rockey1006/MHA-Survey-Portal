@@ -1,25 +1,34 @@
+# CRUD controller for survey questions used within categories.
 class QuestionsController < ApplicationController
   before_action :set_question, only: %i[ show edit update destroy ]
 
-  # GET /questions or /questions.json
+  # Lists all questions.
+  #
+  # @return [void]
   def index
     @questions = Question.all
   end
 
-  # GET /questions/1 or /questions/1.json
-  def show
-  end
+  # Displays the selected question.
+  #
+  # @return [void]
+  def show; end
 
-  # GET /questions/new
+  # Renders the new-question form.
+  #
+  # @return [void]
   def new
     @question = Question.new
   end
 
-  # GET /questions/1/edit
-  def edit
-  end
+  # Renders the edit form for an existing question.
+  #
+  # @return [void]
+  def edit; end
 
-  # POST /questions or /questions.json
+  # Creates a question record.
+  #
+  # @return [void]
   def create
     @question = Question.new(question_params)
 
@@ -34,20 +43,24 @@ class QuestionsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /questions/1 or /questions/1.json
+  # Updates an existing question.
+  #
+  # @return [void]
   def update
     respond_to do |format|
-  if @question.update(question_params)
+      if @question.update(question_params)
         format.html { redirect_to @question, notice: "Question was successfully updated.", status: :see_other }
         format.json { render :show, status: :ok, location: @question }
-  else
+      else
         format.html { render :edit, status: :unprocessable_entity }
         format.json { render json: @question.errors, status: :unprocessable_entity }
-  end
+      end
     end
   end
 
-  # DELETE /questions/1 or /questions/1.json
+  # Deletes the question and redirects to the index.
+  #
+  # @return [void]
   def destroy
     @question.destroy!
 
@@ -58,18 +71,23 @@ class QuestionsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_question
-      @question = Question.find(params[:id])
+  # Finds the question requested.
+  #
+  # @return [void]
+  def set_question
+    @question = Question.find(params[:id])
+  end
+
+  # Strong parameters for question creation/update.
+  # Supports legacy :text keys by mapping to :question_text.
+  #
+  # @return [ActionController::Parameters]
+  def question_params
+    # Support both `question` and `text` keys coming from different callers/tests.
+    if params[:question] && params[:question][:text].present?
+      params[:question][:question_text] = params[:question].delete(:text)
     end
 
-    # Only allow a list of trusted parameters through.
-    def question_params
-      # Support both `question` and `text` keys coming from different callers/tests.
-      if params[:question] && params[:question][:text].present?
-        params[:question][:question_text] = params[:question].delete(:text)
-      end
-
-      params.require(:question).permit(:category_id, :question_order, :question_type, :question_text, :answer_options, :is_required, :has_evidence_field)
-    end
+    params.require(:question).permit(:category_id, :question_order, :question_type, :question_text, :answer_options, :is_required, :has_evidence_field)
+  end
 end

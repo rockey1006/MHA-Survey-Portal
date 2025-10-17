@@ -1,5 +1,6 @@
 require "json"
 
+# Represents a student's response to a single survey question.
 class StudentQuestion < ApplicationRecord
   belongs_to :student, foreign_key: :student_id, primary_key: :student_id
   belongs_to :advisor, optional: true, foreign_key: :advisor_id, primary_key: :advisor_id
@@ -12,8 +13,12 @@ class StudentQuestion < ApplicationRecord
 
   before_save :normalize_response_value
 
+  # Pattern used to validate Google Drive links for evidence responses.
   DRIVE_URL_REGEX = %r{\Ahttps?://(?:drive\.google\.com|docs\.google\.com)/(?:file/d/|drive/folders/|document/d/|spreadsheets/d/|forms/d/|open\?).+}i
 
+  # Returns the deserialized answer for the question, handling stored JSON.
+  #
+  # @return [Object, nil]
   def answer
     raw = read_attribute(:response_value)
     return nil if raw.nil?
@@ -29,6 +34,10 @@ class StudentQuestion < ApplicationRecord
     end
   end
 
+  # Serializes the provided value into the `response_value` column.
+  #
+  # @param val [Object]
+  # @return [void]
   def answer=(val)
     if val.is_a?(String)
       write_attribute(:response_value, val)

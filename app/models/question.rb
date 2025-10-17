@@ -1,5 +1,6 @@
 require "json"
 
+# Survey prompt tied to a category, supporting multiple response types.
 class Question < ApplicationRecord
   enum :question_type, {
     multiple_choice: "multiple_choice",
@@ -20,14 +21,20 @@ class Question < ApplicationRecord
   validates :question_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :question_type, presence: true, inclusion: { in: question_types.values }
 
+  # @return [ActiveRecord::Relation<Question>] questions ordered for display
   scope :ordered, -> { order(:question_order) }
 
   before_validation :ensure_question_order
 
+  # @return [Boolean] whether the question is required
   def required?
     is_required?
   end
 
+  # Parses the serialized answer options into an array, gracefully handling
+  # legacy formats.
+  #
+  # @return [Array<String>]
   def answer_options_list
     raw = answer_options.to_s
     return [] if raw.blank?

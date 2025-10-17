@@ -1,16 +1,28 @@
 module Advisors
+  # Provides advisors with read access to survey definitions and lets them
+  # assign surveys to students in their cohort.
   class SurveysController < BaseController
     before_action :set_survey, only: %i[show assign]
 
+    # Lists surveys with their categories and questions for advisor review.
+    #
+    # @return [void]
     def index
       @surveys = Survey.includes(:categories, :questions).order(:created_at)
     end
 
+    # Shows survey metadata and the list of students eligible for assignment.
+    #
+    # @return [void]
     def show
       @survey_number = Survey.order(:created_at).pluck(:id).index(@survey.id)&.next || 1
       @students = assignable_students
     end
 
+    # Assigns the selected survey to a student by pre-creating question
+    # records and notifying the student.
+    #
+    # @return [void]
     def assign
       student = assignable_students.find_by!(student_id: params[:student_id])
 
@@ -35,10 +47,16 @@ module Advisors
 
     private
 
+    # Looks up the survey referenced by params.
+    #
+    # @return [void]
     def set_survey
       @survey = Survey.find(params[:id])
     end
 
+    # Determines which students the current advisor can assign surveys to.
+    #
+    # @return [ActiveRecord::Relation<Student>]
     def assignable_students
       if current_user.role_admin?
         Student.includes(:user)

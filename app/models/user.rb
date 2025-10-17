@@ -1,3 +1,6 @@
+# Application-level user record that authenticates via Google OAuth and ties to
+# role-specific profiles (student, advisor, admin). A user has exactly one
+# primary role and lazily materializes the corresponding profile record.
 class User < ApplicationRecord
   self.primary_key = :id
 
@@ -22,6 +25,15 @@ class User < ApplicationRecord
   scope :advisors, -> { where(role: roles[:advisor]) }
   scope :admins, -> { where(role: roles[:admin]) }
 
+  # Finds or creates a user based on Google OAuth data and ensures the proper
+  # role profile exists.
+  #
+  # @param email [String]
+  # @param name [String]
+  # @param uid [String]
+  # @param avatar_url [String]
+  # @param role [String, Symbol, nil] optional incoming role hint
+  # @return [User]
   def self.from_google(email:, name:, uid:, avatar_url:, role: nil)
     user = find_or_initialize_by(email: email)
     user.uid = uid if uid.present?
@@ -36,6 +48,11 @@ class User < ApplicationRecord
     user
   end
 
+  # Normalizes a loosely specified role value into one of the persisted role
+  # strings.
+  #
+  # @param role [String, Symbol, nil]
+  # @return [String, nil]
   def self.normalize_role(role)
     return nil if role.blank?
 
@@ -43,20 +60,29 @@ class User < ApplicationRecord
     roles.find { |_key, value| value == role_string }&.last
   end
 
+  # @return [String] the user's preferred full name
   def full_name
     name
   end
 
+  # @param value [String]
+  # @return [void]
   def full_name=(value)
     self.name = value
   end
 
+  # @return [String] a display-safe name, falling back to email when blank
   def display_name
     name.presence || email
   end
 
   private
 
+  # Ensures a role-specific profile record exists for the user. This method is
+  # triggered after commit so that related models stay consistent with the
+  # user's role.
+  #
+  # @return [void]
   def ensure_role_profile!
     case role
     when self.class.roles[:admin]

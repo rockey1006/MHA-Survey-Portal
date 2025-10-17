@@ -40,23 +40,20 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resources :surveys do
-      collection do
-        patch :bulk_update
-      end
-
       member do
         get :preview
+        patch :archive
+        patch :activate
       end
     end
-
-    resources :questions, except: :show
+    resources :survey_change_logs, only: :index
   end
 
   resources :categories
   resources :feedbacks
   resources :questions
 
-  resources :surveys do
+  resources :surveys, only: %i[index show] do
     post :submit, on: :member
   end
 

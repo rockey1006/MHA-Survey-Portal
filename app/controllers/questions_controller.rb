@@ -37,7 +37,7 @@ class QuestionsController < ApplicationController
   # PATCH/PUT /questions/1 or /questions/1.json
   def update
     respond_to do |format|
-      if @question.update(question_params)
+  if @question.update(question_params)
         format.html { redirect_to @question, notice: "Question was successfully updated.", status: :see_other }
         format.json { render :show, status: :ok, location: @question }
       else
@@ -67,9 +67,9 @@ class QuestionsController < ApplicationController
     def question_params
       # Support both `question` and `text` keys coming from different callers/tests.
       if params[:question] && params[:question][:text].present?
-        params[:question][:question] = params[:question].delete(:text)
+        params[:question][:question_text] = params[:question].delete(:text)
       end
 
-      params.require(:question).permit(:category_id, :question_order, :question_type, :question, :answer_options)
+      params.require(:question).permit(:category_id, :question_order, :question_type, :question_text, :answer_options, :is_required, :has_evidence_field)
     end
 end

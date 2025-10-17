@@ -116,10 +116,14 @@ module ApplicationHelper
     preserved_query = request.query_parameters.slice(*SURVEY_SORTABLE_KEYS)
     target_params = preserved_query.merge("sort" => column, "direction" => next_direction)
 
-    classes = ["sortable-header"]
-    classes << "is-active" if active
+    classes = [
+      "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500 transition hover:text-slate-700"
+    ]
+    classes << "text-indigo-600" if active
 
-    indicator = active ? content_tag(:span, "(#{@sort_direction})", class: "sort-indicator") : nil
+    indicator = if active
+      content_tag(:span, "(#{@sort_direction})", class: "text-[0.65rem] font-medium text-indigo-600")
+    end
     label_content = indicator ? safe_join([label, indicator], " ") : label
 
     link_to label_content, admin_surveys_path(target_params), class: classes.join(" ")

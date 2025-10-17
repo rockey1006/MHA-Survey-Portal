@@ -1,21 +1,37 @@
-<h1>Surveys</h1>
+<h1 class="page-title">Active Surveys</h1>
 
-<div class="survey-list">
-  <% @surveys.each do |survey| %>
-    <div class="survey-card">
-      <h2>
-        <% survey_name =
-          case survey.id
-          when 1 then "Current Residential and Executive MHA Track Study Survey"
-          when 2 then "Competency Self-Assessment Survey"
-          when 3 then "Final Feedback Survey"
-          else "Survey ##{survey.id}"
-          end
-        %>
-        <%= link_to survey_name, survey_path(survey), class: "survey-link" %>
-      </h2>
-    </div>
-  <% end %>
-</div>
+<% if @surveys.any? %>
+  <div class="survey-grid">
+    <% @surveys.each do |survey| %>
+      <article class="survey-card">
+        <header class="survey-card__header">
+          <h2 class="survey-card__title"><%= link_to survey.title, survey_path(survey) %></h2>
+          <span class="survey-card__meta">Semester: <%= survey.semester.presence || "TBD" %></span>
+        </header>
+
+        <dl class="survey-card__details">
+          <div>
+            <dt>Assigned Tracks</dt>
+            <dd><%= survey.track_list.presence&.join(", ") || "Not yet assigned" %></dd>
+          </div>
+          <div>
+            <dt>Questions</dt>
+            <dd><%= pluralize(survey.questions.count, "question") %></dd>
+          </div>
+          <div>
+            <dt>Created</dt>
+            <dd><%= l survey.created_at, format: :long %></dd>
+          </div>
+        </dl>
+
+        <footer class="survey-card__footer">
+          <%= link_to "Open Survey", survey_path(survey), class: "btn btn-primary" %>
+        </footer>
+      </article>
+    <% end %>
+  </div>
+<% else %>
+  <p class="empty-state">No active surveys are available right now.</p>
+<% end %>
 
 

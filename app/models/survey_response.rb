@@ -82,10 +82,10 @@ class SurveyResponse
   end
 
   def question_responses
+    question_ids = survey.questions.select(:id)
     @question_responses ||= StudentQuestion
-                              .joins(question: :survey_questions)
-                              .where(student_id: student.student_id, survey_questions: { survey_id: survey.id })
-                              .includes(question: { category_questions: :category })
+                              .where(student_id: student.student_id, question_id: question_ids)
+                              .includes(question: :category)
   end
 
   def answers
@@ -95,13 +95,13 @@ class SurveyResponse
   def evidence_history_by_category
     @evidence_history_by_category ||= begin
       grouped = Hash.new { |hash, key| hash[key] = [] }
+
       question_responses.each do |response|
         question = response.question
-        next unless question&.question_type_evidence?
+        category = question&.category
+        next unless question&.question_type_evidence? && category
 
-        question.categories.each do |category|
-          grouped[category.id] << response
-        end
+        grouped[category.id] << response
       end
 
       grouped.each_value do |responses|

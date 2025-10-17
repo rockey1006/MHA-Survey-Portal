@@ -29,12 +29,16 @@ export default class extends Controller {
 
     if (this.hasTriggerTarget) {
       this.triggerTarget.setAttribute("aria-expanded", String(this.open))
-      this.triggerTarget.classList.toggle("is-active", this.open)
 
       const hasActiveFilters = this.hasActiveValue ? this.activeValue : false
-      this.triggerTarget.classList.toggle("has-active-filters", hasActiveFilters && !this.open)
-    }
+      const highlightBorder = this.open || (hasActiveFilters && !this.open)
 
-    this.element.classList.toggle("admin-surveys-header--filters-open", this.open)
+      this.triggerTarget.classList.toggle("border-blue-500", highlightBorder)
+      this.triggerTarget.classList.toggle("bg-blue-50", this.open)
+      this.triggerTarget.classList.toggle("text-blue-600", this.open)
+      this.triggerTarget.classList.toggle("ring-2", this.open)
+      this.triggerTarget.classList.toggle("ring-blue-200", this.open)
+      this.triggerTarget.classList.toggle("shadow-md", this.open)
+    }
   }
 }

@@ -20,23 +20,23 @@
               <dd><%= @survey.semester %></dd>
             </div>
             <div>
-              <dt>Track</dt>
-              <dd><%= @survey.track.presence || "Unassigned" %></dd>
+              <dt>Tracks</dt>
+              <dd><%= @track_list.present? ? @track_list.join(", ") : "Unassigned" %></dd>
             </div>
             <div>
-              <dt>Advisor audience</dt>
-              <dd><%= @advisor_names.presence&.join(", ") || "Hidden" %></dd>
+              <dt>Categories</dt>
+              <dd><%= @category_names.present? ? @category_names.join(", ") : "None" %></dd>
             </div>
             <div>
-              <dt>Competency tags</dt>
-              <dd><%= @category_names.presence&.join(", ") || "None" %></dd>
+              <dt>Question count</dt>
+              <dd><%= @questions.size %></dd>
             </div>
           </dl>
         </div>
 
         <div class="summary-card">
           <h3>Question mix</h3>
-          <% question_type_counts = @questions.group_by(&:question_type).transform_values(&:count) %>
+          <% question_type_counts = @questions.present? ? @questions.group_by(&:question_type).transform_values(&:count) : {} %>
           <ul class="summary-list">
             <% question_type_counts.sort_by { |type, _| type }.each do |type, count| %>
               <li>
@@ -70,15 +70,13 @@
               <li class="question-card">
                 <header class="question-header">
                   <span class="question-type-pill"><%= question.question_type.humanize %></span>
-                  <% if question.categories.any? %>
+                  <% if question.category.present? %>
                     <ul class="category-chips">
-                      <% question.categories.map(&:name).sort.each do |category_name| %>
-                        <li><%= category_name %></li>
-                      <% end %>
+                      <li><%= question.category.name %></li>
                     </ul>
                   <% end %>
                 </header>
-                <p class="question-body"><%= question.question %></p>
+                <p class="question-body"><%= question.question_text %></p>
               </li>
             <% end %>
           </ol>

@@ -5,9 +5,6 @@ class Advisor < ApplicationRecord
   has_many :advisees, class_name: "Student", foreign_key: :advisor_id, dependent: :destroy
   has_many :student_questions, foreign_key: :advisor_id, dependent: :nullify
   has_many :feedbacks, foreign_key: :advisor_id
-  has_many :survey_assignments, foreign_key: :advisor_id, primary_key: :advisor_id, dependent: :destroy
-  has_many :assigned_surveys, through: :survey_assignments, source: :survey
-
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 
   def display_name

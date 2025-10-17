@@ -27,10 +27,10 @@ class DashboardsController < ApplicationController
     surveys = Survey.includes(:questions).ordered
 
     student_responses = StudentQuestion
-                          .joins(question: :survey_questions)
+                          .joins(question: :category)
                           .where(student_id: @student.student_id)
                           .select(
-                            "survey_questions.survey_id AS survey_id",
+                            "categories.survey_id AS survey_id",
                             "student_questions.question_id",
                             "student_questions.updated_at"
                           )

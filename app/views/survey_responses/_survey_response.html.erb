@@ -34,130 +34,69 @@
   <% evidence_history = sr&.evidence_history_by_category || {} %>
 
   <% if survey&.categories&.any? %>
-    <% q_number = 0 %>
     <div class="space-y-8">
-      <% survey.categories.order(:id).each do |cat| %>
-        <% category_questions = cat.category_questions.includes(:question) %>
-        <% non_evidence_questions = category_questions.select { |cq| cq.question && !cq.question.question_type_evidence? } %>
-        <% evidence_questions = category_questions.select { |cq| cq.question&.question_type_evidence? } %>
-
+      <% survey.categories.includes(:questions).order(:id).each do |category| %>
         <section class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-          <h3 class="text-xl font-semibold text-slate-800"><%= cat.name %></h3>
-          <% if cat.description.present? %>
-            <p class="text-sm text-slate-600"><%= cat.description %></p>
-          <% end %>
+          <header class="space-y-1">
+            <h3 class="text-xl font-semibold text-slate-800"><%= category.name %></h3>
+            <% if category.description.present? %>
+              <p class="text-sm text-slate-600"><%= category.description %></p>
+            <% end %>
+          </header>
 
-          <% if non_evidence_questions.any? %>
+          <% if category.questions.any? %>
             <div class="space-y-5">
-              <% non_evidence_questions.sort_by { |cq| cq.question&.question_order || Float::INFINITY }.each do |category_question| %>
-                <% question = category_question.question %>
-                <% next unless question %>
-                <% depends_on_qid = question.depends_on_question_id %>
-                <% dependent_by_text = question.question.to_s.strip.match?(/^\s*If\s+(yes|no)/i) rescue false %>
-                <% numbered = depends_on_qid.blank? && !dependent_by_text %>
-                <% q_number += 1 if numbered %>
+              <% category.questions.ordered.each_with_index do |question, index| %>
+                <% answer = existing_answers[question.id] %>
+                <% display = answer.is_a?(Array) ? answer.join(", ") : answer %>
 
-                <div class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-question-id="<%= question.id %>" data-numbered="<%= numbered %>">
-                  <label class="flex items-start gap-2 text-sm font-medium text-slate-800">
-                    <% if numbered %>
-                      <span class="text-sm font-semibold text-[#500000]"><%= q_number %>.</span>
-                    <% end %>
-                    <span class="leading-6">
-                      <%= question.question || "Question #{question.id}" %>
-                      <% if numbered %>
-                        <span class="ml-2 text-xs font-semibold uppercase tracking-wide text-rose-600">Required</span>
+                <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <header class="flex items-start gap-3">
+                    <span class="text-sm font-semibold text-[#500000]">Q<%= index + 1 %></span>
+                    <div class="space-y-1">
+                      <p class="text-sm font-medium text-slate-800"><%= question.question_text %></p>
+                      <% if question.is_required? %>
+                        <span class="text-xs font-semibold uppercase tracking-wide text-rose-600">Required</span>
                       <% end %>
-                    </span>
-                  </label>
-
-                  <% answer = existing_answers[question.id] %>
-                  <% display = answer.is_a?(Array) ? answer.join(", ") : answer %>
+                    </div>
+                  </header>
 
                   <% case question.question_type %>
                   <% when "short_answer" %>
-                    <%= text_area_tag nil,
-                                      (display || ""),
-                                      class: "w-full max-w-full break-words rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-inner focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 resize-none",
-                                      rows: 3,
-                                      disabled: true %>
+                    <%= text_area_tag nil, (display || ""), rows: 3, class: "w-full max-w-full break-words rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-inner focus:outline-none", disabled: true %>
                   <% when "multiple_choice" %>
                     <% options = question.answer_options_list %>
-                    <% selected_vals = Array.wrap(display).map(&:to_s) %>
+                    <% selected = display.to_s %>
                     <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Options">
                       <% options.each do |opt| %>
-                        <% checked = selected_vals.include?(opt.to_s) %>
-                        <% container_classes = checked ? "border-[#500000] bg-[#f9f2f2] text-[#500000]" : "border-slate-200 bg-white text-slate-600" %>
-                        <div class="flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium shadow-sm <%= container_classes %>" aria-disabled="true">
-                          <span class="text-lg"><%= checked ? "◉" : "○" %></span>
+                        <% checked = selected.casecmp?(opt.to_s) %>
+                        <span class="flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium shadow-sm <%= checked ? 'border-[#500000] bg-[#f9f2f2] text-[#500000]' : 'border-slate-200 bg-white text-slate-600' %>">
+                          <span class="text-lg"><%= checked ? '◉' : '○' %></span>
                           <span><%= opt %></span>
-                        </div>
+                        </span>
                       <% end %>
                     </div>
                   <% when "scale" %>
-                    <% options = (1..5).to_a.map(&:to_s) %>
                     <%= select_tag nil,
-                                    options_for_select(options, display&.to_s),
+                                    options_for_select((1..5).map(&:to_s), display&.to_s),
                                     include_blank: true,
-                                    class: "w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600",
+                                    class: "w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none",
                                     disabled: true %>
+                  <% when "evidence" %>
+                    <div class="space-y-2">
+                      <%= text_field_tag nil, (display || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
+                      <% if display.present? %>
+                        <a class="text-[#500000] underline hover:text-[#330000]" href="<%= display %>" target="_blank" rel="noopener noreferrer"><%= display %></a>
+                      <% end %>
+                    </div>
                   <% else %>
-                    <%= text_field_tag nil,
-                                       (display || ""),
-                                       class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600",
-                                       disabled: true %>
+                    <%= text_field_tag nil, (display || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
                   <% end %>
-                </div>
+                </article>
               <% end %>
             </div>
           <% else %>
             <p class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">No questions for this competency.</p>
-          <% end %>
-
-          <% evidence_entries = evidence_history[cat.id] || [] %>
-          <% latest_evidence = evidence_entries.first %>
-          <div class="space-y-2">
-            <label class="text-sm font-semibold text-slate-700">Evidence for this competency (if any):</label>
-            <%= text_field_tag nil,
-                               (latest_evidence&.answer || ""),
-                               class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600",
-                               disabled: true %>
-            <% if latest_evidence&.answer.present? %>
-              <div class="text-sm">
-                <a class="text-[#500000] underline hover:text-[#330000]" href="<%= latest_evidence.answer %>" target="_blank" rel="noopener noreferrer"><%= latest_evidence.answer %></a>
-                <% if latest_evidence.updated_at.present? %>
-                  <span class="ml-2 text-xs text-slate-500">Updated <%= latest_evidence.updated_at.strftime("%Y-%m-%d %H:%M") %></span>
-                <% end %>
-              </div>
-            <% end %>
-
-            <% if evidence_entries.size > 1 %>
-              <details class="text-sm text-slate-600">
-                <summary class="cursor-pointer font-medium text-[#500000]">View previous submissions</summary>
-                <ul class="mt-2 space-y-1">
-                  <% evidence_entries.drop(1).each do |entry| %>
-                    <li>
-                      <a class="text-[#500000] underline hover:text-[#330000]" href="<%= entry.answer %>" target="_blank" rel="noopener noreferrer"><%= entry.answer %></a>
-                      <% if entry.updated_at.present? %>
-                        <span class="ml-2 text-xs text-slate-500">Updated <%= entry.updated_at.strftime("%Y-%m-%d %H:%M") %></span>
-                      <% end %>
-                    </li>
-                  <% end %>
-                </ul>
-              </details>
-            <% end %>
-          </div>
-
-          <% evidence_questions.each do |category_question| %>
-            <% question = category_question.question %>
-            <% next unless question %>
-            <% value = existing_answers[question.id] %>
-            <% next if value.blank? %>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-              <div class="font-semibold">Linked evidence question: <%= question.question %></div>
-              <div class="mt-1">
-                <a class="text-[#500000] underline hover:text-[#330000]" href="<%= value %>" target="_blank" rel="noopener noreferrer"><%= value %></a>
-              </div>
-            </div>
           <% end %>
         </section>
       <% end %>
@@ -167,8 +106,7 @@
       <label class="text-sm font-semibold text-slate-700">Response</label>
       <%= text_area_tag nil,
                         (sr&.question_responses&.first&.answer || ""),
-                        class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 resize-none",
-                        disabled: true %>
+                        class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
     </div>
   <% end %>
 </div>

@@ -2,7 +2,7 @@ class Admin < ApplicationRecord
   self.primary_key = :admin_id
 
   belongs_to :user, foreign_key: :admin_id, primary_key: :id, inverse_of: :admin_profile
-  has_many :survey_audit_logs, foreign_key: :admin_id, primary_key: :admin_id, inverse_of: :admin, dependent: :destroy
+  has_many :survey_change_logs, foreign_key: :admin_id, primary_key: :admin_id, inverse_of: :admin
 
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, :uid, :uid=, :created_at, :updated_at, to: :user
 

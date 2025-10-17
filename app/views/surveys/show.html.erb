@@ -1,38 +1,32 @@
 <% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
-<div class="survey-container mx-auto max-w-5xl space-y-6">
-  <h1 class="survey-title text-2xl font-semibold text-center text-slate-900"><%= survey_title %></h1>
+<div class="survey-container mx-auto max-w-4xl space-y-8">
+  <header class="survey-header text-center space-y-1">
+    <h1 class="text-2xl font-semibold text-slate-900"><%= @survey.title %></h1>
+    <p class="text-sm text-slate-600">
+      Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %>
+    </p>
+  </header>
 
-  <%= form_with url: submit_survey_path(@survey), method: :post, local: true, class: "survey-form space-y-10" do |f| %>
-    <% question_counter = 0 %>
-
+  <%= form_with url: submit_survey_path(@survey), method: :post, local: true, class: "space-y-6 survey-form" do |form| %>
     <% @category_groups.each do |category| %>
-      <% category_questions = category.category_questions.sort_by { |cq| cq.question&.question_order || Float::INFINITY } %>
-      <% non_evidence_questions = category_questions.select { |cq| cq.question && !cq.question.question_type_evidence? } %>
-      <% evidence_questions = category_questions.select { |cq| cq.question&.question_type_evidence? } %>
-
-      <section class="category-block space-y-4 border border-slate-200 rounded-lg p-6 shadow-sm bg-white">
+      <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <header>
-          <h2 class="category-title text-xl font-semibold text-slate-800"><%= category.name %></h2>
+          <h2 class="text-xl font-semibold text-slate-900"><%= category.name %></h2>
           <% if category.description.present? %>
             <p class="text-sm text-slate-600"><%= category.description %></p>
           <% end %>
         </header>
 
-        <% non_evidence_questions.each do |category_question| %>
-          <% question = category_question.question %>
-          <% next unless question %>
-          <% question_counter += 1 %>
-          <% required = @computed_required[question.id] %>
+        <% category.questions.ordered.each_with_index do |question, index| %>
           <% field_name = "answers[#{question.id}]" %>
           <% current_value = @existing_answers[question.id] %>
+          <% required = @computed_required[question.id] %>
 
-          <div class="question-block space-y-2" data-question-id="<%= question.id %>" data-required="<%= required %>" data-question-type="<%= question.question_type %>">
-            <label class="block text-sm font-medium text-slate-900">
-              <span>
-                <span class="question-number font-semibold mr-1"><%= question_counter %>.</span>
-                <%= question.question %>
-              </span>
+          <article class="space-y-2 question-block" data-question-id="<%= question.id %>">
+            <label class="block text-sm font-medium text-slate-900" for="question-<%= question.id %>">
+              <span class="font-semibold">Q<%= index + 1 %></span>
+              <span class="ml-2"><%= question.question_text %></span>
               <% if required %>
                 <span class="ml-1 text-red-600" aria-hidden="true">*</span>
               <% end %>
@@ -40,207 +34,36 @@
 
             <% case question.question_type %>
             <% when "short_answer" %>
-              <%= text_area_tag field_name, current_value, rows: 3, class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+              <%= text_area_tag field_name, current_value, rows: 3, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
             <% when "multiple_choice" %>
               <% options = question.answer_options_list.presence || [] %>
-              <div class="flex flex-wrap gap-2" role="radiogroup">
+              <div class="flex flex-col gap-2" role="radiogroup">
                 <% options.each do |option| %>
-                  <% checked = current_value.to_s == option.to_s %>
-                  <label class="survey-option inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm shadow-sm cursor-pointer <%= checked ? 'is-selected bg-blue-100 border-blue-400 text-blue-900' : 'border-slate-300 text-slate-700' %>" data-value="<%= option %>">
-                    <%= radio_button_tag field_name, option, checked, class: "sr-only survey-option-input" %>
-                    <span class="survey-option-indicator h-2.5 w-2.5 rounded-full border <%= checked ? 'bg-blue-500 border-blue-600' : 'border-slate-400' %>"></span>
+                  <label class="flex items-center gap-2 text-sm text-slate-800">
+                    <%= radio_button_tag field_name, option, current_value.to_s == option.to_s, id: "question-#{question.id}-#{option.parameterize}", class: "h-4 w-4 text-blue-600" %>
                     <span><%= option %></span>
                   </label>
                 <% end %>
               </div>
             <% when "scale" %>
-              <% options = (1..5).map(&:to_s) %>
-              <%= select_tag field_name, options_for_select(options, current_value&.to_s), include_blank: true, class: "w-32 rounded-md border border-slate-300 px-2 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-            <% else %>
-              <%= text_field_tag field_name, current_value, class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-            <% end %>
-          </div>
-        <% end %>
-
-        <% history = (@existing_evidence_by_category[category.id] || []) %>
-        <% latest_evidence = history.first %>
-        <div class="category-evidence-block space-y-2 border-t border-dashed border-slate-200 pt-4" data-category-id="<%= category.id %>">
-          <label class="block text-sm font-semibold text-slate-900">Evidence for this category</label>
-          <%= text_field_tag "category_evidence[#{category.id}]", latest_evidence&.answer, placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-
-          <% if history.size > 1 %>
-            <details class="text-sm text-slate-600">
-              <summary class="cursor-pointer font-medium text-blue-700">View previous submissions</summary>
-              <ul class="mt-2 space-y-1">
-                <% history.drop(1).each do |entry| %>
-                  <li>
-                    <a href="<%= entry.answer %>" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline hover:text-blue-500"><%= entry.answer %></a>
-                    <% if entry.updated_at.present? %>
-                      <span class="ml-2 text-xs text-slate-500">Updated <%= entry.updated_at.strftime("%Y-%m-%d %H:%M") %></span>
-                    <% end %>
-                  </li>
-                <% end %>
-              </ul>
-            </details>
-          <% elsif latest_evidence&.answer.present? %>
-            <div class="text-sm space-y-1">
-              <a href="<%= latest_evidence.answer %>" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline hover:text-blue-500"><%= latest_evidence.answer %></a>
-              <% if latest_evidence&.updated_at.present? %>
-                <span class="ml-2 text-xs text-slate-500">Updated <%= latest_evidence.updated_at.strftime("%Y-%m-%d %H:%M") %></span>
-              <% end %>
-            </div>
-          <% end %>
-
-          <% evidence_questions.each do |category_question|
-               question = category_question.question
-               next unless question %>
-            <% stored_value = @existing_answers[question.id] %>
-            <% next if stored_value.blank? %>
-            <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <div class="font-medium">Linked evidence question: <%= question.question %></div>
-              <div class="mt-1">
-                <a href="<%= stored_value %>" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline hover:text-blue-500"><%= stored_value %></a>
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-500">Low</span>
+                <%= range_field_tag field_name, current_value || 3, in: 1..5, step: 1, id: "question-#{question.id}", class: "w-full" %>
+                <span class="text-xs text-slate-500">High</span>
               </div>
-            </div>
-          <% end %>
-        </div>
+            <% when "evidence" %>
+              <%= text_field_tag field_name, current_value, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+            <% else %>
+              <%= text_field_tag field_name, current_value, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+            <% end %>
+
+          </article>
+        <% end %>
       </section>
     <% end %>
 
-    <div class="form-actions flex justify-end">
-      <%= f.submit "Submit Survey", class: "inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
+    <div class="flex justify-end">
+      <%= form.submit "Submit Survey", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
     </div>
   <% end %>
 </div>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const form = document.querySelector(".survey-form");
-    if (!form) { return; }
-
-    const ACTIVE_OPTION_CLASSES = ["is-selected", "bg-blue-100", "border-blue-400", "text-blue-900"];
-    const INACTIVE_OPTION_CLASSES = ["border-slate-300", "text-slate-700"];
-    const DRIVE_LINK_REGEX = /^https?:\/\/(?:drive\.google\.com|docs\.google\.com)\/(?:file\/d\/|drive\/folders\/|document\/d\/|spreadsheets\/d\/|forms\/d\/|open\?).+/i;
-
-    const escapeCSS = (value) => {
-      if (window.CSS && CSS.escape) { return CSS.escape(value); }
-      return value.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
-    };
-
-    function ensureErrorElement(container) {
-      let error = container.querySelector(".inline-error");
-      if (!error) {
-        error = document.createElement("p");
-        error.className = "inline-error mt-1 text-sm text-red-600";
-        error.setAttribute("role", "alert");
-        container.appendChild(error);
-      }
-      return error;
-    }
-
-    function clearInlineError(container) {
-      const error = container.querySelector(".inline-error");
-      if (error) { error.remove(); }
-    }
-
-    function updateOptionState(optionLabel, selected) {
-      if (!optionLabel) { return; }
-
-      const indicator = optionLabel.querySelector(".survey-option-indicator");
-      if (selected) {
-        optionLabel.classList.add(...ACTIVE_OPTION_CLASSES);
-        optionLabel.classList.remove(...INACTIVE_OPTION_CLASSES);
-        if (indicator) {
-          indicator.classList.add("bg-blue-500", "border-blue-600");
-          indicator.classList.remove("border-slate-400");
-        }
-      } else {
-        optionLabel.classList.remove(...ACTIVE_OPTION_CLASSES);
-        optionLabel.classList.add(...INACTIVE_OPTION_CLASSES);
-        if (indicator) {
-          indicator.classList.remove("bg-blue-500", "border-blue-600");
-          indicator.classList.add("border-slate-400");
-        }
-      }
-    }
-
-    form.addEventListener("change", function(event) {
-      const input = event.target;
-      if (!(input instanceof HTMLInputElement) || input.type !== "radio") { return; }
-
-      const groupName = input.name;
-      if (!groupName) { return; }
-
-      const groupSelector = `input[type="radio"][name="${escapeCSS(groupName)}"]`;
-      form.querySelectorAll(groupSelector).forEach((radio) => {
-        const label = radio.closest(".survey-option");
-        updateOptionState(label, radio.checked);
-      });
-    });
-
-    form.querySelectorAll(".survey-option-input").forEach((input) => {
-      const label = input.closest(".survey-option");
-      updateOptionState(label, input.checked);
-    });
-
-    form.addEventListener("submit", function(event) {
-      const invalidBlocks = [];
-      const invalidCategoryBlocks = [];
-
-      form.querySelectorAll(".question-block").forEach((block) => {
-        const required = block.dataset.required === "true";
-        if (!required) {
-          block.classList.remove("ring-2", "ring-red-500");
-          clearInlineError(block);
-          return;
-        }
-
-        let valid = false;
-        if (block.dataset.questionType === "multiple_choice") {
-          valid = Boolean(block.querySelector("input[type=radio]:checked"));
-        } else {
-          const input = block.querySelector("textarea, input:not([type=hidden]), select");
-          if (input) {
-            valid = Boolean((input.value || "").trim());
-          }
-        }
-
-        if (!valid) {
-          invalidBlocks.push(block);
-          block.classList.add("ring-2", "ring-red-500");
-          const error = ensureErrorElement(block);
-          error.textContent = "This question is required — please answer before submitting.";
-        } else {
-          block.classList.remove("ring-2", "ring-red-500");
-          clearInlineError(block);
-        }
-      });
-
-      form.querySelectorAll(".category-evidence-block").forEach((block) => {
-        const input = block.querySelector('input[name^="category_evidence"]');
-        if (!input) {
-          clearInlineError(block);
-          block.classList.remove("ring-2", "ring-red-500");
-          return;
-        }
-
-        const value = (input.value || "").trim();
-        if (value && !DRIVE_LINK_REGEX.test(value)) {
-          invalidCategoryBlocks.push(block);
-          block.classList.add("ring-2", "ring-red-500");
-          const error = ensureErrorElement(block);
-          error.textContent = "Please enter a valid Google Drive link.";
-        } else {
-          block.classList.remove("ring-2", "ring-red-500");
-          clearInlineError(block);
-        }
-      });
-
-      const firstInvalidBlock = invalidBlocks[0] || invalidCategoryBlocks[0];
-      if (firstInvalidBlock) {
-        event.preventDefault();
-        firstInvalidBlock.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
-  });
-</script>

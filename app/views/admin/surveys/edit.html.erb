@@ -20,8 +20,8 @@
             <dd><%= @survey.semester.presence || "Unscheduled" %></dd>
           </div>
           <div>
-            <dt>Track</dt>
-            <dd><%= @survey.track.presence || "Unassigned" %></dd>
+            <dt>Tracks</dt>
+            <dd><%= @survey.track_list.present? ? @survey.track_list.join(", ") : "Unassigned" %></dd>
           </div>
           <div>
             <dt>Created</dt>
@@ -34,12 +34,12 @@
         <h3>Quick stats</h3>
         <ul class="summary-list">
           <li>
-            <span>Advisor access</span>
-            <strong><%= @survey.assigned_advisor_ids.count %></strong>
+            <span>Track assignments</span>
+            <strong><%= @survey.survey_assignments.size %></strong>
           </li>
           <li>
-            <span>Tagged categories</span>
-            <strong><%= @survey.tagged_category_ids.count %></strong>
+            <span>Categories included</span>
+            <strong><%= @survey.categories.size %></strong>
           </li>
           <li>
             <span>Questions included</span>

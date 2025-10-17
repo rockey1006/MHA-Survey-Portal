@@ -48,9 +48,9 @@ class StudentRecordsController < ApplicationController
     end
 
     StudentQuestion
-      .joins(question: :survey_questions)
-      .where(student_id: student_ids, survey_questions: { survey_id: survey_ids })
-      .select("student_questions.id, student_questions.student_id, survey_questions.survey_id, student_questions.question_id, student_questions.updated_at")
+      .joins(question: :category)
+      .where(student_id: student_ids, categories: { survey_id: survey_ids })
+      .select("student_questions.id, student_questions.student_id, categories.survey_id, student_questions.question_id, student_questions.updated_at")
       .find_each do |record|
         responses_matrix[record.student_id][record.survey_id] << {
           question_id: record.question_id,

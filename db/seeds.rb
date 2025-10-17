@@ -4,27 +4,6 @@ require "yaml"
 
 puts "\n== Seeding Health sample data =="
 
-MODELS_TO_CLEAR = [
-  Notification,
-  StudentQuestion,
-  SurveyQuestion,
-  CategoryQuestion,
-  Feedback,
-  Question,
-  Category,
-  Survey,
-  Student,
-  Advisor,
-  Admin,
-  User
-].freeze
-
-puts "🧹 Deleting existing records..."
-MODELS_TO_CLEAR.each do |model|
-  model.delete_all
-  puts "   • cleared #{model.name}"
-end
-
 seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   role_value = User.normalize_role(role) || role.to_s
   user = User.find_or_initialize_by(email: email)
@@ -86,56 +65,49 @@ end
 competency_data = YAML.load_file(competency_source_path)
 domains = competency_data.fetch("domains")
 
-survey = Survey.create!(title: "Competency Self-Assessment Survey", semester: "Fall 2025")
+survey = Survey.new(title: "Competency Self-Assessment Survey", semester: "Fall 2025")
 puts "   • Survey: #{survey.title}"
 
 likert_options = %w[1 2 3 4 5]
-question_counter = 0
 
 domains.each do |domain|
-  category = Category.create!(name: domain.fetch("name"), description: domain["description"])
+  category = survey.categories.build(
+    name: domain.fetch("name"),
+    description: domain["description"]
+  )
   puts "      ▸ Domain: #{category.name}"
+
+  question_position = 0
 
   competencies = domain.fetch("competencies", [])
   competencies.each do |competency|
-    question_counter += 1
-    question = Question.create!(
-      question: competency.fetch("prompt"),
-      question_order: question_counter,
+    question_position += 1
+    category.questions.build(
+      question_text: competency.fetch("prompt"),
+      question_order: question_position,
       question_type: Question.question_types[:scale],
-      required: true,
+      is_required: true,
       answer_options: likert_options.to_json
     )
 
-    SurveyQuestion.create!(survey: survey, question: question)
-    CategoryQuestion.create!(
-      category: category,
-      question: question,
-      display_label: competency["title"] || competency["prompt"]
-    )
-
-    puts "        ↳ Competency ##{question_counter}: #{competency["title"] || competency["prompt"]}"
+    puts "        ↳ Competency ##{question_position}: #{competency["title"] || competency["prompt"]}"
   end
 
-  question_counter += 1
+  question_position += 1
   evidence_prompt = "Provide evidence or reflection for #{domain.fetch("name")}".freeze
-  evidence_question = Question.create!(
-    question: evidence_prompt,
-    question_order: question_counter,
+  category.questions.build(
+    question_text: evidence_prompt,
+    question_order: question_position,
     question_type: Question.question_types[:evidence],
-    required: false
-  )
-
-  SurveyQuestion.create!(survey: survey, question: evidence_question)
-  CategoryQuestion.create!(
-    category: category,
-    question: evidence_question,
-    display_label: "Evidence for #{domain.fetch("name")}",
-    description: "Attach a Google Drive link or describe supporting evidence for this competency domain."
+    is_required: false,
+    has_evidence_field: true
   )
 
   puts "        ↳ Evidence field added for #{domain.fetch("name")}" 
 end
+
+survey.save!
+survey.assign_tracks!(students_seed.map { |attrs| attrs[:track] }.uniq)
 
 puts "• Assigning competency questions to each student"
 students.each do |student|

@@ -9,6 +9,8 @@ class User < ApplicationRecord
   has_one :advisor_profile, class_name: "Advisor", foreign_key: :advisor_id, inverse_of: :user, dependent: :destroy
   has_one :student_profile, class_name: "Student", foreign_key: :student_id, inverse_of: :user, dependent: :destroy
   has_many :notifications, as: :notifiable, dependent: :destroy
+  has_many :created_surveys, class_name: "Survey", foreign_key: :created_by_id, inverse_of: :creator, dependent: :nullify
+  has_many :survey_change_logs, foreign_key: :admin_id, inverse_of: :admin, dependent: :nullify
 
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :name, presence: true
@@ -47,6 +49,10 @@ class User < ApplicationRecord
 
   def full_name=(value)
     self.name = value
+  end
+
+  def display_name
+    name.presence || email
   end
 
   private

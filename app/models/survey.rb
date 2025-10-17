@@ -6,87 +6,75 @@ class Survey < ApplicationRecord
     "Hybrid"
   ].freeze
 
+  belongs_to :creator, class_name: "User", foreign_key: :created_by_id, optional: true
+
+  has_many :categories, inverse_of: :survey, dependent: :destroy
+  has_many :questions, through: :categories
+  has_many :survey_assignments, inverse_of: :survey, dependent: :destroy
+  has_many :survey_change_logs, dependent: :nullify
+  has_many :feedbacks, foreign_key: :survey_id, class_name: "Feedback", dependent: :destroy
+  has_many :student_questions, through: :questions
+
+  accepts_nested_attributes_for :categories, allow_destroy: true
+
   validates :title, presence: true
   validates :semester, presence: true
-  validates :track, allow_blank: true, length: { maximum: 255 }
+  validates :is_active, inclusion: { in: [true, false] }
+  validate :validate_category_structure
 
-  has_many :survey_questions, dependent: :destroy
-  has_many :questions, through: :survey_questions
-  has_many :category_questions, through: :questions
-  has_many :categories, -> { distinct }, through: :category_questions
-  has_many :student_questions, through: :questions
-  has_many :feedbacks, foreign_key: :survey_id, class_name: "Feedback", dependent: :destroy
-  has_many :survey_assignments, dependent: :destroy
-  has_many :assigned_advisors, through: :survey_assignments, source: :advisor
-  has_many :survey_category_tags, dependent: :destroy
-  has_many :tagged_categories, through: :survey_category_tags, source: :category
-  has_many :audit_logs, class_name: "SurveyAuditLog", inverse_of: :survey, dependent: :destroy
+  scope :ordered, -> { order(created_at: :desc) }
+  scope :active, -> { where(is_active: true) }
+  scope :archived, -> { where(is_active: false) }
 
-  after_commit :apply_pending_associations, on: %i[create update]
-
-  scope :ordered, -> { order(:id) }
-
-  def assigned_advisor_ids
-    if new_record?
-      Array(@pending_assigned_advisor_ids)
-    else
-      survey_assignments.pluck(:advisor_id)
-    end
+  def track_list
+    survey_assignments.order(:track).pluck(:track)
   end
 
-  def assigned_advisor_ids=(ids)
-    normalized_ids = normalize_identifier_array(ids)
+  def assign_tracks!(tracks)
+    normalized = normalize_track_values(tracks)
 
-    if persisted?
-      survey_assignments.where.not(advisor_id: normalized_ids).destroy_all
-      normalized_ids.each do |advisor_id|
-        survey_assignments.find_or_create_by!(advisor_id: advisor_id)
+    transaction do
+      survey_assignments.where.not(track: normalized).destroy_all
+      normalized.each do |track|
+        survey_assignments.find_or_create_by!(track: track)
       end
-    else
-      @pending_assigned_advisor_ids = normalized_ids
     end
   end
 
-  def tagged_category_ids
-    if new_record?
-      Array(@pending_tagged_category_ids)
-    else
-      survey_category_tags.pluck(:category_id)
-    end
-  end
-
-  def tagged_category_ids=(ids)
-    normalized_ids = normalize_identifier_array(ids)
-
-    if persisted?
-      survey_category_tags.where.not(category_id: normalized_ids).destroy_all
-      normalized_ids.each do |category_id|
-        survey_category_tags.find_or_create_by!(category_id: category_id)
-      end
-    else
-      @pending_tagged_category_ids = normalized_ids
-    end
+  def log_change!(admin:, action:, description: nil)
+    survey_change_logs.create!(admin: admin, action: action, description: description)
   end
 
   private
 
-  def apply_pending_associations
-    return unless persisted?
-
-    if defined?(@pending_assigned_advisor_ids) && @pending_assigned_advisor_ids.present?
-      ids = @pending_assigned_advisor_ids
-      @pending_assigned_advisor_ids = nil
-      self.assigned_advisor_ids = ids
+  def validate_category_structure
+    active_categories = categories.reject(&:marked_for_destruction?)
+    if active_categories.empty?
+      errors.add(:base, "Add at least one category to the survey")
+      return
     end
 
-    if defined?(@pending_tagged_category_ids) && @pending_tagged_category_ids.present?
-      ids = @pending_tagged_category_ids
-      @pending_tagged_category_ids = nil
-      self.tagged_category_ids = ids
+    active_categories.each do |category|
+      next if category.questions.reject(&:marked_for_destruction?).any?
+
+      errors.add(:base, "Each category must include at least one question")
     end
   end
 
-  def normalize_identifier_array(values)
-    Array(values).flatten.map(&:presence).compact.map(&:to_i).uniq
+  def normalize_track_values(values)
+    Array(values)
+      .flatten
+      .map { |value| value.is_a?(String) ? value.strip : value }
+      .reject(&:blank?)
+      .map do |value|
+        text = value.to_s
+        if text.length > 255
+          text[0..254]
+        else
+          text
+        end
+      end
+      .uniq
+      .sort
   end
 end

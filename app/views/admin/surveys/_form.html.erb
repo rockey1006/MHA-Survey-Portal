@@ -1,8 +1,5 @@
-<% selected_question_ids = Array(survey.question_ids) %>
-<% selected_advisor_ids = Array(survey.assigned_advisor_ids) %>
-<% selected_category_ids = Array(survey.tagged_category_ids) %>
-
-<%= form_with(model: [:admin, survey], local: true, class: "survey-form") do |form| %>
+<% track_options = (@available_tracks + survey.track_list).uniq.compact.sort %>
+<%= form_with(model: [:admin, survey], local: true, class: "survey-form space-y-8") do |form| %>
   <% if survey.errors.any? %>
     <div class="form-errors">
       <h2><%= pluralize(survey.errors.count, "error") %> prevented this survey from being saved:</h2>
@@ -14,154 +11,167 @@
     </div>
   <% end %>
 
-  <div class="survey-form-layout">
-    <div class="survey-form-main">
-      <section class="form-card">
-        <header class="form-card-header">
-          <span class="step-pill">Step 1</span>
-          <div>
-            <h2 class="section-heading">Survey Basics</h2>
-            <p class="section-subtext">Give the survey a clear title, the semester it applies to, and the track it supports.</p>
-          </div>
-        </header>
+  <section class="form-card">
+    <header class="form-card-header">
+      <h2 class="section-heading">Survey basics</h2>
+      <p class="section-subtext">Provide a clear title, semester, and description for advisors.</p>
+    </header>
 
-        <div class="form-grid">
-          <div class="form-field">
-            <%= form.label :title, "Survey Title" %>
-            <%= form.text_field :title, required: true, class: "input", placeholder: "Capstone Competency Survey" %>
-          </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <%= form.label :title, "Survey title" %>
+        <%= form.text_field :title, required: true, class: "input", placeholder: "Capstone Competency Survey" %>
+      </div>
 
-          <div class="form-field">
-            <%= form.label :semester, "Semester" %>
-            <%= form.text_field :semester, required: true, placeholder: "Fall 2025", class: "input" %>
-          </div>
+      <div class="form-field">
+        <%= form.label :semester, "Semester" %>
+        <%= form.text_field :semester, required: true, placeholder: "Fall 2025", class: "input" %>
+      </div>
 
-          <div class="form-field">
-            <%= form.label :track, "Program Track" %>
-            <%= form.text_field :track, list: "survey-track-options", placeholder: "Residential", class: "input" %>
-            <datalist id="survey-track-options">
-              <% @track_options.each do |track_option| %>
-                <option value="<%= track_option %>"></option>
-              <% end %>
-            </datalist>
-            <p class="field-hint">Tracks help advisors locate the right survey for their advisees.</p>
-          </div>
-        </div>
-      </section>
+      <div class="form-field">
+        <%= form.label :description, "Summary" %>
+        <%= form.text_area :description, rows: 3, class: "input", placeholder: "Explain where this survey fits in the advising process." %>
+      </div>
 
-      <section class="form-card">
-        <header class="form-card-header">
-          <span class="step-pill">Step 2</span>
-          <div>
-            <h2 class="section-heading">Audience &amp; Tags</h2>
-            <p class="section-subtext">Decide who can distribute the survey and how it should be grouped.</p>
-          </div>
-        </header>
-
-        <div class="form-columns">
-          <div class="form-column">
-            <label class="section-subheading" for="survey_assigned_advisor_ids">Advisor Visibility</label>
-            <p class="field-hint">Select advisors who should see this survey in their dashboard.</p>
-            <%= form.select :assigned_advisor_ids,
-              options_from_collection_for_select(@advisors, :advisor_id, :display_name, selected_advisor_ids),
-              { include_hidden: false },
-              multiple: true,
-              size: 8,
-              class: "multi-select" %>
-          </div>
-
-          <div class="form-column">
-            <label class="section-subheading" for="survey_tagged_category_ids">Competency Categories</label>
-            <p class="field-hint">Tagging helps filter surveys by competency focus areas.</p>
-            <%= form.select :tagged_category_ids,
-              options_from_collection_for_select(@categories, :id, :name, selected_category_ids),
-              { include_hidden: false },
-              multiple: true,
-              size: 8,
-              class: "multi-select" %>
-          </div>
-        </div>
-      </section>
-
-      <section class="form-card">
-        <header class="form-card-header">
-          <span class="step-pill">Step 3</span>
-          <div>
-            <h2 class="section-heading">Questions</h2>
-            <p class="section-subtext">Pick the prompts advisors and students will respond to. Questions stay in their original order.</p>
-          </div>
-          <span class="count-pill"><%= selected_question_ids.size %> selected</span>
-        </header>
-
-        <div class="question-toolbar">
-          <div class="question-toolbar__links">
-            <%= link_to "Add question", new_admin_question_path, class: "btn btn-secondary" %>
-            <%= link_to "Manage question bank", admin_questions_path, class: "btn" %>
-          </div>
-          <p class="question-toolbar__hint">Need a new prompt or edits to existing ones? Use the actions above, then return here to attach them to this survey.</p>
-        </div>
-
-        <div class="question-groups">
-          <% grouped_questions = @questions.group_by { |question| question.categories.map(&:name).presence || ["General"] } %>
-          <% grouped_questions.sort_by { |names, _| names.first.to_s.downcase }.each do |names, questions| %>
-            <details class="question-group" <%= "open" if questions.any? { |q| selected_question_ids.include?(q.id) } %>>
-              <summary>
-                <span class="group-title"><%= Array(names).join(", ") %></span>
-                <span class="group-count"><%= pluralize(questions.size, "question") %></span>
-              </summary>
-
-              <div class="question-selection">
-                <% questions.sort_by(&:question_order).each do |question| %>
-                  <% checkbox_id = "survey-question-#{question.id}" %>
-                  <label class="question-option" for="<%= checkbox_id %>">
-                    <span class="question-checkbox">
-                      <%= check_box_tag "survey[question_ids][]", question.id, selected_question_ids.include?(question.id), id: checkbox_id %>
-                    </span>
-                    <span class="question-content">
-                      <span class="question-text"><%= question.question %></span>
-                      <span class="question-meta"><%= question.question_type.humanize %></span>
-                    </span>
-                  </label>
-                <% end %>
-              </div>
-            </details>
-          <% end %>
-        </div>
-      </section>
-
-      <div class="form-actions">
-        <%= form.submit(survey.persisted? ? "Update Survey" : "Create Survey", class: "btn btn-primary") %>
-        <%= link_to "Cancel", admin_surveys_path, class: "btn btn-secondary" %>
+      <div class="form-field form-field--checkbox">
+        <label>
+          <%= form.check_box :is_active %>
+          <span>Survey is active</span>
+        </label>
+        <p class="field-hint">Inactive surveys stay hidden from advisors until you reactivate them.</p>
       </div>
     </div>
+  </section>
 
-    <aside class="survey-form-sidebar">
-      <div class="summary-card">
-        <h3>Survey at a glance</h3>
-        <ul class="summary-list">
-          <li>
-            <span>Advisor access</span>
-            <strong><%= selected_advisor_ids.size %></strong>
-          </li>
-          <li>
-            <span>Tagged categories</span>
-            <strong><%= selected_category_ids.size %></strong>
-          </li>
-          <li>
-            <span>Questions selected</span>
-            <strong><%= selected_question_ids.size %></strong>
-          </li>
-        </ul>
+  <section class="form-card">
+    <header class="form-card-header">
+      <h2 class="section-heading">Track assignments</h2>
+      <p class="section-subtext">Choose which program tracks should see this survey. Add custom tracks if needed.</p>
+    </header>
+
+    <div class="form-columns">
+      <div class="form-column">
+        <label class="section-subheading" for="survey-track-list">Select existing tracks</label>
+        <%= hidden_field_tag "survey[track_list][]", "" %>
+        <%= select_tag "survey[track_list][]",
+                       options_for_select(track_options, survey.track_list),
+                       multiple: true,
+                       size: [track_options.size, 5].max,
+                       id: "survey-track-list",
+                       class: "multi-select" %>
+        <p class="field-hint">Hold CTRL/⌘ to choose multiple tracks. Leave everything unchecked to keep the survey hidden.</p>
       </div>
 
-      <div class="summary-card">
-        <h3>Tips</h3>
-        <ul class="summary-notes">
-          <li>Multi-select lists support CTRL/⌘ click for granular choices.</li>
-          <li>Leave advisor visibility empty to draft a survey without publishing it.</li>
-          <li>Questions stay aligned with their original numbering in the student view.</li>
-        </ul>
+      <div class="form-column">
+        <label class="section-subheading" for="survey-additional-track-names">Add new track names</label>
+        <%= text_area_tag "survey[additional_track_names]",
+                          nil,
+                          rows: 4,
+                          id: "survey-additional-track-names",
+                          class: "input",
+                          placeholder: "Executive Online\nHybrid" %>
+        <p class="field-hint">Separate multiple tracks with commas or new lines. They will be saved once you submit.</p>
       </div>
-    </aside>
+    </div>
+  </section>
+
+  <section class="form-card">
+    <header class="form-card-header">
+      <h2 class="section-heading">Categories &amp; questions</h2>
+      <p class="section-subtext">Every category should contain at least one question. Remove the items you no longer need.</p>
+    </header>
+
+    <div class="space-y-6">
+      <%= form.fields_for :categories do |category_fields| %>
+        <% category = category_fields.object %>
+        <article class="category-card">
+          <header class="category-card__header">
+            <div>
+              <%= category_fields.hidden_field :id %>
+              <%= category_fields.label :name, "Category name" %>
+              <%= category_fields.text_field :name, required: true, class: "input", placeholder: "Leadership" %>
+            </div>
+            <div class="category-card__actions">
+              <% if category.persisted? %>
+                <label class="text-sm">
+                  <%= category_fields.check_box :_destroy %>
+                  <span>Remove category</span>
+                </label>
+              <% end %>
+            </div>
+          </header>
+
+          <div class="category-card__body">
+            <div class="form-field">
+              <%= category_fields.label :description, "Description" %>
+              <%= category_fields.text_area :description, rows: 2, class: "input", placeholder: "Optional context shown to advisors and students." %>
+            </div>
+
+            <div class="space-y-4">
+              <h3 class="section-subheading">Questions</h3>
+              <%= category_fields.fields_for :questions do |question_fields| %>
+                <% question = question_fields.object %>
+                <div class="question-card">
+                  <div class="question-card__header">
+                    <%= question_fields.hidden_field :id %>
+                    <div class="question-card__title">
+                      <%= question_fields.label :question_text, "Prompt" %>
+                      <%= question_fields.text_area :question_text, rows: 2, class: "input", placeholder: "Describe the competency being assessed." %>
+                    </div>
+                    <div class="question-card__actions">
+                      <% if question.persisted? %>
+                        <label class="text-sm">
+                          <%= question_fields.check_box :_destroy %>
+                          <span>Remove question</span>
+                        </label>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <div class="question-card__grid">
+                    <div class="form-field">
+                      <%= question_fields.label :question_order, "Order" %>
+                      <%= question_fields.number_field :question_order, in: 1..200, class: "input" %>
+                    </div>
+
+                    <div class="form-field">
+                      <%= question_fields.label :question_type, "Response type" %>
+                      <%= question_fields.select :question_type,
+                                                options_for_select(@question_types.map { |type| [type.humanize, type] }, question.question_type),
+                                                {},
+                                                class: "input" %>
+                    </div>
+
+                    <div class="form-field form-field--checkbox">
+                      <label>
+                        <%= question_fields.check_box :is_required %>
+                        <span>Required response</span>
+                      </label>
+                    </div>
+
+                    <div class="form-field form-field--checkbox">
+                      <label>
+                        <%= question_fields.check_box :has_evidence_field %>
+                        <span>Include evidence field</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-field">
+                    <%= question_fields.label :answer_options, "Answer options" %>
+                    <%= question_fields.text_area :answer_options, rows: 2, class: "input", placeholder: "Comma separated values for multiple choice questions." %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: "btn btn-primary") %>
+    <%= link_to "Cancel", admin_surveys_path, class: "btn btn-secondary" %>
   </div>
 <% end %>

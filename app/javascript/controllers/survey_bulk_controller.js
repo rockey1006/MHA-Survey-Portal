@@ -49,7 +49,9 @@ export default class extends Controller {
         : `Selected ${selectedCount} of ${totalCount} ${totalLabel}.`
 
       this.counterTarget.textContent = message
-      this.counterTarget.classList.toggle("admin-surveys-selection-summary--active", selectedCount > 0)
+      const isActive = selectedCount > 0
+      this.counterTarget.classList.toggle("font-semibold", isActive)
+      this.counterTarget.classList.toggle("text-indigo-600", isActive)
     }
   }
 

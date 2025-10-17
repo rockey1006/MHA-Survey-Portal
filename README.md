@@ -95,6 +95,16 @@ docker compose run --rm web bin/rails runner "puts Survey.count"
 docker compose run --rm web bin/rails test
 ```
 
+### Generate API documentation (YARD)
+
+Add or update code comments with [YARD](https://yardoc.org) tags and regenerate the HTML docs at any time:
+
+```bash
+docker compose run --rm web bundle exec yard doc
+```
+
+The output lands in `doc/yard` (ignored by git). Open `doc/yard/index.html` in a browser to browse the generated API reference.
+
 What the seeds add
 - A default survey titled "Default Sample Survey" with sample competencies and questions.
 - A local test student: `faqiangmei@gmail.com` (track set to `residential`).

@@ -1,0 +1,7 @@
+--output-dir doc/yard
+--markup markdown
+--embed-mixins
+--no-private
+
+app/**/*.rb
+lib/**/*.rb

@@ -57,6 +57,8 @@
 
 # Ignore test coverage reports
 /coverage/
+doc/
+.yardoc/
 
 # Editor and OS cruft
 .DS_Store

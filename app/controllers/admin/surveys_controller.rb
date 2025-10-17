@@ -62,13 +62,13 @@ class Admin::SurveysController < Admin::BaseController
   end
 
   def new
-    @survey = Survey.new(created_by: current_user, semester: default_semester)
+    @survey = Survey.new(creator: current_user, semester: default_semester)
     build_default_structure(@survey)
   end
 
   def create
     @survey = Survey.new(survey_params)
-    @survey.created_by ||= current_user
+    @survey.creator ||= current_user
     @survey.semester ||= default_semester
 
     tracks = selected_tracks

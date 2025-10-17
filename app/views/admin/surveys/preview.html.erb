@@ -1,90 +1,113 @@
-<main class="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
-  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-    <div>
-      <h1 class="text-3xl font-semibold tracking-tight text-slate-900"><%= @survey.title %></h1>
-      <p class="mt-2 max-w-3xl text-sm text-slate-600">Preview how advisors will experience this survey.</p>
-    </div>
-    <div class="flex flex-wrap gap-3">
-      <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
-    </div>
-  </div>
-
-  <div class="grid gap-8 lg:grid-cols-[320px,minmax(0,1fr)]">
-    <aside class="space-y-6">
-      <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Survey details</h3>
-        <dl class="space-y-3 text-sm text-slate-600">
-          <div class="flex items-center justify-between">
-            <dt class="font-medium text-slate-700">Semester</dt>
-            <dd><%= @survey.semester %></dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="font-medium text-slate-700">Tracks</dt>
-            <dd class="text-right"><%= @track_list.present? ? @track_list.join(", ") : "Unassigned" %></dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="font-medium text-slate-700">Categories</dt>
-            <dd class="text-right"><%= @category_names.present? ? @category_names.join(", ") : "None" %></dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="font-medium text-slate-700">Question count</dt>
-            <dd><%= @questions.size %></dd>
-          </div>
-        </dl>
+<main class="mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+  <header class="space-y-3">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="space-y-1">
+        <h1 class="text-3xl font-semibold tracking-tight text-slate-900"><%= @survey.title.presence || "Survey ##{@survey.id}" %></h1>
+        <p class="text-sm text-slate-600">Semester: <span class="font-medium text-slate-800"><%= @survey.semester.presence || "TBD" %></span> · Tracks: <span class="font-medium text-slate-800"><%= @track_list.present? ? @track_list.join(", ") : "Unassigned" %></span></p>
+        <% if @survey.description.present? %>
+          <p class="max-w-3xl text-sm text-slate-600"><%= @survey.description %></p>
+        <% end %>
       </div>
-
-      <% question_type_counts = @questions.present? ? @questions.group_by(&:question_type).transform_values(&:count) : {} %>
-      <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Question mix</h3>
-        <ul class="space-y-3 text-sm text-slate-600">
-          <% question_type_counts.sort_by { |type, _| type }.each do |type, count| %>
-            <li class="flex items-center justify-between">
-              <span><%= type.humanize %></span>
-              <strong class="font-semibold text-slate-900"><%= count %></strong>
-            </li>
-          <% end %>
-          <li class="flex items-center justify-between border-t border-dashed border-slate-200 pt-2">
-            <span>Total questions</span>
-            <strong class="font-semibold text-slate-900"><%= @questions.size %></strong>
-          </li>
-        </ul>
-      </div>
-
-      <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Next steps</h3>
-        <ul class="space-y-2 text-sm text-slate-600">
-          <li>Share this preview with advisors to confirm the flow.</li>
-          <li>Use the edit action to reorder or add new prompts.</li>
-          <li>Audit log captures every preview, edit, and grouping update.</li>
-        </ul>
-      </div>
-    </aside>
-
-    <section class="space-y-6">
-      <% if @questions.empty? %>
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">
-          No questions are currently assigned to this survey.
-        </div>
-      <% else %>
-        <ol class="space-y-4">
-          <% @questions.each do |question| %>
-            <li class="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"><%= question.question_type.humanize %></span>
-                <% if question.category.present? %>
-                  <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600"><%= question.category.name %></span>
-                <% end %>
-              </div>
-              <p class="text-sm text-slate-700"><%= question.question_text %></p>
-            </li>
-          <% end %>
-        </ol>
-      <% end %>
-
       <div class="flex flex-wrap gap-3">
-        <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: tailwind_button_classes(:secondary) %>
-        <%= link_to "Manage Surveys", admin_surveys_path, class: tailwind_button_classes(:primary) %>
+        <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
+        <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: tailwind_button_classes(:primary) %>
       </div>
-    </section>
-  </div>
+    </div>
+
+    <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+      Read-only preview of the student experience. Inputs are disabled so you can review safely.
+    </div>
+  </header>
+
+  <% if @categories.blank? || @categories.all? { |category| category.questions.empty? } %>
+    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">
+      No questions are currently assigned to this survey.
+    </div>
+  <% else %>
+    <% question_counter = 0 %>
+    <div class="space-y-8">
+      <% @categories.each do |category| %>
+        <% questions = category.questions.order(:question_order) %>
+        <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <header class="space-y-1">
+            <h2 class="text-xl font-semibold text-slate-900"><%= category.name %></h2>
+            <% if category.description.present? %>
+              <p class="text-sm text-slate-600"><%= category.description %></p>
+            <% end %>
+          </header>
+
+          <% questions.each do |question| %>
+            <% config = question.configuration.presence || {} %>
+            <% depends_on_id = config.fetch("depends_on_question_id", nil).presence %>
+            <% depends_on_value = config.fetch("depends_on_value", nil).presence %>
+            <% dependent_by_text = question.question_text.to_s.strip.match?(/^\s*If\s+(yes|no)/i) rescue false %>
+            <% numbered = depends_on_id.blank? && !dependent_by_text %>
+            <% question_counter += 1 if numbered %>
+            <% display_number = numbered ? question_counter : nil %>
+            <% field_id = "preview-question-#{question.id}" %>
+
+            <article class="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4" data-question-id="<%= question.id %>" data-depends-on-id="<%= depends_on_id %>" data-depends-on-value="<%= depends_on_value %>" data-numbered="<%= numbered %>" data-question-number="<%= display_number %>">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="text-sm font-medium text-slate-900 leading-snug">
+                  <% if display_number.present? %>
+                    <span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">Q<%= display_number %></span>
+                  <% end %>
+                  <span><%= question.question_text %></span>
+                  <% if question.is_required? %>
+                    <span class="ml-1 text-rose-600" aria-hidden="true">*</span>
+                    <span class="sr-only">Required question</span>
+                  <% end %>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700"><%= question.question_type.humanize %></span>
+              </div>
+
+              <% case question.question_type %>
+              <% when "short_answer" %>
+                <textarea id="<%= field_id %>" rows="3" disabled class="w-full cursor-not-allowed rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">Student response will appear here</textarea>
+              <% when "multiple_choice" %>
+                <% options = question.answer_options_list.presence || ["Option 1", "Option 2"] %>
+                <fieldset aria-labelledby="<%= field_id %>" class="flex flex-wrap gap-2">
+                  <% options.each do |option| %>
+                    <label class="flex cursor-not-allowed items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-800">
+                      <span class="h-2.5 w-2.5 rounded-full border border-slate-400"></span>
+                      <span><%= option %></span>
+                    </label>
+                  <% end %>
+                </fieldset>
+              <% when "scale" %>
+                <div class="flex items-center gap-3 text-xs text-slate-500">
+                  <span>Low</span>
+                  <input type="range" min="1" max="5" value="3" disabled class="w-full cursor-not-allowed" />
+                  <span>High</span>
+                </div>
+              <% when "evidence" %>
+                <div class="space-y-2">
+                  <input id="<%= field_id %>" type="text" disabled value="https://example.com/portfolio" class="w-full cursor-not-allowed rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm" />
+                  <p class="text-xs text-slate-500">Students paste a Google Drive link or supporting reference.</p>
+                </div>
+              <% else %>
+                <input id="<%= field_id %>" type="text" disabled class="w-full cursor-not-allowed rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm" />
+              <% end %>
+
+              <% if question.has_evidence_field? %>
+                <div class="space-y-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
+                  <p class="font-semibold">Evidence prompt enabled</p>
+                  <p>Students will answer an additional evidence question tied to this prompt.</p>
+                </div>
+              <% end %>
+            </article>
+          <% end %>
+
+          <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+            Optional competency evidence link (Google Drive) appears here for students when enabled.
+          </div>
+        </section>
+      <% end %>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <div class="text-sm text-slate-600">Students finish by submitting the survey. The button is disabled in preview mode.</div>
+      <button type="button" disabled class="inline-flex cursor-not-allowed items-center rounded-md bg-indigo-500 px-4 py-2 text-sm font-semibold text-white opacity-80">Submit Survey</button>
+    </div>
+  <% end %>
 </main>

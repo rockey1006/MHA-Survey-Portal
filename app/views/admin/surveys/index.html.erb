@@ -2,7 +2,6 @@
   <% primary_button_classes = "inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500" %>
   <% secondary_button_classes = "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" %>
   <% neutral_button_classes = "inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" %>
-  <% danger_button_classes = "inline-flex items-center justify-center rounded-md bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500" %>
   <% pill_classes = "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600" %>
   <% card_classes = "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" %>
 
@@ -15,7 +14,7 @@
       <% if defined?(admin_survey_change_logs_path) %>
         <%= link_to "View Change Log", admin_survey_change_logs_path, class: secondary_button_classes %>
       <% end %>
-      <%= link_to "Create Survey", new_admin_survey_path, class: primary_button_classes %>
+      <%= link_to "Create Survey", new_admin_survey_path, class: tailwind_button_classes(:primary) %>
     </div>
   </section>
 
@@ -31,26 +30,27 @@
     </header>
 
   <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div class="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-        <%= form_with url: admin_surveys_path, method: :get, local: true, class: "flex w-full flex-col gap-3 lg:flex-row lg:items-center" do %>
-          <div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
-            <div class="relative flex-1">
-              <%= hidden_field_tag :sort, @sort_column %>
-              <%= hidden_field_tag :direction, @sort_direction %>
-              <%= text_field_tag :q, @search_query, placeholder: "Search by title, semester, or description", class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-16 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
-              <% if @search_query.present? %>
-                <button type="submit" name="q" value="" class="absolute inset-y-0 right-3 flex items-center text-xs text-slate-400 hover:text-slate-600">Clear</button>
-              <% end %>
-            </div>
-            <div class="flex items-center gap-2 lg:w-auto">
-              <%= select_tag :track,
-                             options_for_select([
-                               ["All tracks", ""],
-                               ["Unassigned", @unassigned_track_token]
-                             ] + @track_filter_options.map { |track| [track, track] }, @selected_track),
-                             class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:w-56" %>
-            </div>
+      <div class="border-b border-slate-200 p-5">
+        <%= form_with url: admin_surveys_path, method: :get, local: true, class: "flex w-full flex-wrap items-center gap-3 md:flex-nowrap" do %>
+          <%= hidden_field_tag :sort, @sort_column %>
+          <%= hidden_field_tag :direction, @sort_direction %>
+
+          <div class="relative flex-1 min-w-[220px]">
+            <%= text_field_tag :q, @search_query, placeholder: "Search by title, semester, or description", class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-16 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+            <% if @search_query.present? %>
+              <button type="submit" name="q" value="" class="absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-slate-400 hover:text-slate-600">Clear</button>
+            <% end %>
           </div>
+
+          <div class="md:w-48">
+            <%= select_tag :track,
+                           options_for_select([
+                             ["All tracks", ""],
+                             ["Unassigned", @unassigned_track_token]
+                           ] + @track_filter_options.map { |track| [track, track] }, @selected_track),
+                           class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+          </div>
+
           <div class="flex items-center gap-3">
             <%= submit_tag "Apply", class: tailwind_button_classes(:primary) %>
             <% if @search_query.present? || @selected_track.present? %>
@@ -106,7 +106,7 @@
                       <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
                       <%= link_to "Edit", edit_admin_survey_path(survey), class: neutral_button_classes %>
                       <%= button_to "Archive", archive_admin_survey_path(survey), method: :patch, data: { turbo_confirm: "Archive '#{survey.title}' and remove it from advisors?" }, class: secondary_button_classes %>
-                      <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: danger_button_classes %>
+                      <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: tailwind_button_classes(:danger) %>
                     </div>
                   </td>
                 </tr>
@@ -150,7 +150,7 @@
               <div class="flex flex-wrap gap-3">
                 <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
                 <%= button_to "Activate", activate_admin_survey_path(survey), method: :patch, class: primary_button_classes %>
-                <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: danger_button_classes %>
+                <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: tailwind_button_classes(:danger) %>
               </div>
             </div>
           </article>

@@ -121,6 +121,31 @@
                       <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
                       <%= question_fields.text_area :question_text, class: textarea_classes, placeholder: "Describe the competency being assessed." %>
                     </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
+                    <div class="flex min-w-[6rem] flex-col gap-1">
+                      <%= question_fields.label :question_order, "Order", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+                      <%= question_fields.number_field :question_order, in: 1..200, class: input_classes %>
+                    </div>
+
+                    <div class="flex min-w-[12rem] flex-col gap-1">
+                      <%= question_fields.label :question_type, "Response type", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+                      <%= question_fields.select :question_type,
+                                                options_for_select(@question_types.map { |type| [type.humanize, type] }, question.question_type),
+                                                {},
+                                                class: input_classes %>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                      <%= question_fields.check_box :is_required, class: checkbox_classes %>
+                      <%= question_fields.label :is_required, "Required response", class: "cursor-pointer select-none" %>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-sm text-slate-700">
+                      <%= question_fields.check_box :has_evidence_field, class: checkbox_classes %>
+                      <%= question_fields.label :has_evidence_field, "Include evidence field", class: "cursor-pointer select-none" %>
+                    </div>
 
                     <% if question.persisted? %>
                       <label class="flex items-center gap-2 text-sm font-medium text-rose-600">
@@ -128,31 +153,6 @@
                         <span>Remove question</span>
                       </label>
                     <% end %>
-                  </div>
-
-                  <div class="grid gap-4 md:grid-cols-2">
-                    <div class="space-y-2">
-                      <%= question_fields.label :question_order, "Order", class: "block text-sm font-medium text-slate-700" %>
-                      <%= question_fields.number_field :question_order, in: 1..200, class: input_classes %>
-                    </div>
-
-                    <div class="space-y-2">
-                      <%= question_fields.label :question_type, "Response type", class: "block text-sm font-medium text-slate-700" %>
-                      <%= question_fields.select :question_type,
-                                                options_for_select(@question_types.map { |type| [type.humanize, type] }, question.question_type),
-                                                {},
-                                                class: input_classes %>
-                    </div>
-
-                    <div class="flex items-start gap-3">
-                      <%= question_fields.check_box :is_required, class: checkbox_classes %>
-                      <span class="text-sm text-slate-700">Required response</span>
-                    </div>
-
-                    <div class="flex items-start gap-3">
-                      <%= question_fields.check_box :has_evidence_field, class: checkbox_classes %>
-                      <span class="text-sm text-slate-700">Include evidence field</span>
-                    </div>
                   </div>
 
                   <div class="space-y-2">

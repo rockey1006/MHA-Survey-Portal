@@ -1,0 +1,218 @@
+surveys:
+  - title: "Executive Survey"
+    semester: "Fall 2025"
+    description: "Executive cohort semester activity and competency tracking."
+    is_active: true
+    tracks:
+      - "Executive"
+    categories:
+      - name: "Semester"
+        description: "Semester Activity Information"
+        questions:
+          - order: 1
+            text: "Which student organizations are you currently a member of?"
+            type: "multiple_choice"
+            options: ["AFHL", "AAHL", "HFA", "IHI", "MGMA", "AC3"]
+          - order: 2
+            text: "Other Organization - please specify the name"
+            type: "short_answer"
+          - order: 3
+            text: "Did you participate in any professional meetings?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+          - order: 4
+            text: "If yes, please provide the meeting name, date, and location"
+            type: "short_answer"
+          - order: 5
+            text: "If no, why not?"
+            type: "short_answer"
+          - order: 6
+            text: "Did you compete in a Case Competition?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+          - order: 7
+            text: "If yes, name and date"
+            type: "short_answer"
+          - order: 8
+            text: "If no, why not?"
+            type: "short_answer"
+          - order: 9
+            text: "Did you engage in a community service activity?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+          - order: 10
+            text: "If yes, provide the activity name, date, and location"
+            type: "short_answer"
+          - order: 11
+            text: "If no, why not?"
+            type: "short_answer"
+      - name: "Mentor Relationships (RMHA Only)"
+        description: "Mentorship Information"
+        questions:
+          - order: 1
+            text: "Did you meet with your alumni mentor?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+          - order: 2
+            text: "Summarize your discussions"
+            type: "short_answer"
+          - order: 3
+            text: "If not, why not?"
+            type: "short_answer"
+          - order: 4
+            text: "Did you meet with your student mentor/mentee?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+          - order: 5
+            text: "Summarize your meetings"
+            type: "short_answer"
+          - order: 6
+            text: "If not, why not?"
+            type: "short_answer"
+      - name: "Volunteering/Service"
+        description: "Volunteer Work Information"
+        questions:
+          - order: 1
+            text: "Any volunteer service?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+          - order: 2
+            text: "If yes, please describe."
+            type: "short_answer"
+          - order: 3
+            text: "If no, why not?"
+            type: "short_answer"
+      - name: "Health Care Environment and Community"
+        description: "Relation between health care operations and community organizations and policies"
+        questions:
+          - order: 1
+            text: "Public and Population Health Assessment"
+            type: "short_answer"
+          - order: 2
+            text: "Delivery, Organization, and Financing of Health Services"
+            type: "short_answer"
+          - order: 3
+            text: "Policy Analysis"
+            type: "short_answer"
+          - order: 4
+            text: "Legal and Ethical Bases for Health Services"
+            type: "short_answer"
+      - name: "Leadership Skills"
+        description: "Motivation and empowerment of organizational resources"
+        questions:
+          - order: 1
+            text: "Ethics, Accountability, and Self-Assessment"
+            type: "short_answer"
+          - order: 2
+            text: "Organizational Dynamics"
+            type: "short_answer"
+          - order: 3
+            text: "Problem Solving, Decision Making, and Critical Thinking"
+            type: "short_answer"
+          - order: 4
+            text: "Team Building and Collaboration"
+            type: "short_answer"
+      - name: "Management Skills"
+        description: "Control and organization of health services delivery"
+        questions:
+          - order: 1
+            text: "Strategic Planning"
+            type: "short_answer"
+          - order: 2
+            text: "Business Planning"
+            type: "short_answer"
+          - order: 3
+            text: "Communication"
+            type: "short_answer"
+          - order: 4
+            text: "Financial Management"
+            type: "short_answer"
+          - order: 5
+            text: "Performance Improvement"
+            type: "short_answer"
+          - order: 6
+            text: "Project Management"
+            type: "short_answer"
+      - name: "Analytic and Technical Skills"
+        description: "Successful accomplishment of tasks in health services delivery"
+        questions:
+          - order: 1
+            text: "Systems Thinking"
+            type: "short_answer"
+          - order: 2
+            text: "Data Analysis and Information Management"
+            type: "short_answer"
+          - order: 3
+            text: "Quantitative Methods for Health Services Delivery"
+            type: "short_answer"
+
+  - title: "Residential Survey"
+    semester: "Fall 2025"
+    description: "Residential cohort competency and experience tracking."
+    is_active: true
+    tracks:
+      - "Residential"
+    categories:
+      - name: "Health Care Environment and Community"
+        description: "Relationship between health care operations and their communities"
+        questions:
+          - order: 1
+            text: "Public and Population Health Assessment"
+            type: "short_answer"
+          - order: 2
+            text: "Delivery, Organization, and Financing of Health Services"
+            type: "short_answer"
+          - order: 3
+            text: "Policy Analysis"
+            type: "short_answer"
+          - order: 4
+            text: "Legal and Ethical Bases for Health Services"
+            type: "short_answer"
+      - name: "Leadership Skills"
+        description: "Motivation and empowerment of organizational resources"
+        questions:
+          - order: 1
+            text: "Ethics, Accountability, and Self-Assessment"
+            type: "short_answer"
+          - order: 2
+            text: "Organizational Dynamics"
+            type: "short_answer"
+          - order: 3
+            text: "Problem Solving, Decision Making, and Critical Thinking"
+            type: "short_answer"
+          - order: 4
+            text: "Team Building and Collaboration"
+            type: "short_answer"
+      - name: "Management Skills"
+        description: "Control and organization of health services delivery"
+        questions:
+          - order: 1
+            text: "Strategic Planning"
+            type: "short_answer"
+          - order: 2
+            text: "Business Planning"
+            type: "short_answer"
+          - order: 3
+            text: "Communication"
+            type: "short_answer"
+          - order: 4
+            text: "Financial Management"
+            type: "short_answer"
+          - order: 5
+            text: "Performance Improvement"
+            type: "short_answer"
+          - order: 6
+            text: "Project Management"
+            type: "short_answer"
+      - name: "Analytic and Technical Skills"
+        description: "Successful accomplishment of tasks in health services delivery"
+        questions:
+          - order: 1
+            text: "Systems Thinking"
+            type: "short_answer"
+          - order: 2
+            text: "Data Analysis and Information Management"
+            type: "short_answer"
+          - order: 3
+            text: "Quantitative Methods for Health Services Delivery"
+            type: "short_answer"

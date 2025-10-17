@@ -1,92 +1,90 @@
-<main class="main-content">
-  <section class="dashboard-section">
-    <div class="section-header">
-      <div>
-        <h1 class="section-title"><%= @survey.title %></h1>
-        <p class="section-subtitle">Preview how advisors will experience this survey.</p>
-      </div>
-      <div class="section-actions">
-        <%= link_to "Back to Surveys", admin_surveys_path, class: "btn" %>
-      </div>
+<main class="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-semibold tracking-tight text-slate-900"><%= @survey.title %></h1>
+      <p class="mt-2 max-w-3xl text-sm text-slate-600">Preview how advisors will experience this survey.</p>
     </div>
+    <div class="flex flex-wrap gap-3">
+      <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
+    </div>
+  </div>
 
-    <div class="survey-preview-layout">
-      <aside class="survey-preview-sidebar">
-        <div class="summary-card">
-          <h3>Survey details</h3>
-          <dl class="summary-dl">
-            <div>
-              <dt>Semester</dt>
-              <dd><%= @survey.semester %></dd>
-            </div>
-            <div>
-              <dt>Tracks</dt>
-              <dd><%= @track_list.present? ? @track_list.join(", ") : "Unassigned" %></dd>
-            </div>
-            <div>
-              <dt>Categories</dt>
-              <dd><%= @category_names.present? ? @category_names.join(", ") : "None" %></dd>
-            </div>
-            <div>
-              <dt>Question count</dt>
-              <dd><%= @questions.size %></dd>
-            </div>
-          </dl>
-        </div>
+  <div class="grid gap-8 lg:grid-cols-[320px,minmax(0,1fr)]">
+    <aside class="space-y-6">
+      <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Survey details</h3>
+        <dl class="space-y-3 text-sm text-slate-600">
+          <div class="flex items-center justify-between">
+            <dt class="font-medium text-slate-700">Semester</dt>
+            <dd><%= @survey.semester %></dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="font-medium text-slate-700">Tracks</dt>
+            <dd class="text-right"><%= @track_list.present? ? @track_list.join(", ") : "Unassigned" %></dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="font-medium text-slate-700">Categories</dt>
+            <dd class="text-right"><%= @category_names.present? ? @category_names.join(", ") : "None" %></dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="font-medium text-slate-700">Question count</dt>
+            <dd><%= @questions.size %></dd>
+          </div>
+        </dl>
+      </div>
 
-        <div class="summary-card">
-          <h3>Question mix</h3>
-          <% question_type_counts = @questions.present? ? @questions.group_by(&:question_type).transform_values(&:count) : {} %>
-          <ul class="summary-list">
-            <% question_type_counts.sort_by { |type, _| type }.each do |type, count| %>
-              <li>
-                <span><%= type.humanize %></span>
-                <strong><%= count %></strong>
-              </li>
-            <% end %>
-            <li>
-              <span>Total questions</span>
-              <strong><%= @questions.count %></strong>
+      <% question_type_counts = @questions.present? ? @questions.group_by(&:question_type).transform_values(&:count) : {} %>
+      <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Question mix</h3>
+        <ul class="space-y-3 text-sm text-slate-600">
+          <% question_type_counts.sort_by { |type, _| type }.each do |type, count| %>
+            <li class="flex items-center justify-between">
+              <span><%= type.humanize %></span>
+              <strong class="font-semibold text-slate-900"><%= count %></strong>
             </li>
-          </ul>
-        </div>
+          <% end %>
+          <li class="flex items-center justify-between border-t border-dashed border-slate-200 pt-2">
+            <span>Total questions</span>
+            <strong class="font-semibold text-slate-900"><%= @questions.size %></strong>
+          </li>
+        </ul>
+      </div>
 
-        <div class="summary-card">
-          <h3>Next steps</h3>
-          <ul class="summary-notes">
-            <li>Share this preview with advisors to confirm the flow.</li>
-            <li>Use the edit action to reorder or add new prompts.</li>
-            <li>Audit log captures every preview, edit, and grouping update.</li>
-          </ul>
-        </div>
-      </aside>
+      <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Next steps</h3>
+        <ul class="space-y-2 text-sm text-slate-600">
+          <li>Share this preview with advisors to confirm the flow.</li>
+          <li>Use the edit action to reorder or add new prompts.</li>
+          <li>Audit log captures every preview, edit, and grouping update.</li>
+        </ul>
+      </div>
+    </aside>
 
-      <section class="survey-preview-content">
-        <% if @questions.empty? %>
-          <p class="empty-state">No questions are currently assigned to this survey.</p>
-        <% else %>
-          <ol class="question-list">
-            <% @questions.each do |question| %>
-              <li class="question-card">
-                <header class="question-header">
-                  <span class="question-type-pill"><%= question.question_type.humanize %></span>
-                  <% if question.category.present? %>
-                    <ul class="category-chips">
-                      <li><%= question.category.name %></li>
-                    </ul>
-                  <% end %>
-                </header>
-                <p class="question-body"><%= question.question_text %></p>
-              </li>
-            <% end %>
-          </ol>
-        <% end %>
-
-        <div class="preview-actions">
-          <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: "btn btn-secondary" %>
-          <%= link_to "Manage Surveys", admin_surveys_path, class: "btn btn-primary" %>
+    <section class="space-y-6">
+      <% if @questions.empty? %>
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">
+          No questions are currently assigned to this survey.
         </div>
-      </section>
-    </div>
-  </section>
+      <% else %>
+        <ol class="space-y-4">
+          <% @questions.each do |question| %>
+            <li class="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"><%= question.question_type.humanize %></span>
+                <% if question.category.present? %>
+                  <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600"><%= question.category.name %></span>
+                <% end %>
+              </div>
+              <p class="text-sm text-slate-700"><%= question.question_text %></p>
+            </li>
+          <% end %>
+        </ol>
+      <% end %>
+
+      <div class="flex flex-wrap gap-3">
+        <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: tailwind_button_classes(:secondary) %>
+        <%= link_to "Manage Surveys", admin_surveys_path, class: tailwind_button_classes(:primary) %>
+      </div>
+    </section>
+  </div>
 </main>

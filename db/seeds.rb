@@ -56,75 +56,90 @@ students = students_seed.map do |attrs|
   profile
 end
 
-puts "• Loading competency model"
-competency_source_path = Rails.root.join("db", "data", "mha_competencies.yml")
-unless File.exist?(competency_source_path)
-  raise "Competency data file not found: #{competency_source_path}. Please ensure the official model is available."
+puts "• Loading program survey templates"
+survey_template_path = Rails.root.join("db", "data", "program_surveys.yml")
+unless File.exist?(survey_template_path)
+  raise "Survey template data file not found: #{survey_template_path}. Please ensure the survey definitions are available."
 end
 
-competency_data = YAML.load_file(competency_source_path)
-domains = competency_data.fetch("domains")
+template_data = YAML.safe_load_file(survey_template_path)
+survey_templates = Array(template_data.fetch("surveys"))
 
-survey = Survey.new(title: "Competency Self-Assessment Survey", semester: "Fall 2025")
-puts "   • Survey: #{survey.title}"
+answer_options_for = lambda do |options|
+  return nil if options.blank?
 
-likert_options = %w[1 2 3 4 5]
-
-domains.each do |domain|
-  category = survey.categories.build(
-    name: domain.fetch("name"),
-    description: domain["description"]
-  )
-  puts "      ▸ Domain: #{category.name}"
-
-  question_position = 0
-
-  competencies = domain.fetch("competencies", [])
-  competencies.each do |competency|
-    question_position += 1
-    category.questions.build(
-      question_text: competency.fetch("prompt"),
-      question_order: question_position,
-      question_type: Question.question_types[:scale],
-      is_required: true,
-      answer_options: likert_options.to_json
-    )
-
-    puts "        ↳ Competency ##{question_position}: #{competency["title"] || competency["prompt"]}"
-  end
-
-  question_position += 1
-  evidence_prompt = "Provide evidence or reflection for #{domain.fetch("name")}".freeze
-  category.questions.build(
-    question_text: evidence_prompt,
-    question_order: question_position,
-    question_type: Question.question_types[:evidence],
-    is_required: false,
-    has_evidence_field: true
-  )
-
-  puts "        ↳ Evidence field added for #{domain.fetch("name")}" 
+  Array(options).map(&:to_s).reject(&:blank?).to_json
 end
 
-survey.save!
-survey.assign_tracks!(students_seed.map { |attrs| attrs[:track] }.uniq)
+created_surveys = []
+surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
 
-puts "• Assigning competency questions to each student"
-students.each do |student|
-  survey.questions.order(:question_order).each do |question|
-    StudentQuestion.find_or_create_by!(student_id: student.student_id, question_id: question.id) do |record|
-      record.advisor_id = student.advisor&.advisor_id
+survey_templates.each do |definition|
+  title = definition.fetch("title")
+  semester = definition.fetch("semester")
+  puts "   • Ensuring survey: #{title} (#{semester})"
+
+  Survey.transaction do
+    survey = Survey.find_or_initialize_by(title:, semester:)
+    survey.creator ||= admin_users.first
+    survey.description = definition["description"]
+    survey.is_active = definition.fetch("is_active", true)
+
+    survey.categories.destroy_all if survey.persisted?
+    survey.categories.reset
+
+    categories = Array(definition.fetch("categories", []))
+    categories.each do |category_definition|
+      category = survey.categories.build(
+        name: category_definition.fetch("name"),
+        description: category_definition["description"]
+      )
+
+      Array(category_definition.fetch("questions", [])).each do |question_definition|
+        category.questions.build(
+          question_text: question_definition.fetch("text"),
+          question_order: question_definition.fetch("order"),
+          question_type: question_definition.fetch("type"),
+          is_required: question_definition.fetch("required", false),
+          has_evidence_field: question_definition.fetch("has_evidence_field", false),
+          answer_options: answer_options_for.call(question_definition["options"])
+        )
+      end
+    end
+
+    survey.save!
+
+    tracks = Array(definition.fetch("tracks", [])).map(&:to_s)
+    survey.assign_tracks!(tracks)
+
+    created_surveys << survey
+    tracks.each do |track|
+      surveys_by_track[track] << survey
     end
   end
+end
 
-  Notification.find_or_create_by!(
-    notifiable: student,
-    title: "Survey ready: #{survey.title}"
-  ) do |notification|
-    notification.message = "#{survey.title} has been assigned to you for #{survey.semester}."
+puts "• Assigning surveys to each student"
+students.each do |student|
+  track_value = student.track.to_s
+  next if track_value.blank?
+
+  Array(surveys_by_track[track_value]).each do |survey|
+    survey.questions.order(:question_order).each do |question|
+      StudentQuestion.find_or_create_by!(student_id: student.student_id, question_id: question.id) do |record|
+        record.advisor_id = student.advisor&.advisor_id
+      end
+    end
+
+    Notification.find_or_create_by!(
+      notifiable: student,
+      title: "Survey ready: #{survey.title}"
+    ) do |notification|
+      notification.message = "#{survey.title} has been assigned to you for #{survey.semester}."
+    end
+
+    puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
   end
-
-  puts "   • Prepared #{survey.questions.count} questions for #{student.user.name}"
 end
 
 puts "🎉 Seed data finished!"

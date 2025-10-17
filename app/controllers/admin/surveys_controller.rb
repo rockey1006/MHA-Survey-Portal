@@ -3,9 +3,61 @@ class Admin::SurveysController < Admin::BaseController
   before_action :prepare_supporting_data, only: %i[new create edit update]
 
   def index
-    scope = Survey.includes(:categories, :survey_assignments, :creator)
-    @active_surveys = scope.active.order(updated_at: :desc)
-    @archived_surveys = scope.archived.order(updated_at: :desc)
+    @search_query = params[:q].to_s.strip
+    @selected_track = params[:track].presence
+
+    allowed_sort_columns = {
+      "title" => "surveys.title",
+      "semester" => "surveys.semester",
+      "updated_at" => "surveys.updated_at",
+      "question_count" => "question_count",
+      "category_count" => "category_count"
+    }
+
+    @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
+    @sort_direction = params[:direction] == "asc" ? "asc" : "desc"
+
+    active_scope = Survey.active
+                         .left_joins(:survey_assignments)
+
+    if @selected_track.present?
+      if @selected_track == unassigned_track_token
+        active_scope = active_scope.where(survey_assignments: { id: nil })
+      else
+        active_scope = active_scope.where(survey_assignments: { track: @selected_track })
+      end
+    end
+
+    if @search_query.present?
+      term = "%#{@search_query.downcase}%"
+      active_scope = active_scope.where(
+        "LOWER(surveys.title) LIKE :term OR LOWER(surveys.semester) LIKE :term OR LOWER(COALESCE(surveys.description, '')) LIKE :term",
+        term: term
+      )
+    end
+
+    active_scope = active_scope
+      .left_joins(:categories, :questions)
+      .select(
+        "surveys.*, " \
+        "COUNT(DISTINCT categories.id) AS category_count, " \
+        "COUNT(DISTINCT questions.id) AS question_count"
+      )
+      .group("surveys.id")
+
+    order_expression = allowed_sort_columns[@sort_column]
+    active_scope = active_scope.order(Arel.sql("#{order_expression} #{@sort_direction}"))
+    active_scope = active_scope.order("surveys.id ASC")
+
+  @active_surveys = active_scope.preload(:survey_assignments).load
+
+    @track_filter_options = (
+      Survey::TRACK_OPTIONS +
+      SurveyAssignment.distinct.pluck(:track)
+    ).compact.map(&:to_s).reject(&:blank?).uniq.sort
+    @unassigned_track_token = unassigned_track_token
+
+    @archived_surveys = Survey.archived.includes(:categories, :survey_assignments, :creator).order(updated_at: :desc)
     @recent_logs = SurveyChangeLog.recent.includes(:survey, :admin).limit(12)
   end
 
@@ -198,5 +250,9 @@ class Admin::SurveysController < Admin::BaseController
     diffs << "Category/question structure updated" if before_counts != after_counts
 
     diffs.present? ? diffs.join("; ") : "No structural changes detected"
+  end
+
+  def unassigned_track_token
+    "__unassigned"
   end
 end

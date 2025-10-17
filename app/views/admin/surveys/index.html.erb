@@ -1,4 +1,4 @@
-<main class="mx-auto max-w-6xl space-y-12 px-4 py-10 sm:px-6 lg:px-8">
+<main class="w-full space-y-12 px-4 py-10 sm:px-6 lg:px-8">
   <% primary_button_classes = "inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500" %>
   <% secondary_button_classes = "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" %>
   <% neutral_button_classes = "inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" %>
@@ -6,10 +6,10 @@
   <% pill_classes = "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600" %>
   <% card_classes = "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" %>
 
-  <section class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+  <section class="flex w-full flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
     <div class="space-y-2">
       <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Survey Builder</h1>
-      <p class="max-w-xl text-sm text-slate-600">Launch new advisor surveys, monitor what is live, and review the audit trail of recent changes.</p>
+      <p class="text-sm text-slate-600">Launch new advisor surveys, monitor what is live, and review the audit trail of recent changes.</p>
     </div>
     <div class="flex flex-wrap gap-3">
       <% if defined?(admin_survey_change_logs_path) %>
@@ -19,78 +19,106 @@
     </div>
   </section>
 
-  <section class="space-y-6">
+  <section class="w-full space-y-6">
     <header class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-semibold text-slate-900">Active surveys</h2>
-        <p class="text-sm text-slate-600">Surveys currently visible to advisors. Archive a survey to remove it from assignment lists.</p>
+        <p class="text-sm text-slate-600">Search, filter, and sort active surveys currently visible to advisors.</p>
       </div>
       <% if @active_surveys.present? %>
         <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"><%= pluralize(@active_surveys.size, "active survey") %></span>
       <% end %>
     </header>
 
-    <% if @active_surveys.blank? %>
-      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-600">
-        No surveys are active right now. Create one to start collecting advisor responses.
-      </div>
-    <% else %>
-      <div class="grid gap-6 lg:grid-cols-2">
-        <% @active_surveys.each do |survey| %>
-          <article class="<%= card_classes %>">
-            <div class="flex flex-col gap-4">
-              <header class="flex flex-col gap-2">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 class="text-lg font-semibold text-slate-900"><%= survey.title %></h3>
-                    <p class="text-sm text-slate-600"><%= survey.description.presence || "No description provided." %></p>
-                  </div>
-                  <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Live</span>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span>Semester: <strong class="font-medium text-slate-700"><%= survey.semester.presence || "Unscheduled" %></strong></span>
-                  <span aria-hidden="true">•</span>
-                  <span>Updated <%= time_ago_in_words(survey.updated_at) %> ago</span>
-                </div>
-              </header>
-
-              <% tracks = survey.track_list %>
-              <% if tracks.present? %>
-                <div class="flex flex-wrap gap-2">
-                  <% tracks.each do |track| %>
-                    <span class="<%= pill_classes %>"><%= track %></span>
-                  <% end %>
-                </div>
-              <% else %>
-                <div class="text-xs font-medium text-amber-600">No tracks assigned. Advisors will not see this survey.</div>
+  <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
+        <%= form_with url: admin_surveys_path, method: :get, local: true, class: "flex w-full flex-col gap-3 lg:flex-row lg:items-center" do %>
+          <div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
+            <div class="relative flex-1">
+              <%= hidden_field_tag :sort, @sort_column %>
+              <%= hidden_field_tag :direction, @sort_direction %>
+              <%= text_field_tag :q, @search_query, placeholder: "Search by title, semester, or description", class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-16 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+              <% if @search_query.present? %>
+                <button type="submit" name="q" value="" class="absolute inset-y-0 right-3 flex items-center text-xs text-slate-400 hover:text-slate-600">Clear</button>
               <% end %>
-
-              <div class="grid grid-cols-2 gap-4 text-xs text-slate-500">
-                <div class="rounded-lg bg-slate-50 px-3 py-2">
-                  <strong class="block text-sm font-semibold text-slate-700"><%= survey.categories.size %></strong>
-                  Categories
-                </div>
-                <div class="rounded-lg bg-slate-50 px-3 py-2">
-                  <% question_count = survey.categories.sum { |c| c.questions.size } %>
-                  <strong class="block text-sm font-semibold text-slate-700"><%= question_count %></strong>
-                  Questions
-                </div>
-              </div>
-
-              <div class="flex flex-wrap gap-3">
-                <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
-                <%= link_to "Edit", edit_admin_survey_path(survey), class: primary_button_classes %>
-                <%= button_to "Archive", archive_admin_survey_path(survey), method: :post, data: { turbo_confirm: "Archive '#{survey.title}' and remove it from advisors?" }, class: secondary_button_classes %>
-                <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: danger_button_classes %>
-              </div>
             </div>
-          </article>
+            <div class="flex items-center gap-2 lg:w-auto">
+              <%= select_tag :track,
+                             options_for_select([
+                               ["All tracks", ""],
+                               ["Unassigned", @unassigned_track_token]
+                             ] + @track_filter_options.map { |track| [track, track] }, @selected_track),
+                             class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 lg:w-56" %>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <%= submit_tag "Apply", class: tailwind_button_classes(:primary) %>
+            <% if @search_query.present? || @selected_track.present? %>
+              <%= link_to "Reset", admin_surveys_path(sort: @sort_column, direction: @sort_direction), class: tailwind_button_classes(:subtle) %>
+            <% end %>
+          </div>
         <% end %>
       </div>
-    <% end %>
+
+      <% if @active_surveys.blank? %>
+        <div class="p-6 text-center text-sm text-slate-500">No surveys match the current search or filter criteria.</div>
+      <% else %>
+        <div class="w-full overflow-x-auto">
+          <table class="min-w-full w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Title", "title") %></th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Semester", "semester") %></th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Tracks</th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Categories", "category_count") %></th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Questions", "question_count") %></th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Updated", "updated_at") %></th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <% @active_surveys.each do |survey| %>
+                <% category_count = survey.respond_to?(:category_count) ? survey.category_count.to_i : survey.categories.size %>
+                <% question_count = survey.respond_to?(:question_count) ? survey.question_count.to_i : survey.questions.size %>
+                <% tracks = survey.track_list %>
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3 align-top">
+                    <div class="font-semibold text-slate-900"><%= survey.title %></div>
+                    <div class="mt-1 text-xs text-slate-500"><%= survey.description.presence || "No description provided." %></div>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= survey.semester.presence || "Unscheduled" %></td>
+                  <td class="px-4 py-3 align-top">
+                    <% if tracks.present? %>
+                      <div class="flex flex-wrap gap-1">
+                        <% tracks.each do |track| %>
+                          <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"><%= track %></span>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <span class="text-xs font-medium text-amber-600">Unassigned</span>
+                    <% end %>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= category_count %></td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= question_count %></td>
+                  <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
+                  <td class="px-4 py-3 align-top">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
+                      <%= link_to "Edit", edit_admin_survey_path(survey), class: neutral_button_classes %>
+                      <%= button_to "Archive", archive_admin_survey_path(survey), method: :patch, data: { turbo_confirm: "Archive '#{survey.title}' and remove it from advisors?" }, class: secondary_button_classes %>
+                      <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: danger_button_classes %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
   </section>
 
-  <section class="space-y-6">
+  <section class="w-full space-y-6">
     <header class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-semibold text-slate-900">Archived surveys</h2>
@@ -104,7 +132,7 @@
     <% if @archived_surveys.blank? %>
       <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">No archived surveys yet.</div>
     <% else %>
-      <div class="grid gap-4">
+  <div class="grid w-full gap-4">
         <% @archived_surveys.each do |survey| %>
           <article class="<%= card_classes %>">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -121,7 +149,7 @@
               </div>
               <div class="flex flex-wrap gap-3">
                 <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
-                <%= button_to "Activate", activate_admin_survey_path(survey), method: :post, class: primary_button_classes %>
+                <%= button_to "Activate", activate_admin_survey_path(survey), method: :patch, class: primary_button_classes %>
                 <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: danger_button_classes %>
               </div>
             </div>
@@ -131,7 +159,7 @@
     <% end %>
   </section>
 
-  <section class="space-y-4">
+  <section class="w-full space-y-4">
     <header class="flex items-center justify-between">
       <div>
         <h2 class="text-xl font-semibold text-slate-900">Recent activity</h2>

@@ -1,7 +1,6 @@
 # Helpers shared across views for formatting flash messages, buttons, and audit
 # metadata.
 module ApplicationHelper
-module ApplicationHelper
   # Base Tailwind utility classes applied to flash messages.
   FLASH_BASE_CLASSES = "mb-4 flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 shadow-sm".freeze
   # Query string keys that should be preserved when building sortable headers.
@@ -76,6 +75,8 @@ module ApplicationHelper
       "border border-[#500000] text-[#500000] hover:bg-[#f9f2f2] focus-visible:outline-[#500000]"
     when :subtle
       "bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-slate-400"
+    when :danger
+      "bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600"
     else
       "bg-slate-700 text-white hover:bg-slate-800 focus-visible:outline-slate-700"
     end

@@ -219,10 +219,10 @@ surveys:
           - order: 3
             text: "Quantitative Methods for Health Services Delivery"
             type: "short_answer"
+            required: true
           - order: 4
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
-            required: true
             required: true
 
   - title: "Residential Survey"

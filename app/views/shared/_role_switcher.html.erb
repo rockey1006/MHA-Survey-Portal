@@ -12,14 +12,29 @@
     <p class="font-semibold text-slate-700">Role Switcher <span class="text-sm font-normal text-slate-500">(for testing)</span></p>
     <span class="text-xs uppercase tracking-wide text-slate-500">Testing helper</span>
   </div>
+  <%# Temporary admin-only debug info to aid Heroku troubleshooting - remove after verification %>
+  <% if current_user&.role_admin? %>
+    <div class="mb-3 rounded border bg-white p-2 text-xs text-slate-600">
+      <div><strong>DEBUG:</strong></div>
+      <div>ENV ENABLE_ROLE_SWITCH: <%= ENV['ENABLE_ROLE_SWITCH'].inspect %></div>
+      <div>Rails.env: <%= Rails.env %></div>
+      <div>allowed calculation: <%= (Rails.env.development? || Rails.env.test? || (current_user&.role_admin? && ENV['ENABLE_ROLE_SWITCH'] == '1')).inspect %></div>
+      <div>current_user.role: <%= current_user.role.inspect %></div>
+    </div>
+  <% end %>
   <div class="flex flex-wrap gap-2">
-    <% User.roles.each do |key, value| %>
-      <% if current_user.role == value %>
-        <span class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
-          <%= key.to_s.titleize %> (current)
-        </span>
-      <% else %>
-        <%= button_to "Switch to #{key.to_s.titleize}", switch_role_path(role: value), method: :post, data: { turbo: false }, class: tailwind_button_classes(:secondary, extra_classes: "text-xs") %>
+    <%# Offer a 'switch back' option when an original role is recorded in session %>
+    <% if session[:original_role].present? %>
+      <%= button_to "Switch back to #{session[:original_role].to_s.titleize}", switch_back_path, method: :post, data: { turbo: false }, class: tailwind_button_classes(:secondary, extra_classes: "text-xs") %>
+    <% else %>
+      <% User.roles.each do |key, value| %>
+        <% if current_user.role == value %>
+          <span class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+            <%= key.to_s.titleize %> (current)
+          </span>
+        <% else %>
+          <%= button_to "Switch to #{key.to_s.titleize}", switch_role_path(role: value), method: :post, data: { turbo: false }, class: tailwind_button_classes(:secondary, extra_classes: "text-xs") %>
+        <% end %>
       <% end %>
     <% end %>
   </div>

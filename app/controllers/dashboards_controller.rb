@@ -242,6 +242,8 @@ class DashboardsController < ApplicationController
     end
 
     begin
+      # Record original role so we can switch back during this session
+      session[:original_role] ||= current_user.role
       current_user.update!(role: new_role)
       flash[:notice] = "Role switched to #{new_role.titleize} for testing."
     rescue StandardError => e
@@ -250,6 +252,26 @@ class DashboardsController < ApplicationController
     end
 
     redirect_to dashboard_path_for_role(new_role)
+  end
+
+  # Restores the user's original role if one was recorded in the session.
+  # This lets admins switch back after impersonating another role during testing.
+  def switch_back
+    original = session.delete(:original_role)
+
+    unless original.present?
+      redirect_back fallback_location: dashboard_path, alert: "No recorded original role to switch back to." and return
+    end
+
+    begin
+      current_user.update!(role: original)
+      flash[:notice] = "Role restored to #{original.titleize}."
+    rescue StandardError => e
+      Rails.logger.error "Role switch-back failed for user #{current_user.id}: #{e.message}"
+      redirect_back fallback_location: dashboard_path, alert: "Unable to restore original role: #{e.message}" and return
+    end
+
+    redirect_to dashboard_path_for_role(original)
   end
 
   # Lists students and advisors for assignment management.

@@ -303,7 +303,12 @@ class DashboardsController < ApplicationController
   def ensure_role_switch_allowed
     return if Rails.env.development? || Rails.env.test?
 
-    redirect_to dashboard_path, alert: "Role switching is only available in development and test environments."
+    # Allow in production only when explicitly enabled and the current user is an admin
+    if ENV['ENABLE_ROLE_SWITCH'] == '1' && current_user&.role_admin?
+      return
+    end
+
+    redirect_to dashboard_path, alert: "Role switching is only available in development, test, or when enabled for admins via ENABLE_ROLE_SWITCH."
   end
 
   # Resolves the dashboard path for a given role value.

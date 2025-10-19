@@ -1,9 +1,15 @@
-<% allowed = Rails.env.development? || Rails.env.test? %>
+<%#
+  Role switcher visibility:
+  - always visible in development and test
+  - in production (or other non-dev/test envs) it is visible only when an
+    admin is signed in AND the environment flag ENABLE_ROLE_SWITCH is set to '1'
+%>
+<% allowed = Rails.env.development? || Rails.env.test? || (current_user&.role_admin? && ENV['ENABLE_ROLE_SWITCH'] == '1') %>
 <% return unless allowed %>
 
 <div class="mb-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600 shadow-inner">
   <div class="mb-3 flex items-center justify-between">
-    <p class="font-semibold text-slate-700">Role Switcher (dev/test only)</p>
+    <p class="font-semibold text-slate-700">Role Switcher <span class="text-sm font-normal text-slate-500">(for testing)</span></p>
     <span class="text-xs uppercase tracking-wide text-slate-500">Testing helper</span>
   </div>
   <div class="flex flex-wrap gap-2">

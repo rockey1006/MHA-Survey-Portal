@@ -7,6 +7,6 @@ class QuestionAdditionalTest < ActiveSupport::TestCase
     options = q.answer_options_list.map(&:strip).map(&:downcase)
     assert_equal %w[yes no], options
     # The controller logic treats yes/no only options as not required
-    assert !(options == %w[yes no] || options == %w[no yes]) == false
+    assert options == %w[yes no] || options == %w[no yes]
   end
 end

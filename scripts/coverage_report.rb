@@ -19,7 +19,7 @@ end
 rows.sort_by! { |r| r[0] }
 puts "pct   total covered  file"
 rows.each do |pct, total, covered, file|
-  puts "%5.2f%% %5d %7d  %s" % [pct, total, covered, file]
+  puts "%5.2f%% %5d %7d  %s" % [ pct, total, covered, file ]
 end
 
 # Print a short summary

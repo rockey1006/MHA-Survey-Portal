@@ -28,7 +28,7 @@ require "test_helper"
 class SurveyResponseTest < ActiveSupport::TestCase
   test "build creates a SurveyResponse and associates records" do
     survey = surveys(:fall_2025)
-    student = students(:one) rescue Student.first
+  student = students(:student)
     sr = SurveyResponse.build(student: student, survey: survey)
     # SurveyResponse is a PORO (ActiveModel), not persisted ActiveRecord
     assert_instance_of SurveyResponse, sr

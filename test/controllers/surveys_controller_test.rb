@@ -3,7 +3,7 @@ require "test_helper"
 class SurveysControllerTest < ActionDispatch::IntegrationTest
   setup do
     @student_user = users(:student)
-    @student = students(:one) || Student.first
+    @student = students(:student) || Student.first
     @survey = surveys(:fall_2025)
   end
 
@@ -31,10 +31,10 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       answers[q.id.to_s] = "Sample answer #{q.id}"
     end
     post submit_survey_path(@survey), params: { answers: answers }
-  # SurveyResponse.build returns a PORO; ensure redirect goes to a survey_response id path
-  assert response.redirect?
-  location = response.location || headers["Location"]
-  assert_match %r{/survey_responses/\d+-\d+}, location
+    # SurveyResponse.build returns a PORO; ensure redirect goes to a survey_response id path
+    assert response.redirect?
+    location = response.location || headers["Location"]
+    assert_match %r{/survey_responses/\d+-\d+}, location
     follow_redirect!
     assert_match /Survey submitted successfully!/, response.body
   end

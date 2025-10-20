@@ -56,17 +56,9 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
   setup do
     @admin = users(:admin)
     @student_user = users(:student)
-    @survey_response = survey_responses(:one) rescue nil
-    # If fixture missing, build a minimal SurveyResponse for token tests
-    unless @survey_response
-      survey = surveys(:fall_2025)
-      student = begin
-        students(:one)
-      rescue ActiveRecord::RecordNotFound
-        nil
-      end
-      @survey_response = SurveyResponse.build(student: student || Student.first, survey: survey)
-    end
+    survey = surveys(:fall_2025)
+    student = students(:student) || Student.first
+    @survey_response = SurveyResponse.build(student: student, survey: survey)
   end
 
   test "download returns 503 when WickedPdf missing" do

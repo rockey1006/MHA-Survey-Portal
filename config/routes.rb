@@ -70,8 +70,11 @@ Rails.application.routes.draw do
 
   namespace :advisors do
     resources :surveys, only: %i[index show] do
-      post :assign, on: :member
+      post   :assign,     on: :member
+      post   :assign_all, on: :member
+      delete :unassign,   on: :member   
     end
+    resources :students, only: %i[show update]
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

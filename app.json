@@ -2,7 +2,7 @@
   "name": "Health Review App",
   "description": "Temporary Heroku app for PR previews of the Health project.",
   "scripts": {
-    "postdeploy": "bundle exec rails db:prepare db:seed"
+    "postdeploy": "bundle exec rails db:migrate db:seed"
   },
   "env": {
     "RAILS_ENV": {
@@ -18,5 +18,15 @@
       "plan": "heroku-postgresql:mini",
       "as": "DATABASE"
     }
-  ]
+  ],
+  "environments": {
+    "test": {
+      "env": {
+        "RAILS_ENV": "test",
+        "RAILS_MASTER_KEY": {
+          "required": false
+        }
+      }
+    }
+  }
 }

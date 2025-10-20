@@ -55,8 +55,8 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
   test "completion_date returns updated_at from responses" do
     student = students(:student)
     survey = surveys(:fall_2025)
-  q1 = survey.questions[0]
-  q2 = survey.questions[1] || Question.create!(category: survey.categories.first, question_text: "Temp", question_order: 999, question_type: "short_answer", is_required: false)
+    q1 = survey.questions[0]
+    q2 = survey.questions[1] || Question.create!(category: survey.categories.first, question_text: "Temp", question_order: 999, question_type: "short_answer", is_required: false)
   StudentQuestion.create!(student_id: student.student_id, question: q1, response_value: "X", updated_at: 2.days.ago)
   StudentQuestion.create!(student_id: student.student_id, question: q2, response_value: "Y", updated_at: 1.day.ago)
     sr = SurveyResponse.new(student: student, survey: survey)

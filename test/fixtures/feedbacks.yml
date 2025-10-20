@@ -1,0 +1,9 @@
+advisor_feedback:
+  student: student
+  advisor: advisor
+  category: clinical_skills
+  survey: fall_2025
+  average_score: 4.5
+  comments: Excellent progress
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

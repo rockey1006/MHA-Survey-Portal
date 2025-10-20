@@ -1,0 +1,15 @@
+create_entry:
+  survey: fall_2025
+  admin: admin
+  action: create
+  description: Initial creation
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+update_entry:
+  survey: spring_2025
+  admin: admin
+  action: update
+  description: Edited details
+  created_at: <%= 1.day.ago %>
+  updated_at: <%= 1.day.ago %>

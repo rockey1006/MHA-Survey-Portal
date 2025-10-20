@@ -12,8 +12,13 @@
   <% end %>
 
   <div>
-    <%= form.label :advisor_id, style: "display: block" %>
-    <%= form.number_field :advisor_id %>
+    <%= form.label :student_id, "Student", style: "display: block" %>
+    <%= form.collection_select :student_id, Student.order(:student_id), :student_id, :full_name, include_blank: true %>
+  </div>
+
+  <div>
+    <%= form.label :advisor_id, "Advisor", style: "display: block" %>
+    <%= form.collection_select :advisor_id, Advisor.order(:advisor_id), :advisor_id, :display_name, include_blank: true %>
   </div>
 
   <div>
@@ -22,13 +27,13 @@
   </div>
 
   <div>
-    <%= form.label :surveyresponse_id, "Survey Response", style: "display: block" %>
-    <%= form.number_field :surveyresponse_id %>
+    <%= form.label :survey_id, "Survey", style: "display: block" %>
+    <%= form.collection_select :survey_id, Survey.order(:title), :id, :title, include_blank: true %>
   </div>
 
   <div>
-    <%= form.label :score, style: "display: block" %>
-    <%= form.number_field :score %>
+    <%= form.label :average_score, style: "display: block" %>
+    <%= form.number_field :average_score, step: 0.1 %>
   </div>
 
   <div>

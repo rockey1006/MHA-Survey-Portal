@@ -252,8 +252,6 @@ class DashboardsController < ApplicationController
     redirect_to dashboard_path_for_role(new_role)
   end
 
-  # switch_back removed: switching now freely allowed between roles when enabled via ENV
-
   # Lists students and advisors for assignment management.
   #
   # @return [void]
@@ -284,8 +282,10 @@ class DashboardsController < ApplicationController
 
     if current_user.role_student? && current_student.nil?
       current_user.create_student_profile unless current_user.student_profile
+      @current_student = current_user.student_profile
     elsif current_user.role_advisor? && current_advisor_profile.nil?
       current_user.create_advisor_profile unless current_user.advisor_profile
+      @current_advisor = current_user.advisor_profile
     end
   end
 

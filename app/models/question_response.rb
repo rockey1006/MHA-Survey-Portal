@@ -5,6 +5,6 @@ class QuestionResponse < StudentQuestion
 
   # @return [Survey, nil] the first survey associated with this response
   def survey
-    surveys.first
+    question&.category&.survey
   end
 end

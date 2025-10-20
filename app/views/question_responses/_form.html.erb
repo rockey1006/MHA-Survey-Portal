@@ -12,18 +12,18 @@
   <% end %>
 
   <div>
-    <%= form.label :questionresponse_id, style: "display: block" %>
-    <%= form.number_field :questionresponse_id %>
+    <%= form.label :student_id, "Student", style: "display: block" %>
+    <%= form.collection_select :student_id, Student.order(:student_id), :student_id, :full_name, include_blank: true %>
   </div>
 
   <div>
-    <%= form.label :competencyresponse_id, style: "display: block" %>
-    <%= form.number_field :competencyresponse_id %>
+    <%= form.label :advisor_id, "Advisor", style: "display: block" %>
+    <%= form.collection_select :advisor_id, Advisor.order(:advisor_id), :advisor_id, :display_name, include_blank: true %>
   </div>
 
   <div>
     <%= form.label :question_id, style: "display: block" %>
-    <%= form.number_field :question_id %>
+    <%= form.collection_select :question_id, Question.order(:question_order), :id, :question_text, include_blank: true %>
   </div>
 
   <div>

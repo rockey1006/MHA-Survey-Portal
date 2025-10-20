@@ -51,3 +51,20 @@ class StudentQuestionTest < ActiveSupport::TestCase
     assert sq.valid?
   end
 end
+
+class QuestionResponseTest < ActiveSupport::TestCase
+  setup do
+    @student = students(:student)
+    @question = questions(:fall_q1)
+  end
+
+  test "survey returns associated survey" do
+    response = QuestionResponse.new(student: @student, question: @question)
+    assert_equal @question.category.survey, response.survey
+  end
+
+  test "survey returns nil without question" do
+    response = QuestionResponse.new
+    assert_nil response.survey
+  end
+end

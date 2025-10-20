@@ -33,15 +33,22 @@
                   <td class="survey-meta-cell"><%= question.question_order %></td>
                   <td class="survey-title"><%= question.question %></td>
                   <td class="survey-meta-cell"><%= question.question_type.humanize %></td>
+                  <% category = question.category %>
+                  <% survey = category&.survey %>
                   <td class="survey-meta-cell">
-                    <% names = question.categories.map(&:name).sort %>
-                    <% if names.present? %>
-                      <%= safe_join(names.map { |name| content_tag(:span, name, class: "meta-chip") }, " ") %>
+                    <% if category.present? %>
+                      <span class="meta-chip"><%= category.name %></span>
                     <% else %>
-                      <span class="meta-chip">None</span>
+                      <span class="meta-chip">Unassigned</span>
                     <% end %>
                   </td>
-                  <td class="survey-meta-cell"><%= question.surveys.count %></td>
+                  <td class="survey-meta-cell">
+                    <% if survey.present? %>
+                      <span class="meta-chip"><%= survey.title %></span>
+                    <% else %>
+                      <span class="meta-chip">Unassigned</span>
+                    <% end %>
+                  </td>
                   <td class="survey-table-actions">
                     <%= link_to "Edit", edit_admin_question_path(question), class: "btn btn-secondary" %>
                     <%= link_to "Delete", admin_question_path(question),

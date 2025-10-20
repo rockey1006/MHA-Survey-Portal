@@ -82,6 +82,6 @@ class QuestionResponsesController < ApplicationController
   #
   # @return [ActionController::Parameters]
   def question_response_params
-    params.require(:question_response).permit(:surveyresponse_id, :question_id, :answer)
+    params.require(:question_response).permit(:student_id, :advisor_id, :question_id, :answer)
   end
 end

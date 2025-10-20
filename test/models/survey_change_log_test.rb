@@ -1,15 +1,46 @@
 require "test_helper"
 
 class SurveyChangeLogTest < ActiveSupport::TestCase
-  test "change log records action and admin" do
-    scl = SurveyChangeLog.new(action: "create", admin: users(:admin), survey: surveys(:fall_2025))
-    assert_equal "create", scl.action
-    assert_equal users(:admin), scl.admin
+  test "valid with allowed action" do
+    log = SurveyChangeLog.new(
+      survey: surveys(:fall_2025),
+      admin: users(:admin),
+      action: "create",
+      description: "Created survey"
+    )
+
+    assert log.valid?, log.errors.full_messages.to_sentence
   end
 
-  test "to_s (if present) or attributes reflect change" do
-    scl = SurveyChangeLog.new(action: "update", admin: users(:admin), survey: surveys(:fall_2025))
-    assert_equal "update", scl.action
-    assert_equal users(:admin), scl.admin
+  test "invalid with unsupported action" do
+    log = SurveyChangeLog.new(
+      survey: surveys(:fall_2025),
+      admin: users(:admin),
+      action: "unexpected"
+    )
+
+    refute log.valid?
+    assert_includes log.errors[:action], "is not included in the list"
+  end
+
+  test "recent scope orders newest first" do
+    SurveyChangeLog.delete_all
+
+    older = SurveyChangeLog.create!(
+      survey: surveys(:fall_2025),
+      admin: users(:admin),
+      action: "update",
+      created_at: 2.days.ago,
+      updated_at: 2.days.ago
+    )
+    newer = SurveyChangeLog.create!(
+      survey: surveys(:fall_2025),
+      admin: users(:admin),
+      action: "preview",
+      created_at: 1.day.ago,
+      updated_at: 1.day.ago
+    )
+
+    assert_equal [ newer, older ], SurveyChangeLog.recent.limit(2).to_a
   end
 end

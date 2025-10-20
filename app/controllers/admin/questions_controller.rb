@@ -10,7 +10,7 @@ class Admin::QuestionsController < Admin::BaseController
   #
   # @return [void]
   def index
-    @questions = Question.includes(:categories).ordered
+  @questions = Question.includes(category: :survey).ordered
   end
 
   # Presents a form for creating a new question, pre-populating sensible
@@ -80,13 +80,27 @@ class Admin::QuestionsController < Admin::BaseController
   #
   # @return [ActionController::Parameters] the permitted parameter hash
   def question_params
-    params.require(:question).permit(
+    permitted = params.require(:question).permit(
       :question,
       :question_type,
       :question_order,
       :answer_options,
+      :category_id,
       category_ids: []
     )
+
+    # Support legacy multi-select params by coalescing the first selected value
+    # into the single category_id attribute used by the model.
+    permitted[:category_id] = permitted[:category_id].presence
+
+    if permitted[:category_id].blank? && permitted.key?(:category_ids)
+      first_selected_id = Array(permitted.delete(:category_ids)).map(&:presence).compact.first
+      permitted[:category_id] = first_selected_id if first_selected_id.present?
+    else
+      permitted.delete(:category_ids)
+    end
+
+    permitted.compact
   end
 
   # @return [Integer] the order value that will place a question at the end

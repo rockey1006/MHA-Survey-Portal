@@ -1,42 +1,33 @@
 require "test_helper"
 
-class DashboardsControllerTest < ActionController::TestCase
-  include Devise::Test::ControllerHelpers
-
-  tests DashboardsController
-
-  setup do
-    @user = users(:student)
-    sign_in @user
-  end
-
-  test "switch_role blocked in production-like env when disabled" do
-    # simulate production by setting Rails.env stub and env var off
-    begin
-      Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
-        ENV["ENABLE_ROLE_SWITCH"] = nil
-        post :switch_role, params: { role: "advisor" }
-        assert_redirected_to dashboard_path
-      end
-    rescue => e
-      # fallback to asserting redirect when ENV not set
-      ENV["ENABLE_ROLE_SWITCH"] = nil
-      post :switch_role, params: { role: "advisor" }
-      assert_redirected_to dashboard_path
-    end
-  end
-
-  test "switch_role accepts invalid role gracefully" do
-    post :switch_role, params: { role: "invalid-role" }
-    assert_redirected_to dashboard_path
-  end
-end
-
-class DashboardsIntegrationTest < ActionDispatch::IntegrationTest
+class DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @admin = users(:admin)
     @student = users(:student)
     @advisor = users(:advisor)
+    @other_student = users(:other_student)
+  end
+
+  test "switch_role blocked in production when disabled" do
+    sign_in @student
+
+    Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+      ENV["ENABLE_ROLE_SWITCH"] = nil
+      post switch_role_path, params: { role: "advisor" }
+      assert_redirected_to dashboard_path
+      follow_redirect!
+      assert_match "Role switching is only available", flash[:alert]
+    end
+  ensure
+    ENV.delete("ENABLE_ROLE_SWITCH")
+  end
+
+  test "switch_role rejects invalid role" do
+    sign_in @student
+    post switch_role_path, params: { role: "invalid-role" }
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match "Unrecognized role selection.", flash[:alert]
   end
 
   test "show redirects based on role" do
@@ -55,42 +46,121 @@ class DashboardsIntegrationTest < ActionDispatch::IntegrationTest
 
   test "switch_role updates user role when allowed" do
     sign_in @admin
-    # By default role switching allowed in test env
     post switch_role_path, params: { role: "student" }
     assert_redirected_to student_dashboard_path
     @admin.reload
     assert_equal "student", @admin.role
+  ensure
+    @admin.update!(role: "admin")
   end
 
-  test "switch_role rejects invalid role" do
+  test "manage_members requires admin" do
     sign_in @student
-    post switch_role_path, params: { role: "bogus" }
+    get manage_members_path
     assert_redirected_to dashboard_path
     follow_redirect!
-    # The controller redirects with an alert flash when role is invalid.
-    assert_match /Unrecognized role selection|only available/, flash[:alert].to_s
+    assert_match "Access denied", flash[:alert]
   end
 
-  test "manage_members requires admin and lists users" do
+  test "manage_members lists users for admin" do
     sign_in @admin
     get manage_members_path
     assert_response :success
-    assert_select "table" if @response.body.present?
+  assert_includes response.body, @student.email
   end
 
-  test "update_roles handles invalid submissions and success" do
+  test "update_roles handles empty submission" do
     sign_in @admin
-    # Submitting empty updates redirects with alert
     patch update_roles_path, params: { role_updates: {} }
     assert_redirected_to manage_members_path
     follow_redirect!
-    assert flash[:alert].present? or flash[:notice].present?
+    assert_match "No role changes were submitted", flash[:alert]
+  end
 
-  # Now submit a valid update for another user
-  user = users(:other_student) || users(:student)
-    patch update_roles_path, params: { role_updates: { user.id => "advisor" } }
+  test "update_roles processes successes and failures" do
+    sign_in @admin
+    payload = {
+      @admin.id => "student", # cannot change own role
+      999999 => "advisor",    # user missing
+      @student.id => "invalid", # invalid role
+      @other_student.id => "advisor" # valid update
+    }
+
+    patch update_roles_path, params: { role_updates: payload }
     assert_redirected_to manage_members_path
     follow_redirect!
-    assert flash[:notice].present?
+  assert_match "Updated", flash[:notice]
+  assert_match "cannot change your own role", flash[:notice]
+    assert_equal "advisor", @other_student.reload.role
+  ensure
+    @other_student.update!(role: "student")
+  end
+
+  test "debug_users returns expected json" do
+    sign_in @admin
+    get debug_users_path
+    assert_response :success
+
+    payload = JSON.parse(response.body)
+    assert payload.key?("users")
+    assert payload.key?("role_counts")
+  end
+
+  test "manage_students lists advisees for advisor" do
+    sign_in @advisor
+    get manage_students_path
+    assert_response :success
+    assert_includes response.body, students(:student).user.name
+  end
+
+  test "manage_students for admin shows assignment controls" do
+    sign_in @admin
+    get manage_students_path
+    assert_response :success
+  assert_includes response.body, "Advisor"
+  end
+
+  test "update_student_advisor updates assignment" do
+    sign_in @admin
+    student = students(:student)
+    patch update_student_advisor_path(student), params: { student: { advisor_id: advisors(:other_advisor).advisor_id } }
+    assert_redirected_to manage_students_path
+    assert_match "Advisor updated successfully", flash[:notice]
+    assert_equal advisors(:other_advisor).advisor_id, student.reload.advisor_id
+  ensure
+    student.update!(advisor: advisors(:advisor))
+  end
+
+  test "student dashboard recreates missing profile" do
+    user = users(:student)
+    Student.where(student_id: user.id).delete_all
+    user.reload
+
+    sign_in user
+
+    assert_difference -> { Student.where(student_id: user.id).count }, 1 do
+      get student_dashboard_path
+    end
+
+    assert_response :success
+  end
+
+  test "advisor dashboard handles admin impersonation" do
+    Admin.find_or_create_by!(admin_id: @admin.id)
+    @admin.update!(role: "advisor")
+    sign_in @admin
+
+    get advisor_dashboard_path
+    assert_response :success
+  assert_includes response.body, "Advisor Dashboard"
+  ensure
+    @admin.update!(role: "admin")
+  end
+
+  test "admin dashboard aggregates metrics" do
+    sign_in @admin
+    get admin_dashboard_path
+    assert_response :success
+  assert_includes response.body, "Admin Dashboard"
   end
 end

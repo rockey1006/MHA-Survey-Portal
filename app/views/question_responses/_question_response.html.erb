@@ -1,17 +1,17 @@
 <div id="<%= dom_id question_response %>">
   <p>
-    <strong>Questionresponse:</strong>
-    <%= question_response.questionresponse_id %>
+    <strong>Student:</strong>
+    <%= question_response.student&.full_name || question_response.student_id %>
   </p>
 
   <p>
-    <strong>Competencyresponse:</strong>
-    <%= question_response.competencyresponse_id %>
+    <strong>Advisor:</strong>
+    <%= question_response.advisor&.display_name || question_response.advisor_id %>
   </p>
 
   <p>
     <strong>Question:</strong>
-    <%= question_response.question_id %>
+    <%= question_response.question&.question_text || question_response.question_id %>
   </p>
 
   <p>

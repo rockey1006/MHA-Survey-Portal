@@ -39,6 +39,8 @@ class ActiveSupport::TestCase
            :students,
            :surveys,
            :survey_assignments,
+           :feedbacks,
+           :survey_change_logs,
            :users
 end
 

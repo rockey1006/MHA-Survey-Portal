@@ -48,12 +48,14 @@ Rails.application.routes.draw do
         patch :activate
       end
     end
+    resources :questions
     resources :survey_change_logs, only: :index
   end
 
   resources :categories
   resources :feedbacks
   resources :questions
+  resources :question_responses
 
   resources :students, only: %i[index update]
   patch "students/:id/update_advisor", to: "dashboards#update_student_advisor", as: :update_student_advisor

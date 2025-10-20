@@ -83,6 +83,13 @@ class FeedbacksController < ApplicationController
   #
   # @return [ActionController::Parameters]
   def feedback_params
-    params.require(:feedback).permit(:advisor_id, :category_id, :surveyresponse_id, :score, :comments)
+    params.require(:feedback).permit(
+      :student_id,
+      :advisor_id,
+      :category_id,
+      :survey_id,
+      :average_score,
+      :comments
+    )
   end
 end

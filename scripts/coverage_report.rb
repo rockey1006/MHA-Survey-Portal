@@ -26,4 +26,4 @@ end
 total_lines = rows.map { |r| r[1] }.sum
 total_covered = rows.map { |r| r[2] }.sum
 overall = total_lines == 0 ? 100.0 : (total_covered.to_f / total_lines * 100)
-puts "\nOverall coverage: #{sprintf('%.2f', overall)}% (#{total_covered} / #{total_lines})"
+puts "\nOverall coverage: #{'%.2f' % overall}% (#{total_covered} / #{total_lines})"

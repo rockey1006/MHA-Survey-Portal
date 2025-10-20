@@ -1,122 +1,170 @@
 <main class="flex justify-center px-4 py-8">
   <div class="w-full max-w-5xl space-y-8">
-  <header class="space-y-2">
-    <h1 class="text-3xl font-semibold text-[#500000]">Student Records</h1>
-    <p class="text-sm text-slate-600">Browse survey progress by semester for your assigned students.</p>
-  </header>
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold text-[#500000]">Student Records</h1>
+      <p class="text-sm text-slate-600">Browse survey progress by semester for your assigned students.</p>
+    </header>
 
-  <% if @students.blank? %>
-    <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-      <span class="text-4xl" aria-hidden="true">📭</span>
-      <p class="text-sm text-slate-600">No students were found for your account.</p>
-    </div>
-  <% elsif @student_records.blank? %>
-    <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-      <span class="text-4xl" aria-hidden="true">🗂️</span>
-      <p class="text-sm text-slate-600">No surveys have been scheduled yet for the selected students.</p>
-    </div>
-  <% else %>
-    <div class="space-y-6">
-      <% @student_records.each do |semester_block| %>
-        <details class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" open>
-          <summary class="flex cursor-pointer items-center justify-between gap-3 bg-slate-100 px-6 py-4 text-left text-slate-800">
-            <span class="text-lg font-semibold"><%= semester_block[:semester] %></span>
-            <span class="text-sm text-slate-500"><%= pluralize(semester_block[:surveys].size, "survey") %></span>
-          </summary>
+    <% if @students.blank? %>
+      <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+        <span class="text-4xl" aria-hidden="true">📭</span>
+        <p class="text-sm text-slate-600">No students were found for your account.</p>
+      </div>
+    <% elsif @student_records.blank? %>
+      <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+        <span class="text-4xl" aria-hidden="true">🗂️</span>
+        <p class="text-sm text-slate-600">No surveys have been scheduled yet for the selected students.</p>
+      </div>
+    <% else %>
+      <div class="space-y-6">
+        <% @student_records.each do |semester_block| %>
+          <details class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" open>
+            <summary class="flex cursor-pointer items-center justify-between gap-3 bg-slate-100 px-6 py-4 text-left text-slate-800">
+              <span class="text-lg font-semibold"><%= semester_block[:semester] %></span>
+              <span class="text-sm text-slate-500"><%= pluralize(semester_block[:surveys].size, "survey") %></span>
+            </summary>
 
-          <div class="space-y-4 px-6 py-5">
-            <% semester_block[:surveys].each do |survey_block| %>
-              <% survey = survey_block[:survey] %>
-              <details class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" open>
-                <summary class="flex cursor-pointer flex-col gap-1 bg-slate-100 px-5 py-4 text-slate-700 sm:flex-row sm:items-center sm:justify-between">
-                  <span class="text-base font-semibold text-slate-800"><%= survey.title %></span>
-                  <span class="text-sm text-slate-500">Assigned <%= l(survey.created_at.to_date, format: :long) rescue survey.created_at.to_s(:long) %></span>
-                </summary>
+            <div class="space-y-4 px-6 py-5">
+              <% semester_block[:surveys].each do |survey_block| %>
+                <% survey = survey_block[:survey] %>
 
-                <div class="overflow-x-auto">
-                  <table class="mx-auto w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      <tr>
-                        <th scope="col" class="px-4 py-3">#</th>
-                        <th scope="col" class="px-4 py-3">Student</th>
-                        <th scope="col" class="px-4 py-3">Advisor</th>
-                        <th scope="col" class="px-4 py-3">Track / Cohort</th>
-                        <th scope="col" class="px-4 py-3">Status</th>
-                        <th scope="col" class="px-4 py-3">Completion</th>
-                        <th scope="col" class="px-4 py-3 text-right">Survey</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200 bg-white">
-                      <% survey_block[:rows].each_with_index do |row, idx| %>
-                        <% student = row[:student] %>
-                        <% advisor = row[:advisor] %>
-                        <% status_text = row[:status] %>
-                        <% completion_date = row[:completed_at] %>
-                        <% survey_link_path = survey_path(row[:survey]) %>
-                        <% survey_link_label = status_text == "Completed" ? "Review" : "Open" %>
-                        <% survey_response = row[:survey_response] %>
-                        <% download_token = row[:download_token] %>
+                <% survey_track_key =
+                     if survey.respond_to?(:track) && survey.track.present?
+                       survey.track.to_s.downcase # e.g., "Residential" -> "residential"
+                     else
+                       t = survey.title.to_s.downcase
+                       if t.include?("executive")
+                         "executive"
+                       elsif t.include?("residential")
+                         "residential"
+                       else
+                         nil
+                       end
+                     end %>
 
-                        <tr class="transition hover:bg-slate-50">
-                          <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-[#500000]"><%= idx + 1 %></td>
-                          <td class="min-w-[14rem] px-4 py-3 text-sm text-slate-700">
-                            <div class="font-semibold text-slate-900"><%= student.user&.name || "Unknown Student" %></div>
-                            <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                              <% if student.user&.email.present? %>
-                                <span>Email: <%= student.user.email %></span>
-                              <% end %>
-                              <% if student.uin.present? %>
-                                <span>UIN: <%= student.uin %></span>
-                              <% end %>
-                            </div>
-                          </td>
-                          <td class="min-w-[12rem] px-4 py-3 text-sm text-slate-700">
-                            <% if advisor.present? %>
-                              <div class="font-semibold text-slate-900"><%= advisor.name %></div>
-                              <% if advisor.email.present? %>
-                                <div class="mt-1 text-xs text-slate-500"><%= advisor.email %></div>
-                              <% end %>
-                            <% else %>
-                              <div class="font-semibold text-rose-600">Unassigned</div>
-                            <% end %>
-                          </td>
-                          <td class="px-4 py-3 text-sm text-slate-700">
-                            <% if student.track.present? %>
-                              <div class="font-semibold text-slate-900"><%= student.track.titleize %></div>
-                            <% else %>
-                              <div class="font-semibold text-slate-400">Track unknown</div>
-                            <% end %>
-                            <div class="mt-1 text-xs text-slate-500">Cohort <%= student.created_at&.year || "—" %></div>
-                          </td>
-                          <td class="px-4 py-3 text-sm text-slate-700">
-                            <span class="<%= survey_status_badge_classes(status_text) %>"><%= status_text %></span>
-                          </td>
-                          <td class="px-4 py-3 text-sm text-slate-700">
-                            <% if completion_date.present? %>
-                              <span><%= l(completion_date, format: :long) rescue completion_date.to_s %></span>
-                            <% else %>
-                              <span class="text-slate-400">Not completed</span>
-                            <% end %>
-                          </td>
-                          <td class="px-4 py-3 text-right text-sm">
-                            <div class="flex flex-wrap justify-end gap-2">
-                              <%= link_to survey_link_label, survey_link_path, class: tailwind_button_classes(:secondary) %>
-                              <% if status_text == "Completed" %>
-                                <%= link_to "Download PDF", download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
-                              <% end %>
-                            </div>
-                          </td>
+                <% filtered_rows =
+                     if survey_track_key.present?
+                       survey_block[:rows].select do |r|
+                         r[:student].track.to_s.downcase == survey_track_key
+                       end
+                     else
+                       survey_block[:rows] # fallback: show all
+                     end %>
+
+                <details class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" open>
+                  <summary class="flex cursor-pointer flex-col gap-1 bg-slate-100 px-5 py-4 text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                    <span class="text-base font-semibold text-slate-800"><%= survey.title %></span>
+                    <span class="text-sm text-slate-500">Assigned <%= l(survey.created_at.to_date, format: :long) rescue survey.created_at.to_s(:long) %></span>
+                  </summary>
+
+                  <div class="overflow-x-auto">
+                    <table class="mx-auto w-full divide-y divide-slate-200 text-sm">
+                      <thead class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        <tr>
+                          <th scope="col" class="px-4 py-3">#</th>
+                          <th scope="col" class="px-4 py-3">Student</th>
+                          <th scope="col" class="px-4 py-3">Advisor</th>
+                          <th scope="col" class="px-4 py-3">Track / Cohort</th>
+                          <th scope="col" class="px-4 py-3">Status</th>
+                          <th scope="col" class="px-4 py-3">Completion</th>
+                          <th scope="col" class="px-4 py-3 text-right">Survey</th>
                         </tr>
-                      <% end %>
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            <% end %>
-          </div>
-        </details>
-      <% end %>
-    </div>
-  <% end %>
+                      </thead>
+
+                      <tbody class="divide-y divide-slate-200 bg-white">
+                        <% if filtered_rows.blank? %>
+                          <tr>
+                            <td colspan="7" class="px-4 py-6 text-center text-sm text-slate-500">
+                              No students currently in this track.
+                            </td>
+                          </tr>
+                        <% else %>
+                          <% filtered_rows.each_with_index do |row, idx| %>
+                            <% student         = row[:student] %>
+                            <% advisor         = row[:advisor] %>
+                            <% status_text     = row[:status] %>
+                            <% completion_date = row[:completed_at] %>
+                            <% survey_response = row[:survey_response] %>
+                            <% download_token  = row[:download_token] %>
+                            <% survey_link     = survey_path(row[:survey]) %>
+                            <% survey_label    = status_text == "Completed" ? "Review" : "Open" %>
+
+                            <tr class="transition hover:bg-slate-50">
+                              <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-[#500000]"><%= idx + 1 %></td>
+
+                              <td class="min-w-[14rem] px-4 py-3 text-sm text-slate-700">
+                                <div class="font-semibold text-slate-900"><%= student.user&.name || "Unknown Student" %></div>
+                                <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                                  <% if student.user&.email.present? %><span>Email: <%= student.user.email %></span><% end %>
+                                  <% if student.uin.present? %><span>UIN: <%= student.uin %></span><% end %>
+                                </div>
+                              </td>
+
+                              <td class="min-w-[12rem] px-4 py-3 text-sm text-slate-700">
+                                <% if advisor.present? %>
+                                  <div class="font-semibold text-slate-900"><%= advisor.name %></div>
+                                  <% if advisor.email.present? %>
+                                    <div class="mt-1 text-xs text-slate-500"><%= advisor.email %></div>
+                                  <% end %>
+                                <% else %>
+                                  <div class="font-semibold text-rose-600">Unassigned</div>
+                                <% end %>
+                              </td>
+
+                              <td class="px-4 py-3 text-sm text-slate-700">
+                                <% if student.track.present? %>
+                                  <div class="font-semibold text-slate-900"><%= student.track.titleize %></div>
+                                <% else %>
+                                  <div class="font-semibold text-slate-400">Track unknown</div>
+                                <% end %>
+                                <div class="mt-1 text-xs text-slate-500">Cohort <%= student.created_at&.year || "—" %></div>
+                              </td>
+
+                              <td class="px-4 py-3 text-sm text-slate-700">
+                                <div class="font-semibold text-slate-900">
+                                  <%= form_with url: advisors_student_path(student),
+                                                method: :patch,
+                                                class: "inline-block",
+                                                data: { turbo: true } do %>
+                                    <%= select_tag "student[track]",
+                                      options_for_select(
+                                        Student.tracks.keys.map { |k| [k.titleize, k] },
+                                        selected: student.track
+                                      ),
+                                      class: "rounded-md border border-slate-300 px-2 py-1",
+                                      onchange: "this.form.requestSubmit();" %>
+                                  <% end %>
+                                </div>
+                                <div class="mt-1 text-xs text-slate-500">Cohort <%= student.created_at&.year || "—" %></div>
+                              </td>
+
+                              <td class="px-4 py-3 text-sm text-slate-700">
+                                <span class="<%= survey_status_badge_classes(status_text) %>"><%= status_text %></span>
+                              </td>
+
+                              <td class="px-4 py-3 text-right text-sm">
+                                <div class="flex flex-wrap justify-end gap-2">
+                                  <%= link_to survey_label, survey_link, class: tailwind_button_classes(:secondary) %>
+                                  <% if status_text == "Completed" %>
+                                    <%= link_to "Download PDF",
+                                                download_survey_response_path(survey_response, token: download_token),
+                                                class: tailwind_button_classes(:primary),
+                                                target: "_blank", rel: "noopener noreferrer" %>
+                                  <% end %>
+                                </div>
+                              </td>
+                            </tr>
+                          <% end %>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              <% end %>
+            </div>
+          </details>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 </main>

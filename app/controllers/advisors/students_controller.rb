@@ -21,7 +21,11 @@ module Advisors
       end
 
       if @student.update(track: incoming)
-        timestamp = I18n.l(Time.zone.now, format: :long) rescue Time.zone.now.to_s(:long)
+        timestamp = begin
+          I18n.l(Time.zone.now, format: :long)
+        rescue I18n::MissingTranslationData
+          Time.zone.now.to_s(:long)
+        end
         redirect_to advisors_student_path(@student),
                     notice: %(Track changed to "#{@student.track.titleize}" at #{timestamp}.)
       else

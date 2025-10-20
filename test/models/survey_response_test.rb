@@ -22,23 +22,16 @@ class SurveyResponseTest < ActiveSupport::TestCase
     sr = SurveyResponse.new(student: student, survey: survey)
     assert_match /#{student.student_id}-#{survey.id}/, sr.id
   end
-end
-require "test_helper"
 
-class SurveyResponseTest < ActiveSupport::TestCase
   test "build creates a SurveyResponse and associates records" do
     survey = surveys(:fall_2025)
-  student = students(:student)
+    student = students(:student)
     sr = SurveyResponse.build(student: student, survey: survey)
     # SurveyResponse is a PORO (ActiveModel), not persisted ActiveRecord
     assert_instance_of SurveyResponse, sr
     assert_equal "#{student.student_id}-#{survey.id}", sr.id
     assert_equal "#{student.student_id}-#{survey.id}", sr.to_param
   end
-end
-require "test_helper"
-
-class SurveyResponseTest < ActiveSupport::TestCase
   setup do
     @student = students(:student)
     @advisor = advisors(:advisor)

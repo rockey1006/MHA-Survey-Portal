@@ -10,7 +10,12 @@ if ENV["SKIP_TAILWIND_BUILD"].blank? && !File.exist?(tailwind_build)
 end
 
 require_relative "../config/environment"
-Rails.application.load_seed if Rails.env.test?
+# Load seeds only when explicitly requested. Some test suites rely on fixtures or
+# create their own data; running seeds by default can cause primary key
+# collisions (sequences out of sync). Set ENV['LOAD_SEEDS']='true' to enable.
+if Rails.env.test? && ENV["LOAD_SEEDS"] == "true"
+  Rails.application.load_seed
+end
 require "rails/test_help"
 require "minitest/mock"
 

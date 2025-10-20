@@ -90,10 +90,8 @@
                                 with prefill=true so the advisor can update existing feedback. Otherwise
                                 open a fresh new feedback page. %>
                             <% has_feedback = Feedback.exists?(student_id: student.student_id, survey_id: survey.id) %>
-                            <% survey_label = status_text == "Completed" ? (has_feedback ? "View Feedback" : "Review") : "Open" %>
-                            <% if has_feedback && survey_response.present? %>
-                              <% survey_link = survey_response_path(survey_response) %>
-                            <% elsif has_feedback %>
+                            <% survey_label = status_text == "Completed" ? (has_feedback ? "Edit Feedback" : "Review") : "Open" %>
+                            <% if has_feedback %>
                               <% survey_link = new_feedback_path(survey_id: survey.id, student_id: student.id, prefill: true) %>
                             <% else %>
                               <% survey_link = new_feedback_path(survey_id: survey.id, student_id: student.id) %>

@@ -58,12 +58,12 @@ class TestRunner
     # Set test environment
     ENV['RAILS_ENV'] = 'test'
 
-  # Set database connection parameters for Docker PostgreSQL if not already set
-  # When running inside docker-compose the service provides correct PGHOST/PORT.
-  ENV['PGHOST'] ||= 'localhost'
-  ENV['PGPORT'] ||= '5433'
-  ENV['PGUSER'] ||= 'dev_user'
-  ENV['PGPASSWORD'] ||= 'dev_pass'
+    # Set database connection parameters for Docker PostgreSQL if not already set
+    # When running inside docker-compose the service provides correct PGHOST/PORT.
+    ENV['PGHOST'] ||= 'localhost'
+    ENV['PGPORT'] ||= '5433'
+    ENV['PGUSER'] ||= 'dev_user'
+    ENV['PGPASSWORD'] ||= 'dev_pass'
 
     puts "🔗 Database connection configured for Docker PostgreSQL (localhost:5433)"
 

@@ -144,13 +144,23 @@
                               </td>
 
                               <td class="px-4 py-3 text-right text-sm">
+                                <% can_open = (defined?(current_user) && current_user.respond_to?(:role_admin?) && current_user.role_admin?) || (defined?(current_advisor_profile) && student.advisor_id.present? && student.advisor_id == current_advisor_profile&.advisor_id) %>
                                 <div class="flex flex-wrap justify-end gap-2">
-                                  <%= link_to survey_label, survey_link, class: tailwind_button_classes(:secondary) %>
-                                  <% if status_text == "Completed" %>
-                                    <%= link_to "Download PDF",
-                                                download_survey_response_path(survey_response, token: download_token),
-                                                class: tailwind_button_classes(:primary),
-                                                target: "_blank", rel: "noopener noreferrer" %>
+                                  <% if can_open %>
+                                    <%= link_to survey_label, survey_link, class: tailwind_button_classes(:secondary) %>
+                                    <% if status_text == "Completed" && survey_response.present? %>
+                                      <%= link_to "Download PDF",
+                                                  download_survey_response_path(survey_response, token: download_token),
+                                                  class: tailwind_button_classes(:primary),
+                                                  target: "_blank", rel: "noopener noreferrer" %>
+                                    <% end %>
+                                  <% else %>
+                                    <span
+                                      class="<%= [tailwind_button_classes(:secondary), 'opacity-50 cursor-not-allowed pointer-events-none'].join(' ') %>"
+                                      aria-disabled="true"
+                                      title="Only the student's advisor can open this survey">
+                                      <%= survey_label %>
+                                    </span>
                                   <% end %>
                                 </div>
                               </td>

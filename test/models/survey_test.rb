@@ -13,10 +13,6 @@ class SurveyTest < ActiveSupport::TestCase
     ordered = survey.questions.ordered.to_a
     assert_kind_of Array, ordered
   end
-end
-require "test_helper"
-
-class SurveyTest < ActiveSupport::TestCase
   test "valid fixture" do
     assert surveys(:fall_2025).valid?
   end

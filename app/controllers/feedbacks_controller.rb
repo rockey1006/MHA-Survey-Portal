@@ -34,7 +34,7 @@ class FeedbacksController < ApplicationController
   @responses = StudentQuestion.where(student_id: @student.student_id, question_id: question_ids).includes(question: :category)
     # Build a SurveyResponse PORO so the view can render the same read-only
     # layout students see when viewing their responses.
-    @survey_response = SurveyResponse.build(student: @student, survey: @survey)
+    load_feedback_new_context
   end
 
   # Renders the edit form for existing feedback.
@@ -52,56 +52,102 @@ class FeedbacksController < ApplicationController
     # Support two modes:
     # 1) legacy single-feedback form (feedback_params present)
     # 2) advisor provides per-category ratings via params[:ratings]
-  if params[:ratings].present?
-      # ratings is expected to be a hash like { "<category_id>" => { "score" => "4", "comment" => "..." }, ... }
+    if params[:ratings].present?
+      # ratings is expected to be a hash like:
+      # { "<category_id>" => { "id" => "<feedback_id optional>", "average_score" => "4", "comments" => "..." }, ... }
       ratings = params.require(:ratings).permit!.to_h
 
-      scores = ratings.values.map { |h| h && h["score"].to_f }.compact.select { |s| s > 0 }
-      average = scores.any? ? (scores.sum / scores.size) : nil
+      Rails.logger.info "[FeedbacksController#create] received ratings keys=#{ratings.keys.inspect} payload_sample=#{ratings.values.first.inspect}"
 
-      # store the detailed per-category ratings in the comments column as JSON
-      details_json = ratings.to_json
+      batch_errors = {}
+      saved_feedbacks = []
 
-      # choose a valid category_id to satisfy DB non-null / FK constraints.
-      # Use the first category for this survey as the placeholder.
-      placeholder_category_id = @survey.categories.order(:id).first&.id || Category.order(:id).limit(1).pluck(:id).first
+      Feedback.transaction do
+        ratings.each do |cat_id_str, data|
+          cat_id = cat_id_str.to_i
+          attrs = data.to_h
 
+          # Skip empty inputs so we don't unintentionally erase existing feedback.
+          if attrs["average_score"].blank? && attrs["comments"].blank?
+            next
+          end
+
+          fb = if attrs["id"].present?
+                 Feedback.find_by(id: attrs["id"])
+               else
+                 Feedback.find_or_initialize_by(student_id: @student.student_id, survey_id: @survey.id, category_id: cat_id, advisor_id: @advisor&.advisor_id)
+               end
+
+          fb.average_score = attrs["average_score"].presence
+          fb.comments = attrs["comments"].presence
+          fb.survey_id = @survey.id
+          fb.student_id = @student.student_id
+          fb.advisor_id = @advisor&.advisor_id
+          fb.category_id = cat_id
+
+          unless fb.save
+            batch_errors[cat_id] = fb.errors.full_messages
+          else
+            saved_feedbacks << fb
+          end
+        end
+
+        if batch_errors.any?
+          raise ActiveRecord::Rollback
+        end
+      end
+
+      if batch_errors.any?
+        @batch_errors = batch_errors
+        @feedback = Feedback.new
+        load_feedback_new_context
+        respond_to do |format|
+          format.html { render :new, status: :unprocessable_entity }
+          format.json { render json: { errors: batch_errors }, status: :unprocessable_entity }
+        end
+        return
+      end
+
+      # all saved
+      @feedback = saved_feedbacks.first
+    elsif feedback_params[:category_id].present?
+      # Per-category save when the form posts category_id, average_score, and comments
       @feedback = Feedback.new(
         survey: @survey,
         student: @student,
         advisor: @advisor,
-        average_score: average,
-        comments: details_json,
-        category_id: placeholder_category_id
+        category_id: feedback_params[:category_id],
+        average_score: feedback_params[:average_score],
+        comments: feedback_params[:comments]
       )
     else
-      # Support a per-category save when the form posts category_id, average_score, and comments
-      if feedback_params[:category_id].present?
-        @feedback = Feedback.new(
-          survey: @survey,
-          student: @student,
-          advisor: @advisor,
-          category_id: feedback_params[:category_id],
-          average_score: feedback_params[:average_score],
-          comments: feedback_params[:comments]
-        )
-      else
-        @feedback = Feedback.new(feedback_params.merge(
-          survey: @survey,
-          student: @student,
-          advisor: @advisor,
-          category_id: @survey.category_id 
-        ))
+      # No supported input provided — render the new form with an explanatory error
+      @feedback = Feedback.new
+      @feedback.errors.add(:base, "No category or ratings provided")
+      respond_to do |format|
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: { error: "No category or ratings provided" }, status: :unprocessable_entity }
       end
+      return
     end
 
     
 
     respond_to do |format|
       if @feedback.save
-        format.html { redirect_to @feedback, notice: "Feedback was successfully created." }
-        format.json { render :show, status: :created, location: @feedback }
+        if params[:ratings].present?
+          # For batch saves, return to student_records so the advisor returns to the list
+          # after saving. The student_records page will show the new feedback under
+          # 'View Feedback'.
+          format.html { redirect_to student_records_path, notice: "Feedback saved." }
+          format.json { render json: @feedback, status: :created, location: @feedback }
+        else
+          # per-category save — same behavior: go back to the student list
+          format.html { redirect_to student_records_path, notice: "Category feedback saved." }
+          format.json { render json: @feedback, status: :created, location: @feedback }
+        end
       else
+        load_feedback_new_context
         format.html { render :new, status: :unprocessable_entity }
         format.json { render json: @feedback.errors, status: :unprocessable_entity }
       end
@@ -114,7 +160,12 @@ class FeedbacksController < ApplicationController
   def update
     respond_to do |format|
       if @feedback.update(feedback_params)
-        format.html { redirect_to @feedback, notice: "Feedback was successfully updated.", status: :see_other }
+        # If we have survey_id and student_id context, redirect back to the advisor feedback page
+        if feedback_params[:survey_id].present? && feedback_params[:student_id].present?
+          format.html { redirect_to new_feedback_path(survey_id: feedback_params[:survey_id], student_id: feedback_params[:student_id]), notice: "Feedback was successfully updated.", status: :see_other }
+        else
+          format.html { redirect_to @feedback, notice: "Feedback was successfully updated.", status: :see_other }
+        end
         format.json { render :show, status: :ok, location: @feedback }
       else
         format.html { render :edit, status: :unprocessable_entity }
@@ -147,7 +198,17 @@ class FeedbacksController < ApplicationController
   #
   # @return [ActionController::Parameters]
   def feedback_params
-    params.require(:feedback).permit(:advisor_id, :category_id, :surveyresponse_id, :score, :comments, :average_score)
+    params.require(:feedback).permit(:advisor_id, :category_id, :surveyresponse_id, :comments, :average_score)
+  end
+
+  def load_feedback_new_context
+    # Build PORO and related data the `new` view expects so re-rendering `new`
+    # preserves student responses and existing feedback state.
+    @survey_response = SurveyResponse.build(student: @student, survey: @survey)
+    question_ids = @survey.questions.select(:id)
+    @responses = StudentQuestion.where(student_id: @student.student_id, question_id: question_ids).includes(question: :category)
+    @existing_feedbacks = Feedback.where(student_id: @student.student_id, survey_id: @survey.id).includes(:category, :advisor)
+    @existing_feedbacks_by_category = @existing_feedbacks.index_by(&:category_id)
   end
 
   def set_survey_and_student

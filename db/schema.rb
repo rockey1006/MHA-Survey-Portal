@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_16_090000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_20_090001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -45,7 +45,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_16_090000) do
     t.index ["advisor_id"], name: "index_feedback_on_advisor_id"
     t.index ["category_id"], name: "index_feedback_on_category_id"
     t.index ["student_id"], name: "index_feedback_on_student_id"
-    t.index ["survey_id"], name: "index_feedback_on_survey_id", unique: true
+    t.index ["survey_id"], name: "index_feedback_on_survey_id"
   end
 
   create_table "notifications", force: :cascade do |t|

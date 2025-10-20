@@ -110,4 +110,79 @@
                         class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
     </div>
   <% end %>
+
+  <%# Advisor feedbacks for this student + survey. Support two storage shapes:
+      1) multiple Feedback rows (one per category), and
+      2) a single legacy Feedback whose `comments` is JSON with per-category data.
+  %>
+  <% feedbacks = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id).includes(:category, :advisor) %>
+  <% per_category_map = {} %>
+  <% legacy_map = {} %>
+  <% feedbacks.each do |fb| %>
+    <% if fb.category_id.present? %>
+      <% per_category_map[fb.category_id] = fb %>
+      <%# Try parse legacy JSON in comments if present %>
+      <% if fb.comments.present? %>
+        <% begin %>
+          <% parsed = JSON.parse(fb.comments) rescue nil %>
+          <% if parsed.is_a?(Hash) %>
+            <% parsed.each do |k, v| %>
+              <% cid = k.to_i %>
+              <% legacy_map[cid] = v %>
+            <% end %>
+          <% end %>
+        <% rescue StandardError %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%# If we have any feedback entries (either per-category rows or legacy JSON), render them grouped by category %>
+  <% if per_category_map.any? || legacy_map.any? %>
+    <section class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+      <h3 class="text-lg font-semibold">Advisor feedback</h3>
+      <div class="mt-4 space-y-3">
+        <% survey.categories.order(:id).each do |category| %>
+          <% fb = per_category_map[category.id] %>
+          <% legacy = legacy_map[category.id] %>
+          <div class="rounded-lg border bg-white p-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-sm font-medium"><%= category.name %></div>
+              <div class="text-sm text-slate-600">
+                Score:
+                <% if fb %>
+                  <%= fb.average_score.presence || '—' %>
+                <% else %>
+                  <% if legacy.is_a?(Hash) %>
+                    <%= legacy['score'] || legacy['average_score'] || '—' %>
+                  <% else %>
+                    <%= legacy.presence || '—' %>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+
+            <% comment_text = nil %>
+            <% if fb && fb.comments.present? %>
+              <% comment_text = fb.comments %>
+            <% elsif legacy.present? %>
+              <% if legacy.is_a?(Hash) %>
+                <% comment_text = legacy['comments'] || legacy['comment'] || legacy['notes'] %>
+              <% else %>
+                <% comment_text = legacy.to_s %>
+              <% end %>
+            <% end %>
+
+            <% if comment_text.present? %>
+              <div class="mt-2 text-sm text-slate-700"><%= comment_text %></div>
+            <% else %>
+              <div class="mt-2 text-sm text-slate-500">No feedback yet</div>
+            <% end %>
+
+            <div class="mt-2 text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
 </div>

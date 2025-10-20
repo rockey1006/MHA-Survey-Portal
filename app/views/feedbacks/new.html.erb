@@ -32,37 +32,34 @@
 
 <h3>Advisor Feedback (per-category)</h3>
 
-<div class="space-y-4">
-  <% @survey.categories.order(:id).each do |category| %>
-    <section class="p-4 border rounded">
-      <h4 class="font-semibold"><%= category.name %></h4>
+<%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true do |f| %>
+  <div class="space-y-4">
+    <% @survey.categories.order(:id).each do |category| %>
+      <% existing = @existing_feedbacks_by_category && @existing_feedbacks_by_category[category.id] %>
+      <section class="p-4 border rounded">
+        <h4 class="font-semibold"><%= category.name %></h4>
 
-      <%= form_with model: Feedback.new, url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true do |cf| %>
-        <%= cf.hidden_field :category_id, value: category.id %>
-        <%= cf.hidden_field :advisor_id, value: @advisor&.advisor_id %>
-        <%= cf.hidden_field :survey_id, value: @survey.id %>
-        <%= cf.hidden_field :student_id, value: @student.student_id %>
-
-        <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
-          <div>
-            <%= cf.label :average_score, "Score (1-5)" %>
-            <%= cf.number_field :average_score, in: 1..5, step: 1, class: "w-full border rounded px-2 py-1" %>
+          <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+            <div>
+              <label for="ratings_<%= category.id %>_average_score">Score (1-5)</label>
+              <input id="ratings_<%= category.id %>_average_score" name="ratings[<%= category.id %>][average_score]" value="<%= params[:prefill].present? && existing ? existing.average_score : '' %>" type="number" min="1" max="5" step="1" class="w-full border rounded px-2 py-1" />
+            </div>
+            <div class="md:col-span-2">
+              <label for="ratings_<%= category.id %>_comments">Comment (optional)</label>
+              <input id="ratings_<%= category.id %>_comments" name="ratings[<%= category.id %>][comments]" value="<%= params[:prefill].present? && existing ? existing.comments : '' %>" type="text" class="w-full border rounded px-2 py-1" />
+            </div>
           </div>
-          <div class="md:col-span-2">
-            <%= cf.label :comments, "Comment (optional)" %>
-            <%= cf.text_field :comments, class: "w-full border rounded px-2 py-1" %>
-          </div>
-        </div>
 
-        <div class="mt-3">
-          <%= cf.submit "Save this category", class: "btn btn-primary" %>
-        </div>
-      <% end %>
-    </section>
-  <% end %>
-</div>
+          <% if params[:prefill].present? && existing %>
+            <input type="hidden" name="ratings[<%= category.id %>][id]" value="<%= existing.id %>" />
+          <% end %>
+      </section>
+    <% end %>
+  </div>
 
-<hr class="my-6">
+  <div class="mt-4">
+    <%= f.submit "Save all categories", class: "btn btn-primary" %>
+  </div>
+<% end %>
 
-<h3>Legacy single-score feedback</h3>
-<%= render partial: 'form', locals: { feedback: @feedback } %>
+

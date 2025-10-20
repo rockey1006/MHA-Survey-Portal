@@ -16,7 +16,7 @@ class SurveySubmitFlowTest < ActionDispatch::IntegrationTest
     # submit with required answers (use question fixture)
     answers = {}
     survey.questions.each do |q|
-      answers[q.id.to_s] = q.question_type == 'evidence' ? 'https://drive.google.com/file/d/1' : 'Answer'
+      answers[q.id.to_s] = q.question_type == "evidence" ? "https://drive.google.com/file/d/1" : "Answer"
     end
 
     post submit_survey_path(survey), params: { answers: answers }

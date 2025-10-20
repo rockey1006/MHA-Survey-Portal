@@ -14,7 +14,7 @@ class Admin::QuestionsControllerTest < ActionDispatch::IntegrationTest
 
   test "create question" do
     params = { question: { category_id: @category.id, question_text: "New Q", question_type: "short_answer", question_order: 99 } }
-    assert_difference 'Question.count', 1 do
+    assert_difference "Question.count", 1 do
       post questions_path, params: params
     end
     # Controller may redirect to the created question's show page
@@ -23,7 +23,7 @@ class Admin::QuestionsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy question" do
     q = questions(:fall_q1)
-    assert_difference 'Question.count', -1 do
+    assert_difference "Question.count", -1 do
       delete question_path(q)
     end
     assert_redirected_to questions_path

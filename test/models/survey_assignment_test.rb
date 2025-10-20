@@ -3,7 +3,7 @@ require "test_helper"
 class SurveyAssignmentTest < ActiveSupport::TestCase
   test "assign survey to track creates SurveyAssignment record" do
     survey = surveys(:fall_2025)
-    assert_difference 'SurveyAssignment.count', 1 do
+    assert_difference "SurveyAssignment.count", 1 do
       SurveyAssignment.create!(survey: survey, track: "Executive")
     end
   end

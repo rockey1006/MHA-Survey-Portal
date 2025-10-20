@@ -9,7 +9,7 @@ class SurveyResponseTest < ActiveSupport::TestCase
     # provide a fake question_responses array for the PORO
     qr1 = OpenStruct.new(question_id: questions(:fall_q1).id, answer: "Yes")
     qr2 = OpenStruct.new(question_id: questions(:fall_q1).id + 1, answer: "No")
-    sr.instance_variable_set(:@question_responses, [qr1, qr2])
+    sr.instance_variable_set(:@question_responses, [ qr1, qr2 ])
 
     map = sr.answers
     assert_kind_of Hash, map

@@ -9,7 +9,7 @@ class SurveyUiTest < ApplicationSystemTestCase
     sign_in user
     visit survey_path(surveys(:fall_2025))
 
-    assert_selector 'form'
-    assert_text 'How do you rate your clinical skills?'
+    assert_selector "form"
+    assert_text "How do you rate your clinical skills?"
   end
 end

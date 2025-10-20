@@ -10,7 +10,7 @@ class CategoriesControllerTest < ActionDispatch::IntegrationTest
   test "index shows categories" do
     get categories_path
     assert_response :success
-    assert_select 'h1', /Categories|Clinical Skills/i
+    assert_select "h1", /Categories|Clinical Skills/i
   end
 
   test "show category" do

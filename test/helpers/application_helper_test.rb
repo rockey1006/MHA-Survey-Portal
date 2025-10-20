@@ -28,7 +28,7 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal "none", humanize_audit_value(nil)
     # Empty string should be normalized to "none"
     assert_equal "none", humanize_audit_value("")
-    assert_equal "a, b", humanize_audit_list(["a", "b"]) 
+    assert_equal "a, b", humanize_audit_list([ "a", "b" ])
     assert_equal "none", humanize_audit_list([])
   end
 
@@ -36,7 +36,7 @@ class ApplicationHelperTest < ActionView::TestCase
     meta = {
       note: "Test note",
       attributes: { title: { before: "Old", after: "New" } },
-      associations: { tracks: { before: ["A"], after: ["B"] } }
+      associations: { tracks: { before: [ "A" ], after: [ "B" ] } }
     }
 
     summary = summarize_survey_audit_metadata(meta)

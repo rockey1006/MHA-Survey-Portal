@@ -21,7 +21,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     post submit_survey_path(@survey), params: { answers: {} }
     assert_response :unprocessable_entity
-    assert_select 'form'
+    assert_select "form"
   end
 
   test "submit persists answers and redirects on success" do
@@ -33,7 +33,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
   # SurveyResponse.build returns a PORO; ensure redirect goes to a survey_response id path
   assert response.redirect?
-  location = response.location || headers['Location']
+  location = response.location || headers["Location"]
   assert_match %r{/survey_responses/\d+-\d+}, location
     follow_redirect!
     assert_match /Survey submitted successfully!/, response.body

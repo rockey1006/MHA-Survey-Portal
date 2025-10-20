@@ -27,7 +27,7 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     sr = SurveyResponse.build(student: @student, survey: @survey)
     token = sr.signed_download_token
     # include a dummy id to satisfy route recognition; controller will use token branch first
-    get :show, params: { id: 'ignored', token: token }
+    get :show, params: { id: "ignored", token: token }
     assert_response :success
   end
 
@@ -45,9 +45,9 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     sr = SurveyResponse.build(student: @student, survey: @survey)
     get :download, params: { id: sr.id }
     # allow either 503 (no WickedPdf) or 200 (if environment has it); assert expected message if 503
-    assert_includes [200, 503], @response.status
+    assert_includes [ 200, 503 ], @response.status
     if @response.status == 503
-      assert_includes @response.body.downcase, 'server-side pdf generation unavailable'
+      assert_includes @response.body.downcase, "server-side pdf generation unavailable"
     end
   end
 end
@@ -69,12 +69,12 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     # No WickedPdf available in test environment so expect service_unavailable
     sign_in users(:admin)
     get download_survey_response_path(@survey_response)
-    assert_includes [200, 503], response.status
+    assert_includes [ 200, 503 ], response.status
     if response.status == 503
       assert_match /Server-side PDF generation unavailable/, @response.body
     else
       # If WickedPdf is present, we at least expect a response body or an attachment header
-      assert response.body.present? || response.headers['Content-Disposition'].present?
+      assert response.body.present? || response.headers["Content-Disposition"].present?
     end
   end
 

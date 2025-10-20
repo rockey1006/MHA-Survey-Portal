@@ -14,7 +14,7 @@ rows = cov.map do |file, info|
   total = lines.reject(&:nil?).length
   covered = lines.reject(&:nil?).count { |x| x && x > 0 }
   pct = total == 0 ? 100.0 : (covered.to_f / total * 100)
-  [pct, total, covered, file]
+  [ pct, total, covered, file ]
 end
 rows.sort_by! { |r| r[0] }
 puts "pct   total covered  file"

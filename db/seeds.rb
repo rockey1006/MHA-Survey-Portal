@@ -41,9 +41,9 @@ advisors = advisor_users.map(&:advisor_profile)
 
 puts "• Creating sample students"
 students_seed = [
-  { email: "faqiangmei@tamu.edu", name: "Faqiang Mei", track: "Residential", advisor: advisors.first },
+  { email: "faqiang_mei@tamu.edu", name: "Faqiang Mei", track: "Residential", advisor: advisors.first },
   { email: "jonah.belew@tamu.edu", name: "J Belew", track: "Residential", advisor: advisors.first },
-  { email: "rainsuds123@tamu.edu", name: "Tee Li", track: "Executive", advisor: advisors.last },
+  { email: "rainsuds@tamu.edu", name: "Tee Li", track: "Executive", advisor: advisors.last },
   { email: "anthuan374@tamu.edu", name: "Anthuan", track: "Residential", advisor: advisors.last },
   { email: "meif7749@tamu.edu", name: "Executive Test", track: "Executive", advisor: advisors.last }
 ]

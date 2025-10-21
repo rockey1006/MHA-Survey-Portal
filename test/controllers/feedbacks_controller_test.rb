@@ -16,7 +16,7 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     @survey.save!
     @cat1, @cat2 = @survey.categories
 
-  sign_in @adv_user, scope: :user
+    sign_in @adv_user
   end
 
   test "batch create creates feedback records and redirects" do

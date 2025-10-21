@@ -21,9 +21,6 @@ class FeedbacksController < ApplicationController
   #
   # @return [void]
   def new
-    @advisor = current_advisor_profile
-    @feedback = Feedback.new
-
     load_feedback_new_context
   end
 
@@ -36,9 +33,6 @@ class FeedbacksController < ApplicationController
   #
   # @return [void]
   def create
-    @advisor = current_advisor_profile
-    feedback_attributes = params[:feedback].present? ? feedback_params : nil
-
     # Support two modes:
     # 1) legacy single-feedback form (feedback_params present)
     # 2) advisor provides per-category ratings via params[:ratings]
@@ -74,18 +68,6 @@ class FeedbacksController < ApplicationController
             next
           end
 
-          fb = if attrs["id"].present?
-                 Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
-          else
-                 Feedback.find_or_initialize_by(student_id: @student.student_id,
-                                                survey_id: @survey.id,
-                                                category_id: cat_id,
-                                                advisor_id: @advisor&.advisor_id)
-          end
-
-          unless fb
-            batch_errors[cat_id] = [ "Feedback record not found" ]
-            next
           end
 
           fb.average_score = attrs["average_score"].presence
@@ -107,39 +89,14 @@ class FeedbacksController < ApplicationController
         end
       end
 
-      if batch_errors.any?
-        @batch_errors = batch_errors
-        @feedback = Feedback.new
-        load_feedback_new_context
-        respond_to do |format|
-          format.html { render :new, status: :unprocessable_entity }
-          format.json { render json: { errors: batch_errors }, status: :unprocessable_entity }
-        end
-        return
-      end
-
-      if saved_feedbacks.empty?
-        @feedback = Feedback.new
-        @feedback.errors.add(:base, "No ratings provided")
-        load_feedback_new_context
-        respond_to do |format|
-          format.html { render :new, status: :unprocessable_entity }
-          format.json { render json: { error: "No ratings provided" }, status: :unprocessable_entity }
-        end
-        return
-      end
-
-      # all saved
-      @feedback = saved_feedbacks.first || Feedback.new
-    elsif feedback_attributes && feedback_attributes[:category_id].present?
       # Per-category save when the form posts category_id, average_score, and comments
       @feedback = Feedback.new(
-        survey: @survey,
-        student: @student,
-        advisor: @advisor,
-        category_id: feedback_attributes[:category_id],
-        average_score: feedback_attributes[:average_score],
-        comments: feedback_attributes[:comments]
+        survey_id: @survey.id,
+        student_id: @student.student_id,
+        advisor_id: @advisor&.advisor_id,
+        category_id: feedback_params[:category_id],
+        average_score: feedback_params[:average_score],
+        comments: feedback_params[:comments]
       )
     else
       # No supported input provided — render the new form with an explanatory error
@@ -219,7 +176,6 @@ class FeedbacksController < ApplicationController
   #
   # @return [ActionController::Parameters]
   def feedback_params
-    params.require(:feedback).permit(:advisor_id, :category_id, :survey_id, :student_id, :comments, :average_score)
   end
 
   def load_feedback_new_context

@@ -70,7 +70,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
         survey: {
           title: "Updated Survey Title",
           description: "Updated details",
-          track_list: [ "Hybrid" ]
+          track_list: [ "Residential" ]
         }
       }
     end
@@ -79,13 +79,13 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
   survey.reload
   assert_equal "Updated Survey Title", survey.title
-  assert_equal [ "Hybrid" ], survey.track_list
+  assert_equal [ "Residential" ], survey.track_list
 
     log = SurveyChangeLog.order(:created_at).last
     assert_equal "update", log.action
     assert_equal survey, log.survey
     assert_equal @admin_user, log.admin
-    assert_includes log.description, "Tracks updated to Hybrid"
+    assert_includes log.description, "Tracks updated to Residential"
     assert_includes log.description, "Title changed from"
   end
 

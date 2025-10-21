@@ -5,8 +5,6 @@ class Survey < ApplicationRecord
   TRACK_OPTIONS = [
     "Residential",
     "Executive",
-    "Online",
-    "Hybrid"
   ].freeze
 
   belongs_to :creator, class_name: "User", foreign_key: :created_by_id, optional: true

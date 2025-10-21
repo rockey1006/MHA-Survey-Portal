@@ -11,10 +11,12 @@
     </div>
   <% end %>
 
-  <div>
-    <%= form.label :advisor_id, style: "display: block" %>
-    <%= form.number_field :advisor_id %>
-  </div>
+  <%# Hidden fields to help controller find the survey and student if the
+      surrounding view doesn't include them in the URL/form context. The
+      per-category form rendered in feedbacks/new will set category_id. %>
+  <%= form.hidden_field :advisor_id, value: feedback.advisor_id || nil %>
+  <%= form.hidden_field :survey_id, value: feedback.survey_id || nil %>
+  <%= form.hidden_field :student_id, value: feedback.student_id || nil %>
 
   <div>
     <%= form.label :category_id, style: "display: block" %>
@@ -22,13 +24,8 @@
   </div>
 
   <div>
-    <%= form.label :surveyresponse_id, "Survey Response", style: "display: block" %>
-    <%= form.number_field :surveyresponse_id %>
-  </div>
-
-  <div>
-    <%= form.label :score, style: "display: block" %>
-    <%= form.number_field :score %>
+    <%= form.label :average_score, "Score (1-5)", style: "display: block" %>
+    <%= form.number_field :average_score, step: 1, min: 1, max: 5 %>
   </div>
 
   <div>
@@ -37,6 +34,6 @@
   </div>
 
   <div>
-    <%= form.submit %>
+    <%= form.submit "Save" %>
   </div>
 <% end %>

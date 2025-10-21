@@ -86,8 +86,16 @@
                             <% completion_date = row[:completed_at] %>
                             <% survey_response = row[:survey_response] %>
                             <% download_token  = row[:download_token] %>
-                            <% survey_link     = survey_path(row[:survey]) %>
-                            <% survey_label    = status_text == "Completed" ? "Review" : "Open" %>
+                            <%# If feedback already exists for this student+survey, open the feedback page
+                                with prefill=true so the advisor can update existing feedback. Otherwise
+                                open a fresh new feedback page. %>
+                            <% has_feedback = Feedback.exists?(student_id: student.student_id, survey_id: survey.id) %>
+                            <% survey_label = status_text == "Completed" ? (has_feedback ? "Edit Feedback" : "Review") : "Open" %>
+                            <% if has_feedback %>
+                              <% survey_link = new_feedback_path(survey_id: survey.id, student_id: student.id, prefill: true) %>
+                            <% else %>
+                              <% survey_link = new_feedback_path(survey_id: survey.id, student_id: student.id) %>
+                            <% end %>
 
                             <tr class="transition hover:bg-slate-50">
                               <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-[#500000]"><%= idx + 1 %></td>

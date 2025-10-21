@@ -20,6 +20,8 @@ class DashboardsController < ApplicationController
     else
       redirect_to student_dashboard_path
     end
+
+       # ...existing code...
   end
 
   # Renders the student dashboard with survey completion summaries and

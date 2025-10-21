@@ -1,140 +1,142 @@
-# README
+---
+# Health — README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This repository contains the Health Professions Rails application used for the CSCE431 project. This README is a curated, step-by-step guide to get a developer up and running and to run tests and CI locally.
 
-Things you may want to cover:
+Table of contents
+- Requirements
+- Quick start (Docker)
+- Local development (non-Docker)
+- Database setup & seeds
+- Running the app
+- Running tests & coverage
+- Useful developer tasks
+- Troubleshooting
+- Contributing
 
-* Ruby version
+Requirements
+-----------
 
-* System dependencies
+- Ruby: the project uses the Ruby version in `.ruby-version` (use rbenv or rvm)
+- Bundler: gem install bundler
+- PostgreSQL: required for development and test DBs (if not using Docker)
+- Docker & Docker Compose (recommended) for reproducible local environments
 
-* Configuration
+Quick start (recommended — Docker)
+---------------------------------
 
-* Database creation
+These steps will bring up the app, the database, and a Tailwind CSS watcher.
 
-* Database initialization
+1. Build and start services (web, db, css watcher):
 
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
-
-## Developer setup (recommended)
-
-We provide a `bin/setup` helper to get a developer environment ready. It will:
-
-- check `.ruby-version` and print guidance if your Ruby mismatches
-- run `bundle install`
-- attempt to create and migrate the development DB
-- run `db:seed`
-
-Run:
-
-```bash
-./bin/setup
-```
-
-If your `config/database.yml` references a DB user that doesn't exist (e.g. `user_501_health`), either create that DB user on your Postgres server or set environment variables `DATABASE_USER` and `DATABASE_PASSWORD` before running `bin/setup`.
-
-### Quick manual steps (if you prefer)
-
-1. Install Ruby (rbenv recommended) and set the version from `.ruby-version`.
-2. gem install bundler && bundle install
-3. Start Postgres (Homebrew on macOS): `brew services start postgresql`
-4. Create DB user if needed:
-
-```sql
--- in psql as a superuser
-CREATE ROLE user_501_health WITH LOGIN PASSWORD 'password_501_health';
-CREATE DATABASE health_app_development OWNER user_501_health;
-```
-
-5. Run migrations & seeds:
-
-```bash
-bin/rails db:create db:migrate db:seed
-```
-
-## Docker (recommended for team reproducibility)
-
-The repository already includes a Tailwind-enabled `docker-compose.yml` with three services:
-
-| service | purpose |
-|---------|---------|
-| `db`    | Postgres 14 with a bind-mounted volume for persistent data |
-| `web`   | Rails application container (serves the app, runs migrations, etc.) |
-| `css`   | Lightweight container that runs `bin/rails tailwindcss:watch` to rebuild CSS on the fly |
-
-All services mount the project directory into `/csce431/501_health`, so you can run Rails commands without additional `cd` steps.
-
-### Docker quickstart
-
-Build the image and bring everything online (web + Tailwind watcher + Postgres):
-
-```bash
+```powershell
 docker compose up --build web css db
 ```
 
-You can leave the `css` service running in a separate terminal during development so Tailwind rebuilds instantly whenever you edit view templates or Tailwind source files.
+2. Prepare the database (run once):
 
-Run one-off Rails commands via compose:
-
-```bash
-# Create, migrate, and seed the development database
+```powershell
 docker compose run --rm web bin/rails db:prepare db:seed
+```
 
-# Rails console / runner
+3. Open the app in the browser at http://localhost:3000 (default Rails port)
+
+Useful one-off commands (via Docker):
+
+```powershell
+# Rails console
 docker compose run --rm web bin/rails console
-docker compose run --rm web bin/rails runner "puts Survey.count"
 
-# Execute the test suite (Tailwind assets auto-build before tests boot)
+# Execute tests
 docker compose run --rm web bin/rails test
+
+# Run a single test file
+docker compose run --rm web bin/rails test test/controllers/feedbacks_controller_test.rb
 ```
 
-### Generate API documentation (YARD)
+Local development (without Docker)
+---------------------------------
 
-Add or update code comments with [YARD](https://yardoc.org) tags and regenerate the HTML docs at any time:
+1. Install Ruby (matching `.ruby-version`) and Bundler.
+2. Install gems:
 
-```bash
-docker compose run --rm web bundle exec yard doc
+```powershell
+gem install bundler
+bundle install
 ```
 
-The output lands in `doc/yard` (ignored by git). Open `doc/yard/index.html` in a browser to browse the generated API reference.
+3. Setup PostgreSQL and create a DB user if needed (example SQL shown in `bin/setup`).
+4. Prepare the DB locally:
 
-What the seeds add
-- A default survey titled "Default Sample Survey" with sample competencies and questions.
-- A local test student: `faqiangmei@gmail.com` (track set to `residential`).
+```powershell
+bin/rails db:create db:migrate db:seed
+```
 
-Troubleshooting notes
-- If seeds abort with an enum validation (e.g. invalid `track`), check `app/models/student.rb` for valid values (`residential`, `executive`).
-- If you still see the older built-in copy of the project inside the container (`/rails`), rebuild the web image with `docker compose build web` and restart the stack.
+Database setup & seeds
+----------------------
 
-## Heroku review apps & PR previews
+- `bin/setup` will try to create and migrate the development DB and run seeds. Use it for a quick bootstrap.
+- If your `config/database.yml` references a DB user that doesn't exist, either create the role in Postgres or set `DATABASE_USER` and `DATABASE_PASSWORD` env vars.
+- The seeds add a sample survey and at least one test student and admin/advisor accounts useful for development. Seeds are intended to be idempotent.
 
-For temporary PR deployments, enable [Heroku Review Apps](https://devcenter.heroku.com/articles/github-integration-review-apps). The repository now includes an `app.json` manifest (see below) that automatically provisions a isolated Postgres add-on and runs database migrations after each review app is deployed.
+Running the app
+---------------
 
-Setup checklist:
+Start the Rails server (Docker):
 
-1. Create or link a Heroku pipeline to your GitHub repository: `heroku pipelines:create <pipeline-name> --app <staging-app>`.
-2. Enable Review Apps in the Heroku dashboard or via CLI: `heroku pipelines:enable-review-app --pipeline <pipeline-name>`.
-3. Ensure the pipeline and its review apps share the same `RAILS_MASTER_KEY`: `heroku pipelines:config:set RAILS_MASTER_KEY=$(cat config/master.key) --pipeline <pipeline-name>`.
-4. Optional: add any additional env vars (OAuth secrets, etc.) to the pipeline config so every review app inherits them.
+```powershell
+docker compose run --rm -p 3000:3000 web bin/rails server -b 0.0.0.0
+```
 
-Once enabled, each PR will:
+Or locally:
 
-- Spin up a dedicated Heroku app with the add-ons listed in `app.json`.
-- Run `bundle exec rails db:migrate` automatically after deploy, creating the database schema without manual intervention.
-- Destroy itself automatically when the PR is closed (configurable).
+```powershell
+bin/rails server
+```
 
-### Adding seed data for review apps
+Running tests & coverage
+------------------------
 
-If you want sample data in every PR environment, provide a `postdeploy` script in `app.json` (already set to run migrations) and extend it to invoke seeds, e.g. `bundle exec rails db:seed`. Keep seeds idempotent so repeated deploys stay stable.
+The repository includes a `run_tests.rb` helper that wraps common test commands and optionally runs coverage via SimpleCov.
 
-### Local favicon asset
+Basic test commands (Docker):
 
-The layout now serves a TAMU logo from `app/assets/images/tamu-logo.png` as the site favicon. If you update that asset, redeploy so Propshaft re-bundles the new icon.
+```powershell
+# Run all tests
+docker compose run --rm web bin/rails test
+
+# Run tests with the custom runner
+docker compose run --rm web ruby run_tests.rb
+
+# Run with coverage
+docker compose run --rm web ruby run_tests.rb -c
+```
+
+If you run tests locally without Docker, ensure dependencies like Tailwind assets are present or the test runner may build them as needed.
+
+Useful developer tasks
+----------------------
+
+- Rebuild Docker images: `docker compose build web`
+- Recreate DB from scratch: `bin/rails db:drop db:create db:migrate db:seed`
+- Run a single test: `bin/rails test test/models/my_model_test.rb`
+- Start a one-off shell inside the web container: `docker compose run --rm web /bin/bash`
+
+Troubleshooting
+---------------
+
+- Seeds fail with enum validation: check valid enum values in `app/models/student.rb` (e.g. `residential`, `executive`).
+- Tailwind assets not found when running tests: ensure the `css` service (Tailwind watcher) is running or allow the test runner to build assets on-demand.
+- Devise sign-in issues in tests: include `Devise::Test::IntegrationHelpers` in Integration tests and use `sign_in users(:advisor)` (fixtures) or create a test user.
+
+Contributing
+------------
+
+1. Fork the repository and create a feature branch.
+2. Run the full test suite and ensure all tests pass.
+3. Open a PR with a clear description of the changes and any migration or seeding notes.
+
+---
+Last updated: 2025-10-20
+
 

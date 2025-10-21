@@ -103,267 +103,108 @@ Integration tests verify that different parts of your application work together:
 
 - **User Workflows**: Test complete user journeys
 - **Multi-Model Interactions**: Test interactions across multiple models
-- **Authentication Flows**: Test login/logout processes
-- **Data Integrity**: Verify data consistency across operations
+# Test Suite Documentation
 
-Example integration test:
-```ruby
-test "complete survey creation and response workflow" do
-  # Create survey -> Add competency -> Add questions -> Create response
-  # This tests the entire flow working together
-end
-```
+## Overview
 
-### 4. System Tests (End-to-End Tests)
+This document provides comprehensive information about the test suite for the Health Professions Rails application. The test suite includes unit tests, integration tests, and system tests that ensure the application works correctly across components.
 
-System tests use a real browser to test the complete user experience:
+## Test structure
 
-- **User Interface**: Test actual web page interactions
-- **JavaScript**: Test client-side functionality
-- **Form Submissions**: Test complete form workflows
-- **Navigation**: Test user navigation patterns
-- **Responsive Design**: Test different screen sizes
+The `test/` directory is organized into:
 
-Example system test:
-```ruby
-test "admin can create survey through UI" do
-  visit surveys_url
-  click_on "New survey"
-  fill_in "Title", with: "Test Survey"
-  click_on "Create Survey"
-  assert_text "Survey was successfully created"
-end
-```
+- `models/` — unit tests for ActiveRecord models
+- `controllers/` — controller tests (functional / integration style)
+- `integration/` — multi-step workflows and higher-level interactions
+- `system/` — browser-driven system tests (Capybara)
+- `fixtures/` — YAML fixtures used across tests
+- `test_helper.rb` — test configuration and shared helpers
 
-## Test Coverage Areas
+## Test types and where to use them
 
-### Authentication & Authorization
-- Google OAuth integration (Admin model)
-- Role-based permissions (admin, advisor, user)
-- Session management
-- Access control for different user types
+- Model tests: validations, associations, enums, scopes, and custom methods.
+- Controller tests: request/response behavior, redirects, parameter handling, and authorization.
+- Integration tests: full user workflows that exercise multiple controllers/models.
+- System tests: end-to-end browser tests for UI and JavaScript behavior.
 
-### Survey Management
-- Survey creation, editing, deletion
-- Date validation (assigned vs completion dates)
-- Association with competencies and questions
-- Status tracking
+## Running tests
 
-### Competency & Question Management
-- Competency creation and association with surveys
-- Question types (text, select, radio, checkbox)
-- Answer options handling
-- Ordering and organization
+Basic commands:
 
-### Response Handling
-- Survey response status workflow (not_started → in_progress → submitted → approved)
-- Question response collection
-- Data validation and storage
-- Relationship integrity
-
-### Data Relationships
-- Survey → Competencies → Questions hierarchy
-- Student → Survey Responses relationship
-- Advisor oversight and approval workflows
-- Cascade delete behavior
-
-## Running Tests
-
-### Basic Test Execution
 ```bash
 # Run all tests
 rails test
 
-# Run specific test types
+# Run tests by folder
 rails test test/models
 rails test test/controllers
 rails test test/integration
 rails test test/system
 
-# Run specific test file
+# Run a specific file or test
 rails test test/models/student_test.rb
-
-# Run specific test method
 rails test test/models/student_test.rb:test_should_validate_track_enum
 ```
 
-### Using the Custom Test Runner
+Custom test runner:
+
 ```bash
-# Run all tests with the custom runner
+# Use the provided helper runner
 ruby run_tests.rb
 
-# Run specific test type
-ruby run_tests.rb -t models
-ruby run_tests.rb -t controllers
-ruby run_tests.rb -t integration
-ruby run_tests.rb -t system
-
-# Run with coverage report
+# Run with coverage
 ruby run_tests.rb -c
 
-# Run with verbose output
-ruby run_tests.rb -v
-
-# Get help
-ruby run_tests.rb -h
+# Run a specific type
+ruby run_tests.rb -t controllers
 ```
 
-## Test Data (Fixtures)
+Tip: When running tests in Docker, run commands inside the `web` service, e.g. `docker compose run --rm web bin/rails test`.
 
-Fixtures provide consistent test data across all tests:
+## Fixtures & test data
 
-### Key Fixtures:
-- **admins.yml**: Admin users with different roles (admin, advisor, user)
-- **students.yml**: Student records with different tracks (residential, executive)
-- **surveys.yml**: Survey records for different semesters
-- **competencies.yml**: Competencies associated with surveys
-- **questions.yml**: Questions of different types with answer options
-- **survey_responses.yml**: Survey responses in various states
+Fixtures provide stable records for tests. Key fixture files include:
 
-### Fixture Relationships:
-```
-surveys(:one) 
-  └── competencies(:one, :two)
-      └── questions(:one, :two, :three, :four)
-          
-students(:one, :two, :three)
-  └── survey_responses(:one, :two, :three, :four)
+- `admins.yml`, `students.yml`, `surveys.yml`, `competencies.yml`, `questions.yml`, `survey_responses.yml`.
 
-admins(:one) [admin role]
-admins(:two) [advisor role]
-admins(:three) [user role]
-```
+Ensure fixture associations exist and use consistent primary keys (some models use non-standard PKs like `student_id`).
 
-## Custom Test Helpers
+## Helpers & common patterns
 
-The test suite includes custom helper methods to simplify test writing:
+- Include `Devise::Test::IntegrationHelpers` in integration tests to use `sign_in`.
+- Use `setup` blocks for common fixtures and `teardown` or cleanup helpers when creating records dynamically.
+- Prefer focused tests (one behavior per test) and descriptive test names.
 
-### Model Creation Helpers
+Example model test:
+
 ```ruby
-create_test_admin(email: "test@example.com", role: "admin")
-create_test_student(student_id: 12345)
-create_complete_test_survey(survey_id: 999)
-```
+class StudentTest < ActiveSupport::TestCase
+  setup do
+    @student = students(:one)
+  end
 
-### Custom Assertions
-```ruby
-assert_enum_values(model, :status, ["active", "inactive"])
-assert_association(model, :surveys, :has_many)
-assert_required_field(model, :name)
-assert_email_validation(model, :email)
-```
-
-### Cleanup Utilities
-```ruby
-cleanup_test_data  # Removes test records to prevent interference
-```
-
-## Best Practices
-
-### 1. Test Naming
-- Use descriptive test names that explain what is being tested
-- Follow the pattern: "should [expected behavior] when [conditions]"
-- Group related tests using consistent naming
-
-### 2. Test Structure
-- Use `setup` method for common test data preparation
-- Keep tests focused on a single behavior
-- Use descriptive variable names
-
-### 3. Assertions
-- Use the most specific assertion available
-- Include meaningful failure messages
-- Test both positive and negative cases
-
-### 4. Data Management
-- Use fixtures for standard test data
-- Create specific test data when fixtures aren't sufficient
-- Clean up any test data that might affect other tests
-
-### 5. Coverage
-- Aim for high test coverage but focus on critical paths
-- Test edge cases and error conditions
-- Include both happy path and failure scenarios
-
-## Common Test Patterns
-
-### Testing Enums
-```ruby
-test "should have valid track values" do
-  %w[residential executive].each do |track|
-    @student.track = track
+  test "valid with valid attributes" do
     assert @student.valid?
   end
 end
 ```
 
-### Testing Associations
-```ruby
-test "should destroy dependent records" do
-  assert_difference('Competency.count', -1) do
-    @survey.destroy
-  end
-end
-```
+## Coverage & CI
 
-### Testing Validations
-```ruby
-test "should require email" do
-  @admin.email = nil
-  assert_not @admin.valid?
-  assert_includes @admin.errors[:email], "can't be blank"
-end
-```
-
-### Testing Scopes
-```ruby
-test "should return pending responses" do
-  pending = SurveyResponse.pending
-  pending.each do |response|
-    assert_not_equal "submitted", response.status
-  end
-end
-```
-
-## Continuous Integration
-
-The test suite is designed to work with CI/CD pipelines:
-
-- Tests run in parallel for faster execution
-- Coverage reports can be generated automatically
-- Test results are clearly reported with exit codes
-- Fixtures provide consistent data across environments
+- The project supports generating coverage reports via SimpleCov when tests run with the coverage flag (see `run_tests.rb -c`).
+- Configure CI to run `bundle exec rails test` and collect coverage artifacts.
 
 ## Troubleshooting
 
-### Common Issues:
+- Fixture loading errors: validate YAML syntax and association names.
+- Devise auth errors: ensure `sign_in` helper is used in Integration tests and that fixtures create the expected user/advisor records.
+- Test data pollution: wrap database-modifying tests in transactions or clean up created records.
 
-1. **Fixture Loading Errors**
-   - Check that all referenced associations exist in fixtures
-   - Verify fixture file syntax (YAML format)
+## Contributing to tests
 
-2. **Authentication Errors in Tests**
-   - Ensure `include Devise::Test::IntegrationHelpers` is present
-   - Use `sign_in` helper correctly in controller/integration tests
+1. Add model/controller/integration/system tests for new features.
+2. Update or add fixtures where necessary.
+3. Run the test suite and include passing tests with your PR.
 
-3. **Database State Issues**
-   - Use `cleanup_test_data` helper to reset test data
-   - Check for test pollution between test methods
-
-4. **System Test Failures**
-   - Ensure proper Capybara configuration
-   - Check for timing issues with `wait_for` methods
-   - Verify that the test server is running correctly
-
-## Contributing to Tests
-
-When adding new features:
-
-1. **Add Model Tests** for any new models or model changes
-2. **Add Controller Tests** for new endpoints or controller logic
-3. **Add Integration Tests** for new user workflows
-4. **Add System Tests** for new UI components or user interactions
-5. **Update Fixtures** as needed for new test scenarios
-6. **Update Documentation** to reflect any new test patterns or helpers
-
-The goal is to maintain comprehensive test coverage that gives confidence in code changes and helps prevent regressions.
+---
+Updated: 2025-10-20

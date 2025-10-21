@@ -139,4 +139,10 @@ Contributing
 ---
 Last updated: 2025-10-20
 
+Planned / future features
+-------------------------
+
+We track planned and proposed features in `FUTURE_FEATURES.md`. If you have a proposal, add a section there following the provided template so it can be prioritized and scheduled.
+
+
 

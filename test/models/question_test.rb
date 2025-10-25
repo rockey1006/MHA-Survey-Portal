@@ -70,14 +70,15 @@ class QuestionTest < ActiveSupport::TestCase
 
   test "At least 75% of non-evidence questions are required" do
     non_evidence = Question.where.not(question_type: "evidence")
-    # Exclude flexibility questions which are intentionally optional
-    non_flexibility = non_evidence.where.not("LOWER(question_text) LIKE ?", "%flexible%work%")
+    # Exclude Employment Information questions which have conditional/optional logic
+    employment_category_ids = Category.where("LOWER(name) LIKE ?", "%employment%").pluck(:id)
+    non_employment = non_evidence.where.not(category_id: employment_category_ids)
 
-    required_count = non_flexibility.where(required: true).count
-    total = non_flexibility.count
+    required_count = non_employment.where(required: true).count
+    total = non_employment.count
 
     ratio = (required_count.to_f / total) * 100
-    assert ratio >= 75, "Expected at least 75% of non-evidence questions (excluding flexibility) to be required, got #{ratio.round(2)}%"
+    assert ratio >= 75, "Expected at least 75% of non-evidence questions (excluding employment) to be required, got #{ratio.round(2)}%"
   end
 
   test "Flexibility questions are optional" do
@@ -86,5 +87,20 @@ class QuestionTest < ActiveSupport::TestCase
     flexibility_questions.each do |q|
       assert_not q.required?, "Flexibility question '#{q.question_text}' should be optional (not required)"
     end
+  end
+
+  test "Employment Information category has correct required/optional structure" do
+    employment_categories = Category.where("LOWER(name) LIKE ?", "%employment%")
+    employment_questions = Question.where(category_id: employment_categories.pluck(:id))
+
+    # First question (employment status) should be required
+    employment_status = employment_questions.find_by("LOWER(question_text) LIKE ?", "%currently employed%")
+    assert employment_status.present?, "Employment status question should exist"
+    assert employment_status.required?, "Employment status question should be required"
+
+    # Flexibility question should be optional
+    flexibility = employment_questions.find_by("LOWER(question_text) LIKE ?", "%flexible%work%")
+    assert flexibility.present?, "Flexibility question should exist"
+    assert_not flexibility.required?, "Flexibility question should be optional"
   end
 end

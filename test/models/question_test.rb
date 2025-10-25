@@ -72,7 +72,7 @@ class QuestionTest < ActiveSupport::TestCase
     non_evidence = Question.where.not(question_type: "evidence")
     # Exclude flexibility questions which are intentionally optional
     non_flexibility = non_evidence.where.not("LOWER(question_text) LIKE ?", "%flexible%work%")
-    
+
     required_count = non_flexibility.where(required: true).count
     total = non_flexibility.count
 
@@ -82,7 +82,7 @@ class QuestionTest < ActiveSupport::TestCase
 
   test "Flexibility questions are optional" do
     flexibility_questions = Question.where("LOWER(question_text) LIKE ?", "%flexible%work%")
-    
+
     flexibility_questions.each do |q|
       assert_not q.required?, "Flexibility question '#{q.question_text}' should be optional (not required)"
     end

@@ -349,7 +349,7 @@ class DashboardsController < ApplicationController
 
     options = question.answer_options_list.map(&:strip).map(&:downcase)
     # Exception: flexibility scale questions (1-5) should remain optional
-    is_flexibility_scale = (options == %w[1 2 3 4 5]) && 
+    is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                            question.question_text.to_s.downcase.include?("flexible")
     !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
   end

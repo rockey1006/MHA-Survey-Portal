@@ -29,7 +29,7 @@ class SurveysController < ApplicationController
                     .includes(:question)
 
       Rails.logger.info "[SHOW DEBUG] Found #{responses.count} saved responses"
-      
+
       responses.each do |response|
         # Use string key to match view's expectation
         @existing_answers[response.question_id.to_s] = response.answer
@@ -47,7 +47,7 @@ class SurveysController < ApplicationController
         if !required && question.question_type_multiple_choice?
           options = question.answer_options_list.map(&:strip).map(&:downcase)
           # Exception: flexibility scale questions (1-5) should remain optional
-          is_flexibility_scale = (options == %w[1 2 3 4 5]) && 
+          is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                  question.question_text.to_s.downcase.include?("flexible")
           required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
         end
@@ -87,7 +87,7 @@ class SurveysController < ApplicationController
       required = question.is_required?
       if !required && question.question_type_multiple_choice?
         options = question.answer_options_list.map(&:strip).map(&:downcase)
-        is_flexibility_scale = (options == %w[1 2 3 4 5]) && 
+        is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                question.question_text.to_s.downcase.include?("flexible")
         required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
       end
@@ -120,7 +120,7 @@ class SurveysController < ApplicationController
           required = question.is_required?
           if !required && question.question_type_multiple_choice?
             options = question.answer_options_list.map(&:strip).map(&:downcase)
-            is_flexibility_scale = (options == %w[1 2 3 4 5]) && 
+            is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                    question.question_text.to_s.downcase.include?("flexible")
             required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
           end
@@ -173,7 +173,7 @@ class SurveysController < ApplicationController
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
         Rails.logger.info "[SAVE_PROGRESS DEBUG] Question #{question_id}: value=#{submitted_value.inspect}"
-        
+
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 

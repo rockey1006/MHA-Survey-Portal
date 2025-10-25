@@ -113,7 +113,7 @@ class SurveyResponse
 
       if !required && question.question_type_multiple_choice?
         options = question.answer_options_list.map(&:strip).map(&:downcase)
-        is_flexibility_scale = (options == %w[1 2 3 4 5]) && 
+        is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                question.question_text.to_s.downcase.include?("flexible")
         required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
       end

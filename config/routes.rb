@@ -62,6 +62,7 @@ Rails.application.routes.draw do
 
   resources :surveys do
     post :submit, on: :member
+    post :save_progress, on: :member
   end
 
   resources :survey_responses, only: :show do

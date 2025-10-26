@@ -26,7 +26,8 @@ class StudentProfilesController < ApplicationController
     end
 
     # Update student attributes
-    if @student.update(student_params.except(:name))
+    if @student.assign_attributes(student_params.except(:name)) && @student.valid?(:profile_completion)
+      @student.save!(context: :profile_completion) # This will also save the user changes
       @student.save! # This will also save the user changes
 
       # Automatic Survey Assignment: assign surveys matching the student's track

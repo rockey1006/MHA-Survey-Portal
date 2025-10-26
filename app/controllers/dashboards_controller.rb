@@ -3,6 +3,7 @@ require "set"
 # Presents role-aware dashboards and administrative utilities for students,
 # advisors, and administrators within the main application.
 class DashboardsController < ApplicationController
+  skip_before_action :check_student_profile_complete, only: :switch_role
   before_action :ensure_profile_present, only: %i[student advisor]
   before_action :ensure_role_switch_allowed, only: :switch_role
 

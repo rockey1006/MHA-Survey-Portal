@@ -25,6 +25,17 @@ class ApplicationController < ActionController::Base
 
   # Redirects students to profile setup if their profile is incomplete
   def check_student_profile_complete
+    # Never block the role switching endpoint
+    if controller_name == "dashboards" && action_name == "switch_role"
+      return
+    end
+    if request&.path == "/switch_role"
+      return
+    end
+    # Allow dashboard root redirect to proceed; gating happens on specific dashboards
+    if controller_name == "dashboards" && action_name == "show"
+      return
+    end
     return if Rails.env.test?
     return unless user_signed_in?
     return unless current_user.role_student?

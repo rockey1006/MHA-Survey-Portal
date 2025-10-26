@@ -64,8 +64,8 @@
               <%= text_field_tag field_name, current_value, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
               <% if required && (current_value.nil? || current_value.to_s.strip.blank?) && request.post? %>
                 <div class="text-xs text-red-600 mt-1">This question is required</div>
-              <% elsif current_value.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
-                <div class="text-xs text-red-600 mt-1">Invalid Google Drive link</div>
+               <% elsif current_value.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
+                 <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
               <% end %>
             <% else %>
               <%= text_field_tag field_name, current_value, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>

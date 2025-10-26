@@ -44,10 +44,10 @@
           </div>
 
           <div class="profile-menu">
-            <div class="profile-menu-item">
+            <%= link_to student_profile_path, class: "profile-menu-item" do %>
               <div class="profile-menu-icon">👤</div>
               <span>Account Information</span>
-            </div>
+            <% end %>
             <div class="profile-menu-item">
               <div class="profile-menu-icon">⚙️</div>
               <span>Settings</span>

@@ -52,7 +52,8 @@ students = students_seed.map do |attrs|
   user = seed_user.call(email: attrs[:email], name: attrs[:name], role: :student)
   profile = user.student_profile || Student.new(student_id: user.id)
   profile.assign_attributes(track: attrs[:track], advisor: attrs[:advisor])
-  profile.save!
+  # Bypass validations for seed data; first-login flow will collect required fields
+  profile.save!(validate: false)
   profile
 end
 

@@ -61,7 +61,7 @@ class StudentQuestion < ApplicationRecord
     val = read_attribute(:response_value)
     return if val.blank?
 
-    val_str = val.is_a?(String) ? val : val.to_s
+    val_str = (val.is_a?(String) ? val : val.to_s).strip
     errors.add(:response_value, "must be a Google Drive file or folder link") unless val_str =~ DRIVE_URL_REGEX
   end
 end

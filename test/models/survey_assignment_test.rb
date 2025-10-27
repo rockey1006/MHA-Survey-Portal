@@ -1,15 +1,35 @@
 require "test_helper"
 
 class SurveyAssignmentTest < ActiveSupport::TestCase
-  test "assign survey to track creates SurveyAssignment record" do
-    survey = surveys(:fall_2025)
+  setup do
+    SurveyAssignment.delete_all
+    @survey = surveys(:fall_2025)
+    @student = students(:student)
+    @advisor = advisors(:advisor)
+  end
+
+  test "creating an assignment stores student and advisor" do
     assert_difference "SurveyAssignment.count", 1 do
-      SurveyAssignment.create!(survey: survey, track: "Executive")
+      SurveyAssignment.create!(
+        survey: @survey,
+        student: @student,
+        advisor: @advisor,
+        assigned_at: Time.current
+      )
     end
   end
 
-  test "survey assignment belongs to survey via association" do
-    sa = survey_assignments(:fall_2025_exec)
-    assert sa.survey.present?
+  test "mark_completed! persists timestamp" do
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: @student,
+      advisor: @advisor,
+      assigned_at: Time.current
+    )
+    refute assignment.completed_at
+
+    assignment.mark_completed!
+
+    assert assignment.completed_at.present?
   end
 end

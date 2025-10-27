@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_20_090001) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,12 +51,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_090001) do
   create_table "notifications", force: :cascade do |t|
     t.string "title", null: false
     t.text "message"
-    t.string "notifiable_type", null: false
-    t.bigint "notifiable_id", null: false
+    t.string "notifiable_type"
+    t.bigint "notifiable_id"
     t.datetime "read_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable"
+    t.index ["user_id", "read_at"], name: "index_notifications_on_user_and_read_at"
+    t.index ["user_id", "title", "notifiable_type", "notifiable_id"], name: "index_notifications_unique_per_user", unique: true
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "questions", force: :cascade do |t|
@@ -100,10 +104,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_090001) do
 
   create_table "survey_assignments", force: :cascade do |t|
     t.bigint "survey_id", null: false
+    t.bigint "student_id", null: false
+    t.bigint "advisor_id"
+    t.datetime "assigned_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "due_date"
+    t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "track", null: false
-    t.index ["survey_id", "track"], name: "index_survey_assignments_on_survey_id_and_track", unique: true
+    t.index ["due_date", "completed_at"], name: "index_survey_assignments_due_date"
+    t.index ["survey_id", "student_id"], name: "index_survey_assignments_on_survey_and_student", unique: true
     t.index ["survey_id"], name: "index_survey_assignments_on_survey_id"
   end
 
@@ -116,6 +125,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_090001) do
     t.datetime "updated_at", null: false
     t.index ["admin_id"], name: "index_survey_change_logs_on_admin_id"
     t.index ["survey_id"], name: "index_survey_change_logs_on_survey_id"
+  end
+
+  create_table "survey_track_assignments", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "track", null: false
+    t.index ["survey_id", "track"], name: "index_survey_track_assignments_on_survey_id_and_track", unique: true
+    t.index ["survey_id"], name: "index_survey_track_assignments_on_survey_id"
   end
 
   create_table "surveys", force: :cascade do |t|
@@ -152,14 +170,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_090001) do
   add_foreign_key "feedback", "categories", on_delete: :cascade
   add_foreign_key "feedback", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "feedback", "surveys", on_delete: :cascade
+  add_foreign_key "notifications", "users", on_delete: :cascade
   add_foreign_key "questions", "categories"
   add_foreign_key "student_questions", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "student_questions", "questions", on_delete: :cascade
   add_foreign_key "student_questions", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "students", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "students", "users", column: "student_id", on_delete: :cascade
+  add_foreign_key "survey_assignments", "advisors", primary_key: "advisor_id", on_delete: :nullify
+  add_foreign_key "survey_assignments", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "survey_assignments", "surveys", on_delete: :cascade
   add_foreign_key "survey_change_logs", "surveys", on_delete: :nullify
   add_foreign_key "survey_change_logs", "users", column: "admin_id"
+  add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
   add_foreign_key "surveys", "users", column: "created_by_id"
 end

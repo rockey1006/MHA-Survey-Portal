@@ -11,7 +11,7 @@ class User < ApplicationRecord
   has_one :admin_profile, class_name: "Admin", foreign_key: :admin_id, inverse_of: :user, dependent: :destroy
   has_one :advisor_profile, class_name: "Advisor", foreign_key: :advisor_id, inverse_of: :user, dependent: :destroy
   has_one :student_profile, class_name: "Student", foreign_key: :student_id, inverse_of: :user, dependent: :destroy
-  has_many :notifications, as: :notifiable, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   has_many :created_surveys, class_name: "Survey", foreign_key: :created_by_id, inverse_of: :creator, dependent: :nullify
   has_many :survey_change_logs, foreign_key: :admin_id, inverse_of: :admin, dependent: :nullify
 

@@ -120,6 +120,11 @@ class SurveysController < ApplicationController
       end
     end
 
+    if (assignment = SurveyAssignment.find_by(survey_id: @survey.id, student_id: student.student_id))
+      assignment.mark_completed!
+      SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
+    end
+
     survey_response_id = SurveyResponse.build(student: student, survey: @survey).id
     redirect_to survey_response_path(survey_response_id), notice: "Survey submitted successfully!"
   end

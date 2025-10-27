@@ -21,13 +21,15 @@ class Advisors::SurveysControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, users(:other_student).name
   end
 
-  test "assign creates student questions and notification" do
+  test "assign creates student questions and enqueues notification" do
     StudentQuestion.delete_all
-    Notification.delete_all
+    SurveyAssignment.delete_all
 
-    assert_difference "StudentQuestion.count", @survey.questions.count do
-      assert_difference "Notification.count", 1 do
-        post assign_advisors_survey_path(@survey), params: { student_id: students(:student).student_id }
+    assert_enqueued_jobs 1, only: SurveyNotificationJob do
+      assert_difference "StudentQuestion.count", @survey.questions.count do
+        assert_difference "SurveyAssignment.count", 1 do
+          post assign_advisors_survey_path(@survey), params: { student_id: students(:student).student_id }
+        end
       end
     end
 
@@ -36,12 +38,14 @@ class Advisors::SurveysControllerTest < ActionDispatch::IntegrationTest
 
   test "assign_all handles eligible students" do
     StudentQuestion.delete_all
-    Notification.delete_all
+    SurveyAssignment.delete_all
     @survey.update!(track: "Residential")
 
-    assert_difference "StudentQuestion.count", @survey.questions.count do
-      assert_difference "Notification.count", 1 do
-        post assign_all_advisors_survey_path(@survey)
+    assert_enqueued_jobs 1, only: SurveyNotificationJob do
+      assert_difference "StudentQuestion.count", @survey.questions.count do
+        assert_difference "SurveyAssignment.count", 1 do
+          post assign_all_advisors_survey_path(@survey)
+        end
       end
     end
 
@@ -66,6 +70,13 @@ class Advisors::SurveysControllerTest < ActionDispatch::IntegrationTest
       student: student,
       question: questions(:fall_q1),
       advisor_id: advisors(:advisor).advisor_id
+    )
+    SurveyAssignment.where(survey: @survey, student: student).delete_all
+    SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
     )
 
     assert_difference "StudentQuestion.count", -@survey.questions.count do

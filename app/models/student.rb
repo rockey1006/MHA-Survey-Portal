@@ -10,6 +10,7 @@ class Student < ApplicationRecord
   has_many :student_questions, dependent: :destroy
   has_many :questions, through: :student_questions
   has_many :feedbacks, foreign_key: :student_id
+  has_many :survey_assignments, foreign_key: :student_id, primary_key: :student_id, dependent: :destroy
 
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 

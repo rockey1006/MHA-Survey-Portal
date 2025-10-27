@@ -19,6 +19,9 @@
     </div>
 
     <div class="user-section">
+  <div class="notification-area">
+        <%= render "shared/notification_menu" %>
+      </div>
       <div class="user-profile">
         <div class="user-avatar"
              title="<%= current_user&.full_name %>"

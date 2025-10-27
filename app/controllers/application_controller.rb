@@ -4,6 +4,7 @@
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   before_action :authenticate_user!
+  before_action :load_notification_state, if: :user_signed_in?
   allow_browser versions: :modern
 
   helper_method :current_student, :current_advisor_profile
@@ -18,5 +19,16 @@ class ApplicationController < ActionController::Base
   def current_advisor_profile
     return @current_advisor if defined?(@current_advisor)
     @current_advisor = current_user&.advisor_profile
+  end
+
+  private
+
+  # Preloads the notification count and recent records for the header dropdown.
+  #
+  # @return [void]
+  def load_notification_state
+    notifications_scope = current_user.notifications
+    @unread_notification_count = notifications_scope.unread.count
+    @recent_notifications = notifications_scope.recent.limit(10)
   end
 end

@@ -6,6 +6,8 @@ class SurveyAssignment < ApplicationRecord
   belongs_to :student, foreign_key: :student_id, primary_key: :student_id
   belongs_to :advisor, foreign_key: :advisor_id, primary_key: :advisor_id, optional: true
 
+  after_commit :enqueue_assigned_notification, on: :create
+
   validates :student, presence: true
   validates :survey, presence: true
   validates :assigned_at, presence: true
@@ -44,5 +46,17 @@ class SurveyAssignment < ApplicationRecord
     return false unless due_date.present? && completed_at.nil?
 
     due_date <= reference_time + window && due_date >= reference_time
+  end
+
+  private
+
+  # Pushes the "assigned" notification onto the queue once the assignment
+  # transaction commits, ensuring the student sees a new-notification badge.
+  #
+  # @return [void]
+  def enqueue_assigned_notification
+    return unless student&.user
+
+    SurveyNotificationJob.perform_later(event: :assigned, survey_assignment_id: id)
   end
 end

@@ -145,6 +145,19 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "student dashboard lists recent notifications" do
+    user = users(:student)
+    sign_in user
+
+    Notification.delete_all
+    Notification.create!(user: user, title: "Welcome", message: "Your dashboard now shows real alerts.")
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Welcome"
+  end
+
   test "advisor dashboard handles admin impersonation" do
     Admin.find_or_create_by!(admin_id: @admin.id)
     @admin.update!(role: "advisor")

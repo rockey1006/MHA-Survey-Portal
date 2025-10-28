@@ -64,7 +64,7 @@ class StudentTest < ActiveSupport::TestCase
 
   test "should validate track enum" do
     assert @student.track_residential?
-    @student.track = "executive"
+    @student.track = "Executive"
     assert @student.track_executive?
   end
 end

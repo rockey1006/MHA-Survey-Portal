@@ -89,6 +89,8 @@ class DashboardsController < ApplicationController
         end
       end
     end
+
+    @dashboard_notifications = current_user.notifications.recent.limit(5)
   end
 
   # Displays advisor-specific information such as advisees and recent feedback.

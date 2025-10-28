@@ -44,28 +44,40 @@
         Notifications
       </h2>
       
-  <div class="notification-list">
-        <div class="notification">
-          <div class="notification-icon"></div>
-          <div class="notification-content">
-            <div class="notification-text">
-              New feedback:
-              <span class="notification-title">Current Residential and Executive MHA Track Study Survey.</span>
+      <div class="notification-list">
+        <% if @dashboard_notifications.present? %>
+          <% @dashboard_notifications.each do |notification| %>
+            <div class="notification<%= notification.read? ? '' : ' unread' %>">
+              <div class="notification-icon"></div>
+              <div class="notification-content">
+                <div class="notification-text">
+                  <%= link_to notification.title, notification_path(notification), class: "notification-title" %>
+                  <span>
+                    <%= truncate(notification.message, length: 120) %>
+                  </span>
+                </div>
+                <div class="notification-time">
+                  <time datetime="<%= notification.created_at.iso8601 %>"><%= time_ago_in_words(notification.created_at) %> ago</time>
+                </div>
+                <% if (target = notification.target_path_for(current_user)).present? %>
+                  <div class="notification-actions" style="margin-top: 0.5rem;">
+                    <%= link_to "Open related record", target, class: tailwind_button_classes(:subtle) %>
+                  </div>
+                <% end %>
+              </div>
             </div>
-            <div class="notification-time">2 hours ago</div>
+          <% end %>
+          <div class="notification-footer">
+            <%= link_to "View all notifications", notifications_path, class: tailwind_button_classes(:secondary) %>
           </div>
-        </div>
-        
-        <div class="notification">
-          <div class="notification-icon"></div>
-          <div class="notification-content">
-            <div class="notification-text">
-              Survey reminder:
-              <span class="notification-title">Please complete your pending surveys.</span>
+        <% else %>
+          <div class="notification">
+            <div class="notification-icon"></div>
+            <div class="notification-content">
+              <div class="notification-text">You're all caught up! New notifications will appear here.</div>
             </div>
-            <div class="notification-time">1 day ago</div>
           </div>
-        </div>
+        <% end %>
       </div>
     </section>
 

@@ -1304,6 +1304,11 @@ body {
   transition: all var(--transition-normal);
 }
 
+.notification.unread {
+  border-color: rgba(80, 0, 0, 0.35);
+  background-color: rgba(80, 0, 0, 0.06);
+}
+
 .notification:hover {
   border-color: var(--primary-color);
   box-shadow: 0 2px 4px rgba(80, 0, 0, 0.1);
@@ -1317,6 +1322,12 @@ body {
   border-radius: var(--border-radius-sm);
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+.notification-footer {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
 }
 
 .notification-content {

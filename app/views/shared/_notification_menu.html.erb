@@ -1,7 +1,7 @@
 <details class="relative notifications-menu">
   <summary class="flex cursor-pointer items-center gap-2 rounded-full bg-white/60 px-3 py-2 text-sm font-medium text-slate-700 shadow transition hover:bg-white focus:outline-none">
     <span class="relative block">
-      🔔
+      <%= image_tag "notification-icon.png", alt: "Notifications", class: "h-5 w-5" %>
       <% if @unread_notification_count.to_i.positive? %>
         <span class="absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold leading-none text-white">
           <%= @unread_notification_count %>

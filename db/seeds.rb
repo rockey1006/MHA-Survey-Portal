@@ -1,8 +1,13 @@
 # db/seeds.rb
 require "json"
 require "yaml"
+require "active_support/core_ext/numeric/time"
 
 puts "\n== Seeding Health sample data =="
+
+previous_queue_adapter = ActiveJob::Base.queue_adapter
+ActiveJob::Base.queue_adapter = :inline
+at_exit { ActiveJob::Base.queue_adapter = previous_queue_adapter }
 
 seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   role_value = User.normalize_role(role) || role.to_s
@@ -114,31 +119,39 @@ survey_templates.each do |definition|
 
     created_surveys << survey
     tracks.each do |track|
-      surveys_by_track[track] << survey
+      normalized_track = track.to_s.strip.downcase
+      surveys_by_track[normalized_track] << survey
     end
   end
 end
 
 puts "• Assigning surveys to each student"
 students.each do |student|
-  track_value = student.track.to_s
-  next if track_value.blank?
+  track_value = student.track.presence || student.read_attribute(:track)
+  normalized_student_track = track_value.to_s.strip.downcase
+  next if normalized_student_track.blank?
 
-  Array(surveys_by_track[track_value]).each do |survey|
+  Array(surveys_by_track[normalized_student_track]).each do |survey|
     survey.questions.order(:question_order).each do |question|
       StudentQuestion.find_or_create_by!(student_id: student.student_id, question_id: question.id) do |record|
         record.advisor_id = student.advisor&.advisor_id
       end
     end
 
-    Notification.find_or_create_by!(
-      notifiable: student,
-      title: "Survey ready: #{survey.title}"
-    ) do |notification|
-      notification.message = "#{survey.title} has been assigned to you for #{survey.semester}."
+    assignment = SurveyAssignment.find_or_initialize_by(survey:, student:)
+    assignment.advisor ||= student.advisor
+    assignment.assigned_at ||= Time.zone.now
+    assignment.due_date ||= 2.weeks.from_now
+
+    created_assignment = assignment.new_record?
+    assignment.save! if assignment.new_record? || assignment.changed?
+
+    if created_assignment
+      SurveyNotificationJob.perform_now(event: :assigned, survey_assignment_id: assignment.id)
     end
 
-    puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
+    puts "   • Prepared #{survey.questions.count} questions and assignment for #{student.user.name} (#{track_value})"
+    puts "     ↳ Due #{assignment.due_date&.to_date}#{' (new notification queued)' if created_assignment}"
   end
 end
 

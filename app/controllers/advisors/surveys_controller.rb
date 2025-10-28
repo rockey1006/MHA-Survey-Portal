@@ -43,8 +43,7 @@ module Advisors
           end
         end
 
-        assignment, _created = upsert_assignment_for(student)
-        SurveyNotificationJob.perform_later(event: :assigned, survey_assignment_id: assignment.id)
+        upsert_assignment_for(student)
       end
 
       redirect_to advisors_surveys_path,
@@ -74,7 +73,6 @@ module Advisors
           end
 
           assignment, created = upsert_assignment_for(student)
-          SurveyNotificationJob.perform_later(event: :assigned, survey_assignment_id: assignment.id)
 
           created_count += 1 if created
         end
@@ -165,10 +163,10 @@ module Advisors
         assignment.due_date = due_date
       end
 
-  assignment.completed_at = nil if created
-  assignment.save! if assignment.new_record? || assignment.changed?
+      assignment.completed_at = nil if created
+      assignment.save! if assignment.new_record? || assignment.changed?
 
-      [ assignment, created ]
+      [assignment, created]
     end
 
     # Parses an optional due date supplied with the request.

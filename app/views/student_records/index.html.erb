@@ -186,11 +186,32 @@
       </div>
     <% end %>
 
-    <div class="mt-6 flex justify-end">
-  <%= link_to "Refresh",
-              request.fullpath,
-              class: "inline-flex items-center rounded-lg bg-[#500000] px-4 py-2 text-white hover:opacity-90",
-              data: { turbo: false } %>
-</div>
+    <div class="mt-6 flex justify-between">
+      <div>
+        <% if defined?(advisor_dashboard_path) && current_user&.respond_to?(:role_advisor?) && current_user.role_advisor? %>
+          <%= link_to "← Back",
+                      advisor_dashboard_path,
+                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      data: { turbo: false } %>
+        <% elsif defined?(admin_dashboard_path) && current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
+          <%= link_to "← Back",
+                      admin_dashboard_path,
+                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      data: { turbo: false } %>
+        <% else %>
+          <%= link_to "← Back",
+                      dashboard_path,
+                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      data: { turbo: false } %>
+        <% end %>
+      </div>
+
+      <div>
+        <%= link_to "Refresh",
+                    request.fullpath,
+                    class: "inline-flex items-center rounded-lg bg-[#500000] px-4 py-2 text-white hover:opacity-90",
+                    data: { turbo: false } %>
+      </div>
+    </div>
   </div>
 </main>

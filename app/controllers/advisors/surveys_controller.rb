@@ -166,7 +166,7 @@ module Advisors
       assignment.completed_at = nil if created
       assignment.save! if assignment.new_record? || assignment.changed?
 
-      [assignment, created]
+      [ assignment, created ]
     end
 
     # Parses an optional due date supplied with the request.

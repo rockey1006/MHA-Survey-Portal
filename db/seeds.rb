@@ -6,8 +6,11 @@ require "active_support/core_ext/numeric/time"
 puts "\n== Seeding Health sample data =="
 
 previous_queue_adapter = ActiveJob::Base.queue_adapter
-ActiveJob::Base.queue_adapter = :inline
-at_exit { ActiveJob::Base.queue_adapter = previous_queue_adapter }
+
+unless Rails.env.test?
+  ActiveJob::Base.queue_adapter = :inline
+  at_exit { ActiveJob::Base.queue_adapter = previous_queue_adapter }
+end
 
 seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   role_value = User.normalize_role(role) || role.to_s

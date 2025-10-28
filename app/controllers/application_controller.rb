@@ -4,6 +4,7 @@
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   before_action :authenticate_user!
+  before_action :check_student_profile_complete
   allow_browser versions: :modern
 
   helper_method :current_student, :current_advisor_profile
@@ -18,5 +19,31 @@ class ApplicationController < ActionController::Base
   def current_advisor_profile
     return @current_advisor if defined?(@current_advisor)
     @current_advisor = current_user&.advisor_profile
+  end
+
+  private
+
+  # Redirects students to profile setup if their profile is incomplete
+  def check_student_profile_complete
+    # Never block the role switching endpoint
+    if controller_name == "dashboards" && action_name == "switch_role"
+      return
+    end
+    if request&.path == "/switch_role"
+      return
+    end
+    # Allow dashboard root redirect to proceed; gating happens on specific dashboards
+    if controller_name == "dashboards" && action_name == "show"
+      return
+    end
+    return if Rails.env.test?
+    return unless user_signed_in?
+    return unless current_user.role_student?
+    return if current_student.nil?
+    return if current_student.profile_complete?
+    return if controller_name == "student_profiles" # Allow access to profile pages
+    return if controller_name == "sessions" # Allow logout
+
+    redirect_to edit_student_profile_path, alert: "Please complete your profile to continue."
   end
 end

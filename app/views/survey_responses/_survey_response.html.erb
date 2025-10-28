@@ -54,11 +54,20 @@
                   <header class="flex items-start gap-3">
                     <span class="text-sm font-semibold text-[#500000]">Q<%= index + 1 %></span>
                     <div class="space-y-1">
-                      <p class="text-sm font-medium text-slate-800"><%= question.question_text %></p>
-                      <% dependent_by_text = question.question.to_s.downcase.match?(/if|yes|no|如果|why not|请说明/) rescue false %>
-                      <% if question.is_required? && !dependent_by_text %>
-                        <!-- Required label removed for completed/review view -->
-                      <% end %>
+                      <p class="text-sm font-medium text-slate-800">
+                        <%= question.question_text %>
+                        <% # Compute if this question is required using the same logic as the controller %>
+                        <% required = question.is_required? %>
+                        <% if !required && question.question_type_multiple_choice? %>
+                          <% options = question.answer_options_list.map(&:strip).map(&:downcase) %>
+                          <% is_flexibility_scale = (options == %w[1 2 3 4 5]) && question.question_text.to_s.downcase.include?("flexible") %>
+                          <% required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale) %>
+                        <% end %>
+                        <% dependent_by_text = question.question_text.to_s.downcase.match?(/if|yes|no|如果|why not|请说明/) rescue false %>
+                        <% if required && !dependent_by_text %>
+                          <span class="text-red-600 font-semibold ml-1">*</span>
+                        <% end %>
+                      </p>
                     </div>
                   </header>
 

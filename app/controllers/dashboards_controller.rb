@@ -3,6 +3,7 @@ require "set"
 # Presents role-aware dashboards and administrative utilities for students,
 # advisors, and administrators within the main application.
 class DashboardsController < ApplicationController
+  skip_before_action :check_student_profile_complete, only: :switch_role
   before_action :ensure_profile_present, only: %i[student advisor]
   before_action :ensure_role_switch_allowed, only: :switch_role
 
@@ -58,14 +59,15 @@ class DashboardsController < ApplicationController
       required_ids = survey.questions.select { |question| required_question?(question) }.map(&:id)
       responses = responses_matrix[survey.id]
       answered_ids = responses.map { |entry| entry[:question_id] }.uniq
-      answered_count = answered_ids.size
+      # Only count answered questions that are required
+      answered_required_count = (answered_ids & required_ids).size
       total_count = required_ids.present? ? required_ids.size : survey.questions.count
       completed_at = responses.map { |entry| entry[:updated_at] }.compact.max
 
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
         survey: survey,
-        answered_count: answered_count,
+        answered_count: answered_required_count,
         total_count: total_count,
         completed_at: completed_at,
         required: required_ids.present?,
@@ -82,7 +84,7 @@ class DashboardsController < ApplicationController
         end
       else
         # Surveys without required questions are considered pending until at least one answer is provided
-        if answered_count.positive?
+        if answered_required_count.positive?
           @completed_surveys << survey_summary.merge(status: "Completed")
         else
           @pending_surveys << survey_summary.merge(status: "Pending")
@@ -347,7 +349,10 @@ class DashboardsController < ApplicationController
     return false unless question.question_type_multiple_choice?
 
     options = question.answer_options_list.map(&:strip).map(&:downcase)
-    !(options == %w[yes no] || options == %w[no yes])
+    # Exception: flexibility scale questions (1-5) should remain optional
+    is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
+                           question.question_text.to_s.downcase.include?("flexible")
+    !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
   end
 
 

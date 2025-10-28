@@ -60,8 +60,12 @@ Rails.application.routes.draw do
   resources :students, only: %i[index update]
   patch "students/:id/update_advisor", to: "dashboards#update_student_advisor", as: :update_student_advisor
 
+  # Student profile management
+  resource :student_profile, only: %i[show edit update]
+
   resources :surveys do
     post :submit, on: :member
+    post :save_progress, on: :member
   end
 
   resources :survey_responses, only: :show do
@@ -69,6 +73,9 @@ Rails.application.routes.draw do
       get :download
     end
   end
+
+  # Evidence helpers
+  get "evidence/check_access", to: "evidence#check_access", as: :evidence_check_access, defaults: { format: :json }
 
   namespace :advisors do
     resources :surveys, only: %i[index show] do

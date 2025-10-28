@@ -6,6 +6,27 @@ surveys:
     tracks:
       - "Executive"
     categories:
+      - name: "Employment Information"
+        description: "Current Employment Status and Details"
+        questions:
+          - order: 1
+            text: "Are you currently employed?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+            required: true
+          - order: 2
+            text: "If yes, where are you employed? (name and address)"
+            type: "short_answer"
+          - order: 3
+            text: "What is your title?"
+            type: "short_answer"
+          - order: 4
+            text: "How many hours per week do you work on average?"
+            type: "short_answer"
+          - order: 5
+            text: "How flexible are your work hours?"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
       - name: "Semester"
         description: "Semester Activity Information"
         questions:
@@ -232,6 +253,27 @@ surveys:
     tracks:
       - "Residential"
     categories:
+      - name: "Employment Information"
+        description: "Current Employment Status and Details"
+        questions:
+          - order: 1
+            text: "Are you currently employed?"
+            type: "multiple_choice"
+            options: ["Yes", "No"]
+            required: true
+          - order: 2
+            text: "If yes, where are you employed? (name and address)"
+            type: "short_answer"
+          - order: 3
+            text: "What is your title?"
+            type: "short_answer"
+          - order: 4
+            text: "How many hours per week do you work on average?"
+            type: "short_answer"
+          - order: 5
+            text: "How flexible are your work hours?"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
       - name: "Health Care Environment and Community"
         description: "Relationship between health care operations and their communities"
         questions:

@@ -29,7 +29,7 @@ RUN update-ca-certificates
 # Install wkhtmltopdf from packaging release
 ARG WKHTMLTOPDF_VERSION=0.12.6.1-3
 ARG WKHTMLTOPDF_PACKAGE=wkhtmltox_0.12.6.1-3.bookworm_amd64.deb
-RUN curl -fsSLk "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/${WKHTMLTOPDF_PACKAGE}" -o /tmp/wkhtmltox.deb && \
+RUN curl -fsSL "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/${WKHTMLTOPDF_PACKAGE}" -o /tmp/wkhtmltox.deb && \
     apt-get update -qq && \
     apt-get install --no-install-recommends -y /tmp/wkhtmltox.deb && \
     rm /tmp/wkhtmltox.deb && \

@@ -30,10 +30,17 @@ class SurveysController < ApplicationController
 
       Rails.logger.info "[SHOW DEBUG] Found #{responses.count} saved responses"
 
+      @existing_ratings = {}
       responses.each do |response|
-        # Use string key to match view's expectation
-        @existing_answers[response.question_id.to_s] = response.answer
-        Rails.logger.info "[SHOW DEBUG] Question #{response.question_id}: #{response.answer.inspect}"
+        ans = response.answer
+        if response.question.question_type == "evidence" && ans.is_a?(Hash)
+          @existing_answers[response.question_id.to_s] = ans["link"]
+          @existing_ratings[response.question_id.to_s] = ans["rating"]
+        else
+          # Use string key to match view's expectation
+          @existing_answers[response.question_id.to_s] = ans
+        end
+        Rails.logger.info "[SHOW DEBUG] Question #{response.question_id}: #{ans.inspect}"
       end
     end
 
@@ -79,6 +86,7 @@ class SurveysController < ApplicationController
 
     missing_required = []
     invalid_links = []
+    missing_ratings = []
 
     @survey.questions.each do |question|
       submitted_value = answers[question.id.to_s]
@@ -114,13 +122,27 @@ class SurveysController < ApplicationController
           invalid_links << question unless accessible
         end
       end
+
+      # Require self-rating for evidence questions outside Employment Information
+      if question.question_type == "evidence"
+        category_name = question.category&.name.to_s
+        rating_required = category_name != "Employment Information"
+        if rating_required
+          rating_val = params.dig(:answers_rating, question.id.to_s)
+          if rating_val.to_s.strip.blank?
+            missing_ratings << question
+          end
+        end
+      end
     end
 
-    if missing_required.any? || invalid_links.any?
+    if missing_required.any? || invalid_links.any? || missing_ratings.any?
       @category_groups = @survey.categories.includes(:questions).order(:id)
       @existing_answers = answers
+      @existing_ratings = (params[:answers_rating] || {}).transform_keys(&:to_s)
       @computed_required = {}
       @invalid_evidence = invalid_links.map(&:id)
+      @missing_rating_ids = missing_ratings.map(&:id)
       @category_groups.each do |category|
         category.questions.each do |question|
           required = question.is_required?
@@ -142,11 +164,23 @@ class SurveysController < ApplicationController
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        if submitted_value.present?
-          record.answer = submitted_value
-          record.save!
-        elsif record.persisted?
-          record.destroy!
+        question = @survey.questions.find { |q| q.id == question_id }
+        if question&.question_type == "evidence"
+          rating_value = params.dig(:answers_rating, question_id.to_s)
+          if submitted_value.present? || rating_value.present?
+            combined = { "link" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
+            record.answer = combined
+            record.save!
+          elsif record.persisted?
+            record.destroy!
+          end
+        else
+          if submitted_value.present?
+            record.answer = submitted_value
+            record.save!
+          elsif record.persisted?
+            record.destroy!
+          end
         end
       end
     end
@@ -188,18 +222,34 @@ class SurveysController < ApplicationController
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        if submitted_value.present?
-          record.answer = submitted_value
-          # Skip validations when saving progress; validations happen on submit
-          if record.save(validate: false)
-            saved_count += 1
-            Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved question #{question_id} with value: #{submitted_value} (validations skipped)"
-          else
-            Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save question #{question_id} during save_progress (validations skipped)"
+        question = @survey.questions.find { |q| q.id == question_id }
+        if question&.question_type == "evidence"
+          rating_value = params.dig(:answers_rating, question_id.to_s)
+          if submitted_value.present? || rating_value.present?
+            combined = { "link" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
+            record.answer = combined
+            if record.save(validate: false)
+              saved_count += 1
+              Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved evidence+rating #{question_id} (validations skipped)"
+            end
+          elsif record.persisted?
+            record.destroy!
+            Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty evidence+rating for question #{question_id}"
           end
-        elsif record.persisted?
-          record.destroy!
-          Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty answer for question #{question_id}"
+        else
+          if submitted_value.present?
+            record.answer = submitted_value
+            # Skip validations when saving progress; validations happen on submit
+            if record.save(validate: false)
+              saved_count += 1
+              Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved question #{question_id} with value: #{submitted_value} (validations skipped)"
+            else
+              Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save question #{question_id} during save_progress (validations skipped)"
+            end
+          elsif record.persisted?
+            record.destroy!
+            Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty answer for question #{question_id}"
+          end
         end
       end
     end

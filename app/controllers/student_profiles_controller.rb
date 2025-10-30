@@ -33,12 +33,16 @@ class StudentProfilesController < ApplicationController
 
       # Automatic Survey Assignment: assign surveys matching the student's track
       if @student.track.present?
-        surveys = Survey.joins(:survey_assignments).where(survey_assignments: { track: @student.track }).distinct
+        surveys = Survey
+          .joins(:track_assignments)
+          .where(survey_track_assignments: { track: @student.track })
+          .distinct
+
         surveys.find_each do |survey|
-          survey.questions.order(:question_order).each do |question|
-            StudentQuestion.find_or_create_by!(student_id: @student.student_id, question_id: question.id) do |record|
-              record.advisor_id = @student.advisor_id
-            end
+          # Create a SurveyAssignment so it shows in the student's to-do list.
+          SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: @student.student_id) do |assignment|
+            assignment.advisor_id = @student.advisor_id
+            assignment.assigned_at = Time.current
           end
         end
       end

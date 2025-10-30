@@ -41,6 +41,7 @@ class DashboardsController < ApplicationController
     student_responses = StudentQuestion
                           .joins(question: :category)
                           .where(student_id: @student.student_id)
+                          .where.not(response_value: [ nil, "" ])
                           .select(
                             "categories.survey_id AS survey_id",
                             "student_questions.question_id",
@@ -52,6 +53,11 @@ class DashboardsController < ApplicationController
       responses_matrix[entry.survey_id] << { question_id: entry.question_id, updated_at: entry.updated_at }
     end
 
+    # Load assignment records to determine true completion (submit) status
+    assignments = SurveyAssignment
+                    .where(student_id: @student.student_id, survey_id: surveys.map(&:id))
+                    .index_by(&:survey_id)
+
     @completed_surveys = []
     @pending_surveys = []
 
@@ -62,7 +68,9 @@ class DashboardsController < ApplicationController
       # Only count answered questions that are required
       answered_required_count = (answered_ids & required_ids).size
       total_count = required_ids.present? ? required_ids.size : survey.questions.count
-      completed_at = responses.map { |entry| entry[:updated_at] }.compact.max
+      # Only consider a survey "Completed" when it was submitted, not just answered
+      assignment = assignments[survey.id]
+      completed_at = assignment&.completed_at
 
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
@@ -75,20 +83,10 @@ class DashboardsController < ApplicationController
         download_token: survey_response.signed_download_token
       }
 
-      if required_ids.present?
-        answered_set = answered_ids.to_set
-        if required_ids.all? { |id| answered_set.include?(id) }
-          @completed_surveys << survey_summary.merge(status: "Completed")
-        else
-          @pending_surveys << survey_summary.merge(status: "Pending")
-        end
+      if completed_at.present?
+        @completed_surveys << survey_summary.merge(status: "Completed")
       else
-        # Surveys without required questions are considered pending until at least one answer is provided
-        if answered_required_count.positive?
-          @completed_surveys << survey_summary.merge(status: "Completed")
-        else
-          @pending_surveys << survey_summary.merge(status: "Pending")
-        end
+        @pending_surveys << survey_summary.merge(status: "Pending")
       end
     end
 

@@ -61,7 +61,25 @@ class StudentQuestion < ApplicationRecord
     val = read_attribute(:response_value)
     return if val.blank?
 
-    val_str = (val.is_a?(String) ? val : val.to_s).strip
-    errors.add(:response_value, "must be a Google Drive file or folder link") unless val_str =~ DRIVE_URL_REGEX
+    link_str = nil
+    if val.is_a?(String)
+      stripped = val.strip
+      if stripped.start_with?("{")
+        begin
+          parsed = JSON.parse(stripped) rescue nil
+          link_str = parsed.is_a?(Hash) ? parsed["link"].to_s : stripped
+        rescue JSON::ParserError
+          link_str = stripped
+        end
+      else
+        link_str = stripped
+      end
+    else
+      # Non-string stored (unlikely); best-effort cast
+      link_str = val.to_s
+    end
+
+    return if link_str.blank?
+    errors.add(:response_value, "must be a Google Drive file or folder link") unless link_str =~ DRIVE_URL_REGEX
   end
 end

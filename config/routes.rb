@@ -77,6 +77,7 @@ Rails.application.routes.draw do
   resources :survey_responses, only: :show do
     member do
       get :download
+      get :composite_report
     end
   end
 

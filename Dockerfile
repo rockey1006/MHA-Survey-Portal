@@ -16,7 +16,17 @@ WORKDIR /rails
 
 # Install base packages
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libjemalloc2 libvips postgresql-client && \
+    apt-get install --no-install-recommends -y curl libjemalloc2 libvips postgresql-client \
+        fontconfig libfreetype6 libjpeg62-turbo libpng16-16 libssl3 libxrender1 libxext6 \
+        xfonts-75dpi xfonts-base && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install wkhtmltopdf from packaging release
+ARG WKHTMLTOPDF_VERSION=0.12.6.1-3.bookworm
+RUN curl -fsSL "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/wkhtmltox_${WKHTMLTOPDF_VERSION}_amd64.deb" -o /tmp/wkhtmltox.deb && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y /tmp/wkhtmltox.deb && \
+    rm /tmp/wkhtmltox.deb && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment

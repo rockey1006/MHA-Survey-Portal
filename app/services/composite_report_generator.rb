@@ -82,12 +82,12 @@ class CompositeReportGenerator
     ApplicationController.render(
       template: "composite_reports/show",
       layout: "pdf",
-      assigns: view_assigns(timestamp),
+      locals: view_locals(timestamp),
       formats: [ :html ]
     )
   end
 
-  def view_assigns(generated_at)
+  def view_locals(generated_at)
     {
       survey_response: @survey_response,
       student: student,

@@ -155,6 +155,35 @@ class SurveysController < ApplicationController
           @computed_required[question.id] = required
         end
       end
+
+      # Persist all provided answers (including self-ratings) even when submit fails
+      allowed_question_ids = @survey.questions.pluck(:id)
+      ActiveRecord::Base.transaction do
+        allowed_question_ids.each do |question_id|
+          submitted_value = answers[question_id.to_s]
+          record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
+          record.advisor_id ||= student.advisor_id
+
+          question = @survey.questions.find { |q| q.id == question_id }
+          if question&.question_type == "evidence"
+            rating_value = params.dig(:answers_rating, question_id.to_s)
+            if submitted_value.present? || rating_value.present?
+              combined = { "link" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
+              record.answer = combined
+              record.save(validate: false)
+            elsif record.persisted?
+              record.destroy!
+            end
+          else
+            if submitted_value.present?
+              record.answer = submitted_value
+              record.save(validate: false)
+            elsif record.persisted?
+              record.destroy!
+            end
+          end
+        end
+      end
       render :show, status: :unprocessable_entity and return
     end
 
@@ -185,10 +214,12 @@ class SurveysController < ApplicationController
       end
     end
 
-    if (assignment = SurveyAssignment.find_by(survey_id: @survey.id, student_id: student.student_id))
-      assignment.mark_completed!
-      SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
-    end
+    assignment = SurveyAssignment.find_or_initialize_by(survey_id: @survey.id, student_id: student.student_id)
+    assignment.advisor_id ||= student.advisor_id
+    assignment.assigned_at ||= Time.current
+    assignment.save! if assignment.new_record? || assignment.changed?
+    assignment.mark_completed!
+    SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
 
     survey_response_id = SurveyResponse.build(student: student, survey: @survey).id
     redirect_to survey_response_path(survey_response_id), notice: "Survey submitted successfully!"

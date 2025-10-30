@@ -11,6 +11,20 @@
     </p>
   </header>
 
+  <% if (@invalid_evidence.present? || @missing_rating_ids.present?) %>
+    <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+      <p class="font-medium">Please fix the highlighted items:</p>
+      <ul class="mt-1 list-disc pl-5">
+        <% if @invalid_evidence.present? %>
+          <li>One or more evidence links are invalid or not publicly accessible.</li>
+        <% end %>
+        <% if @missing_rating_ids.present? %>
+          <li>Self-rating (1–5) is required for each evidence item.</li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <%= form_with url: submit_survey_path(@survey), method: :post, local: true, data: { turbo: false }, class: "space-y-6 survey-form" do |form| %>
     <% @category_groups.each do |category| %>
       <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm space-y-4">

@@ -82,13 +82,15 @@ class SurveysController < ApplicationController
 
     answers = params[:answers] || {}
 
-    allowed_question_ids = @survey.questions.pluck(:id)
+    # Build a questions map for efficient lookups
+    questions_map = @survey.questions.includes(:category).index_by(&:id)
+    allowed_question_ids = questions_map.keys
 
     missing_required = []
     invalid_links = []
     missing_ratings = []
 
-    @survey.questions.includes(:category).each do |question|
+    questions_map.each_value do |question|
       submitted_value = answers[question.id.to_s]
 
       # Apply the same required logic as in show action
@@ -157,14 +159,13 @@ class SurveysController < ApplicationController
       end
 
       # Persist all provided answers (including self-ratings) even when submit fails
-      allowed_question_ids = @survey.questions.pluck(:id)
       ActiveRecord::Base.transaction do
         allowed_question_ids.each do |question_id|
           submitted_value = answers[question_id.to_s]
           record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
           record.advisor_id ||= student.advisor_id
 
-          question = @survey.questions.find { |q| q.id == question_id }
+          question = questions_map[question_id]
           if question&.question_type == "evidence"
             rating_value = params.dig(:answers_rating, question_id.to_s)
             if submitted_value.present? || rating_value.present?
@@ -193,7 +194,7 @@ class SurveysController < ApplicationController
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        question = @survey.questions.find { |q| q.id == question_id }
+        question = questions_map[question_id]
         if question&.question_type == "evidence"
           rating_value = params.dig(:answers_rating, question_id.to_s)
           if submitted_value.present? || rating_value.present?
@@ -214,15 +215,21 @@ class SurveysController < ApplicationController
       end
     end
 
-    assignment = SurveyAssignment.find_or_initialize_by(survey_id: @survey.id, student_id: student.student_id)
-    assignment.advisor_id ||= student.advisor_id
-    assignment.assigned_at ||= Time.current
-    assignment.save! if assignment.new_record? || assignment.changed?
-    assignment.mark_completed!
-    SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
+    begin
+      assignment = SurveyAssignment.find_or_initialize_by(survey_id: @survey.id, student_id: student.student_id)
+      assignment.advisor_id ||= student.advisor_id
+      assignment.assigned_at ||= Time.current
+      assignment.save! if assignment.new_record? || assignment.changed?
+      assignment.mark_completed!
+      SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
 
-    survey_response_id = SurveyResponse.build(student: student, survey: @survey).id
-    redirect_to survey_response_path(survey_response_id), notice: "Survey submitted successfully!"
+      survey_response_id = SurveyResponse.build(student: student, survey: @survey).id
+      redirect_to survey_response_path(survey_response_id), notice: "Survey submitted successfully!"
+    rescue StandardError => e
+      Rails.logger.error "[SUBMIT ERROR] Failed to complete survey submission: #{e.class}: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      redirect_to survey_path(@survey), alert: "An error occurred while submitting the survey. Please try again or contact support if the problem persists."
+    end
   end
 
   # Saves the current survey progress without validating required fields.

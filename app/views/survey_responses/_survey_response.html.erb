@@ -135,8 +135,8 @@
             <h4 class="font-semibold">Advisor feedback — <%= category.name %></h4>
             <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
               <div>
-                <label for="ratings_<%= category.id %>_average_score">Score (1-5)</label>
-                <input id="ratings_<%= category.id %>_average_score" name="ratings[<%= category.id %>][average_score]" value="<%= prefill_flag && existing ? existing.average_score : '' %>" type="number" min="1" max="5" step="1" class="w-full border rounded px-2 py-1" />
+                <label for="ratings_<%= category.id %>_average_score">Score (0-5)</label>
+                <input id="ratings_<%= category.id %>_average_score" name="ratings[<%= category.id %>][average_score]" value="<%= prefill_flag && existing ? existing.average_score : '' %>" type="number" min="0" max="5" step="1" class="w-full border rounded px-2 py-1" />
               </div>
               <div class="md:col-span-2">
                 <label for="ratings_<%= category.id %>_comments">Comment (optional)</label>

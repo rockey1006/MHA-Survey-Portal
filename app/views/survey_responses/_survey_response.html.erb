@@ -40,6 +40,7 @@
   <% if survey&.categories&.any? %>
     <div class="space-y-8">
       <% survey.categories.includes(:questions).order(:id).each do |category| %>
+        <div class="space-y-6"> <!-- group category + feedback to avoid outer space-y separating them -->
         <section class="category-section space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
           <header class="space-y-1">
             <h3 class="text-xl font-semibold text-slate-800"><%= category.name %></h3>
@@ -148,6 +149,7 @@
             <% end %>
           </section>
         <% end %>
+        <div class="h-14" aria-hidden="true"></div>
       <% end %>
     </div>
   <% else %>
@@ -170,7 +172,7 @@
     <% if fb.category_id.present? %>
       <% per_category_map[fb.category_id] = fb %>
       <%# Try parse legacy JSON in comments if present %>
-      <% if fb.comments.present? %>
+        <% if fb.comments.present? %>
         <% begin %>
           <% parsed = JSON.parse(fb.comments) rescue nil %>
           <% if parsed.is_a?(Hash) %>
@@ -234,4 +236,5 @@
       </div>
     </section>
   <% end %>
+  
 </div>

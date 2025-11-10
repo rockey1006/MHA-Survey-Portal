@@ -590,7 +590,7 @@ body {
 
 /* Extra spacing between categories in survey views to improve readability */
 .category-section {
-  margin-bottom: var(--spacing-6xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .section-header {

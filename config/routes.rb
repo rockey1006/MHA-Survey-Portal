@@ -63,6 +63,9 @@ Rails.application.routes.draw do
   # Student profile management
   resource :student_profile, only: %i[show edit update]
 
+  # Account settings (all roles share this page)
+  resource :account, only: %i[edit update]
+
   resources :surveys do
     post :submit, on: :member
     post :save_progress, on: :member
@@ -87,12 +90,13 @@ Rails.application.routes.draw do
     resources :surveys, only: %i[index show] do
       post   :assign,     on: :member
       post   :assign_all, on: :member
-      delete :unassign,   on: :member   
+      delete :unassign,   on: :member
     end
     resources :students, only: %i[show update]
   end
 
   get "about", to: "pages#about", as: :about
+  get "faq",   to: "pages#faq",   as: :faq
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

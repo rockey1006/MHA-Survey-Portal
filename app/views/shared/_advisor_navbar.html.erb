@@ -27,7 +27,7 @@
     
     <div class="user-section">
       <span class="role-badge advisor">ADVISOR</span>
-  <div class="notification-area">
+      <div class="notification-area">
         <%= render "shared/notification_menu" %>
       </div>
       <div class="user-profile">
@@ -56,7 +56,7 @@
           <div class="profile-menu">
             <div class="profile-menu-item">
               <div class="profile-menu-icon">👤</div>
-              <span>Account Information</span>
+              <%= link_to "Account Information", edit_account_path, class: "profile-menu-label" %>
             </div>
             <div class="profile-menu-item">
               <div class="profile-menu-icon">⚙️</div>

@@ -34,6 +34,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
   create_table :students, primary_key: :student_id do |t|
       t.string :uin
       t.bigint :advisor_id
+      t.string :major
       t.enum :track, enum_type: :student_tracks, null: false, default: "Residential"
       t.enum :classification, enum_type: :student_classifications, null: false, default: "G1"
       t.timestamps

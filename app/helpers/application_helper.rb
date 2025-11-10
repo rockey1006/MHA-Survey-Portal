@@ -165,6 +165,17 @@ module ApplicationHelper
     link_to label_content, admin_surveys_path(target_params), class: classes.join(" ")
   end
 
+  # Supplies an accessible label for avatar placeholders and profile images.
+  #
+  # @param user [Object, nil]
+  # @return [String]
+  def avatar_aria_label(user)
+    return "User avatar" if user.blank?
+
+    name = user.respond_to?(:full_name) ? user.full_name.to_s.strip : ""
+    name.present? ? "Profile picture for #{name}" : "User avatar"
+  end
+
   private
 
   # Humanizes single audit attribute values for display.

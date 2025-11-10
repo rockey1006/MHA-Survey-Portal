@@ -66,4 +66,7 @@ doc/
 /.vscode/
 /.byebug_history
 
+# Development CA certificates (environment-specific)
+mkcert_development_CA_*.crt
+
 .copilot-instructions.md

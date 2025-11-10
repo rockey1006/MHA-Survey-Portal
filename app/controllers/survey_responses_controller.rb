@@ -2,7 +2,8 @@
 # enforcing authorization rules for admins, advisors, and students.
 class SurveyResponsesController < ApplicationController
   before_action :set_survey_response
-  before_action :authorize_view!
+  before_action :authorize_view!, only: %i[show download]
+  before_action :authorize_composite!, only: :composite_report
 
   # Shows a survey response within the standard layout.
   #
@@ -37,6 +38,35 @@ class SurveyResponsesController < ApplicationController
       logger.error "Download PDF failed for SurveyResponse #{@survey_response.id}: #{e.class} - #{e.message}\n#{e.backtrace&.join("\n")}"
       head :internal_server_error
     end
+  end
+
+  # Streams a composite PDF aggregating student responses and advisor feedback.
+  #
+  # @return [void]
+  def composite_report
+    unless defined?(WickedPdf)
+      logger.warn "Composite PDF generation requested but WickedPdf is not available"
+      render plain: "Composite PDF generation unavailable. Please try again later.", status: :service_unavailable and return
+    end
+
+    generator = CompositeReportGenerator.new(survey_response: @survey_response)
+    pdf_data = generator.render
+
+    unless pdf_data&.start_with?("%PDF")
+      logger.error "Composite PDF generation returned non-PDF payload for SurveyResponse=#{@survey_response.id}: first bytes=#{pdf_data&.byteslice(0, 128).inspect}"
+      head :internal_server_error and return
+    end
+
+    filename = "composite_assessment_#{@survey_response.id}.pdf"
+    send_data pdf_data, filename: filename, disposition: "attachment", type: "application/pdf"
+  rescue CompositeReportGenerator::MissingDependency
+    render plain: "Composite PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
+  rescue CompositeReportGenerator::GenerationError => e
+    logger.error "Composite report generation failed for SurveyResponse #{@survey_response.id}: #{e.message}"
+    head :internal_server_error
+  rescue => e
+    logger.error "Download composite PDF failed for SurveyResponse #{@survey_response.id}: #{e.class} - #{e.message}\n#{e.backtrace&.join("\n")}"
+    head :internal_server_error
   end
 
   private
@@ -76,6 +106,40 @@ class SurveyResponsesController < ApplicationController
     end
 
     logger.warn "Authorization failed for SurveyResponse #{@survey_response.id} user=#{current&.id}"
+    head :unauthorized
+  end
+
+  # Ensures only admins or the student's assigned advisor can generate composite reports.
+  #
+  # @return [void]
+  def authorize_composite!
+    unless @survey_response
+      head :not_found and return
+    end
+
+    if params[:token].present?
+      logger.warn "Composite report access via token rejected for SurveyResponse #{@survey_response&.id}"
+      head :unauthorized and return
+    end
+
+    current = current_user
+    unless current
+      logger.warn "Composite report access without authenticated user for SurveyResponse #{@survey_response&.id}"
+      head :unauthorized and return
+    end
+
+    if current.role_admin?
+      return
+    end
+
+    advisor_profile = current_advisor_profile
+    assigned_advisor_id = @survey_response.advisor_id
+
+    if advisor_profile && assigned_advisor_id.present? && advisor_profile.advisor_id == assigned_advisor_id
+      return
+    end
+
+    logger.warn "Composite report authorization failed for SurveyResponse #{@survey_response&.id} user=#{current.id}"
     head :unauthorized
   end
 

@@ -6,6 +6,9 @@
   <div class="flex flex-wrap items-center gap-3">
     <%= link_to "← Back", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
   <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
+  <% if current_user.role_admin? || current_user.role_advisor? %>
+    <%= link_to "Composite Assessment PDF", composite_report_survey_response_path(@survey_response), class: tailwind_button_classes(:secondary), target: "_blank", rel: "noopener noreferrer" %>
+  <% end %>
   </div>
 
   <%= render @survey_response %>
@@ -13,5 +16,8 @@
   <div class="flex flex-wrap items-center gap-3">
     <%= link_to "← Back", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
   <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
+  <% if current_user.role_admin? || current_user.role_advisor? %>
+    <%= link_to "Composite Assessment PDF", composite_report_survey_response_path(@survey_response), class: tailwind_button_classes(:secondary), target: "_blank", rel: "noopener noreferrer" %>
+  <% end %>
   </div>
 </div>

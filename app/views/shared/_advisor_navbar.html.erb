@@ -63,10 +63,10 @@
               <div class="profile-menu-icon" aria-hidden="true">👤</div>
               <span>Account Information</span>
             </div>
-            <div class="profile-menu-item">
+            <%= link_to settings_path, class: "profile-menu-item" do %>
               <div class="profile-menu-icon" aria-hidden="true">⚙️</div>
               <span>Settings</span>
-            </div>
+            <% end %>
             <%= link_to destroy_user_session_path,
                         method: :delete,
                         class: "profile-menu-item danger" do %>

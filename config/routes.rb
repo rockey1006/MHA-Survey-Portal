@@ -95,6 +95,10 @@ Rails.application.routes.draw do
 
   get "about", to: "pages#about", as: :about
 
+  # User settings page (accessible to any authenticated user)
+  get "settings", to: "settings#edit", as: :settings
+  patch "settings", to: "settings#update"
+
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check

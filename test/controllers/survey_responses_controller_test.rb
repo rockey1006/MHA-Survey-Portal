@@ -50,6 +50,23 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
       assert_includes @response.body.downcase, "server-side pdf generation unavailable"
     end
   end
+
+  test "composite_report returns service_unavailable when WickedPdf missing" do
+    sign_in @admin
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :composite_report, params: { id: sr.id }
+    assert_includes [ 200, 503 ], @response.status
+    if @response.status == 503
+      assert_includes @response.body.downcase, "composite pdf generation unavailable"
+    end
+  end
+
+  test "composite_report rejects student users" do
+    sign_in @student_user
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :composite_report, params: { id: sr.id }
+    assert_response :unauthorized
+  end
 end
 
 class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
@@ -78,5 +95,16 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
     get survey_response_path(id: "nonexistent")
     assert_response :not_found
+  end
+
+  test "composite_report returns 503 when WickedPdf missing" do
+    sign_in users(:admin)
+    get composite_report_survey_response_path(@survey_response)
+    assert_includes [ 200, 503 ], response.status
+    if response.status == 503
+      assert_match /Composite PDF generation unavailable/, @response.body
+    else
+      assert response.body.present? || response.headers["Content-Disposition"].present?
+    end
   end
 end

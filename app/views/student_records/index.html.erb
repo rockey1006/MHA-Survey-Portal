@@ -67,6 +67,7 @@
                           <th scope="col" class="px-4 py-3">Track / Cohort</th>
                           <th scope="col" class="px-4 py-3">Status</th>
                           <th scope="col" class="px-4 py-3">Completion</th>
+                          <th scope="col" class="px-4 py-3">Feedback</th>
                           <th scope="col" class="px-4 py-3 text-right">Survey</th>
                         </tr>
                       </thead>
@@ -80,22 +81,18 @@
                           </tr>
                         <% else %>
                           <% filtered_rows.each_with_index do |row, idx| %>
-                            <% student         = row[:student] %>
-                            <% advisor         = row[:advisor] %>
-                            <% status_text     = row[:status] %>
-                            <% completion_date = row[:completed_at] %>
-                            <% survey_response = row[:survey_response] %>
-                            <% download_token  = row[:download_token] %>
-                            <%# If feedback already exists for this student+survey, open the feedback page
-                                with prefill=true so the advisor can update existing feedback. Otherwise
-                                open a fresh new feedback page. %>
-                            <% has_feedback = Feedback.exists?(student_id: student.student_id, survey_id: survey.id) %>
-                            <% survey_label = status_text == "Completed" ? (has_feedback ? "Edit Feedback" : "Review") : "Open" %>
-                            <% if has_feedback %>
-                              <% survey_link = new_feedback_path(survey_id: survey.id, student_id: student.student_id, prefill: true) %>
-                            <% else %>
-                              <% survey_link = new_feedback_path(survey_id: survey.id, student_id: student.student_id) %>
-                            <% end %>
+                            <% student                 = row[:student] %>
+                            <% advisor                 = row[:advisor] %>
+                            <% status_text             = row[:status] %>
+                            <% completion_date         = row[:completed_at] %>
+                            <% survey_response         = row[:survey_response] %>
+                            <% download_token          = row[:download_token] %>
+                            <% feedback_entries        = Array(row[:feedbacks]) %>
+                            <% has_feedback            = feedback_entries.any? %>
+                            <% survey_label            = status_text == "Completed" ? (has_feedback ? "Edit Feedback" : "Review") : "Open" %>
+                            <% survey_link_params      = { survey_id: survey.id, student_id: student.student_id } %>
+                            <% survey_link_params[:prefill] = true if has_feedback %>
+                            <% survey_link             = new_feedback_path(survey_link_params) %>
 
                             <tr class="transition hover:bg-slate-50">
                               <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold text-[#500000]"><%= idx + 1 %></td>
@@ -126,10 +123,8 @@
                                   <div class="font-semibold text-slate-400">Track unknown</div>
                                 <% end %>
                                 <div class="mt-1 text-xs text-slate-500">Cohort <%= student.created_at&.year || "—" %></div>
-                              </td>
 
-                              <td class="px-4 py-3 text-sm text-slate-700">
-                                <div class="font-semibold text-slate-900">
+                                <div class="mt-3">
                                   <%= form_with url: advisors_student_path(student),
                                                 method: :patch,
                                                 class: "inline-block",
@@ -144,11 +139,27 @@
                                       onchange: "if(confirm(\"Are you sure you want to change this student's track?\")){ this.form.requestSubmit(); } else { this.value = this.dataset.current; }" %>
                                   <% end %>
                                 </div>
-                                <div class="mt-1 text-xs text-slate-500">Cohort <%= student.created_at&.year || "—" %></div>
                               </td>
 
                               <td class="px-4 py-3 text-sm text-slate-700">
                                 <span class="<%= survey_status_badge_classes(status_text) %>"><%= status_text %></span>
+                              </td>
+
+                              <td class="px-4 py-3 text-sm text-slate-700">
+                                <% if completion_date.present? %>
+                                  <div class="font-semibold text-slate-900"><%= l(completion_date, format: :long) %></div>
+                                  <div class="mt-1 text-xs text-slate-500">Updated <%= time_ago_in_words(completion_date) %> ago</div>
+                                <% else %>
+                                  <span class="text-xs text-slate-500">Not yet completed</span>
+                                <% end %>
+                              </td>
+
+                              <td class="px-4 py-3 text-sm text-slate-700">
+                                <% if feedback_entries.present? %>
+                                  <span class="font-semibold text-slate-900">Has feedback</span>
+                                <% else %>
+                                  <span class="text-xs text-slate-500">No feedback</span>
+                                <% end %>
                               </td>
 
                               <td class="px-4 py-3 text-right text-sm">
@@ -160,6 +171,10 @@
                                       <%= link_to "Download PDF",
                                                   download_survey_response_path(survey_response, token: download_token),
                                                   class: tailwind_button_classes(:primary),
+                                                  target: "_blank", rel: "noopener noreferrer" %>
+                                      <%= link_to "Composite PDF",
+                                                  composite_report_survey_response_path(survey_response),
+                                                  class: tailwind_button_classes(:secondary),
                                                   target: "_blank", rel: "noopener noreferrer" %>
                                     <% end %>
                                   <% else %>
@@ -186,11 +201,32 @@
       </div>
     <% end %>
 
-    <div class="mt-6 flex justify-end">
-  <%= link_to "Refresh",
-              request.fullpath,
-              class: "inline-flex items-center rounded-lg bg-[#500000] px-4 py-2 text-white hover:opacity-90",
-              data: { turbo: false } %>
-</div>
+    <div class="mt-6 flex justify-between">
+      <div>
+        <% if defined?(advisor_dashboard_path) && current_user&.respond_to?(:role_advisor?) && current_user.role_advisor? %>
+          <%= link_to "← Back",
+                      advisor_dashboard_path,
+                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      data: { turbo: false } %>
+        <% elsif defined?(admin_dashboard_path) && current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
+          <%= link_to "← Back",
+                      admin_dashboard_path,
+                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      data: { turbo: false } %>
+        <% else %>
+          <%= link_to "← Back",
+                      dashboard_path,
+                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      data: { turbo: false } %>
+        <% end %>
+      </div>
+
+      <div>
+        <%= link_to "Refresh",
+                    request.fullpath,
+                    class: "inline-flex items-center rounded-lg bg-[#500000] px-4 py-2 text-white hover:opacity-90",
+                    data: { turbo: false } %>
+      </div>
+    </div>
   </div>
 </main>

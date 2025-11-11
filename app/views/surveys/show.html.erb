@@ -6,7 +6,24 @@
     <p class="text-sm text-slate-600">
       Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %>
     </p>
+    <p class="text-xs text-slate-500">*
+      required to answer
+    </p>
   </header>
+
+  <% if (@invalid_evidence.present? || @missing_rating_ids.present?) %>
+    <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+      <p class="font-medium">Please fix the highlighted items:</p>
+      <ul class="mt-1 list-disc pl-5">
+        <% if @invalid_evidence.present? %>
+          <li>One or more evidence links are invalid or not publicly accessible.</li>
+        <% end %>
+        <% if @missing_rating_ids.present? %>
+          <li>Self-rating (1–5) is required for each evidence item.</li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
 
   <%= form_with url: submit_survey_path(@survey), method: :post, local: true, data: { turbo: false }, class: "space-y-6 survey-form" do |form| %>
     <% @category_groups.each do |category| %>
@@ -61,11 +78,30 @@
                 <div class="text-xs text-red-600 mt-1">This question is required</div>
               <% end %>
             <% when "evidence" %>
-              <%= text_field_tag field_name, current_value, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-              <% if required && (current_value.nil? || current_value.to_s.strip.blank?) && request.post? %>
+              <% evidence_link = current_value.is_a?(Hash) ? current_value["link"] : current_value %>
+              <%= text_field_tag field_name, evidence_link, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+              <% if required && (evidence_link.nil? || evidence_link.to_s.strip.blank?) && request.post? %>
                 <div class="text-xs text-red-600 mt-1">This question is required</div>
-              <% elsif current_value.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
-                <div class="text-xs text-red-600 mt-1">Invalid Google Drive link</div>
+              <% elsif evidence_link.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
+                <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
+              <% end %>
+
+              <% unless category.name == "Employment Information" %>
+                <% rating_value = current_value.is_a?(Hash) ? current_value["rating"] : (@existing_ratings && @existing_ratings[question.id.to_s]) %>
+                <div class="mt-3 space-y-1">
+                  <label class="block text-xs font-medium text-slate-700" for="question-<%= question.id %>-rating">
+                    Self-rating (1–5)
+                    <span class="text-red-600" aria-hidden="true">*</span>
+                  </label>
+                  <%= select_tag "answers_rating[#{question.id}]",
+                                options_for_select((1..5).map { |n| [n, n] }, rating_value),
+                                include_blank: true,
+                                id: "question-#{question.id}-rating",
+                                class: "w-32 rounded-md border border-slate-300 px-2 py-1 text-sm" %>
+                  <% if (@missing_rating_ids && @missing_rating_ids.include?(question.id)) %>
+                    <div class="text-xs text-red-600 mt-1">Self-rating is required</div>
+                  <% end %>
+                </div>
               <% end %>
             <% else %>
               <%= text_field_tag field_name, current_value, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
@@ -79,8 +115,22 @@
       </section>
     <% end %>
 
-    <div class="flex justify-end">
+    <div class="flex items-center justify-between gap-3">
+      <%= button_tag "Save Progress", type: "button", class: "inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring focus-visible:ring-slate-500/70", onclick: "saveSurveyProgress()" %>
       <%= form.submit "Submit Survey", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
     </div>
   <% end %>
+
+  <script>
+    function saveSurveyProgress() {
+      const form = document.querySelector('.survey-form');
+      const originalAction = form.action;
+      
+      // Change to save_progress endpoint
+      form.action = '<%= save_progress_survey_path(@survey) %>';
+      
+      // Submit the form
+      form.submit();
+    }
+  </script>
 </div>

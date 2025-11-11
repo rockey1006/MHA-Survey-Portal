@@ -1,0 +1,113 @@
+<% content_for :title, "Notifications" %>
+
+<div class="flex min-h-[calc(100vh-8rem)] w-full justify-center bg-slate-50 px-4 py-14 sm:py-20">
+  <div class="w-full max-w-4xl space-y-12">
+    <header class="rounded-2xl border border-slate-200 bg-slate-100 p-10 shadow-md">
+      <div class="flex flex-col gap-10 md:flex-row md:items-center md:justify-between">
+        <div class="space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Inbox</p>
+          <h1 class="text-3xl font-semibold text-slate-900 md:text-4xl">Notifications</h1>
+          <p class="max-w-xl text-sm leading-relaxed text-slate-700">
+            Stay on top of survey activity, advisor feedback, and other important updates tailored to your role.
+          </p>
+        </div>
+        <div class="grid w-full max-w-sm grid-cols-2 gap-5 text-center text-sm font-medium">
+          <div class="rounded-xl border border-slate-200 bg-slate-200/70 p-6 sm:p-8">
+            <p class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-600">Unread</p>
+            <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @unread_notification_count %></p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+            <p class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-600">Total</p>
+            <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @total_notifications %></p>
+          </div>
+        </div>
+      </div>
+
+      <% if @unread_notification_count.to_i.positive? %>
+        <div class="mt-8 flex justify-end">
+          <%= button_to "Mark all as read",
+                        mark_all_read_notifications_path,
+                        method: :patch,
+                        class: tailwind_button_classes(:secondary) %>
+        </div>
+      <% end %>
+    </header>
+
+    <% if @notifications.blank? %>
+    <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center shadow-sm">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <svg aria-hidden="true" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 004 0v-1m-4 0h4" />
+        </svg>
+      </div>
+      <h2 class="mt-4 text-lg font-semibold text-slate-900">You're all caught up</h2>
+      <p class="mt-2 text-sm text-slate-500">New notifications will appear here as soon as there is something that needs your attention.</p>
+    </div>
+    <% else %>
+  <div class="space-y-8">
+        <% @notifications.each do |notification| %>
+        <% unread = !notification.read? %>
+        <% card_border = unread ? "border-[#500000]/30" : "border-slate-200" %>
+        <% card_background = unread ? "bg-[#f9f2f2]" : "bg-white" %>
+        <article class="relative overflow-hidden rounded-2xl border #{card_border} #{card_background} shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <%= link_to notification_path(notification), class: "block h-full rounded-2xl p-7 sm:p-8" do %>
+            <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-6">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full #{unread ? "bg-[#500000]/15 text-[#500000]" : "bg-slate-100 text-slate-500"}">
+                <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <% if unread %>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 004 0v-1m-4 0h4" />
+                  <% else %>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <% end %>
+                </svg>
+              </div>
+              <div class="flex-1 space-y-3">
+                <div class="flex flex-wrap items-center gap-3">
+                  <h2 class="text-lg font-semibold text-slate-900"><%= notification.title %></h2>
+                  <% status_classes = unread ? "bg-[#f1dada] text-[#500000]" : "bg-slate-100 text-slate-600" %>
+                  <% status_copy = unread ? "Unread" : "Read" %>
+                  <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide <%= status_classes %>">
+                    <%= status_copy %>
+                  </span>
+                </div>
+                <p class="text-sm leading-relaxed text-slate-600">
+                  <%= truncate(notification.message, length: 160) %>
+                </p>
+                <% if notification.target_path_for(current_user).present? %>
+                  <span class="inline-flex items-center text-xs font-semibold text-primary">
+                    View related record
+                    <svg aria-hidden="true" class="ml-1 h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </span>
+                <% end %>
+              </div>
+              <time class="text-xs font-medium text-slate-500" datetime="<%= notification.created_at.iso8601 %>">
+                <%= time_ago_in_words(notification.created_at) %> ago
+              </time>
+            </div>
+          <% end %>
+        </article>
+        <% end %>
+      </div>
+
+      <% if @total_pages > 1 %>
+      <nav class="flex items-center justify-between pt-10 text-sm text-slate-600">
+        <% prev_page = @page - 1 %>
+        <% next_page = @page + 1 %>
+        <div>
+          <% if prev_page >= 1 %>
+            <%= link_to "← Previous", notifications_path(page: prev_page), class: "font-medium text-slate-600 transition hover:text-slate-900" %>
+          <% end %>
+        </div>
+        <p class="text-xs uppercase tracking-wide">Page <%= @page %> of <%= @total_pages %></p>
+        <div>
+          <% if next_page <= @total_pages %>
+            <%= link_to "Next →", notifications_path(page: next_page), class: "font-medium text-slate-600 transition hover:text-slate-900" %>
+          <% end %>
+        </div>
+      </nav>
+      <% end %>
+    <% end %>
+  </div>
+</div>

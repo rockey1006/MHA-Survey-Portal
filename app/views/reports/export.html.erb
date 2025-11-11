@@ -1,0 +1,354 @@
+<% normalized_section = export_section.to_s.strip %>
+<% selected_section = case normalized_section
+                      when "", "dashboard", "all", "full", "default"
+                        nil
+                      else
+                        normalized_section
+                      end %>
+<% show_benchmark = selected_section.blank? || selected_section == "benchmark" %>
+<% show_competency = selected_section.blank? || selected_section == "competency" %>
+<% show_course = selected_section.blank? || selected_section == "course" %>
+<% show_alignment = selected_section.blank? || selected_section == "alignment" %>
+<% filters_text = payload.fetch(:filters, {}).map { |label, value| "#{label.to_s.titleize}: #{value.presence || 'All'}" }.join(", ") %>
+
+<section class="report-export">
+  <header class="report-export__header">
+    <h1>Health Program Analytics</h1>
+    <p>Generated at <%= payload[:generated_at]&.in_time_zone&.strftime("%B %d, %Y %I:%M %p %Z") %></p>
+  </header>
+
+  <section class="report-export__section">
+    <h2>Active Filters</h2>
+    <table class="report-export__table">
+      <tbody>
+        <% payload.fetch(:filters, {}).each do |label, value| %>
+          <tr>
+            <th><%= label.to_s.titleize %></th>
+            <td><%= value.presence || "All" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+
+  <% if show_benchmark %>
+    <section class="report-export__section">
+      <h2>Key Metrics</h2>
+      <table class="report-export__table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Value</th>
+            <th>Change</th>
+            <th>Description</th>
+            <th>Sample Size</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% Array(payload.dig(:benchmark, :cards)).each do |card| %>
+            <tr>
+              <td><%= card[:title] %></td>
+              <td><%= number_with_precision(card[:value], precision: card[:precision] || 1) %> <%= card[:unit] == "percent" ? "%" : nil %></td>
+              <td>
+                <% if card[:change].present? %>
+                  <%= card[:change] > 0 ? "+" : nil %><%= number_with_precision(card[:change], precision: 1) %>
+                  <%= card[:unit] == "percent" ? "pp" : nil %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td><%= card[:description] %></td>
+              <td><%= card[:sample_size] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <% if show_competency %>
+    <section class="report-export__section">
+      <h2>Competency Summary</h2>
+      <% competencies = Array(payload[:competency_summary]) %>
+      <% if competencies.any? %>
+        <div class="chart-block">
+          <h3>Num Achieved by Competency</h3>
+          <div class="chart-legend">
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--achieved"></span>
+              Achieved
+            </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--not-met"></span>
+              Not Met
+            </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--not-assessed"></span>
+              Not Assessed
+            </span>
+          </div>
+          <div class="chart-vertical">
+            <% competencies.each do |entry| %>
+              <% total = entry[:total_students].to_f %>
+              <% achieved_pct = total.positive? ? (entry[:achieved_count].to_f / total * 100.0) : 0.0 %>
+              <% not_met_pct = total.positive? ? (entry[:not_met_count].to_f / total * 100.0) : 0.0 %>
+              <% not_assessed_pct = 100.0 - achieved_pct - not_met_pct %>
+              <% achieved_pct = [[achieved_pct, 0.0].max, 100.0].min %>
+              <% not_met_pct = [[not_met_pct, 0.0].max, 100.0].min %>
+              <% not_assessed_pct = [[not_assessed_pct, 0.0].max, 100.0].min %>
+              <% sum_pct = achieved_pct + not_met_pct + not_assessed_pct %>
+              <% if sum_pct > 100.0 && sum_pct.positive? %>
+                <% scale = 100.0 / sum_pct %>
+                <% achieved_pct *= scale %>
+                <% not_met_pct *= scale %>
+                <% not_assessed_pct *= scale %>
+              <% end %>
+              <div class="chart-vertical__column">
+                <div class="chart-vertical__bar">
+                  <div class="chart-segment chart-segment--achieved" style="height: <%= format('%.2f', achieved_pct) %>%"></div>
+                  <div class="chart-segment chart-segment--not-met" style="height: <%= format('%.2f', not_met_pct) %>%"></div>
+                  <div class="chart-segment chart-segment--not-assessed" style="height: <%= format('%.2f', not_assessed_pct) %>%"></div>
+                </div>
+                <div><strong><%= entry[:name] %></strong></div>
+                <div><%= entry[:achieved_count] %> of <%= entry[:total_students] %> achieved</div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <p class="report-export__note">No competency data available for the selected filters.</p>
+      <% end %>
+      <table class="report-export__table">
+        <thead>
+          <tr>
+            <th>Competency</th>
+            <th>Student Avg</th>
+            <th>Advisor Avg</th>
+            <th>Gap</th>
+            <th>Trend %</th>
+            <th>Status</th>
+            <th>Achieved</th>
+            <th>Not Met</th>
+            <th>Not Assessed</th>
+            <th>Achieved %</th>
+            <th>Not Met %</th>
+            <th>Not Assessed %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% Array(payload[:competency_summary]).each do |entry| %>
+            <tr>
+              <td><%= entry[:name] %></td>
+              <td><%= number_with_precision(entry[:student_average], precision: 2) %></td>
+              <td><%= number_with_precision(entry[:advisor_average], precision: 2) %></td>
+              <td><%= number_with_precision(entry[:gap], precision: 2) %></td>
+              <td><%= entry[:change].present? ? number_to_percentage(entry[:change], precision: 1) : "—" %></td>
+              <td><%= entry[:status].to_s.titleize %></td>
+              <td><%= entry[:achieved_count] %></td>
+              <td><%= entry[:not_met_count] %></td>
+              <td><%= entry[:not_assessed_count] %></td>
+              <td><%= entry[:achieved_percent].present? ? number_to_percentage(entry[:achieved_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:not_met_percent].present? ? number_to_percentage(entry[:not_met_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:not_assessed_percent].present? ? number_to_percentage(entry[:not_assessed_percent], precision: 1) : "—" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <p class="report-export__note">
+        Competencies are evaluated multiple times throughout the program. Some competencies have larger totals due to being evaluated in more courses.
+        <% if filters_text.present? %>
+          <br>
+          The following filters were applied: <%= filters_text %>
+        <% end %>
+      </p>
+    </section>
+  <% end %>
+
+  <% if show_course %>
+    <section class="report-export__section">
+      <h2>Course Achievement</h2>
+      <% courses = Array(payload[:course_summary]) %>
+      <% if courses.any? %>
+        <div class="chart-block">
+          <h3>% All Competency Achieved by Course</h3>
+          <div class="chart-legend">
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--achieved"></span>
+              Achieved
+            </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--not-met"></span>
+              Not Met
+            </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--not-assessed"></span>
+              Not Assessed
+            </span>
+          </div>
+          <div class="chart-horizontal">
+            <% courses.each do |entry| %>
+              <% achieved_pct = [[entry[:achieved_percent].to_f, 0.0].max, 100.0].min %>
+              <% not_met_pct = [[entry[:not_met_percent].to_f, 0.0].max, 100.0].min %>
+              <% not_assessed_pct = [[entry[:not_assessed_percent].to_f, 0.0].max, 100.0].min %>
+              <% total_pct = achieved_pct + not_met_pct + not_assessed_pct %>
+              <% if total_pct > 100.0 && total_pct.positive? %>
+                <% scale = 100.0 / total_pct %>
+                <% achieved_pct *= scale %>
+                <% not_met_pct *= scale %>
+                <% not_assessed_pct *= scale %>
+              <% end %>
+              <div class="chart-horizontal__row">
+                <div class="chart-horizontal__label"><%= entry[:title] %></div>
+                <div class="chart-horizontal__bar">
+                  <div class="chart-segment chart-segment--achieved" style="width: <%= format('%.2f', achieved_pct) %>%"></div>
+                  <div class="chart-segment chart-segment--not-met" style="width: <%= format('%.2f', not_met_pct) %>%"></div>
+                  <div class="chart-segment chart-segment--not-assessed" style="width: <%= format('%.2f', not_assessed_pct) %>%"></div>
+                </div>
+                <div class="chart-horizontal__value">
+                  <%= entry[:achieved_percent].present? ? number_to_percentage(entry[:achieved_percent], precision: 1) : "—" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <p class="report-export__note">No course data available for the selected filters.</p>
+      <% end %>
+      <table class="report-export__table">
+        <thead>
+          <tr>
+            <th>Survey</th>
+            <th>Semester</th>
+            <th>Track</th>
+            <th>Student Avg</th>
+            <th>Advisor Avg</th>
+            <th>Gap</th>
+            <th>On Track %</th>
+            <th>Submissions</th>
+            <th>Achieved</th>
+            <th>Not Met</th>
+            <th>Not Assessed</th>
+            <th>Achieved %</th>
+            <th>Not Met %</th>
+            <th>Not Assessed %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% Array(payload[:course_summary]).each do |entry| %>
+            <tr>
+              <td><%= entry[:title] %></td>
+              <td><%= entry[:semester] %></td>
+              <td><%= entry[:track] %></td>
+              <td><%= number_with_precision(entry[:student_average], precision: 2) %></td>
+              <td><%= number_with_precision(entry[:advisor_average], precision: 2) %></td>
+              <td><%= number_with_precision(entry[:gap], precision: 2) %></td>
+              <td><%= entry[:on_track_percent].present? ? number_to_percentage(entry[:on_track_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:submissions] %></td>
+              <td><%= entry[:achieved_count] %></td>
+              <td><%= entry[:not_met_count] %></td>
+              <td><%= entry[:not_assessed_count] %></td>
+              <td><%= entry[:achieved_percent].present? ? number_to_percentage(entry[:achieved_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:not_met_percent].present? ? number_to_percentage(entry[:not_met_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:not_assessed_percent].present? ? number_to_percentage(entry[:not_assessed_percent], precision: 1) : "—" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <% if show_alignment %>
+    <section class="report-export__section">
+      <h2>Competency Alignment</h2>
+      <% alignment_labels = Array(payload.dig(:alignment, :labels)) %>
+      <% student_values = Array(payload.dig(:alignment, :student)) %>
+      <% advisor_values = Array(payload.dig(:alignment, :advisor)) %>
+      <% if alignment_labels.any? %>
+        <div class="chart-block">
+          <h3>Student vs Advisor Comparison</h3>
+          <div class="chart-legend">
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--student"></span>
+              Student Average
+            </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch chart-segment--advisor"></span>
+              Advisor Average
+            </span>
+          </div>
+          <div class="chart-comparison">
+            <% alignment_labels.each_with_index do |label, index| %>
+              <% student_raw = student_values[index] %>
+              <% advisor_raw = advisor_values[index] %>
+              <% student_score = student_raw.nil? ? nil : student_raw.to_f %>
+              <% advisor_score = advisor_raw.nil? ? nil : advisor_raw.to_f %>
+              <% student_width = student_score ? [[(student_score / 5.0) * 100.0, 0.0].max, 100.0].min : 0.0 %>
+              <% advisor_width = advisor_score ? [[(advisor_score / 5.0) * 100.0, 0.0].max, 100.0].min : 0.0 %>
+              <div class="chart-comparison__row">
+                <div class="chart-comparison__label"><%= label %></div>
+                <div class="chart-comparison__bars">
+                  <div class="chart-comparison__series">
+                    <div class="chart-comparison__bar chart-segment--student" style="width: <%= format('%.2f', student_width) %>%"></div>
+                    <span class="chart-comparison__value"><%= student_score.nil? ? "—" : number_with_precision(student_score, precision: 2) %></span>
+                  </div>
+                  <div class="chart-comparison__series">
+                    <div class="chart-comparison__bar chart-segment--advisor" style="width: <%= format('%.2f', advisor_width) %>%"></div>
+                    <span class="chart-comparison__value"><%= advisor_score.nil? ? "—" : number_with_precision(advisor_score, precision: 2) %></span>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <p class="report-export__note">No alignment data available for the selected filters.</p>
+      <% end %>
+      <table class="report-export__table">
+        <thead>
+          <tr>
+            <th>Competency</th>
+            <th>Student Avg</th>
+            <th>Advisor Avg</th>
+            <th>Gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% Array(payload.dig(:alignment, :labels)).each_with_index do |label, index| %>
+            <tr>
+              <td><%= label %></td>
+              <td><%= number_with_precision(Array(payload.dig(:alignment, :student))[index], precision: 2) %></td>
+              <td><%= number_with_precision(Array(payload.dig(:alignment, :advisor))[index], precision: 2) %></td>
+              <td><%= number_with_precision(Array(payload.dig(:alignment, :gap))[index], precision: 2) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <% if show_benchmark %>
+    <section class="report-export__section">
+      <h2>Monthly Trend</h2>
+      <table class="report-export__table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Student Average</th>
+            <th>Advisor Average</th>
+            <th>Alignment %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% Array(payload.dig(:benchmark, :timeline)).each do |point| %>
+            <tr>
+              <td><%= point[:label] %></td>
+              <td><%= number_with_precision(point[:student], precision: 2) %></td>
+              <td><%= number_with_precision(point[:advisor], precision: 2) %></td>
+              <td><%= point[:alignment].present? ? number_with_precision(point[:alignment], precision: 1) : "—" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+</section>

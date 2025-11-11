@@ -43,11 +43,7 @@ module Advisors
           end
         end
 
-        Notification.create!(
-          notifiable: student,
-          title: "New survey assigned",
-          message: "#{current_user.name} assigned '#{@survey.title}' to you."
-        )
+        upsert_assignment_for(student)
       end
 
       redirect_to advisors_surveys_path,
@@ -76,13 +72,9 @@ module Advisors
             end
           end
 
-          Notification.create!(
-            notifiable: student,
-            title: "New survey assigned",
-            message: "#{current_user.name} assigned '#{@survey.title}' to you."
-          )
+          assignment, created = upsert_assignment_for(student)
 
-          created_count += 1
+          created_count += 1 if created
         end
       end
 
@@ -104,9 +96,12 @@ module Advisors
       if scope.exists?
         ActiveRecord::Base.transaction do
           scope.delete_all
-          Notification.create!(
-            notifiable: student,
-            title: "Survey unassigned",
+          if (assignment = SurveyAssignment.find_by(survey_id: @survey.id, student_id: student.student_id))
+            assignment.destroy!
+          end
+          Notification.deliver!(
+            user: student.user,
+            title: "Survey Unassigned",
             message: "#{current_user.name} removed '#{@survey.title}' from your assignments."
           )
         end
@@ -147,6 +142,44 @@ module Advisors
           t = @survey.title.to_s.downcase
           t.include?("executive") ? "executive" : (t.include?("residential") ? "residential" : nil)
         end
+      end
+    end
+
+    # Ensures a SurveyAssignment exists for the student/survey pair.
+    #
+    # @param student [Student]
+    # @return [Array<(SurveyAssignment, Boolean)>] record and flag indicating creation
+    def upsert_assignment_for(student)
+      assignment = SurveyAssignment.find_or_initialize_by(
+        survey_id: @survey.id,
+        student_id: student.student_id
+      )
+
+      created = assignment.new_record?
+      assignment.advisor_id ||= current_advisor_profile&.advisor_id
+      assignment.assigned_at ||= Time.current
+
+      if (due_date = parsed_due_date)
+        assignment.due_date = due_date
+      end
+
+      assignment.completed_at = nil if created
+      assignment.save! if assignment.new_record? || assignment.changed?
+
+      [ assignment, created ]
+    end
+
+    # Parses an optional due date supplied with the request.
+    #
+    # @return [ActiveSupport::TimeWithZone, nil]
+    def parsed_due_date
+      return @parsed_due_date if instance_variable_defined?(:@parsed_due_date)
+
+      raw_value = params[:due_date].presence
+      @parsed_due_date = begin
+        raw_value ? Time.zone.parse(raw_value) : nil
+      rescue ArgumentError
+        nil
       end
     end
 

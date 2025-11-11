@@ -43,7 +43,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_difference [ "Survey.count", "SurveyAssignment.count", "SurveyChangeLog.count" ] do
+  assert_difference [ "Survey.count", "SurveyTrackAssignment.count", "SurveyChangeLog.count" ] do
       post admin_surveys_path, params: params
     end
 
@@ -93,8 +93,8 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert @survey.is_active?
     assert @survey.track_list.any?
 
-    prior_assignment_count = SurveyAssignment.count
-    prior_tracks = @survey.track_list.size
+  prior_assignment_count = SurveyTrackAssignment.count
+  prior_tracks = @survey.track_list.size
 
     assert_difference "SurveyChangeLog.count" do
       patch archive_admin_survey_path(@survey)
@@ -105,7 +105,8 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     @survey.reload
     refute @survey.is_active?
     assert_empty @survey.track_list
-    assert_equal prior_assignment_count - prior_tracks, SurveyAssignment.count
+  assert_equal prior_assignment_count - prior_tracks, SurveyTrackAssignment.count
+  assert_empty SurveyTrackAssignment.where(survey: @survey)
 
     log = SurveyChangeLog.order(:created_at).last
     assert_equal "archive", log.action

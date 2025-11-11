@@ -1,0 +1,67 @@
+# Handles student profile setup and account information display
+class StudentProfilesController < ApplicationController
+  before_action :authenticate_user!
+  before_action :ensure_student_role
+  skip_before_action :check_student_profile_complete, only: [ :edit, :update ]
+
+  # Show account information
+  def show
+    @student = current_student
+  end
+
+  # First-time profile setup form
+  def edit
+    @student = current_student
+    @advisors = Advisor.joins(:user).order("users.name ASC")
+  end
+
+  # Update profile information
+  def update
+    @student = current_student
+    @advisors = Advisor.joins(:user).order("users.name ASC")
+
+    # Update user name if provided
+    if student_params[:name].present?
+      @student.user.name = student_params[:name]
+    end
+
+    # Update student attributes
+    @student.assign_attributes(student_params.except(:name))
+
+    if @student.valid?(:profile_completion)
+      @student.save!(context: :profile_completion) # This will also save the user and student changes
+
+      # Automatic Survey Assignment: assign surveys matching the student's track
+      if @student.track.present?
+        surveys = Survey
+          .joins(:track_assignments)
+          .where(survey_track_assignments: { track: @student.track })
+          .distinct
+
+        surveys.find_each do |survey|
+          # Create a SurveyAssignment so it shows in the student's to-do list.
+          SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: @student.student_id) do |assignment|
+            assignment.advisor_id = @student.advisor_id
+            assignment.assigned_at = Time.current
+          end
+        end
+      end
+
+      redirect_to student_dashboard_path, notice: "Profile completed successfully!"
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  private
+
+  def ensure_student_role
+    unless current_user&.role_student?
+      redirect_to root_path, alert: "Access denied."
+    end
+  end
+
+  def student_params
+    params.require(:student).permit(:name, :uin, :major, :track, :advisor_id)
+  end
+end

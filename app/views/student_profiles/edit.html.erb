@@ -1,0 +1,82 @@
+<div class="mx-auto max-w-2xl py-8 px-4">
+  <div class="bg-white shadow-sm rounded-lg border border-slate-200 p-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-slate-900">Complete Your Profile</h1>
+      <p class="mt-2 text-sm text-slate-600">
+        Please provide your information to complete your profile setup. This information is required to assign you the correct surveys.
+      </p>
+    </div>
+
+    <%= form_with model: @student, url: student_profile_path, method: :patch, local: true, class: "space-y-6" do |form| %>
+      <% if @student.errors.any? %>
+        <div class="rounded-md bg-red-50 p-4">
+          <div class="flex">
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">
+                <%= pluralize(@student.errors.count, "error") %> prohibited this profile from being saved:
+              </h3>
+              <div class="mt-2 text-sm text-red-700">
+                <ul class="list-disc list-inside space-y-1">
+                  <% @student.errors.full_messages.each do |message| %>
+                    <li><%= message %></li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <div>
+        <%= form.label :name, "Full Name", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.text_field :name, value: @student.user.name, 
+            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+            placeholder: "John Doe",
+            required: true %>
+      </div>
+
+      <div>
+        <%= form.label :uin, "UIN (University Identification Number)", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.text_field :uin, 
+            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+            placeholder: "123456789",
+            required: true %>
+        <p class="mt-1 text-xs text-slate-500">Your 9-digit student identification number</p>
+      </div>
+
+      <div>
+        <%= form.label :major, "Major/Program", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.text_field :major, 
+            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+            placeholder: "Health Administration",
+            required: true %>
+      </div>
+
+      <div>
+        <%= form.label :track, "Program Track", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.select :track, 
+            options_for_select([
+              ["Residential", "Residential"],
+              ["Executive", "Executive"]
+            ], @student.track),
+            { prompt: "Select your track" },
+            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+            required: true %>
+        <p class="mt-1 text-xs text-slate-500">Your program cohort</p>
+      </div>
+
+      <div>
+        <%= form.label :advisor_id, "Advisor", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.select :advisor_id,
+            options_from_collection_for_select(@advisors, :advisor_id, :name, @student.advisor_id),
+            { prompt: "Select your advisor (optional)" },
+            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-4">
+        <%= form.submit "Complete Profile", 
+            class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
+      </div>
+    <% end %>
+  </div>
+</div>

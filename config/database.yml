@@ -25,8 +25,12 @@ cache:
   database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
 
 queue:
+  <% if Rails.env.production? && ENV['DATABASE_URL'].present? %>
+  url: <%= ENV['DATABASE_URL'] %>
+  <% else %>
   <<: *default
   database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
+  <% end %>
 
 cable:
   <<: *default

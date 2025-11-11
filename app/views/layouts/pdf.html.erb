@@ -11,30 +11,59 @@
     /* Header */
     .pdf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .pdf-brand { font-size: 18px; font-weight: 700; color: #1f6feb; }
-    .pdf-meta { text-align: right; font-size: 12px; color: #586069; }
+    .pdf-meta { text-align: right; font-size: 12px; color: #586069; line-height: 1.4; }
 
     /* Info box */
     .user-info { border: 1px solid #e6eef8; background: #fbfdff; padding: 10px 12px; border-radius: 6px; margin-bottom: 14px; display: flex; gap: 20px; }
     .user-info .col { min-width: 160px; }
-    .user-info .label { font-size: 11px; color: #6b7785; margin-bottom: 4px; }
+    .user-info .label { font-size: 11px; color: #6b7785; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
     .user-info .value { font-weight: 600; color: #102a43; }
 
     h1.survey-title { font-size: 20px; margin: 0 0 8px 0; color: #102a43; }
+    h2.section-title { font-size: 16px; margin: 18px 0 10px 0; color: #0f172a; }
     h3.category-title { font-size: 14px; margin: 12px 0 6px 0; color: #134e4a; }
 
-    .question-block { padding: 8px 10px; border-bottom: 1px solid #eef3f8; }
-    .question-number { color: #0b5cff; font-weight: 700; margin-right: 6px; }
-    .question-body { font-weight: 600; color: #0b2a3a; }
-    .form-control, textarea { width: 100%; border: none; background: transparent; color: #102a43; }
-  .multiple-choice-options { margin-top: 6px; }
-  /* Multiple choice option styling */
-  .mc-option { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-  .mc-marker { width: 26px; display: inline-block; text-align: center; font-size: 16px; color: #0b5cff; }
-  .mc-label { display: inline-block; color: #102a43; }
-  .mc-option.selected { background: #eef8ff; padding: 6px 8px; border-radius: 4px; }
+    .metrics-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .metric-card { border: 1px solid #e6eef8; background: #fbfdff; padding: 10px 12px; border-radius: 6px; min-width: 150px; }
+    .metric-label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .metric-value { font-size: 14px; font-weight: 600; color: #102a43; }
 
-    /* Prevent breaking question block across pages */
-    .question-block { page-break-inside: avoid; }
+    .pdf-section { margin-bottom: 18px; }
+    .category-block { border: 1px solid #dbe7ff; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background: #f8fbff; }
+    .category-header { margin-bottom: 6px; }
+    .category-description { font-size: 12px; color: #475569; }
+
+    .question-block { padding: 8px 10px; border-bottom: 1px solid #eef3f8; page-break-inside: avoid; }
+    .question-header { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
+    .question-number { color: #0b5cff; font-weight: 700; min-width: 28px; }
+    .question-body { font-weight: 600; color: #0b2a3a; }
+    .question-answer { font-size: 12px; color: #102a43; margin-bottom: 4px; }
+    .question-meta { font-size: 11px; color: #6b7280; display: flex; gap: 12px; }
+
+    .choice-list { list-style: none; padding: 0; margin: 6px 0 0 0; }
+    .choice-item { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 4px; border: 1px solid transparent; margin-right: 6px; font-size: 12px; }
+    .choice-item.selected { background: #e4f0ff; border-color: #c1dcff; font-weight: 600; }
+    .choice-marker { font-size: 12px; color: #0b5cff; }
+
+    .answer-text { white-space: pre-wrap; word-break: break-word; }
+    .history-label { font-size: 11px; font-weight: 600; margin-top: 6px; }
+    .history-list { margin: 4px 0 0 14px; padding: 0; font-size: 11px; color: #475569; }
+    .history-list li { margin-bottom: 2px; }
+
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+
+    .empty-state { font-size: 12px; color: #6b7280; font-style: italic; }
+  .truncation-note { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+    .feedback-category { border: 1px solid #e6eef8; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; }
+    .feedback-block { border: 1px solid #dbe7ff; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; background: #f9fbff; }
+    .feedback-header { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: #334155; margin-bottom: 6px; }
+    .feedback-score { font-weight: 600; color: #0b5cff; }
+    .feedback-comments { font-size: 12px; color: #102a43; }
+    .feedback-comments p { margin: 0 0 6px 0; }
+    .feedback-empty { font-size: 12px; color: #64748b; font-style: italic; }
+    .feedback-meta { margin-top: 4px; font-size: 11px; }
 
     /* Footer */
     .pdf-footer { position: fixed; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 11px; color: #8b99a6; }
@@ -45,8 +74,8 @@
 </head>
 <body>
   <div class="pdf-header">
-    <div class="pdf-brand">Health — Survey Response</div>
-    <div class="pdf-meta">Generated: <%= Time.current.strftime('%Y-%m-%d %H:%M') %></div>
+    <div class="pdf-brand"><%= content_for?(:pdf_brand) ? yield(:pdf_brand) : "Health — Survey Response" %></div>
+    <div class="pdf-meta"><%= content_for?(:pdf_meta) ? yield(:pdf_meta) : "Generated: #{Time.current.strftime('%Y-%m-%d %H:%M')}" %></div>
   </div>
 
   <%= yield %>

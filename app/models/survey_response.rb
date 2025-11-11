@@ -95,12 +95,31 @@ class SurveyResponse
 
   # @return [Integer] number of answered questions
   def answered_count
-    @answered_count ||= question_responses.select { |record| present_answer?(record.answer) }.count
+    @answered_count ||= required_questions.count do |question|
+      response = question_responses.find { |r| r.question_id == question.id }
+      response && present_answer?(response.answer)
+    end
   end
 
   # @return [Integer] total questions in the survey
   def total_questions
-    @total_questions ||= survey.questions.count
+    @total_questions ||= required_questions.count
+  end
+
+  # @return [Array<Question>] questions that are considered required
+  def required_questions
+    @required_questions ||= survey.questions.select do |question|
+      required = question.is_required?
+
+      if !required && question.question_type_multiple_choice?
+        options = question.answer_options_list.map(&:strip).map(&:downcase)
+        is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
+                               question.question_text.to_s.downcase.include?("flexible")
+        required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
+      end
+
+      required
+    end
   end
 
   # @return [String] signed token for secure downloads

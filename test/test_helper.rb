@@ -25,8 +25,10 @@ class ActiveSupport::TestCase
            :advisors,
            :categories,
            :questions,
+           :feedbacks,
            :students,
            :surveys,
+           :survey_track_assignments,
            :survey_assignments,
            :users,
            :survey_change_logs
@@ -34,6 +36,7 @@ end
 
 class ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
+  include ActiveJob::TestHelper
 end
 
 class ActionController::TestCase

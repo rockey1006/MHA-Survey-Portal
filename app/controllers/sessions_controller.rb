@@ -15,6 +15,7 @@ class SessionsController < Devise::SessionsController
   # @param resource_or_scope [Object]
   # @return [String]
   def after_sign_in_path_for(resource_or_scope)
+    ensure_track_survey_assignment(resource_or_scope)
     stored_location_for(resource_or_scope) || dashboard_path
   end
 
@@ -26,5 +27,28 @@ class SessionsController < Devise::SessionsController
   # @return [void]
   def sign_out_get_fallback
     redirect_to after_sign_out_path_for(nil), allow_other_host: false
+  end
+
+  private
+
+  def ensure_track_survey_assignment(resource_or_scope)
+    user = resolve_user(resource_or_scope)
+    return unless user&.role_student?
+
+    student = user.student_profile
+    return unless student
+
+    SurveyAssignments::AutoAssigner.call(student: student)
+  rescue StandardError => e
+    Rails.logger.error(
+      "Session auto-assign failed for user #{user&.id}: #{e.class}: #{e.message}"
+    )
+  end
+
+  def resolve_user(resource_or_scope)
+    return resource_or_scope if resource_or_scope.is_a?(User)
+    return resource_or_scope.user if resource_or_scope.respond_to?(:user)
+
+    current_user if respond_to?(:current_user, true)
   end
 end

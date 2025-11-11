@@ -6,14 +6,15 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     @advisor = users(:advisor)
   end
 
-  test "admin can view student records" do
+  test "admin can see all students and feedback summaries" do
     sign_in @admin
 
     get student_records_path
     assert_response :success
-  assert_includes response.body, "Student Records"
-  assert_includes response.body, "Student User"
-  assert_includes response.body, "Student Two"
+    assert_includes response.body, "Student Records"
+  assert_includes response.body, users(:student).name
+  assert_includes response.body, users(:other_student).name
+  assert_includes response.body, "Has feedback"
   end
 
   test "advisor sees only assigned students" do
@@ -21,8 +22,8 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
     get student_records_path
     assert_response :success
-  assert_includes response.body, "Student User"
-  assert_not_includes response.body, "Student Two"
+    assert_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
   end
 
   test "unauthenticated user redirected" do

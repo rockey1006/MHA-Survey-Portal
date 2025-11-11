@@ -28,5 +28,13 @@
         <div class="feature-description">Create a survey first to begin assigning it to students.</div>
       </div>
     <% end %>
+
+    <!-- Back button row -->
+    <div style="margin-top:2rem; display:flex; justify-content:flex-start;">
+      <%= link_to "← Back",
+                  advisor_dashboard_path,
+                  class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                  data: { turbo: false } %>
+    </div>
   </section>
 </main>

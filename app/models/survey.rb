@@ -11,6 +11,7 @@ class Survey < ApplicationRecord
 
   has_many :categories, inverse_of: :survey, dependent: :destroy
   has_many :questions, through: :categories
+  has_many :track_assignments, class_name: "SurveyTrackAssignment", inverse_of: :survey, dependent: :destroy
   has_many :survey_assignments, inverse_of: :survey, dependent: :destroy
   has_many :survey_change_logs, dependent: :nullify
   has_many :feedbacks, foreign_key: :survey_id, class_name: "Feedback", dependent: :destroy
@@ -32,7 +33,7 @@ class Survey < ApplicationRecord
 
   # @return [Array<String>] unique tracks assigned to the survey
   def track_list
-    survey_assignments.order(:track).pluck(:track)
+  track_assignments.order(:track).pluck(:track)
   end
 
   # Replaces the survey's track assignments with the provided list.
@@ -43,9 +44,9 @@ class Survey < ApplicationRecord
     normalized = normalize_track_values(tracks)
 
     transaction do
-      survey_assignments.where.not(track: normalized).destroy_all
+      track_assignments.where.not(track: normalized).destroy_all
       normalized.each do |track|
-        survey_assignments.find_or_create_by!(track: track)
+        track_assignments.find_or_create_by!(track: track)
       end
     end
   end

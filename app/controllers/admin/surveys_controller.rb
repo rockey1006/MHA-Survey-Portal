@@ -25,14 +25,14 @@ class Admin::SurveysController < Admin::BaseController
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
     @sort_direction = params[:direction] == "asc" ? "asc" : "desc"
 
-    active_scope = Survey.active
-                         .left_joins(:survey_assignments)
+  active_scope = Survey.active
+             .left_joins(:track_assignments)
 
     if @selected_track.present?
       if @selected_track == unassigned_track_token
-        active_scope = active_scope.where(survey_assignments: { id: nil })
+        active_scope = active_scope.where(survey_track_assignments: { id: nil })
       else
-        active_scope = active_scope.where(survey_assignments: { track: @selected_track })
+        active_scope = active_scope.where(survey_track_assignments: { track: @selected_track })
       end
     end
 
@@ -57,15 +57,15 @@ class Admin::SurveysController < Admin::BaseController
     active_scope = active_scope.order(Arel.sql("#{order_expression} #{@sort_direction}"))
     active_scope = active_scope.order("surveys.id ASC")
 
-    @active_surveys = active_scope.preload(:survey_assignments).load
+    @active_surveys = active_scope.preload(:track_assignments).load
 
     @track_filter_options = (
       Survey::TRACK_OPTIONS +
-      SurveyAssignment.distinct.pluck(:track)
+      SurveyTrackAssignment.distinct.pluck(:track)
     ).compact.map(&:to_s).reject(&:blank?).uniq.sort
     @unassigned_track_token = unassigned_track_token
 
-    @archived_surveys = Survey.archived.includes(:categories, :survey_assignments, :creator).order(updated_at: :desc)
+  @archived_surveys = Survey.archived.includes(:categories, :track_assignments, :creator).order(updated_at: :desc)
     @recent_logs = SurveyChangeLog.recent.includes(:survey, :admin).limit(12)
   end
 
@@ -91,6 +91,7 @@ class Admin::SurveysController < Admin::BaseController
     if @survey.save
       @survey.assign_tracks!(tracks)
       @survey.log_change!(admin: current_user, action: "create", description: "Survey created with #{tracks.size} track(s)")
+      SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: "New survey created" })
       redirect_to admin_surveys_path, notice: "Survey created successfully."
     else
       build_default_structure(@survey)
@@ -118,6 +119,7 @@ class Admin::SurveysController < Admin::BaseController
       @survey.assign_tracks!(tracks)
       description = change_summary(before_snapshot, survey_snapshot(@survey), tracks)
       @survey.log_change!(admin: current_user, action: "update", description: description)
+      SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
       redirect_to admin_surveys_path, notice: "Survey updated successfully."
     else
       build_default_structure(@survey)
@@ -142,6 +144,7 @@ class Admin::SurveysController < Admin::BaseController
     if @survey.update(is_active: false)
       @survey.assign_tracks!([])
       @survey.log_change!(admin: current_user, action: "archive", description: "Survey archived and unassigned from all tracks")
+      SurveyNotificationJob.perform_later(event: :survey_archived, survey_id: @survey.id)
       redirect_to admin_surveys_path, notice: "Survey archived."
     else
       redirect_to edit_admin_survey_path(@survey), alert: @survey.errors.full_messages.to_sentence
@@ -228,7 +231,7 @@ class Admin::SurveysController < Admin::BaseController
     @available_tracks = (
       Survey::TRACK_OPTIONS +
       Student.distinct.pluck(:track).compact +
-      SurveyAssignment.distinct.pluck(:track).compact
+  SurveyTrackAssignment.distinct.pluck(:track).compact
     ).map(&:to_s).reject(&:blank?).uniq.sort
     @question_types = Question.question_types.keys
   end

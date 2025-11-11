@@ -2,7 +2,7 @@
   "name": "Health Review App",
   "description": "Temporary Heroku app for PR previews of the Health project.",
   "scripts": {
-    "postdeploy": "bundle exec rails db:prepare"
+    "postdeploy": "bundle exec rails db:prepare db:seed"
   },
   "env": {
     "RAILS_ENV": {

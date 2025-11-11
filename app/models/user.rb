@@ -11,13 +11,14 @@ class User < ApplicationRecord
   has_one :admin_profile, class_name: "Admin", foreign_key: :admin_id, inverse_of: :user, dependent: :destroy
   has_one :advisor_profile, class_name: "Advisor", foreign_key: :advisor_id, inverse_of: :user, dependent: :destroy
   has_one :student_profile, class_name: "Student", foreign_key: :student_id, inverse_of: :user, dependent: :destroy
-  has_many :notifications, as: :notifiable, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   has_many :created_surveys, class_name: "Survey", foreign_key: :created_by_id, inverse_of: :creator, dependent: :nullify
   has_many :survey_change_logs, foreign_key: :admin_id, inverse_of: :admin, dependent: :nullify
 
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :name, presence: true
   validates :role, presence: true, inclusion: { in: roles.values }
+  validates :text_scale_percent, numericality: { only_integer: true, greater_than_or_equal_to: 100, less_than_or_equal_to: 200 }, allow_nil: true
 
   after_commit :ensure_role_profile!, on: [ :create, :update ]
 

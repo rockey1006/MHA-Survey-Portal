@@ -26,11 +26,22 @@
         <% end %>
       </div>
 
-      <!-- Notifications -->
+      <!-- Reports -->
       <div class="feature-item">
-        <div class="feature-icon">🔔</div>
-        <div class="feature-title">Notifications</div>
-        <div class="feature-description"><%= pluralize(@pending_notifications_count, "pending item") %></div>
+        <%= link_to reports_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
+          <div class="feature-icon">📊</div>
+          <div class="feature-title">Reports</div>
+          <div class="feature-description"><%= @total_reports || 0 %> generated</div>
+        <% end %>
+      </div>
+
+      <!-- Manage Students -->
+      <div class="feature-item">
+        <%= link_to manage_students_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
+          <div class="feature-icon">⚙️</div>
+          <div class="feature-title">Manage Students</div>
+          <div class="feature-description"><%= pluralize(@advisee_count, "assigned student") %></div>
+        <% end %>
       </div>
 
       <!-- Members -->
@@ -42,34 +53,49 @@
         <% end %>
       </div>
 
+      
+
     </div>
   </section>
 
-  <section class="dashboard-section">
+  <section class="dashboard-section md:px-12" style="margin-top: var(--spacing-4xl);">
     <div class="section-header">
       <h2 class="section-title">Recent Activity</h2>
-      <p class="section-subtitle">Latest member logins</p>
+      <p class="section-subtitle">Latest updates across surveys, feedback, and assignments</p>
     </div>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Last Updated</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @recent_logins.each do |user| %>
-          <tr>
-            <td><%= user.full_name %></td>
-            <td><%= user.email %></td>
-            <td><%= user.role.titleize %></td>
-            <td><%= l(user.updated_at, format: :long) %></td>
-          </tr>
+    <% if @recent_activity.present? %>
+      <div class="space-y-3">
+        <% @recent_activity.each do |entry| %>
+          <div class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl"><%= entry[:icon] || "📌" %></div>
+            <div class="flex-1 space-y-1">
+              <div class="font-semibold text-slate-900">
+                <% if entry[:url].present? %>
+                  <%= link_to entry[:title], entry[:url], class: "text-[#500000] hover:underline" %>
+                <% else %>
+                  <%= entry[:title] %>
+                <% end %>
+              </div>
+              <% if entry[:subtitle].present? %>
+                <div class="text-sm text-slate-600"><%= entry[:subtitle] %></div>
+              <% end %>
+            </div>
+            <div class="text-xs text-slate-500 whitespace-nowrap">
+              <% if entry[:timestamp].present? %>
+                <span title="<%= l(entry[:timestamp], format: :long) %>"><%= time_ago_in_words(entry[:timestamp]) %> ago</span>
+              <% else %>
+                <span>n/a</span>
+              <% end %>
+            </div>
+          </div>
         <% end %>
-      </tbody>
-    </table>
+      </div>
+    <% else %>
+      <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+        <span class="text-4xl" aria-hidden="true">✨</span>
+        <p class="text-sm text-slate-600">No recent activity logged yet.</p>
+      </div>
+    <% end %>
   </section>
 </main>

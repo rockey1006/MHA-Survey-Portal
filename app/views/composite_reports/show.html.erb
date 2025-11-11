@@ -1,0 +1,199 @@
+<% content_for :pdf_brand do %>
+  Health — Composite Assessment Report
+<% end %>
+
+<% content_for :pdf_meta do %>
+  Generated: <%= generated_at.strftime("%Y-%m-%d %H:%M") %><br>
+  Student ID: <%= student.student_id %><br>
+  Survey ID: <%= survey.id %>
+<% end %>
+
+<h1 class="survey-title"><%= survey.title %></h1>
+
+<div class="user-info">
+  <div class="col">
+    <div class="label">Student</div>
+    <div class="value"><%= student.full_name %></div>
+    <div class="muted"><%= student.email %></div>
+  </div>
+  <div class="col">
+    <div class="label">Advisor</div>
+    <div class="value"><%= advisor&.display_name || "Unassigned" %></div>
+    <% if advisor&.email.present? %>
+      <div class="muted"><%= advisor.email %></div>
+    <% end %>
+  </div>
+  <div class="col">
+    <div class="label">Status</div>
+    <div class="value"><%= survey_response.status.to_s.humanize %></div>
+    <div class="muted">Completed: <%= survey_response.completion_date ? survey_response.completion_date.strftime("%Y-%m-%d") : "—" %></div>
+  </div>
+  <div class="col">
+    <div class="label">Track</div>
+    <div class="value"><%= student.track&.titleize || "—" %></div>
+    <div class="muted">Semester: <%= survey.semester %></div>
+  </div>
+</div>
+
+<div class="metrics-row">
+  <div class="metric-card">
+    <div class="metric-label">Questions Answered</div>
+    <div class="metric-value"><%= answered_count %> / <%= total_questions %></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Advisor Feedback Entries</div>
+    <div class="metric-value"><%= feedback_summary[:total_entries] %></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Average Advisor Score</div>
+    <div class="metric-value"><%= feedback_summary[:average_score] ? format('%.2f', feedback_summary[:average_score]) : "—" %></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Latest Advisor Update</div>
+    <% latest_feedback = feedback_summary[:latest_feedback_at] %>
+    <div class="metric-value"><%= latest_feedback ? latest_feedback.strftime("%Y-%m-%d") : "—" %></div>
+  </div>
+</div>
+
+<section class="pdf-section">
+  <h2 class="section-title">Student Responses</h2>
+  <% categories.each do |category| %>
+    <div class="category-block">
+      <div class="category-header">
+        <h3 class="category-title"><%= category.name %></h3>
+        <% if category.description.present? %>
+          <div class="category-description"><%= category.description %></div>
+        <% end %>
+      </div>
+
+      <% ordered_questions = category.questions.sort_by(&:question_order) %>
+      <% if ordered_questions.any? %>
+        <% ordered_questions.each_with_index do |question, index| %>
+          <% response_record = responses_by_question[question.id] %>
+          <% raw_answer = answers_by_question[question.id] %>
+          <% display_answer = raw_answer.is_a?(Array) ? raw_answer.compact.join(", ") : raw_answer %>
+          <% truncated_answer, answer_truncated = truncate_for_composite_pdf(display_answer) %>
+          <div class="question-block">
+            <div class="question-header">
+              <span class="question-number">Q<%= index + 1 %></span>
+              <span class="question-body"><%= question.question_text %></span>
+            </div>
+
+            <div class="question-answer">
+              <% case question.question_type %>
+              <% when "multiple_choice" %>
+                <% selected_values = Array(raw_answer).map(&:to_s) %>
+                <ul class="choice-list">
+                  <% question.answer_options_list.each do |option| %>
+                    <% normalized = option.to_s %>
+                    <% chosen = selected_values.any? ? selected_values.any? { |val| val.casecmp?(normalized) } : (display_answer.to_s.casecmp?(normalized)) %>
+                    <li class="choice-item <%= chosen ? 'selected' : '' %>">
+                      <span class="choice-marker"><%= chosen ? '●' : '○' %></span>
+                      <span><%= option %></span>
+                    </li>
+                  <% end %>
+                </ul>
+              <% when "scale" %>
+                <div class="answer-text">
+                  <strong>Rating:</strong>
+                  <%= truncated_answer.presence || "Not answered" %>
+                  <% if display_answer.present? %>
+                    <span class="muted">/ 5</span>
+                  <% end %>
+                </div>
+              <% when "evidence" %>
+                <div class="answer-text">
+                  <% if display_answer.present? %>
+                    <% link_label = answer_truncated ? "View evidence" : truncated_answer %>
+                    <a href="<%= display_answer %>"><%= link_label %></a>
+                    <% if answer_truncated %>
+                      <div class="truncation-note">Link truncated for PDF readability.</div>
+                    <% end %>
+                  <% else %>
+                    Not provided
+                  <% end %>
+                </div>
+                <% evidence_history = Array(evidence_history_by_category[category.id]).select { |item| item.question_id == question.id } %>
+                <% if evidence_history.size > 1 %>
+                  <div class="history-label">Previous submissions:</div>
+                  <ul class="history-list">
+                    <% evidence_history.each do |entry| %>
+                      <% timestamp = entry.updated_at || entry.created_at %>
+                      <% history_text, history_truncated = truncate_for_composite_pdf(entry.answer) %>
+                      <li>
+                        <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %> — <%= history_text %>
+                        <% if history_truncated %>
+                          <span class="muted">(truncated)</span>
+                        <% end %>
+                      </li>
+                    <% end %>
+                  </ul>
+                <% end %>
+              <% else %>
+                <div class="answer-text">
+                  <% if truncated_answer.present? %>
+                    <%= simple_format(truncated_answer) %>
+                    <% if answer_truncated %>
+                      <div class="truncation-note">Full response available in the Health application.</div>
+                    <% end %>
+                  <% else %>
+                    No response provided
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <div class="question-meta">
+              <span class="muted">Last updated: <%= response_record&.updated_at ? response_record.updated_at.strftime("%Y-%m-%d") : "—" %></span>
+              <% unless response_record&.answer.present? %>
+                <span class="badge badge-warning">Missing</span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="empty-state">No questions recorded for this category.</div>
+      <% end %>
+    </div>
+  <% end %>
+</section>
+
+<section class="pdf-section">
+  <h2 class="section-title">Advisor Feedback</h2>
+  <% categories.each do |category| %>
+    <% feedback_entries = feedbacks_by_category[category.id] || [] %>
+    <div class="feedback-category">
+      <div class="category-header">
+        <h3 class="category-title"><%= category.name %></h3>
+      </div>
+
+      <% if feedback_entries.any? %>
+        <% feedback_entries.each do |feedback| %>
+          <% timestamp = feedback.updated_at || feedback.created_at %>
+          <div class="feedback-block">
+            <div class="feedback-header">
+              <div><strong>Advisor:</strong> <%= feedback.advisor&.display_name || "—" %></div>
+              <div class="feedback-score">
+                Score: <%= feedback.average_score.present? ? format('%.2f', feedback.average_score.to_f) : "—" %>
+              </div>
+            </div>
+            <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback.comments) %>
+            <div class="feedback-comments">
+              <% if comments_text.present? %>
+                <%= simple_format(comments_text) %>
+                <% if comments_truncated %>
+                  <div class="truncation-note">Full comments available in the Health application.</div>
+                <% end %>
+              <% else %>
+                <div class="feedback-empty">No comments provided</div>
+              <% end %>
+            </div>
+            <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="feedback-empty">No advisor feedback recorded for this category.</div>
+      <% end %>
+    </div>
+  <% end %>
+</section>

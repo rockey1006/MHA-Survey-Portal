@@ -10,10 +10,23 @@ class Student < ApplicationRecord
   has_many :student_questions, dependent: :destroy
   has_many :questions, through: :student_questions
   has_many :feedbacks, foreign_key: :student_id
+  has_many :survey_assignments, foreign_key: :student_id, primary_key: :student_id, dependent: :destroy
 
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 
   validates :uin, uniqueness: true, allow_nil: true
+  validates :uin, presence: true, on: :profile_completion
+  validates :major, presence: true, on: :profile_completion
+  validates :track, presence: true, on: :profile_completion
+
+  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? && track.present? }
+
+  # Checks if the student has completed their profile setup
+  #
+  # @return [Boolean]
+  def profile_complete?
+    user.name.present? && uin.present? && major.present? && track.present?
+  end
 
   # @return [String] the student's preferred full name
   def full_name
@@ -23,16 +36,24 @@ class Student < ApplicationRecord
   # Saves the student and any pending user changes.
   #
   # @return [Boolean]
-  def save(*args, &block)
+  def save(*args, **kwargs, &block)
     user.save! if user&.changed?
-    super
+    super(*args, **kwargs, &block)
   end
 
   # Saves the student and underlying user, raising on failure.
   #
   # @return [Boolean]
-  def save!(*args, &block)
+  def save!(*args, **kwargs, &block)
     user.save! if user&.changed?
-    super
+    super(*args, **kwargs, &block)
+  end
+
+  private
+
+  def auto_assign_track_survey
+    SurveyAssignments::AutoAssigner.call(student: self)
+  rescue StandardError => e
+    Rails.logger.error("Track auto-assign failed for student #{student_id}: #{e.class}: #{e.message}")
   end
 end

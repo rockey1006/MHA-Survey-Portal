@@ -1,27 +1,53 @@
 <!-- Student Navigation Header -->
-<header class="app-header">
+<header class="app-header" role="banner">
   <div class="header-content">
     <div class="header-left">
-      <div class="logo">
+      <div class="logo" aria-label="Texas A&amp;M University">
         <div class="logo-icon" aria-hidden="true"></div>
         <div class="logo-text">
           TEXAS A&M<br>
           UNIVERSITY
         </div>
       </div>
-      <nav class="nav-links">
-        <%= link_to "Home", student_dashboard_path,
-              class: "nav-link #{'active' if current_page?(student_dashboard_path)}" %>
 
-        <%= link_to "Survey", surveys_path,
-              class: "nav-link #{'active' if controller_name == 'surveys'}" %>
+      <nav class="nav-links" aria-label="Primary">
+        <%= link_to "Home",
+                    student_dashboard_path,
+                    class: "nav-link #{'active' if current_page?(student_dashboard_path)}" %>
+
+        <%= link_to "Survey",
+                    surveys_path,
+                    class: "nav-link #{'active' if controller_name == 'surveys'}" %>
       </nav>
     </div>
 
     <div class="user-section">
-  <div class="notification-area">
+      <!-- High contrast toggle -->
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-high-contrast-toggle="true"
+        aria-pressed="false"
+        aria-label="Toggle high contrast mode">
+        High Contrast: Off
+      </button>
+
+      <!-- Text-to-speech toggle -->
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-tts-toggle="true"
+        aria-pressed="false"
+        aria-label="Read this page aloud">
+        Read Page Aloud
+      </button>
+
+      <span class="role-badge student">STUDENT</span>
+
+      <div class="notification-area">
         <%= render "shared/notification_menu" %>
       </div>
+
       <div class="user-profile">
         <% avatar_url = current_user&.avatar_url.presence %>
         <div class="user-avatar" title="<%= current_user&.full_name %>">

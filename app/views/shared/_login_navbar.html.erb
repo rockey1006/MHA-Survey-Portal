@@ -1,34 +1,66 @@
 <!-- Login Navigation Header -->
-<header class="app-header">
+<header class="app-header" role="banner">
   <div class="header-content">
     <div class="header-left">
-      <div class="logo">
-        <div class="logo-icon"></div>
+      <div class="logo" aria-label="Texas A&amp;M University">
+        <div class="logo-icon" aria-hidden="true"></div>
         <div class="logo-text">
           TEXAS A&M<br>
           UNIVERSITY
         </div>
       </div>
 
-      <nav class="nav-links">
+      <nav class="nav-links" aria-label="Primary">
         <!-- Clicking these will submit a POST to the Google OAuth path with role=student/advisor -->
         <a href="#"
            class="nav-link"
-           data-login-role="student">Students</a>
+           data-login-role="student">
+          Students
+        </a>
 
         <a href="#"
            class="nav-link"
-           data-login-role="advisor">Advisors</a>
+           data-login-role="advisor">
+          Advisors
+        </a>
 
         <!-- About page (documentation landing) -->
         <%= link_to "About the Portal", about_path, class: "nav-link" %>
+
+        <!-- FAQ page -->
+        <%= link_to "FAQ", faq_path, class: "nav-link" %>
       </nav>
     </div>
 
     <div class="user-section">
-      <a href="https://public-health.tamu.edu/degrees/hpm/mha/index.html" class="btn btn-secondary">Program Overview</a>
+      <!-- High contrast toggle -->
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-high-contrast-toggle="true"
+        aria-pressed="false"
+        aria-label="Toggle high contrast mode">
+        High Contrast: Off
+      </button>
+
+      <!-- Text-to-speech toggle -->
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-tts-toggle="true"
+        aria-pressed="false"
+        aria-label="Read this page aloud">
+        Read Page Aloud
+      </button>
+
+      <a href="https://public-health.tamu.edu/degrees/hpm/mha/index.html"
+         class="btn btn-secondary">
+        Program Overview
+      </a>
+
       <button type="button"
               class="btn btn-primary"
+              aria-label="Scroll to sign in"
               onclick="(function(){
                 var target = document.querySelector('#login-sections');
                 if (target) { target.scrollIntoView({ behavior: 'smooth' }); }

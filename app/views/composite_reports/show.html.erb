@@ -72,6 +72,7 @@
           <% response_record = responses_by_question[question.id] %>
           <% raw_answer = answers_by_question[question.id] %>
           <% display_answer = raw_answer.is_a?(Array) ? raw_answer.compact.join(", ") : raw_answer %>
+          <% truncated_answer, answer_truncated = truncate_for_composite_pdf(display_answer) %>
           <div class="question-block">
             <div class="question-header">
               <span class="question-number">Q<%= index + 1 %></span>
@@ -95,7 +96,7 @@
               <% when "scale" %>
                 <div class="answer-text">
                   <strong>Rating:</strong>
-                  <%= display_answer.presence || "Not answered" %>
+                  <%= truncated_answer.presence || "Not answered" %>
                   <% if display_answer.present? %>
                     <span class="muted">/ 5</span>
                   <% end %>
@@ -103,7 +104,11 @@
               <% when "evidence" %>
                 <div class="answer-text">
                   <% if display_answer.present? %>
-                    <a href="<%= display_answer %>"><%= display_answer %></a>
+                    <% link_label = answer_truncated ? "View evidence" : truncated_answer %>
+                    <a href="<%= display_answer %>"><%= link_label %></a>
+                    <% if answer_truncated %>
+                      <div class="truncation-note">Link truncated for PDF readability.</div>
+                    <% end %>
                   <% else %>
                     Not provided
                   <% end %>
@@ -114,12 +119,27 @@
                   <ul class="history-list">
                     <% evidence_history.each do |entry| %>
                       <% timestamp = entry.updated_at || entry.created_at %>
-                      <li><%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %> — <%= entry.answer %></li>
+                      <% history_text, history_truncated = truncate_for_composite_pdf(entry.answer) %>
+                      <li>
+                        <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %> — <%= history_text %>
+                        <% if history_truncated %>
+                          <span class="muted">(truncated)</span>
+                        <% end %>
+                      </li>
                     <% end %>
                   </ul>
                 <% end %>
               <% else %>
-                <div class="answer-text"><%= display_answer.present? ? simple_format(display_answer.to_s) : "No response provided" %></div>
+                <div class="answer-text">
+                  <% if truncated_answer.present? %>
+                    <%= simple_format(truncated_answer) %>
+                    <% if answer_truncated %>
+                      <div class="truncation-note">Full response available in the Health application.</div>
+                    <% end %>
+                  <% else %>
+                    No response provided
+                  <% end %>
+                </div>
               <% end %>
             </div>
 
@@ -157,8 +177,16 @@
                 Score: <%= feedback.average_score.present? ? format('%.2f', feedback.average_score.to_f) : "—" %>
               </div>
             </div>
+            <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback.comments) %>
             <div class="feedback-comments">
-              <%= feedback.comments.present? ? simple_format(feedback.comments) : content_tag(:div, "No comments provided", class: "feedback-empty") %>
+              <% if comments_text.present? %>
+                <%= simple_format(comments_text) %>
+                <% if comments_truncated %>
+                  <div class="truncation-note">Full comments available in the Health application.</div>
+                <% end %>
+              <% else %>
+                <div class="feedback-empty">No comments provided</div>
+              <% end %>
             </div>
             <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
           </div>

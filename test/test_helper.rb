@@ -25,6 +25,7 @@ class ActiveSupport::TestCase
            :advisors,
            :categories,
            :questions,
+           :feedbacks,
            :students,
            :surveys,
            :survey_track_assignments,

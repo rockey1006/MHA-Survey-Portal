@@ -1,4 +1,5 @@
 require "test_helper"
+require "nokogiri"
 
 class DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -117,7 +118,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     get manage_students_path
     assert_response :success
-  assert_includes response.body, "Advisor"
+    assert_includes response.body, "Save Changes"
+    assert_includes response.body, "advisor-management-form"
   end
 
   test "update_student_advisor updates assignment" do
@@ -129,6 +131,27 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_equal advisors(:other_advisor).advisor_id, student.reload.advisor_id
   ensure
     student.update!(advisor: advisors(:advisor))
+  end
+
+  test "update_student_advisors applies bulk changes" do
+    sign_in @admin
+
+    student = students(:student)
+    other_student = students(:other_student)
+
+    payload = {
+      student.student_id => advisors(:other_advisor).advisor_id,
+      other_student.student_id => ""
+    }
+
+    patch update_student_advisors_path, params: { advisor_updates: payload }
+    assert_redirected_to manage_students_path
+    follow_redirect!
+    assert_match "Updated", flash[:notice]
+    assert_equal advisors(:other_advisor).advisor_id, student.reload.advisor_id
+  ensure
+    student.update!(advisor: advisors(:advisor))
+    other_student.update!(advisor: advisors(:other_advisor))
   end
 
   test "student dashboard recreates missing profile" do
@@ -175,5 +198,45 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     get admin_dashboard_path
     assert_response :success
   assert_includes response.body, "Admin Dashboard"
+  end
+
+  test "advisor dashboard shows total reports count" do
+    sign_in @advisor
+
+    get advisor_dashboard_path
+    assert_response :success
+
+    reports_description = extract_feature_description(response.body, "Reports")
+    assert_equal "1 generated", reports_description
+  end
+
+  test "admin dashboard shows total reports count" do
+    sign_in @admin
+
+    get admin_dashboard_path
+    assert_response :success
+
+    reports_description = extract_feature_description(response.body, "Reports")
+    assert_equal "2 generated", reports_description
+  end
+
+  test "admin dashboard shows populated activity feed" do
+    sign_in @admin
+
+    get admin_dashboard_path
+    assert_response :success
+
+    assert_includes response.body, "Survey created: Fall 2025 Health Assessment"
+    assert_includes response.body, "Feedback updated: Student User"
+  end
+
+  private
+
+  def extract_feature_description(html, title)
+    doc = Nokogiri::HTML.parse(html)
+    node = doc.css(".feature-item").find do |feature|
+      feature.at_css(".feature-title")&.text&.strip == title
+    end
+    node&.at_css(".feature-description")&.text&.strip
   end
 end

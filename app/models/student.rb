@@ -19,6 +19,8 @@ class Student < ApplicationRecord
   validates :major, presence: true, on: :profile_completion
   validates :track, presence: true, on: :profile_completion
 
+  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? && track.present? }
+
   # Checks if the student has completed their profile setup
   #
   # @return [Boolean]
@@ -45,5 +47,13 @@ class Student < ApplicationRecord
   def save!(*args, **kwargs, &block)
     user.save! if user&.changed?
     super(*args, **kwargs, &block)
+  end
+
+  private
+
+  def auto_assign_track_survey
+    SurveyAssignments::AutoAssigner.call(student: self)
+  rescue StandardError => e
+    Rails.logger.error("Track auto-assign failed for student #{student_id}: #{e.class}: #{e.message}")
   end
 end

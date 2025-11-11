@@ -41,11 +41,11 @@
       <% if user_signed_in? %>
         <% case current_user.role %>
         <% when "student" %>
-          <%= render "shared/student_navbar" %>
+          <%= render "shared/student_navbar", active_page: @active_nav %>
         <% when "advisor" %>
-          <%= render "shared/advisor_navbar" %>
+          <%= render "shared/advisor_navbar", active_page: @active_nav %>
         <% when "admin" %>
-          <%= render "shared/admin_navbar" %>
+          <%= render "shared/admin_navbar", active_page: @active_nav %>
         <% end %>
       <% end %>
 

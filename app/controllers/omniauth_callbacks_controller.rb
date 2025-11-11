@@ -32,6 +32,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
       sign_out_all_scopes
       flash[:success] = t "devise.omniauth_callbacks.success", kind: "Google"
       sign_in(user, event: :authentication)
+      ensure_track_survey_assignment_for(user)
 
       # Redirect based on role with fallback
       redirect_path = case user.role
@@ -98,6 +99,19 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
   # @return [OmniAuth::AuthHash]
   def auth
     @auth ||= request.env["omniauth.auth"]
+  end
+
+  def ensure_track_survey_assignment_for(user)
+    return unless user&.role_student?
+
+    student = user.student_profile
+    return unless student
+
+    SurveyAssignments::AutoAssigner.call(student: student)
+  rescue StandardError => e
+    Rails.logger.error(
+      "OAuth auto-assign failed for user #{user&.id}: #{e.class}: #{e.message}"
+    )
   end
 
   # Validates that an email address belongs to a TAMU domain.

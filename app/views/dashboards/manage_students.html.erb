@@ -1,48 +1,156 @@
-<main class="flex justify-center px-6 py-10">
-    <div class="w-full max-w-5xl space-y-10">
-        <header class="space-y-2">
-            <h1 class="text-3xl font-semibold text-[#500000]">Manage Students</h1>
-        </header>
+<!-- Student Advisor Management view -->
+<main class="main-content">
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h1 class="section-title">🎓 Student Advisor Management</h1>
+            <p class="section-subtitle">Review advisees and assign advisors across the program.</p>
+        </div>
 
-        <% if @students.blank? %>
-            <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-                <span class="text-4xl" aria-hidden="true">📭</span>
-                <p class="text-sm text-slate-600">No students were found for your account.</p>
+        <div class="role-summary-grid">
+            <div class="role-summary-card">
+                <div class="role-summary-icon student">👥</div>
+                <div class="role-summary-info">
+                    <div class="role-summary-count"><%= @assignment_stats[:total] %></div>
+                    <div class="role-summary-label">Total Students</div>
+                </div>
             </div>
 
+            <div class="role-summary-card">
+                <div class="role-summary-icon advisor">✅</div>
+                <div class="role-summary-info">
+                    <div class="role-summary-count"><%= @assignment_stats[:assigned] %></div>
+                    <div class="role-summary-label">Assigned</div>
+                </div>
+            </div>
+
+            <div class="role-summary-card">
+                <div class="role-summary-icon admin">📋</div>
+                <div class="role-summary-info">
+                    <div class="role-summary-count"><%= @assignment_stats[:unassigned] %></div>
+                    <div class="role-summary-label">Unassigned</div>
+                </div>
+            </div>
+        </div>
+
+            <% if @students.blank? %>
+                <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+                    <span class="text-4xl" aria-hidden="true">📭</span>
+                    <p class="text-sm text-slate-600">No students were found for your account.</p>
+                </div>
+        <% elsif @can_manage %>
+            <%= form_with url: update_student_advisors_path, method: :patch, local: true, id: "advisor-management-form", data: { turbo: false }, remote: false do |form| %>
+                <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th class="table-header-avatar">Avatar</th>
+                                <th class="table-header-name">Student</th>
+                                <th class="table-header-email">Email</th>
+                                <th class="table-header-current-role">Current Advisor</th>
+                                <th class="table-header-new-role">New Advisor</th>
+                                <th class="table-header-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% @students.each do |student| %>
+                                <% user = student.user %>
+                                <% current_advisor = student.advisor %>
+                                <% current_advisor_name = current_advisor&.display_name || "Unassigned" %>
+                                <% current_advisor_id = student.advisor_id.present? ? student.advisor_id.to_s : "" %>
+
+                                <tr class="user-row">
+                                    <td class="user-avatar-cell">
+                                        <div class="user-table-avatar"
+                                                 <% if user&.avatar_url.present? %>
+                                                     style="background-image: url('<%= user.avatar_url %>');"
+                                                 <% end %>>
+                                            <% unless user&.avatar_url.present? %>👤<% end %>
+                                        </div>
+                                    </td>
+
+                                    <td class="user-name-cell">
+                                        <div class="user-name"><%= user&.name || "Unknown Student" %></div>
+                                    </td>
+
+                                    <td class="user-email-cell">
+                                        <%= user&.email || "—" %>
+                                    </td>
+
+                                    <td class="user-current-role-cell">
+                                        <span class="role-badge advisor"><%= current_advisor_name %></span>
+                                    </td>
+
+                                    <td class="user-new-role-cell">
+                                        <div class="role-selector">
+                                            <%= select_tag "advisor_updates[#{student.student_id}]",
+                                                    options_for_select(@advisor_select_options, current_advisor_id),
+                                                    class: "role-select advisor-select",
+                                                    data: {
+                                                        student_id: student.student_id,
+                                                        original_advisor: current_advisor_id,
+                                                        original_advisor_name: current_advisor_name,
+                                                        student_name: user&.name || "Student ##{student.student_id}"
+                                                    },
+                                                    id: "advisor_select_#{student.student_id}" %>
+                                        </div>
+                                    </td>
+
+                                    <td class="user-actions-cell">
+                                        <span class="advisor-change-indicator" data-student-id="<%= student.student_id %>">
+                                            No changes
+                                        </span>
+                                    </td>
+                                </tr>
+                            <% end %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                    <div class="text-sm text-slate-600" id="advisor-changes-summary" style="display: none;">
+                        <span class="changes-count font-semibold">0 changes pending</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-end gap-3">
+                        <%= link_to "Cancel", admin_dashboard_path, class: tailwind_button_classes(:secondary) %>
+                        <%= form.submit "Save Changes", class: tailwind_button_classes(:primary), id: "advisor-save-btn", disabled: true %>
+                    </div>
+                </div>
+            <% end %>
         <% else %>
-            <div class="overflow-x-auto">
-                <table class="mx-auto w-full divide-y divide-slate-200 text-sm">
-                    <tr> 
-                        <th scope="col" class="px-6 py-4">Student</th>
-                        <th scope="col" class="px-6 py-4">Advisor</th>
-                    </tr>
-
-                    <tbody class="divide-y divide-slate-200 bg-white">
+            <div class="users-table-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th class="table-header-avatar">Avatar</th>
+                            <th class="table-header-name">Student</th>
+                            <th class="table-header-email">Email</th>
+                            <th class="table-header-current-role">Advisor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         <% @students.each do |student| %>
-                            <tr class="transition hover:bg-slate-50">
-                                <td class="font-semibold text-slate-900 px-6 py-4">
-                                    <%= student.user&.name || "Unknown Student" %>
+                            <% user = student.user %>
+                            <% current_advisor = student.advisor %>
+                            <tr class="user-row">
+                                <td class="user-avatar-cell">
+                                    <div class="user-table-avatar"
+                                             <% if user&.avatar_url.present? %>
+                                                 style="background-image: url('<%= user.avatar_url %>');"
+                                             <% end %>>
+                                        <% unless user&.avatar_url.present? %>👤<% end %>
+                                    </div>
                                 </td>
-
-                                <td class="px-6 py-4 text-slate-900">
-                                    <%= form_with(model: student,
-                                                  url: update_student_advisor_path(student),
-                                                  method: :patch,
-                                                  local: true) do |f| %>
-
-                                      <%= f.collection_select :advisor_id,
-                                                              @advisors,
-                                                              :id,
-                                                              ->(a){ a.user&.name || "Unknown Advisor" },
-                                                              { include_blank: "Unassigned" },
-                                                              { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
-
-                                      <div class="mt-3">
-                                        <%= f.submit "Update",
-                                                     class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white text-xs hover:bg-blue-700 transition" %>
-                                      </div>
-                                    <% end %>
+                                <td class="user-name-cell">
+                                    <div class="user-name"><%= user&.name || "Unknown Student" %></div>
+                                </td>
+                                <td class="user-email-cell">
+                                    <%= user&.email || "—" %>
+                                </td>
+                                <td class="user-current-role-cell">
+                                    <span class="role-badge advisor"><%= current_advisor&.display_name || "Unassigned" %></span>
                                 </td>
                             </tr>
                         <% end %>
@@ -51,11 +159,145 @@
             </div>
         <% end %>
 
-        <div class="flex justify-start">
+        <div class="mt-6 flex justify-start">
             <%= link_to "← Back",
-                        admin_dashboard_path,
-                        class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
-                        data: { turbo: false } %>
+                                    admin_dashboard_path,
+                                    class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                                    data: { turbo: false } %>
         </div>
-    </div>    
+    </section>
 </main>
+
+<script>
+    (function() {
+        function initAdvisorManagement() {
+            const form = document.getElementById('advisor-management-form');
+            if (!form || form.dataset.initialized === 'true') {
+                return;
+            }
+
+            form.dataset.initialized = 'true';
+
+            const saveButton = document.getElementById('advisor-save-btn');
+            const changesSummary = document.getElementById('advisor-changes-summary');
+            const changesCount = changesSummary ? changesSummary.querySelector('.changes-count') : null;
+
+            if (!saveButton || !changesSummary || !changesCount) {
+                return;
+            }
+
+            const pendingChanges = {};
+
+            function indicatorFor(studentId) {
+                return form.querySelector(`.advisor-change-indicator[data-student-id="${studentId}"]`);
+            }
+
+            function formatChange(fromName, toName) {
+                return `${fromName} → ${toName}`;
+            }
+
+            function updateUI() {
+                const changeCount = Object.keys(pendingChanges).length;
+
+                if (changeCount > 0) {
+                    saveButton.disabled = false;
+                    saveButton.style.opacity = '1';
+                    saveButton.style.cursor = 'pointer';
+                    changesSummary.style.display = 'block';
+                    changesCount.textContent = `${changeCount} change${changeCount > 1 ? 's' : ''} pending`;
+                    saveButton.setAttribute('data-has-changes', 'true');
+                } else {
+                    saveButton.disabled = true;
+                    saveButton.style.opacity = '0.5';
+                    saveButton.style.cursor = 'not-allowed';
+                    changesSummary.style.display = 'none';
+                    saveButton.removeAttribute('data-has-changes');
+                }
+            }
+
+            form.querySelectorAll('.advisor-select').forEach(select => {
+                const studentId = select.dataset.studentId;
+                const originalAdvisor = select.dataset.originalAdvisor || '';
+                const originalName = select.dataset.originalAdvisorName || 'Unassigned';
+                const indicator = indicatorFor(studentId);
+                const row = select.closest('.user-row');
+
+                if (!indicator) {
+                    return;
+                }
+
+                select.value = originalAdvisor;
+
+                select.addEventListener('change', function() {
+                    const newAdvisor = this.value;
+                    const newAdvisorName = this.options[this.selectedIndex].text.trim() || 'Unassigned';
+                    const studentName = this.dataset.studentName || `Student ${studentId}`;
+
+                    if (newAdvisor !== originalAdvisor) {
+                        pendingChanges[studentId] = {
+                            studentName: studentName,
+                            fromName: originalName,
+                            toName: newAdvisorName,
+                            advisorId: newAdvisor
+                        };
+
+                        indicator.textContent = formatChange(originalName, newAdvisorName);
+                        indicator.className = 'advisor-change-indicator changed';
+
+                        if (row) {
+                            row.classList.add('has-changes');
+                        }
+                    } else {
+                        delete pendingChanges[studentId];
+                        indicator.textContent = 'No changes';
+                        indicator.className = 'advisor-change-indicator';
+
+                        if (row) {
+                            row.classList.remove('has-changes');
+                        }
+                    }
+
+                    updateUI();
+                });
+            });
+
+            saveButton.addEventListener('click', function(e) {
+                if (this.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    alert('No changes to save. Please make advisor updates first.');
+                }
+            });
+
+            form.addEventListener('submit', function(e) {
+                const changeCount = Object.keys(pendingChanges).length;
+
+                if (changeCount === 0) {
+                    alert('No changes to save.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                const changeList = Object.values(pendingChanges)
+                    .map(change => `• ${change.studentName}: ${change.fromName} → ${change.toName}`)
+                    .join('\n');
+
+                const confirmMessage = `You are about to apply ${changeCount} advisor change${changeCount > 1 ? 's' : ''}:\n\n${changeList}\n\nProceed?`;
+
+                if (!confirm(confirmMessage)) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                saveButton.disabled = true;
+                saveButton.textContent = 'Saving...';
+                return true;
+            });
+
+            updateUI();
+        }
+
+        document.addEventListener('turbo:load', initAdvisorManagement);
+        document.addEventListener('DOMContentLoaded', initAdvisorManagement);
+    })();
+</script>

@@ -1,13 +1,16 @@
 # frozen_string_literal: true
 
 require "digest"
+require "active_support/number_helper"
 
 # Builds the composite assessment PDF that merges student responses and advisor feedback.
 class CompositeReportGenerator
   class MissingDependency < StandardError; end
   class GenerationError < StandardError; end
 
-  CACHE_TTL = 12.hours
+  CACHE_TTL = 6.hours
+
+  include ActiveSupport::NumberHelper
 
   def initialize(survey_response:)
     @survey_response = survey_response
@@ -22,7 +25,13 @@ class CompositeReportGenerator
 
     CompositeReportCache.fetch(cache_key, fingerprint, ttl: CACHE_TTL) do
       html = render_html
-      WickedPdf.new.pdf_from_string(html)
+      html_size = html.bytesize
+      Rails.logger.info("[CompositeReportGenerator] HTML payload size=#{number_to_human_size(html_size)} for SurveyResponse=#{@survey_response.id}")
+
+      pdf = WickedPdf.new.pdf_from_string(html)
+      pdf_size = pdf ? number_to_human_size(pdf.bytesize) : "unknown"
+      Rails.logger.info("[CompositeReportGenerator] PDF payload size=#{pdf_size} for SurveyResponse=#{@survey_response.id}")
+      pdf
     end
   rescue MissingDependency
     raise

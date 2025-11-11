@@ -61,11 +61,14 @@ class FeedbacksController < ApplicationController
           # Skip empty inputs
           next if attrs["average_score"].blank? && attrs["comments"].blank?
 
-          fb = if attrs["id"].present?
-                 Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
-          else
-                 Feedback.find_or_initialize_by(student_id: @student.student_id, survey_id: @survey.id, category_id: cat_id, advisor_id: @advisor&.advisor_id)
-          end
+      fb = if attrs["id"].present?
+        Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
+      else
+        Feedback.new(student_id: @student.student_id,
+            survey_id: @survey.id,
+            category_id: cat_id,
+            advisor_id: @advisor&.advisor_id)
+      end
           Rails.logger.debug "[FeedbacksController#create] found fb=#{fb.inspect} attrs=#{attrs.inspect}"
 
           unless fb
@@ -117,6 +120,12 @@ class FeedbacksController < ApplicationController
       end
 
       @feedback = saved_feedbacks.first
+
+      respond_to do |format|
+        format.html { redirect_to student_records_path, notice: "Feedback saved." }
+        format.json { render json: saved_feedbacks, status: :created }
+      end
+      return
     elsif params[:feedback].present? && params.dig(:feedback, :category_id).present?
       # per-category single feedback
       set_survey_and_student unless @survey && @student
@@ -141,7 +150,7 @@ class FeedbacksController < ApplicationController
 
     respond_to do |format|
       if @feedback.save
-        format.html { redirect_to student_records_path, notice: (params[:ratings].present? ? "Feedback saved." : "Category feedback saved.") }
+        format.html { redirect_to student_records_path, notice: "Category feedback saved." }
         format.json { render json: @feedback, status: :created, location: @feedback }
       else
         load_feedback_new_context

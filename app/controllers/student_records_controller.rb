@@ -29,14 +29,14 @@ class StudentRecordsController < ApplicationController
     has_admin_privileges = current_user&.role_admin? || current_user&.admin_profile.present?
 
     scope = if has_admin_privileges
-      Student.includes(:user, advisor: :user)
+      Student.all
     else
-      current_advisor_profile&.advisees&.includes(:user, advisor: :user) || Student.none
+      current_advisor_profile&.advisees || Student.none
     end
 
     scope
       .left_joins(:user)
-      .includes(:advisor)
+      .includes(:user, advisor: :user)
       .order(Arel.sql("LOWER(users.name) ASC"))
   end
 
@@ -48,12 +48,14 @@ class StudentRecordsController < ApplicationController
   def build_student_records(students)
     return [] if students.blank?
 
-    student_ids = students.map(&:student_id)
+  student_ids = students.map(&:student_id)
 
     surveys = Survey.includes(:questions).order(created_at: :desc)
     return [] if surveys.blank?
 
     survey_ids = surveys.map(&:id)
+
+  feedback_lookup = load_feedback_lookup(student_ids, survey_ids)
 
     required_ids_by_survey = surveys.index_with do |survey|
       survey.questions.select { |question| required_question?(question) }.map(&:id)
@@ -97,6 +99,9 @@ class StudentRecordsController < ApplicationController
 
               survey_response = SurveyResponse.build(student: student, survey: survey)
 
+              feedbacks_for_pair = Array(feedback_lookup.dig(student.student_id, survey.id))
+              feedback_last_updated = feedbacks_for_pair.filter_map(&:updated_at).max
+
               {
                 student: student,
                 advisor: student.advisor,
@@ -104,7 +109,9 @@ class StudentRecordsController < ApplicationController
                 completed_at: responses.map { |entry| entry[:updated_at] }.compact.max,
                 survey: survey,
                 survey_response: survey_response,
-                download_token: survey_response.signed_download_token
+                download_token: survey_response.signed_download_token,
+                feedbacks: feedbacks_for_pair,
+                feedback_last_updated_at: feedback_last_updated
               }
             end
           }
@@ -145,5 +152,35 @@ class StudentRecordsController < ApplicationController
 
     options = question.answer_options_list.map(&:strip).map(&:downcase)
     !(options == %w[yes no] || options == %w[no yes])
+  end
+
+  # Preloads feedback entries for the provided student and survey ids.
+  #
+  # @param student_ids [Array<Integer>]
+  # @param survey_ids [Array<Integer>]
+  # @return [Hash{Integer=>Hash{Integer=>Array<Feedback>}}]
+  def load_feedback_lookup(student_ids, survey_ids)
+    return {} if student_ids.blank? || survey_ids.blank?
+
+    Feedback
+      .includes(:category, advisor: :user)
+      .where(student_id: student_ids, survey_id: survey_ids)
+      .each_with_object(Hash.new { |hash, sid| hash[sid] = {} }) do |feedback, memo|
+        memo[feedback.student_id][feedback.survey_id] ||= []
+        memo[feedback.student_id][feedback.survey_id] << feedback
+      end
+      .tap do |lookup|
+        lookup.each_value do |survey_hash|
+          survey_hash.each_value do |entries|
+            entries.sort_by! do |feedback|
+              [
+                feedback.category&.name.to_s.downcase,
+                feedback.category_id || 0,
+                feedback.id || 0
+              ]
+            end
+          end
+        end
+      end
   end
 end

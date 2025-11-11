@@ -3,8 +3,8 @@
 # Simple in-memory cache with LRU eviction for composite assessment PDFs.
 # Stores up to MAX_ENTRIES PDF payloads and expires them after ENTRY_TTL.
 class CompositeReportCache
-  MAX_ENTRIES = 50
-  ENTRY_TTL = 12.hours
+  MAX_ENTRIES = 10
+  ENTRY_TTL = 6.hours
 
   Entry = Struct.new(:data, :fingerprint, :expires_at, :last_accessed, keyword_init: true) do
     def expired?(time)

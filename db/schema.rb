@@ -159,6 +159,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_10_000200) do
     t.string "role", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "failed_mfa_attempts", default: 0, null: false
+    t.datetime "mfa_locked_at"
     t.string "language"
     t.boolean "notifications_enabled", default: true, null: false
     t.integer "text_scale_percent", default: 100, null: false

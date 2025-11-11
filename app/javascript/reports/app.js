@@ -1,0 +1,968 @@
+import React from "react"
+import Chart from "chart.js/auto"
+
+const { useCallback, useEffect, useMemo, useRef, useState } = React
+const h = React.createElement
+const TARGET_SCORE = 4
+const EXCEEDS_THRESHOLD = 4.5
+const GOAL_THRESHOLD = 0.85
+const PROGRAM_GOAL_PERCENT = 80
+
+const COLORS = {
+  student: "#500000",
+  advisor: "#2563eb",
+  achieved: "#16a34a",
+  notMet: "#dc2626",
+  exceeds: "#6366f1",
+  notAssessed: "#94a3b8",
+  neutralText: "#0f172a"
+}
+
+const STATUS_LABELS = {
+  achieved: "Meets target",
+  not_met: "Below target",
+  exceeds: "Exceeds target",
+  not_assessed: "Not assessed"
+}
+
+let percentagePluginRegistered = false
+
+const percentageLabelPlugin = {
+  id: "percentageLabelPlugin",
+  afterDatasetsDraw(chart, _, options) {
+    const ctx = chart.ctx
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      if (!dataset || !dataset.showDataLabels) return
+      const meta = chart.getDatasetMeta(datasetIndex)
+      meta.data.forEach((element, index) => {
+        const value = dataset.data[index]
+        if (value === null || value === undefined) return
+        const numeric = Number(value)
+        if (!Number.isFinite(numeric) || numeric <= 0) return
+        const { x, y } = element.tooltipPosition()
+        ctx.save()
+        ctx.fillStyle = (options && options.color) || COLORS.neutralText
+        ctx.font = (options && options.font) || "12px 'Inter', sans-serif"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(`${numeric.toFixed(1)}%`, x, y)
+        ctx.restore()
+      })
+    })
+  }
+}
+
+if (!percentagePluginRegistered) {
+  Chart.register(percentageLabelPlugin)
+  percentagePluginRegistered = true
+}
+
+const API_ENDPOINTS = {
+  filters: "/api/reports/filters",
+  benchmark: "/api/reports/benchmark",
+  competency: "/api/reports/competency-summary",
+  course: "/api/reports/course-summary",
+  alignment: "/api/reports/alignment"
+}
+
+const DEFAULT_FILTERS = {
+  track: "all",
+  semester: "all",
+  advisor_id: "all",
+  category_id: "all",
+  survey_id: "all",
+  student_id: "all"
+}
+
+const FALLBACK_EXPORT_URLS = {
+  pdf: "/reports/dashboard/export_pdf",
+  excel: "/reports/export_excel"
+}
+
+const EMPTY_OPTIONS = Object.freeze({
+  tracks: [],
+  semesters: [],
+  advisors: [],
+  categories: [],
+  surveys: [],
+  students: []
+})
+
+const compact = (values) => values.filter(Boolean)
+
+const safeNumber = (value) => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+const ratingStatus = (value, { treatZeroAsNotAssessed = false } = {}) => {
+  const numeric = safeNumber(value)
+  if (numeric === null) return "not_assessed"
+  if (treatZeroAsNotAssessed && numeric === 0) return "not_assessed"
+  if (numeric >= EXCEEDS_THRESHOLD) return "exceeds"
+  if (numeric >= TARGET_SCORE) return "achieved"
+  return "not_met"
+}
+
+const ratingColor = (status) => {
+  switch (status) {
+    case "exceeds":
+      return COLORS.exceeds
+    case "achieved":
+      return COLORS.achieved
+    case "not_met":
+      return COLORS.notMet
+    case "not_assessed":
+    default:
+      return COLORS.notAssessed
+  }
+}
+
+const statusLabel = (status) => STATUS_LABELS[status] || "Unknown"
+
+const formatMetricValue = (value, unit = "score", precision = 1) => {
+  if (value === null || value === undefined) return "—"
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return "—"
+  const fixed = numeric.toFixed(precision)
+  return unit === "percent" ? `${fixed}%` : fixed
+}
+
+const formatChange = (change, unit = "score") => {
+  if (change === null || change === undefined) return "—"
+  const numeric = Number(change)
+  if (!Number.isFinite(numeric)) return "—"
+  const prefix = numeric > 0 ? "+" : ""
+  const formatted = unit === "percent" ? numeric.toFixed(1) : numeric.toFixed(2)
+  return unit === "percent" ? `${prefix}${formatted}pp` : `${prefix}${formatted}`
+}
+
+const findOptionLabel = (collection, value, labelKey = "name") => {
+  if (!Array.isArray(collection)) return null
+  const numericValue = Number(value)
+  return collection.find((entry) => {
+    if (!entry) return false
+    const entryId = Number(entry.id ?? entry)
+    return Number.isFinite(entryId) && entryId === numericValue
+  })?.[labelKey]
+}
+
+const describeActiveFilters = (filters, options) => {
+  const mergedFilters = { ...DEFAULT_FILTERS, ...(filters || {}) }
+  const mergedOptions = { ...EMPTY_OPTIONS, ...(options || {}) }
+  const parts = []
+
+  if (mergedFilters.track !== "all") {
+    parts.push(`Track: ${mergedFilters.track}`)
+  }
+  if (mergedFilters.semester !== "all") {
+    parts.push(`Semester: ${mergedFilters.semester}`)
+  }
+  if (mergedFilters.advisor_id !== "all") {
+    const label = findOptionLabel(mergedOptions.advisors, mergedFilters.advisor_id)
+    parts.push(`Advisor: ${label || mergedFilters.advisor_id}`)
+  }
+  if (mergedFilters.category_id !== "all") {
+    const label = findOptionLabel(mergedOptions.categories, mergedFilters.category_id)
+    parts.push(`Competency: ${label || mergedFilters.category_id}`)
+  }
+  if (mergedFilters.survey_id !== "all") {
+    const survey = mergedOptions.surveys.find((entry) => Number(entry?.id) === Number(mergedFilters.survey_id))
+    const label = survey ? compact([survey.title, survey.semester]).join(" · ") : mergedFilters.survey_id
+    parts.push(`Survey: ${label}`)
+  }
+  if (mergedFilters.student_id !== "all") {
+    const label = findOptionLabel(mergedOptions.students, mergedFilters.student_id)
+    parts.push(`Student: ${label || mergedFilters.student_id}`)
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "None"
+}
+
+const buildQueryString = (filters) => {
+  const params = new URLSearchParams()
+  Object.entries(filters || {}).forEach(([ key, value ]) => {
+    if (value && value !== "all") {
+      params.append(key, value)
+    }
+  })
+  const query = params.toString()
+  return query ? `?${query}` : ""
+}
+
+const replacePdfSection = (baseUrl, sectionKey) => {
+  if (!sectionKey) return baseUrl
+  const pattern = /(\/reports\/)([^/]+)(\/export_pdf\b)/
+  if (!pattern.test(baseUrl)) return baseUrl
+  return baseUrl.replace(pattern, `$1${sectionKey}$3`)
+}
+
+const fetchJson = async (url) => {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    headers: { Accept: "application/json" }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || `Request failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
+const LoadingState = () =>
+  h("div", { className: "flex h-80 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200", role: "status", "aria-live": "polite" }, [
+    h("div", { className: "flex flex-col items-center gap-4" }, [
+      h("div", { className: "h-12 w-12 animate-spin rounded-full border-4 border-amber-500 border-t-transparent", "aria-hidden": "true" }),
+      h("p", { className: "text-sm font-medium text-slate-600" }, "Loading analytics...")
+    ])
+  ])
+
+const ErrorState = ({ message, onRetry }) => {
+  const children = [
+    h("h2", null, "We hit a snag"),
+    h("p", null, message)
+  ]
+
+  if (onRetry) {
+    children.push(
+      h("button", {
+        type: "button",
+        className: "reports-button reports-button--primary",
+        onClick: onRetry
+      }, "Try again")
+    )
+  }
+
+  return h("div", { className: "reports-panel reports-panel--error", role: "alert" }, children)
+}
+
+const FilterBar = ({ filters, options, onChange, onReset }) => {
+  const mergedFilters = { ...DEFAULT_FILTERS, ...(filters || {}) }
+  const mergedOptions = { ...EMPTY_OPTIONS, ...(options || {}) }
+
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    onChange({ ...mergedFilters, [name]: value })
+  }
+
+  const surveyLabel = (survey) => compact([ survey.title, survey.semester ]).join(" · ")
+
+  const selectConfigs = [
+    {
+      name: "track",
+      label: "Track",
+      defaultLabel: "All tracks",
+      list: mergedOptions.tracks,
+      getValue: (value) => value,
+      getLabel: (value) => value
+    },
+    {
+      name: "semester",
+      label: "Semester",
+      defaultLabel: "All semesters",
+      list: mergedOptions.semesters,
+      getValue: (value) => value,
+      getLabel: (value) => value
+    },
+    {
+      name: "advisor_id",
+      label: "Advisor",
+      defaultLabel: "All advisors",
+      list: mergedOptions.advisors,
+      getValue: (advisor) => advisor && advisor.id,
+      getLabel: (advisor) => advisor && advisor.name
+    },
+    {
+      name: "category_id",
+      label: "Competency",
+      defaultLabel: "All competencies",
+      list: mergedOptions.categories,
+      getValue: (category) => category && category.id,
+      getLabel: (category) => category && category.name
+    },
+    {
+      name: "survey_id",
+      label: "Survey",
+      defaultLabel: "All surveys",
+      list: mergedOptions.surveys,
+      getValue: (survey) => survey && survey.id,
+      getLabel: (survey) => survey && surveyLabel(survey)
+    },
+    {
+      name: "student_id",
+      label: "Student",
+      defaultLabel: "All students",
+      list: mergedOptions.students,
+      getValue: (student) => student && student.id,
+      getLabel: (student) => student && student.name
+    }
+  ]
+
+  return h("section", { className: "reports-panel reports-filters", "aria-label": "Dashboard filters" }, [
+    h("div", { className: "reports-filters__grid" },
+      selectConfigs.map((config) => {
+        const value = mergedFilters[config.name] ?? "all"
+        const optionsNodes = [
+          h("option", { key: `${config.name}-all`, value: "all" }, config.defaultLabel)
+        ]
+
+        config.list.forEach((entry) => {
+          if (!entry && entry !== 0) return
+          const optionValue = config.getValue(entry)
+          const optionLabel = config.getLabel(entry)
+          if (optionValue === undefined || optionValue === null) return
+          optionsNodes.push(
+            h("option", { key: `${config.name}-${optionValue}`, value: String(optionValue) }, optionLabel)
+          )
+        })
+
+        return h("label", { key: config.name, className: "reports-field" }, [
+          h("span", null, config.label),
+          h("select", { name: config.name, value, onChange: handleChange }, optionsNodes)
+        ])
+      })
+    ),
+    h("button", { type: "button", className: "reports-button", onClick: onReset }, "Reset filters")
+  ])
+}
+
+const SummaryCards = ({ cards }) =>
+  h("section", { className: "reports-summary" },
+    cards.map((card) => {
+      const headerChildren = [ h("p", { className: "reports-summary__label" }, card.title) ]
+      if (card.meta && card.meta.name) {
+        headerChildren.push(h("span", { className: "reports-summary__meta" }, card.meta.name))
+      }
+
+      const valueChildren = [ h("strong", null, formatMetricValue(card.value, card.unit, card.precision)) ]
+      if (card.meta && card.meta.advisor_average !== undefined && card.meta.advisor_average !== null) {
+        valueChildren.push(
+          h("span", { className: "reports-summary__subtext" }, `Advisor avg ${formatMetricValue(card.meta.advisor_average, "score", 1)}`)
+        )
+      }
+
+      const footerChildren = [
+        h("span", { className: `reports-summary__trend reports-summary__trend--${card.change_direction || "flat"}` }, formatChange(card.change, card.unit)),
+        h("span", { className: "reports-summary__description" }, card.description)
+      ]
+
+      if (card.meta && card.meta.goal_percent) {
+        footerChildren.push(
+          h("span", { className: "reports-summary__description" }, `Program goal: ${formatMetricValue(card.meta.goal_percent, "percent", 0)}`)
+        )
+      }
+      if (card.meta && card.meta.students_met_goal !== undefined) {
+        footerChildren.push(
+          h("span", { className: "reports-summary__description" }, `Students meeting goal: ${card.meta.students_met_goal}`)
+        )
+      }
+
+      return h("article", { key: card.key, className: "reports-summary__card", "aria-label": card.title }, [
+        h("header", null, headerChildren),
+        h("div", { className: "reports-summary__value" }, valueChildren),
+        h("footer", null, footerChildren)
+      ])
+    })
+  )
+
+const TrendChart = ({ timeline }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !Array.isArray(timeline) || timeline.length === 0) return undefined
+
+    const ctx = canvasRef.current.getContext("2d")
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: timeline.map((point) => point.label),
+        datasets: [
+          {
+            label: "Student",
+            data: timeline.map((point) => point.student),
+            borderColor: COLORS.student,
+            backgroundColor: "rgba(80, 0, 0, 0.15)",
+            tension: 0.3,
+            borderWidth: 2,
+            pointBackgroundColor: COLORS.student,
+            pointRadius: 4
+          },
+          {
+            label: "Advisor",
+            data: timeline.map((point) => point.advisor),
+            borderColor: COLORS.advisor,
+            backgroundColor: "rgba(37, 99, 235, 0.15)",
+            tension: 0.3,
+            borderWidth: 2,
+            pointBackgroundColor: COLORS.advisor,
+            pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const value = context.raw
+                return `${context.dataset.label}: ${formatMetricValue(value, "score", 2)}`
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            suggestedMin: 0,
+            suggestedMax: 5,
+            ticks: {
+              callback(value) {
+                return Number(value).toFixed(1)
+              }
+            }
+          }
+        }
+      }
+    })
+
+    return () => chart.destroy()
+  }, [ timeline ])
+
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Monthly average scores" },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const AlignmentChart = ({ data }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !data || !Array.isArray(data.labels) || data.labels.length === 0) return undefined
+
+    const ctx = canvasRef.current.getContext("2d")
+    const chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label: "Student",
+            data: data.student,
+            backgroundColor(context) {
+              const status = ratingStatus(context.raw)
+              return ratingColor(status)
+            },
+            borderColor(context) {
+              const status = ratingStatus(context.raw)
+              return ratingColor(status)
+            },
+            borderWidth: 1,
+            borderRadius: 6,
+            maxBarThickness: 36
+          },
+          {
+            label: "Advisor",
+            data: data.advisor,
+            backgroundColor(context) {
+              const status = ratingStatus(context.raw, { treatZeroAsNotAssessed: true })
+              return ratingColor(status)
+            },
+            borderColor(context) {
+              const status = ratingStatus(context.raw, { treatZeroAsNotAssessed: true })
+              return ratingColor(status)
+            },
+            borderWidth: 1,
+            borderRadius: 6,
+            maxBarThickness: 36
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const value = context.raw
+                const status = ratingStatus(value, { treatZeroAsNotAssessed: context.dataset.label === "Advisor" })
+                return `${context.dataset.label}: ${formatMetricValue(value, "score", 2)} (${statusLabel(status)})`
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            suggestedMin: 0,
+            suggestedMax: 5,
+            ticks: {
+              callback(value) {
+                return Number(value).toFixed(1)
+              }
+            }
+          },
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 0
+            }
+          }
+        }
+      }
+    })
+
+    return () => chart.destroy()
+  }, [ data ])
+
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Competency alignment" },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const CompetencyAchievementChart = ({ items }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !Array.isArray(items) || items.length === 0) return undefined
+
+    const labels = items.map((item) => item.name)
+    const chart = new Chart(canvasRef.current.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Achieved",
+            data: items.map((item) => item.achieved_count || 0),
+            backgroundColor: COLORS.achieved,
+            borderRadius: 8,
+            stack: "status"
+          },
+          {
+            label: "Not met",
+            data: items.map((item) => item.not_met_count || 0),
+            backgroundColor: COLORS.notMet,
+            borderRadius: 8,
+            stack: "status"
+          },
+          {
+            label: "Not assessed",
+            data: items.map((item) => item.not_assessed_count || 0),
+            backgroundColor: COLORS.notAssessed,
+            borderRadius: 8,
+            stack: "status"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const label = context.dataset.label
+                const value = context.raw
+                return `${label}: ${value}`
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              maxRotation: 45,
+              minRotation: 0
+            }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
+    })
+
+    return () => chart.destroy()
+  }, [ items ])
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return h("p", { className: "reports-placeholder" }, "No competency data available for the selected filters.")
+  }
+
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Number achieved by competency", style: { minHeight: "360px" } },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const CourseAchievementChart = ({ courses }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !Array.isArray(courses) || courses.length === 0) return undefined
+
+    const labels = courses.map((course) => course.title)
+    const achievedPercents = courses.map((course) => safeNumber(course.achieved_percent) ?? 0)
+    const notMetPercents = courses.map((course) => safeNumber(course.not_met_percent) ?? 0)
+    const notAssessedPercents = courses.map((course) => safeNumber(course.not_assessed_percent) ?? 0)
+
+    const chart = new Chart(canvasRef.current.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Achieved",
+            data: achievedPercents,
+            backgroundColor: COLORS.achieved,
+            borderRadius: 10,
+            stack: "status",
+            showDataLabels: true
+          },
+          {
+            label: "Not met",
+            data: notMetPercents,
+            backgroundColor: COLORS.notMet,
+            borderRadius: 10,
+            stack: "status"
+          },
+          {
+            label: "Not assessed",
+            data: notAssessedPercents,
+            backgroundColor: COLORS.notAssessed,
+            borderRadius: 10,
+            stack: "status"
+          }
+        ]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              title(context) {
+                const course = courses[context[0].dataIndex]
+                return course ? `${course.title} (${course.semester || "No term"})` : null
+              },
+              label(context) {
+                const course = courses[context.dataIndex]
+                const label = context.dataset.label
+                const percent = safeNumber(context.raw) ?? 0
+                let count = 0
+                if (label === "Achieved") count = course?.achieved_count ?? 0
+                if (label === "Not met") count = course?.not_met_count ?? 0
+                if (label === "Not assessed") count = course?.not_assessed_count ?? 0
+                return `${label}: ${percent.toFixed(1)}% (${count})`
+              }
+            }
+          },
+          percentageLabelPlugin: {
+            color: COLORS.neutralText
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            min: 0,
+            max: 100,
+            ticks: {
+              callback(value) {
+                return `${value}%`
+              }
+            }
+          },
+          y: {
+            stacked: true,
+            ticks: {
+              autoSkip: false
+            }
+          }
+        }
+      }
+    })
+
+    return () => chart.destroy()
+  }, [ courses ])
+
+  if (!Array.isArray(courses) || courses.length === 0) {
+    return h("p", { className: "reports-placeholder" }, "No survey performance data available.")
+  }
+
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Percent achieved by course", style: { minHeight: "360px" } },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const INLINE_EXPORT_BUTTON_CLASS = "inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+
+const ExportButtons = ({ onExport }) =>
+  h("div", { className: "reports-actions" }, [
+    h("button", { type: "button", className: "reports-button reports-button--primary", onClick: () => onExport("pdf") }, "Export PDF"),
+    h("button", { type: "button", className: "reports-button", onClick: () => onExport("excel") }, "Export Excel")
+  ])
+
+const SectionExportButtons = ({ onExport, section }) => {
+  if (!section) return null
+
+  return h("div", { className: "flex flex-wrap items-center gap-2" }, [
+    h("button", {
+      type: "button",
+      className: INLINE_EXPORT_BUTTON_CLASS,
+      onClick: () => onExport("pdf", section)
+    }, "PDF"),
+    h("button", {
+      type: "button",
+      className: INLINE_EXPORT_BUTTON_CLASS,
+      onClick: () => onExport("excel", section)
+    }, "Excel")
+  ])
+}
+
+const VIEW_TOGGLE_BASE = "inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+
+const ViewToggle = ({ mode, onChange, singleStudentDisabled }) => {
+  const cohortActive = mode === "cohort"
+  const studentActive = mode === "student"
+
+  const buttonClass = (active) => `${VIEW_TOGGLE_BASE} ${active ? "border-amber-500 bg-amber-100 text-amber-900" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`
+
+  return h("div", { className: "flex flex-wrap items-center gap-2" }, [
+    h("button", {
+      type: "button",
+      className: buttonClass(cohortActive),
+      onClick: () => onChange("cohort"),
+      "aria-pressed": cohortActive
+    }, "Cohort view"),
+    h("button", {
+      type: "button",
+      className: buttonClass(studentActive),
+      onClick: () => onChange("student"),
+      disabled: singleStudentDisabled,
+      "aria-pressed": studentActive
+    }, "Single student")
+  ])
+}
+
+const StatusLegend = () => {
+  const entries = [
+    { key: "exceeds", label: STATUS_LABELS.exceeds, color: COLORS.exceeds },
+    { key: "achieved", label: STATUS_LABELS.achieved, color: COLORS.achieved },
+    { key: "not_met", label: STATUS_LABELS.not_met, color: COLORS.notMet },
+    { key: "not_assessed", label: STATUS_LABELS.not_assessed, color: COLORS.notAssessed }
+  ]
+
+  return h("div", { className: "flex flex-wrap gap-4 text-xs text-slate-600" },
+    entries.map((entry) => h("span", { key: entry.key, className: "inline-flex items-center gap-2" }, [
+      h("span", { className: "h-3 w-3 rounded-full", style: { backgroundColor: entry.color } }),
+      entry.label
+    ]))
+  )
+}
+
+const ReportsApp = ({ exportUrls = {} }) => {
+  const [ options, setOptions ] = useState(EMPTY_OPTIONS)
+  const [ filters, setFilters ] = useState(DEFAULT_FILTERS)
+  const [ benchmark, setBenchmark ] = useState(null)
+  const [ competencies, setCompetencies ] = useState([])
+  const [ courses, setCourses ] = useState([])
+  const [ alignment, setAlignment ] = useState(null)
+  const [ loading, setLoading ] = useState(true)
+  const [ error, setError ] = useState(null)
+  const [ viewMode, setViewMode ] = useState("cohort")
+  const filtersRef = useRef(DEFAULT_FILTERS)
+
+  const resolvedExportUrls = useMemo(() => ({ ...FALLBACK_EXPORT_URLS, ...(exportUrls || {}) }), [ exportUrls ])
+  const filtersDescription = useMemo(() => describeActiveFilters(filters, options), [ filters, options ])
+
+  const loadData = useCallback(async (nextFilters) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const inputFilters = (nextFilters && typeof nextFilters === "object") ? nextFilters : filtersRef.current
+      const resolvedFilters = { ...DEFAULT_FILTERS, ...inputFilters }
+      const query = buildQueryString(resolvedFilters)
+      const [ benchmarkRes, competencyRes, courseRes, alignmentRes ] = await Promise.all([
+        fetchJson(`${API_ENDPOINTS.benchmark}${query}`),
+        fetchJson(`${API_ENDPOINTS.competency}${query}`),
+        fetchJson(`${API_ENDPOINTS.course}${query}`),
+        fetchJson(`${API_ENDPOINTS.alignment}${query}`)
+      ])
+
+      filtersRef.current = resolvedFilters
+      setFilters(resolvedFilters)
+      setBenchmark(benchmarkRes)
+      setCompetencies(Array.isArray(competencyRes) ? competencyRes : [])
+      setCourses(Array.isArray(courseRes) ? courseRes : [])
+      setAlignment(alignmentRes)
+    } catch (err) {
+      console.error(err)
+      setError(err.message || "Unable to load reports data")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadFilters = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await fetchJson(API_ENDPOINTS.filters)
+      const preparedOptions = {
+        tracks: Array.isArray(data.tracks) ? data.tracks : [],
+        semesters: Array.isArray(data.semesters) ? data.semesters : [],
+        advisors: Array.isArray(data.advisors) ? data.advisors : [],
+        categories: Array.isArray(data.categories) ? data.categories : [],
+        surveys: Array.isArray(data.surveys) ? data.surveys : [],
+        students: Array.isArray(data.students) ? data.students : []
+      }
+      setOptions(preparedOptions)
+      await loadData(DEFAULT_FILTERS)
+    } catch (err) {
+      console.error(err)
+      setOptions(EMPTY_OPTIONS)
+      setError(err.message || "Unable to load filters")
+      setLoading(false)
+    }
+  }, [ loadData ])
+
+  const handleFilterChange = useCallback((nextFilters) => {
+    const merged = { ...DEFAULT_FILTERS, ...(nextFilters || {}) }
+    setViewMode(merged.student_id && merged.student_id !== "all" ? "student" : "cohort")
+    loadData(merged)
+  }, [ loadData ])
+
+  const handleReset = useCallback(() => {
+    setViewMode("cohort")
+    loadData(DEFAULT_FILTERS)
+  }, [ loadData ])
+
+  const handleExport = useCallback((format, sectionKey) => {
+    if (format === "pdf") {
+      const base = resolvedExportUrls.pdf
+      if (!base) return
+
+      const targetPath = replacePdfSection(base, sectionKey)
+      const query = buildQueryString(filters)
+      window.location.href = `${targetPath}${query}`
+      return
+    }
+
+    const base = resolvedExportUrls.excel
+    if (!base) return
+
+    const queryFilters = { ...filters }
+    if (sectionKey) {
+      queryFilters.section = sectionKey
+    }
+
+    const query = buildQueryString(queryFilters)
+    window.location.href = `${base}${query}`
+  }, [ filters, resolvedExportUrls ])
+
+  const handleViewModeChange = useCallback((nextMode) => {
+    if (nextMode === viewMode) return
+    if (nextMode === "cohort") {
+      setViewMode("cohort")
+      const nextFilters = { ...filtersRef.current, student_id: "all" }
+      loadData(nextFilters)
+      return
+    }
+
+    setViewMode("student")
+    if ((filtersRef.current.student_id || "all") === "all") {
+      return
+    }
+    loadData(filtersRef.current)
+  }, [ loadData, viewMode ])
+
+  useEffect(() => {
+    loadFilters()
+  }, [ loadFilters ])
+
+  if (loading) {
+    return h(LoadingState)
+  }
+
+  if (error) {
+    return h(ErrorState, { message: error, onRetry: loadFilters })
+  }
+
+  if (!benchmark) {
+    return h(ErrorState, { message: "No analytics are available for the selected filters.", onRetry: loadFilters })
+  }
+
+  const summaryCards = Array.isArray(benchmark.cards) ? benchmark.cards : []
+  const timeline = Array.isArray(benchmark.timeline) ? benchmark.timeline : []
+  const studentSelectionRequired = viewMode === "student" && (filters.student_id === "all")
+  const singleStudentDisabled = !Array.isArray(options.students) || options.students.length === 0
+
+  return h("div", { className: "reports-layout space-y-8" }, [
+    h(FilterBar, { filters, options, onChange: handleFilterChange, onReset: handleReset }),
+    h(ExportButtons, { onExport: handleExport }),
+    summaryCards.length > 0 ? h(SummaryCards, { cards: summaryCards }) : null,
+    h("section", { className: "reports-panel space-y-6" }, [
+      h("header", { className: "reports-panel__header flex flex-wrap items-start justify-between gap-4" }, [
+        h("div", { className: "space-y-1" }, [
+          h("h2", null, "Student & Advisor Comparison"),
+          h("p", null, "Toggle between cohort and individual performance across competencies and review milestones.")
+        ]),
+        h("div", { className: "flex flex-wrap items-center gap-3" }, [
+          h(ViewToggle, { mode: viewMode, onChange: handleViewModeChange, singleStudentDisabled }),
+          h(SectionExportButtons, { onExport: handleExport, section: "alignment" })
+        ])
+      ]),
+      studentSelectionRequired
+        ? h("p", { className: "reports-placeholder" }, "Select a student in the filters to view individual comparisons, or switch back to cohort view." )
+        : h("div", { className: "space-y-6" }, [
+            alignment && Array.isArray(alignment.labels) && alignment.labels.length > 0
+              ? h(AlignmentChart, { data: alignment })
+              : h("p", { className: "reports-placeholder" }, "No competency comparison data available."),
+            timeline.length > 0
+              ? h(TrendChart, { timeline })
+              : h("p", { className: "reports-placeholder" }, "No trend data available."),
+            h(StatusLegend)
+          ]),
+      h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
+    ]),
+    h("section", { className: "reports-panel space-y-4" }, [
+      h("header", { className: "reports-panel__header flex flex-wrap items-start justify-between gap-4" }, [
+        h("div", { className: "space-y-1" }, [
+          h("h2", null, "Num Achieved by Competency"),
+          h("p", null, "Stacked counts of students meeting, missing, or not yet assessed for each competency.")
+        ]),
+        h(SectionExportButtons, { onExport: handleExport, section: "competency" })
+      ]),
+      h(CompetencyAchievementChart, { items: competencies }),
+      h("p", { className: "text-xs text-slate-500" }, [
+        "Competencies are evaluated multiple times throughout the program. Some competencies have larger totals due to being evaluated in more courses.",
+        filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
+      ])
+    ]),
+    h("section", { className: "reports-panel space-y-4" }, [
+      h("header", { className: "reports-panel__header flex flex-wrap items-start justify-between gap-4" }, [
+        h("div", { className: "space-y-1" }, [
+          h("h2", null, "% All Competency Achieved by Course"),
+          h("p", null, "Horizontal stacked bars highlight attainment percentages alongside missing and unassessed counts.")
+        ]),
+        h(SectionExportButtons, { onExport: handleExport, section: "course" })
+      ]),
+      h(CourseAchievementChart, { courses }),
+      filtersDescription && filtersDescription !== "None" ? h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`) : null
+    ])
+  ].filter(Boolean))
+}
+
+export default ReportsApp

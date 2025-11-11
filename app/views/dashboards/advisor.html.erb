@@ -25,8 +25,15 @@
           <div class="feature-description"><%= pluralize(@active_survey_count, "active survey") %></div>
         <% end %>
       </div>
-      
-      
+
+      <!-- Reports -->
+      <div class="feature-item">
+        <%= link_to reports_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
+          <div class="feature-icon">📊</div>
+          <div class="feature-title">Reports</div>
+          <div class="feature-description"><%= @total_reports || 0 %> generated</div>
+        <% end %>
+      </div>
     </div>
   </section>
 </main>

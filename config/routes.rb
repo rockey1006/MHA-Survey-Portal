@@ -34,6 +34,12 @@ Rails.application.routes.draw do
   get "student_records", to: "student_records#index", as: :student_records
 
   get "manage_students", to: "dashboards#manage_students", as: :manage_students
+  patch "manage_students", to: "dashboards#update_student_advisors", as: :update_student_advisors
+
+  # Reporting hub shared by admins and advisors
+  get "reports", to: "reports#show", as: :reports
+  get "reports/export_excel", to: "reports#export_excel", as: :export_reports_excel
+  get "reports/:section/export_pdf", to: "reports#export_pdf", as: :export_reports_pdf
 
   # Admin-specific management routes
   get "manage_members", to: "dashboards#manage_members", as: :manage_members
@@ -63,6 +69,9 @@ Rails.application.routes.draw do
   # Student profile management
   resource :student_profile, only: %i[show edit update]
 
+  # Account settings (all roles share this page)
+  resource :account, only: %i[edit update]
+
   resources :surveys do
     post :submit, on: :member
     post :save_progress, on: :member
@@ -88,12 +97,23 @@ Rails.application.routes.draw do
     resources :surveys, only: %i[index show] do
       post   :assign,     on: :member
       post   :assign_all, on: :member
-      delete :unassign,   on: :member   
+      delete :unassign,   on: :member
     end
     resources :students, only: %i[show update]
   end
 
+  namespace :api do
+    get "reports/filters", to: "reports#filters"
+    get "reports/alignment", to: "reports#alignment"
+    get "reports/competency-summary", to: "reports#competency_summary"
+    get "reports/course-summary", to: "reports#course_summary"
+    get "reports/benchmark", to: "reports#benchmark"
+  end
+
   get "about", to: "pages#about", as: :about
+  get "faq",   to: "pages#faq",   as: :faq
+
+  
 
   # User settings page (accessible to any authenticated user)
   get "settings", to: "settings#edit", as: :settings

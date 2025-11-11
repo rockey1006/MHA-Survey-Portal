@@ -16,7 +16,23 @@ WORKDIR /rails
 
 # Install base packages
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libjemalloc2 libvips postgresql-client && \
+    apt-get install --no-install-recommends -y ca-certificates curl libjemalloc2 libvips postgresql-client \
+        fontconfig libfreetype6 libjpeg62-turbo libpng16-16 libssl3 libxrender1 libxext6 \
+        xfonts-75dpi xfonts-base && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Copy development CA certificate if present (for environments with SSL inspection)
+# The wildcard pattern will match any mkcert cert files if present, or just the placeholder
+COPY mkcert_development_CA_*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
+# Install wkhtmltopdf from packaging release
+ARG WKHTMLTOPDF_VERSION=0.12.6.1-3
+ARG WKHTMLTOPDF_PACKAGE=wkhtmltox_0.12.6.1-3.bookworm_amd64.deb
+RUN curl -fsSL "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/${WKHTMLTOPDF_PACKAGE}" -o /tmp/wkhtmltox.deb && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y /tmp/wkhtmltox.deb && \
+    rm /tmp/wkhtmltox.deb && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment

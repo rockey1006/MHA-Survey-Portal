@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-text-scale="<%= (user_signed_in? ? (current_user.text_scale_percent || 100) : 100) %>" style="font-size: <%= ((user_signed_in? ? (current_user.text_scale_percent || 100) : 100).to_f * 16.0 / 100.0).round(2) %>px;">
   <head>
     
     <title><%= content_for(:title) || "Health App" %></title>
@@ -21,6 +21,14 @@
   <%= tailwind_stylesheet_tag %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <%# App-wide text scaling: sets a CSS variable based on the user's saved preference (percent) so rem-based sizing scales proportionally. Defaults to 1.0 (100%). %>
+    <style>
+      :root { --app-font-scale: <%= (user_signed_in? ? (current_user.text_scale_percent || 100) : 100).to_f / 100.0 %>; }
+      /* Set a baseline root font size that other rem-based styles (Tailwind) will scale from. */
+      html { font-size: calc(16px * var(--app-font-scale)); }
+      /* Ensure line-height and spacing (which use rems) scale proportionally. */
+      body { line-height: 1.45; }
+    </style>
   </head>
 
   <body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
@@ -45,9 +53,9 @@
         <div class="layout-shell">
           <!-- Compact Google Translate toggle (top-right under navbar). Click to open language selector panel. -->
           <div id="gt-compact" aria-hidden="false">
-            <button id="gt-toggle" aria-label="Translate site" title="Translate site" style="position:fixed;right:16px;top:120px;z-index:1300;min-width:88px;height:36px;border-radius:8px;background:#0b57d0;color:white;border:none;box-shadow:0 6px 18px rgba(11,87,208,0.14);cursor:pointer;font-weight:600;padding:0 12px;">Translation</button>
-            <div id="gt-panel" style="display:none;position:fixed;right:16px;top:120px;z-index:1300;background:white;border-radius:8px;padding:8px;box-shadow:0 6px 24px rgba(0,0,0,0.12);">
-              <div id="google_translate_element" class="translate-widget" style="min-width:180px;">Loading...</div>
+            <button id="gt-toggle" aria-label="Translate site" title="Translate site" style="position:fixed;right:1rem;top:7.5rem;z-index:1300;min-width:5.5rem;height:2.25rem;border-radius:0.5rem;background:#0b57d0;color:white;border:none;box-shadow:0 0.375rem 1.125rem rgba(11,87,208,0.14);cursor:pointer;font-weight:600;padding:0 0.75rem;">Translation</button>
+            <div id="gt-panel" style="display:none;position:fixed;right:1rem;top:7.5rem;z-index:1300;background:white;border-radius:0.5rem;padding:0.5rem;box-shadow:0 0.375rem 1.5rem rgba(0,0,0,0.12);">
+              <div id="google_translate_element" class="translate-widget" style="min-width:11.25rem;">Loading...</div>
             </div>
           </div>
           <% if flash.any? %>
@@ -109,7 +117,7 @@
           var panel = document.getElementById('gt-panel');
           if (el && panel) {
             el.style.width = '100%';
-            el.style.height = '36px';
+            el.style.height = '2.25rem';
             el.style.display = '';
             var parent = el.closest('#google_translate_element');
             if (parent) {
@@ -227,4 +235,19 @@
       }, 300);
     });
   </script>
+    <script>
+      // Ensure root font-size is enforced at runtime (helps override any CSS ordering issues)
+      (function() {
+        try {
+          var el = document.documentElement;
+          var percent = parseFloat(el.getAttribute('data-text-scale')) || 100;
+          var px = (16 * percent / 100);
+          el.style.fontSize = px + 'px';
+          // also update CSS variable for any runtime styles that reference it
+          el.style.setProperty('--app-font-scale', (percent/100).toString());
+        } catch (e) {
+          console.warn('text-scale apply failed', e);
+        }
+      })();
+    </script>
 </html>

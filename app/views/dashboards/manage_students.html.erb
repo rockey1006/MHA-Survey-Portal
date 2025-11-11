@@ -1,5 +1,5 @@
-<main class="flex justify-center px-4 py-8">
-    <div class="w-full max-w-5xl space-y-8">
+<main class="flex justify-center px-6 py-10">
+    <div class="w-full max-w-5xl space-y-10">
         <header class="space-y-2">
             <h1 class="text-3xl font-semibold text-[#500000]">Manage Students</h1>
         </header>
@@ -14,18 +14,18 @@
             <div class="overflow-x-auto">
                 <table class="mx-auto w-full divide-y divide-slate-200 text-sm">
                     <tr> 
-                        <th scope="col" class="px-4 py-3">Student</th>
-                        <th scope="col" class="px-4 py-3">Advisor</th>
+                        <th scope="col" class="px-6 py-4">Student</th>
+                        <th scope="col" class="px-6 py-4">Advisor</th>
                     </tr>
 
                     <tbody class="divide-y divide-slate-200 bg-white">
                         <% @students.each do |student| %>
                             <tr class="transition hover:bg-slate-50">
-                                <td class="font-semibold text-slate-900 px-4 py-3">
+                                <td class="font-semibold text-slate-900 px-6 py-4">
                                     <%= student.user&.name || "Unknown Student" %>
                                 </td>
 
-                                <td class="px-4 py-3 text-slate-900">
+                                <td class="px-6 py-4 text-slate-900">
                                     <%= form_with(model: student,
                                                   url: update_student_advisor_path(student),
                                                   method: :patch,
@@ -38,8 +38,10 @@
                                                               { include_blank: "Unassigned" },
                                                               { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" } %>
 
-                                      <%= f.submit "Update",
-                                                   class: "mt-2 inline-block rounded-md bg-blue-600 px-3 py-1 text-white text-xs hover:bg-blue-700 transition" %>
+                                      <div class="mt-3">
+                                        <%= f.submit "Update",
+                                                     class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white text-xs hover:bg-blue-700 transition" %>
+                                      </div>
                                     <% end %>
                                 </td>
                             </tr>
@@ -51,7 +53,7 @@
 
         <div class="flex justify-start">
             <%= link_to "← Back",
-                        advisor_dashboard_path,
+                        admin_dashboard_path,
                         class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
                         data: { turbo: false } %>
         </div>

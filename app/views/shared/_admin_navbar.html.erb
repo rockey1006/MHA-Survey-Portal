@@ -53,30 +53,33 @@
       </button>
 
       <span class="role-badge admin">ADMIN</span>
-
       <div class="notification-area">
         <%= render "shared/notification_menu" %>
       </div>
 
+      <% avatar_url = current_user&.avatar_url.presence %>
       <div class="user-profile">
-        <div class="user-avatar"
-             <% if current_user&.avatar_url.present? %>
-               style="background-image: url('<%= current_user.avatar_url %>');"
-             <% end %>>
-          <% unless current_user&.avatar_url.present? %>👤<% end %>
+        <div class="user-avatar" title="<%= current_user&.full_name %>">
+          <% if avatar_url %>
+            <img src="<%= avatar_url %>" alt="<%= avatar_aria_label(current_user) %>" loading="lazy">
+          <% else %>
+            <span aria-hidden="true">👤</span>
+            <span class="sr-only"><%= avatar_aria_label(current_user) %></span>
+          <% end %>
         </div>
-        
-        <!-- Profile Dropdown -->
+
         <div class="profile-dropdown">
           <div class="profile-header">
-            <div class="user-avatar"
-                 <% if current_user&.avatar_url.present? %>
-                   style="background-image: url('<%= current_user.avatar_url %>');"
-                 <% end %>>
-              <% unless current_user&.avatar_url.present? %>👤<% end %>
+            <div class="user-avatar">
+              <% if avatar_url %>
+                <img src="<%= avatar_url %>" alt="<%= avatar_aria_label(current_user) %>" loading="lazy">
+              <% else %>
+                <span aria-hidden="true">👤</span>
+                <span class="sr-only"><%= avatar_aria_label(current_user) %></span>
+              <% end %>
             </div>
             <div class="profile-info">
-              <h3><%= current_user&.name || "Admin User" %></h3>
+              <h3><%= current_user&.full_name || "Admin User" %></h3>
               <p><%= current_user&.email %></p>
             </div>
           </div>
@@ -87,18 +90,19 @@
             <span>Account Information</span>
           <% end %>
             <div class="profile-menu-item">
+              <div class="profile-menu-icon" aria-hidden="true">👤</div>
+              <span>Account Information</span>
+            </div>
+            <%= link_to settings_path, class: "profile-menu-item" do %>
               <div class="profile-menu-icon" aria-hidden="true">⚙️</div>
               <span>Settings</span>
-            </div>
-            <div class="profile-menu-item">
+            <% end %>
+            <%= link_to destroy_user_session_path,
+                        method: :delete,
+                        class: "profile-menu-item danger" do %>
               <div class="profile-menu-icon" aria-hidden="true">🚪</div>
-              <%= button_to destroy_user_session_path,
-                            method: :delete,
-                            form: { class: "inline-signout-form" },
-                            class: "profile-menu-item danger profile-menu-button" do %>
-                <span>Sign Out</span>
-              <% end %>
-            </div>
+              <span>Sign Out</span>
+            <% end %>
           </div>
         </div>
       </div>

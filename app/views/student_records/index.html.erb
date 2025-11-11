@@ -161,6 +161,10 @@
                                                   download_survey_response_path(survey_response, token: download_token),
                                                   class: tailwind_button_classes(:primary),
                                                   target: "_blank", rel: "noopener noreferrer" %>
+                                      <%= link_to "Composite PDF",
+                                                  composite_report_survey_response_path(survey_response),
+                                                  class: tailwind_button_classes(:secondary),
+                                                  target: "_blank", rel: "noopener noreferrer" %>
                                     <% end %>
                                   <% else %>
                                     <span

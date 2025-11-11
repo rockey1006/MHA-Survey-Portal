@@ -18,6 +18,7 @@ class User < ApplicationRecord
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :name, presence: true
   validates :role, presence: true, inclusion: { in: roles.values }
+  validates :text_scale_percent, numericality: { only_integer: true, greater_than_or_equal_to: 100, less_than_or_equal_to: 200 }, allow_nil: true
 
   after_commit :ensure_role_profile!, on: [ :create, :update ]
 

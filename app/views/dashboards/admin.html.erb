@@ -26,6 +26,15 @@
         <% end %>
       </div>
 
+      <!-- Manage Students -->
+      <div class="feature-item">
+        <%= link_to manage_students_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
+          <div class="feature-icon">⚙️</div>
+          <div class="feature-title">Manage Students</div>
+          <div class="feature-description"><%= pluralize(@advisee_count, "assigned student") %></div>
+        <% end %>
+      </div>
+
       <!-- Members -->
       <div class="feature-item admin-feature">
         <%= link_to manage_members_path, class: "feature-link" do %>
@@ -35,10 +44,12 @@
         <% end %>
       </div>
 
+      
+
     </div>
   </section>
 
-  <section class="dashboard-section">
+  <section class="dashboard-section md:px-12" style="margin-top: var(--spacing-4xl);">
     <div class="section-header">
       <h2 class="section-title">Recent Activity</h2>
       <p class="section-subtitle">Latest member logins</p>

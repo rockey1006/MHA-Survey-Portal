@@ -80,6 +80,7 @@ Rails.application.routes.draw do
   resources :survey_responses, only: :show do
     member do
       get :download
+      get :composite_report
     end
   end
 
@@ -99,6 +100,10 @@ Rails.application.routes.draw do
   get "faq",   to: "pages#faq",   as: :faq
 
   
+
+  # User settings page (accessible to any authenticated user)
+  get "settings", to: "settings#edit", as: :settings
+  patch "settings", to: "settings#update"
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

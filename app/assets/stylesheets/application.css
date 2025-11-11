@@ -382,6 +382,13 @@ body {
   width: 40px;
   height: 40px;
   border-radius: var(--border-radius-full);
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -579,6 +586,11 @@ body {
   padding: var(--spacing-2xl);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--gray-200);
+}
+
+/* Extra spacing between categories in survey views to improve readability */
+.category-section {
+  margin-bottom: var(--spacing-6xl);
 }
 
 .section-header {

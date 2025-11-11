@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-text-scale="<%= (user_signed_in? ? (current_user.text_scale_percent || 100) : 100) %>" style="font-size: <%= ((user_signed_in? ? (current_user.text_scale_percent || 100) : 100).to_f * 16.0 / 100.0).round(2) %>px;">
   <head>
   <!-- allow Google Translate to work on this page -->
     <title><%= content_for(:title) || "MHA Program Portal" %></title>
@@ -29,9 +29,9 @@
     <div class="flex min-h-screen flex-col">
       <!-- Compact Google Translate toggle (top-right under header). Click to open language selector panel. -->
       <div id="gt-compact" aria-hidden="false">
-  <button id="gt-toggle" aria-label="Translate site" title="Translate site" style="position:fixed;right:16px;top:120px;z-index:1300;min-width:88px;height:36px;border-radius:8px;background:#0b57d0;color:white;border:none;box-shadow:0 6px 18px rgba(11,87,208,0.14);cursor:pointer;font-weight:600;padding:0 12px;">Translation</button>
-        <div id="gt-panel" style="display:none;position:fixed;right:16px;top:120px;z-index:1300;background:white;border-radius:8px;padding:8px;box-shadow:0 6px 24px rgba(0,0,0,0.12);">
-          <div id="google_translate_element" class="translate-widget" style="min-width:180px;">Loading...</div>
+  <button id="gt-toggle" aria-label="Translate site" title="Translate site" style="position:fixed;right:1rem;top:7.5rem;z-index:1300;min-width:5.5rem;height:2.25rem;border-radius:0.5rem;background:#0b57d0;color:white;border:none;box-shadow:0 0.375rem 1.125rem rgba(11,87,208,0.14);cursor:pointer;font-weight:600;padding:0 0.75rem;">Translation</button>
+        <div id="gt-panel" style="display:none;position:fixed;right:1rem;top:7.5rem;z-index:1300;background:white;border-radius:0.5rem;padding:0.5rem;box-shadow:0 0.375rem 1.5rem rgba(0,0,0,0.12);">
+          <div id="google_translate_element" class="translate-widget" style="min-width:11.25rem;">Loading...</div>
         </div>
       </div>
       <% if content_for?(:header) %>
@@ -42,7 +42,7 @@
 
       <% if flash.any? %>
         <div class="w-full px-4 pt-6">
-          <div class="mx-auto w-full max-w-3xl space-y-3">
+          <div class="mx-auto w-full space-y-3">
             <% flash.each do |key, value| %>
               <% messages = Array(value).map(&:to_s) %>
               <section class="<%= flash_classes(key) %>" role="alert">
@@ -58,7 +58,7 @@
         </div>
       <% end %>
 
-      <main class="flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <main class="flex flex-1 flex-col items-center justify-center gap-12 px-4 py-16 md:gap-16">
         <%= yield %>
       </main>
     </div>
@@ -99,7 +99,7 @@
         var panel = document.getElementById('gt-panel');
         if (el && panel) {
           el.style.width = '100%';
-          el.style.height = '36px';
+          el.style.height = '2.25rem';
           el.style.display = '';
           var parent = el.closest('#google_translate_element');
           if (parent) {
@@ -194,4 +194,15 @@
       }, 300);
     });
   </script>
+    <script>
+      (function() {
+        try {
+          var el = document.documentElement;
+          var percent = parseFloat(el.getAttribute('data-text-scale')) || 100;
+          var px = (16 * percent / 100);
+          el.style.fontSize = px + 'px';
+          el.style.setProperty('--app-font-scale', (percent/100).toString());
+        } catch (e) { console.warn('text-scale apply failed', e); }
+      })();
+    </script>
 </html>

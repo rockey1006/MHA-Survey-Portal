@@ -5,47 +5,62 @@ class CompositeReportCacheTest < ActiveSupport::TestCase
     CompositeReportCache.reset!
   end
 
-  test "fetch caches value when fingerprint matches" do
-    value = CompositeReportCache.fetch("key", "fingerprint") { "pdf-data" }
-    assert_equal "pdf-data", value
+  test "fetch caches file path when fingerprint matches" do
+    result = CompositeReportCache.fetch("key", "fingerprint") { build_pdf("pdf-data") }
+    assert_kind_of CompositeReportCache::Result, result
+    assert File.exist?(result.path)
+    assert_equal "pdf-data", File.binread(result.path)
+    refute result.cached?
 
-    new_value = CompositeReportCache.fetch("key", "fingerprint") { "new-data" }
-    assert_equal "pdf-data", new_value
+    cached = CompositeReportCache.fetch("key", "fingerprint") { build_pdf("new-data") }
+    assert_equal "pdf-data", File.binread(cached.path)
+    assert cached.cached?
   end
 
   test "fetch regenerates when fingerprint changes" do
-    CompositeReportCache.fetch("key", "fingerprint-a") { "value-a" }
-    regenerated = CompositeReportCache.fetch("key", "fingerprint-b") { "value-b" }
-    assert_equal "value-b", regenerated
+    CompositeReportCache.fetch("key", "fingerprint-a") { build_pdf("value-a") }
+    regenerated = CompositeReportCache.fetch("key", "fingerprint-b") { build_pdf("value-b") }
+    assert_equal "value-b", File.binread(regenerated.path)
+    refute regenerated.cached?
   end
 
   test "entries expire after ttl" do
-    CompositeReportCache.fetch("key", "fingerprint", ttl: 1.hour) { "value-a" }
+    CompositeReportCache.fetch("key", "fingerprint", ttl: 1.hour) { build_pdf("value-a") }
     travel 2.hours do
-      regenerated = CompositeReportCache.fetch("key", "fingerprint", ttl: 1.hour) { "value-b" }
-      assert_equal "value-b", regenerated
+      regenerated = CompositeReportCache.fetch("key", "fingerprint", ttl: 1.hour) { build_pdf("value-b") }
+      assert_equal "value-b", File.binread(regenerated.path)
+      refute regenerated.cached?
     end
   end
 
   test "nil values are not cached" do
     CompositeReportCache.fetch("key", "fingerprint") { nil }
-    fresh = CompositeReportCache.fetch("key", "fingerprint") { "value" }
-    assert_equal "value", fresh
+    fresh = CompositeReportCache.fetch("key", "fingerprint") { build_pdf("value") }
+    assert_equal "value", File.binread(fresh.path)
   end
 
   test "evicts least recently used entries" do
     max = CompositeReportCache::MAX_ENTRIES
     max.times do |idx|
-      CompositeReportCache.fetch("key-#{idx}", "fingerprint") { "value-#{idx}" }
+      CompositeReportCache.fetch("key-#{idx}", "fingerprint") { build_pdf("value-#{idx}") }
     end
 
-    # Access first key to keep it fresh
-    CompositeReportCache.fetch("key-0", "fingerprint") { "stale" }
+    CompositeReportCache.fetch("key-0", "fingerprint") { build_pdf("stale") }
 
-    # Adding a new entry should evict one of the older untouched entries
-    CompositeReportCache.fetch("key-new", "fingerprint") { "value-new" }
+    CompositeReportCache.fetch("key-new", "fingerprint") { build_pdf("value-new") }
 
-    regenerated = CompositeReportCache.fetch("key-1", "fingerprint") { "regenerated" }
-    assert_equal "regenerated", regenerated
+    regenerated = CompositeReportCache.fetch("key-1", "fingerprint") { build_pdf("regenerated") }
+    assert_equal "regenerated", File.binread(regenerated.path)
+  end
+
+  private
+
+  def build_pdf(content)
+    file = Tempfile.new(["composite-cache", ".pdf"])
+    file.binmode
+    file.write(content)
+    file.flush
+    file.close
+    file
   end
 end

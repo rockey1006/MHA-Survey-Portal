@@ -50,15 +50,21 @@ class SurveyResponsesController < ApplicationController
     end
 
     generator = CompositeReportGenerator.new(survey_response: @survey_response)
-    pdf_data = generator.render
+    result = generator.render
 
-    unless pdf_data&.start_with?("%PDF")
-      logger.error "Composite PDF generation returned non-PDF payload for SurveyResponse=#{@survey_response.id}: first bytes=#{pdf_data&.byteslice(0, 128).inspect}"
+    unless result&.path && File.exist?(result.path)
+      logger.error "Composite PDF generation returned an invalid file for SurveyResponse=#{@survey_response.id}"
+      head :internal_server_error and return
+    end
+
+    header_bytes = File.binread(result.path, 4) rescue nil
+    unless header_bytes == "%PDF"
+      logger.error "Composite PDF generation returned non-PDF payload for SurveyResponse=#{@survey_response.id}: first bytes=#{header_bytes.inspect}"
       head :internal_server_error and return
     end
 
     filename = "composite_assessment_#{@survey_response.id}.pdf"
-    send_data pdf_data, filename: filename, disposition: "attachment", type: "application/pdf"
+    send_file result.path, filename: filename, disposition: "attachment", type: "application/pdf"
   rescue CompositeReportGenerator::MissingDependency
     render plain: "Composite PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
   rescue CompositeReportGenerator::GenerationError => e

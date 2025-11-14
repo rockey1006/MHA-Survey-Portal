@@ -9,6 +9,7 @@ class CompositeReportGenerator
   class GenerationError < StandardError; end
 
   CACHE_TTL = 6.hours
+  Result = Struct.new(:path, :cached?, :size_bytes, keyword_init: true)
 
   include ActiveSupport::NumberHelper
 
@@ -16,28 +17,44 @@ class CompositeReportGenerator
     @survey_response = survey_response
   end
 
-  # Renders (or retrieves) the PDF string for the survey response composite report.
+  # Renders (or retrieves) the PDF payload for the survey response composite report.
   #
-  # @return [String]
+  # @return [Result]
   def render
     ensure_dependency!
     fingerprint = cache_fingerprint
 
-    CompositeReportCache.fetch(cache_key, fingerprint, ttl: CACHE_TTL) do
+    pdf_tempfile = nil
+    cache_entry = CompositeReportCache.fetch(cache_key, fingerprint, ttl: CACHE_TTL) do
       html = render_html
       html_size = html.bytesize
       Rails.logger.info("[CompositeReportGenerator] HTML payload size=#{number_to_human_size(html_size)} for SurveyResponse=#{@survey_response.id}")
 
-      pdf = WickedPdf.new.pdf_from_string(html)
-      pdf_size = pdf ? number_to_human_size(pdf.bytesize) : "unknown"
-      Rails.logger.info("[CompositeReportGenerator] PDF payload size=#{pdf_size} for SurveyResponse=#{@survey_response.id}")
-      pdf
+      pdf_tempfile = build_pdf_file(html)
+      pdf_tempfile.close
+      pdf_tempfile.path
     end
+
+    unless cache_entry&.path && File.exist?(cache_entry.path)
+      raise GenerationError, "Composite PDF generation failed"
+    end
+
+    human_size = number_to_human_size(cache_entry.size_bytes || File.size?(cache_entry.path) || 0)
+    origin = cache_entry.cached? ? "cache" : "fresh"
+    Rails.logger.info("[CompositeReportGenerator] PDF payload size=#{human_size} (#{origin}) for SurveyResponse=#{@survey_response.id}")
+
+    Result.new(path: cache_entry.path, cached?: cache_entry.cached?, size_bytes: cache_entry.size_bytes)
   rescue MissingDependency
     raise
   rescue => e
     Rails.logger.error "[CompositeReportGenerator] generation failed for SurveyResponse=#{@survey_response.id}: #{e.class} - #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
     raise GenerationError, e.message
+  ensure
+    begin
+      pdf_tempfile&.close!
+    rescue Errno::ENOENT
+      # Temp file already moved into cache storage.
+    end
   end
 
   # Exposed for tests to verify cache invalidation logic applies expected inputs.
@@ -96,6 +113,23 @@ class CompositeReportGenerator
     )
   end
 
+  def build_pdf_file(html)
+    WickedPdf.new.pdf_from_string(
+      html,
+      encoding: "UTF-8",
+      viewport_size: "1280x800",
+      margin: { top: 12, bottom: 14, left: 10, right: 10 },
+      disable_smart_shrinking: true,
+      load_error_handling: "ignore",
+      load_media_error_handling: "ignore",
+      no_stop_slow_scripts: true,
+      print_media_type: true,
+      quiet: true,
+      return_file: true,
+      delete_temporary_files: true
+    )
+  end
+
   def view_locals(generated_at)
     {
       survey_response: @survey_response,
@@ -103,8 +137,8 @@ class CompositeReportGenerator
       advisor: advisor,
       survey: survey,
       categories: categories,
-      question_responses: question_responses,
-  responses_by_question: responses_by_question,
+        question_responses: question_responses,
+        responses_by_question: responses_by_question,
       answers_by_question: answers_by_question,
       feedbacks_by_category: feedbacks_by_category,
       feedback_summary: feedback_summary,

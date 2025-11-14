@@ -115,7 +115,7 @@ class CompositeReportCache
 
   def time_from_store(value)
     return nil if value.blank?
-    Time.at(value.to_i)
+    Time.at(value.to_f)
   end
 
   def expired?(entry)
@@ -131,8 +131,8 @@ class CompositeReportCache
     data = {
       fingerprint: fingerprint,
       size: File.size?(dest_path).to_i,
-      expires_at: ttl ? (now + ttl).to_i : nil,
-      last_accessed_at: now.to_i
+      expires_at: ttl ? (now + ttl).to_f : nil,
+      last_accessed_at: now.to_f
     }
 
     File.write(metadata_path(key), JSON.generate(data))
@@ -150,8 +150,8 @@ class CompositeReportCache
     data = {
       fingerprint: entry[:fingerprint],
       size: entry[:size],
-      expires_at: entry[:expires_at]&.to_i,
-      last_accessed_at: entry[:last_accessed_at].to_i
+      expires_at: entry[:expires_at]&.to_f,
+      last_accessed_at: entry[:last_accessed_at].to_f
     }
     File.write(meta_path, JSON.generate(data))
   end

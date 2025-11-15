@@ -10,7 +10,7 @@ require "digest"
 # and last-access time so we can enforce TTL and a simple LRU eviction policy.
 class CompositeReportCache
   CACHE_DIR = Rails.root.join("tmp", "composite_reports")
-  MAX_ENTRIES = Integer(ENV.fetch("COMPOSITE_REPORT_CACHE_MAX_ENTRIES", 4))
+  MAX_ENTRIES = Integer(ENV.fetch("COMPOSITE_REPORT_CACHE_MAX_ENTRIES", 50))
   MAX_BYTES = Integer(ENV.fetch("COMPOSITE_REPORT_CACHE_MAX_BYTES", 250.megabytes))
 
   Result = Struct.new(:path, :cached?, :size_bytes, keyword_init: true)

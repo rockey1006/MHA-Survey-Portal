@@ -217,10 +217,11 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [Array<String>] list of unique track identifiers chosen by the admin
   def selected_tracks
-    permitted = params.fetch(:survey, {}).permit(track_list: [], additional_track_names: "")
-    base = Array(permitted[:track_list]).map(&:to_s)
-    extras = permitted[:additional_track_names].to_s.split(/[,\n;]/)
-    (base + extras).map(&:strip).reject(&:blank?).uniq
+    permitted = params.fetch(:survey, {}).permit(track_list: [])
+    Array(permitted[:track_list])
+      .map { |value| Survey.canonical_track(value) }
+      .compact
+      .uniq
   end
 
   # Loads supporting data such as available tracks and question types for the
@@ -228,11 +229,7 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def prepare_supporting_data
-    @available_tracks = (
-      Survey::TRACK_OPTIONS +
-      Student.distinct.pluck(:track).compact +
-  SurveyTrackAssignment.distinct.pluck(:track).compact
-    ).map(&:to_s).reject(&:blank?).uniq.sort
+    @available_tracks = Survey::TRACK_OPTIONS
     @question_types = Question.question_types.keys
   end
 

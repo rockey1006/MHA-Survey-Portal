@@ -50,122 +50,57 @@
   <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <header class="space-y-1">
       <h2 class="text-lg font-semibold text-slate-900">Track assignments</h2>
-      <p class="text-sm text-slate-600">Choose which program tracks should see this survey. Add custom tracks if needed.</p>
+      <p class="text-sm text-slate-600">Choose which program track should see this survey.</p>
     </header>
 
-    <div class="grid gap-6 md:grid-cols-2">
-      <div class="space-y-2">
-        <label for="survey-track-list" class="block text-sm font-medium text-slate-700">Select existing tracks</label>
-        <%= hidden_field_tag "survey[track_list][]", "" %>
-        <%= select_tag "survey[track_list][]",
-                       options_for_select(track_options, survey.track_list),
-                       multiple: true,
-                       size: [track_options.size, 5].max,
-                       id: "survey-track-list",
-                       class: "min-h-[12rem] #{input_classes}" %>
-        <p class="text-xs text-slate-500">Hold CTRL/⌘ to choose multiple tracks. Leave everything unchecked to keep the survey hidden.</p>
-      </div>
-
-      <div class="space-y-2">
-        <label for="survey-additional-track-names" class="block text-sm font-medium text-slate-700">Add new track names</label>
-        <%= text_area_tag "survey[additional_track_names]",
-                          nil,
-                          rows: 4,
-                          id: "survey-additional-track-names",
-                          class: textarea_classes,
-                          placeholder: "Executive Online\nHybrid" %>
-        <p class="text-xs text-slate-500">Separate multiple tracks with commas or new lines. They will be saved once you submit.</p>
-      </div>
+    <div class="space-y-2">
+      <label for="survey-track-list" class="block text-sm font-medium text-slate-700">Select track</label>
+      <%= hidden_field_tag "survey[track_list][]", "" %>
+      <% track_dropdown_options = [["Select a track", ""]] + track_options.map { |track| [track, track] } %>
+      <%= select_tag "survey[track_list][]",
+                     options_for_select(track_dropdown_options, survey.track_list.first),
+                     id: "survey-track-list",
+                     class: input_classes %>
+      <p class="text-xs text-slate-500">Leave the dropdown blank to keep the survey hidden from all tracks.</p>
     </div>
   </section>
 
-  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="category-fields">
     <header class="space-y-1">
       <h2 class="text-lg font-semibold text-slate-900">Categories &amp; questions</h2>
-      <p class="text-sm text-slate-600">Every category should contain at least one question. Remove the items you no longer need.</p>
+      <p class="text-sm text-slate-600">Every category should contain at least one question. Use the buttons below to add or remove items.</p>
     </header>
 
-    <div class="space-y-6">
+    <div class="space-y-6" data-category-fields-target="container">
       <%= form.fields_for :categories do |category_fields| %>
-        <% category = category_fields.object %>
-        <article class="space-y-5 rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-          <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div class="flex-1 space-y-2">
-              <%= category_fields.hidden_field :id %>
-              <%= category_fields.label :name, "Category name", class: "block text-sm font-medium text-slate-700" %>
-              <%= category_fields.text_field :name, required: true, class: input_classes, placeholder: "Leadership" %>
-            </div>
-
-            <% if category.persisted? %>
-              <label class="flex items-center gap-2 text-sm font-medium text-rose-600">
-                <%= category_fields.check_box :_destroy, class: checkbox_classes %>
-                <span>Remove category</span>
-              </label>
-            <% end %>
-          </div>
-
-          <div class="space-y-5">
-            <div class="space-y-2">
-              <%= category_fields.label :description, "Description", class: "block text-sm font-medium text-slate-700" %>
-              <%= category_fields.text_area :description, class: textarea_classes, placeholder: "Optional context shown to advisors and students." %>
-            </div>
-
-            <div class="space-y-4">
-              <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Questions</h3>
-              <%= category_fields.fields_for :questions do |question_fields| %>
-                <% question = question_fields.object %>
-                <div class="space-y-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div class="flex-1 space-y-2">
-                      <%= question_fields.hidden_field :id %>
-                      <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
-                      <%= question_fields.text_area :question_text, class: textarea_classes, placeholder: "Describe the competency being assessed." %>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
-                    <div class="flex min-w-[6rem] flex-col gap-1">
-                      <%= question_fields.label :question_order, "Order", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-                      <%= question_fields.number_field :question_order, in: 1..200, class: input_classes %>
-                    </div>
-
-                    <div class="flex min-w-[12rem] flex-col gap-1">
-                      <%= question_fields.label :question_type, "Response type", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-                      <%= question_fields.select :question_type,
-                                                options_for_select(@question_types.map { |type| [type.humanize, type] }, question.question_type),
-                                                {},
-                                                class: input_classes %>
-                    </div>
-
-                    <div class="flex items-center gap-2 text-sm text-slate-700">
-                      <%= question_fields.check_box :is_required, class: checkbox_classes %>
-                      <%= question_fields.label :is_required, "Required response", class: "cursor-pointer select-none" %>
-                    </div>
-
-                    <div class="flex items-center gap-2 text-sm text-slate-700">
-                      <%= question_fields.check_box :has_evidence_field, class: checkbox_classes %>
-                      <%= question_fields.label :has_evidence_field, "Include evidence field", class: "cursor-pointer select-none" %>
-                    </div>
-
-                    <% if question.persisted? %>
-                      <label class="flex items-center gap-2 text-sm font-medium text-rose-600">
-                        <%= question_fields.check_box :_destroy, class: checkbox_classes %>
-                        <span>Remove question</span>
-                      </label>
-                    <% end %>
-                  </div>
-
-                  <div class="space-y-2">
-                    <%= question_fields.label :answer_options, "Answer options", class: "block text-sm font-medium text-slate-700" %>
-                    <%= question_fields.text_area :answer_options, class: textarea_classes, placeholder: "Comma separated values for multiple choice questions." %>
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          </div>
-        </article>
+        <%= render "admin/surveys/category_fields",
+                   category_fields: category_fields,
+                   input_classes: input_classes,
+                   textarea_classes: textarea_classes,
+                   checkbox_classes: checkbox_classes %>
       <% end %>
     </div>
+
+    <% new_category = survey.categories.build(name: "", description: "") %>
+    <% new_category.questions.build(question_text: "", question_order: 1) if new_category.questions.empty? %>
+    <% category_template = capture do %>
+      <%= form.fields_for :categories, new_category, child_index: "NEW_CATEGORY" do |category_fields| %>
+        <%= render "admin/surveys/category_fields",
+                   category_fields: category_fields,
+                   input_classes: input_classes,
+                   textarea_classes: textarea_classes,
+                   checkbox_classes: checkbox_classes %>
+      <% end %>
+    <% end %>
+    <% survey.categories.target.delete(new_category) %>
+
+    <template data-category-fields-target="template"><%= category_template %></template>
+
+    <button type="button"
+            class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+            data-action="category-fields#add">
+      + Add another category
+    </button>
   </section>
 
   <div class="flex flex-wrap items-center gap-3">

@@ -33,7 +33,14 @@ class Survey < ApplicationRecord
 
   # @return [Array<String>] unique tracks assigned to the survey
   def track_list
-  track_assignments.order(:track).pluck(:track)
+    track_assignments.order(:track).pluck(:track).uniq
+  end
+
+  def self.canonical_track(value)
+    text = value.to_s.strip
+    return if text.blank?
+
+    TRACK_OPTIONS.find { |option| option.casecmp?(text) }
   end
 
   # Replaces the survey's track assignments with the provided list.
@@ -83,13 +90,13 @@ class Survey < ApplicationRecord
       .map { |value| value.is_a?(String) ? value.strip : value }
       .reject(&:blank?)
       .map do |value|
+        canonical = Survey.canonical_track(value)
+        next canonical if canonical.present?
+
         text = value.to_s
-        if text.length > 255
-          text[0..254]
-        else
-          text
-        end
+        text.length > 255 ? text[0..254] : text
       end
+      .reject(&:blank?)
       .uniq
       .sort
   end

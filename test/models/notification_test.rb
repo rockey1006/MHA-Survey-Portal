@@ -1,6 +1,7 @@
 require "test_helper"
 
 class NotificationTest < ActiveSupport::TestCase
+  include Rails.application.routes.url_helpers
   test "deliver! creates a single notification per user and notifiable" do
     user = users(:student)
     assignment = survey_assignments(:residential_assignment)

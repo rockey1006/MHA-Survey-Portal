@@ -164,13 +164,15 @@
 
                               <td class="px-4 py-3 text-right text-sm">
                                 <% can_open = (defined?(current_user) && current_user.respond_to?(:role_admin?) && current_user.role_admin?) || (defined?(current_advisor_profile) && student.advisor_id.present? && student.advisor_id == current_advisor_profile&.advisor_id) %>
-                                <div class="flex flex-wrap justify-end gap-2">
+                                <div class="flex justify-end gap-2 whitespace-nowrap">
                                   <% if can_open %>
-                                    <%= link_to survey_label, survey_link, class: tailwind_button_classes(:secondary) %>
+                                    <%= link_to survey_label,
+                                                survey_link,
+                                                class: [tailwind_button_classes(:secondary), "whitespace-nowrap"].join(" ") %>
                                     <% if status_text == "Completed" && survey_response.present? %>
                                       <%= link_to "Download PDF",
                                                   download_survey_response_path(survey_response, token: download_token),
-                                                  class: tailwind_button_classes(:primary),
+                                                  class: [tailwind_button_classes(:primary), "whitespace-nowrap"].join(" "),
                                                   target: "_blank", rel: "noopener noreferrer" %>
                                     <% end %>
                                   <% else %>

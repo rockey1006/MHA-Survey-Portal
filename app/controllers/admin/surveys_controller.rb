@@ -2,6 +2,7 @@
 # surveys. Provides search, filtering, and management capabilities for survey
 # definitions used throughout the program.
 class Admin::SurveysController < Admin::BaseController
+  helper :surveys
   before_action :set_survey, only: %i[edit update destroy preview archive activate]
   before_action :prepare_supporting_data, only: %i[new create edit update]
 
@@ -25,8 +26,7 @@ class Admin::SurveysController < Admin::BaseController
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
     @sort_direction = params[:direction] == "asc" ? "asc" : "desc"
 
-  active_scope = Survey.active
-             .left_joins(:track_assignments)
+    active_scope = Survey.active.left_joins(:track_assignments)
 
     if @selected_track.present?
       if @selected_track == unassigned_track_token
@@ -43,6 +43,8 @@ class Admin::SurveysController < Admin::BaseController
         term: term
       )
     end
+
+    active_scope = active_scope.distinct
 
     active_scope = active_scope
       .left_joins(:categories, :questions)
@@ -65,7 +67,7 @@ class Admin::SurveysController < Admin::BaseController
     ).compact.map(&:to_s).reject(&:blank?).uniq.sort
     @unassigned_track_token = unassigned_track_token
 
-  @archived_surveys = Survey.archived.includes(:categories, :track_assignments, :creator).order(updated_at: :desc)
+    @archived_surveys = Survey.archived.includes(:categories, :track_assignments, :creator).order(updated_at: :desc)
     @recent_logs = SurveyChangeLog.recent.includes(:survey, :admin).limit(12)
   end
 

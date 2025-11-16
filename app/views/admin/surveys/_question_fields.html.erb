@@ -6,6 +6,13 @@
     <div class="flex-1 space-y-2">
       <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
       <%= question_fields.text_area :question_text, class: textarea_classes, placeholder: "Describe the competency being assessed." %>
+      <% desc = competency_description_for(question_fields.object.question_text) %>
+      <% if desc.present? %>
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <span>Student info tooltip preview:</span>
+          <%= render 'shared/proficiency_icon', text: desc, only_text: true %>
+        </div>
+      <% end %>
     </div>
 
     <button type="button" class="self-start rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-100" data-action="question-fields#remove">

@@ -46,39 +46,10 @@
           <article class="space-y-2 question-block" data-question-id="<%= question.id %>">
             <label class="block text-sm font-medium text-slate-900" for="question-<%= question.id %>">
               <span class="font-semibold">Q<%= index + 1 %></span>
+              <% q_text = question.question_text.to_s.strip %>
+              <% desc = competency_description_for(q_text) %>
               <span class="ml-2">
-                <%= question.question_text %>
-                <%# show tooltip only for the 17 competency question titles with specific descriptions %>
-                <% competency_descriptions = {
-                  'Public and Population Health Assessment' => 'Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets.',
-                  'Delivery, Organization, and Financing of Health Services and Health Systems' => 'Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods.',
-                  'Policy Analysis' => 'Creation, analysis, and implications for the rules governing health care structures and delivery systems',
-                  'Legal & Ethical Bases for Health Services and Health Systems' => 'Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery',
-                  'Ethics, Accountability, and Self-Assessment' => 'Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development.',
-                  'Organizational Dynamics' => 'Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness.',
-                  'Problem Solving, Decision Making, and Critical Thinking' => 'Data, analytic methods, and judgment used in support of leadership decisions',
-                  'Team Building and Collaboration' => 'Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals',
-                  'Strategic Planning' => 'Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods.',
-                  'Business Planning' => 'Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information.',
-                  'Communication' => 'Verbal and non-verbal communication to effectively convey pertinent information',
-                  'Financial Management' => 'Read, understand, and analyze financial statements and audited financial reports',
-                  'Performance Improvement' => 'Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations',
-                  'Project Management' => 'Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals',
-                  'Systems Thinking' => 'Interrelationships between and among constituent parts of an organization',
-                  'Data Analysis and Information Management' => 'Data, information, technology, and supporting structures used in completing assigned tasks',
-                  'Quantitative Methods for Health Services Delivery' => 'Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions'
-                } %>
-                <% q_text = question.question_text.to_s.strip %>
-                <% desc = competency_descriptions[q_text] %>
-                <%# Fallback: substring/case-insensitive matches for variants like 'Delivery' or 'Legal and Ethical' %>
-                <% if desc.blank? %>
-                  <% down = q_text.downcase %>
-                  <% if down.include?('delivery') || down.include?('financing') || down.include?('health systems') %>
-                    <% desc = competency_descriptions.find { |k,_| k.downcase.include?('delivery') }&.last %>
-                  <% elsif down.include?('legal') || down.include?('ethical') %>
-                    <% desc = competency_descriptions.find { |k,_| k.downcase.include?('legal') }&.last %>
-                  <% end %>
-                <% end %>
+                <%= q_text %>
                 <% if desc.present? %>
                   <%= render 'shared/proficiency_icon', text: desc, only_text: true %>
                 <% end %>

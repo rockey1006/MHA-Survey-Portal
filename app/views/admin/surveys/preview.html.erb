@@ -45,6 +45,7 @@
             <% question_counter += 1 if numbered %>
             <% display_number = numbered ? question_counter : nil %>
             <% field_id = "preview-question-#{question.id}" %>
+            <% desc = competency_description_for(question.question_text) %>
 
             <article class="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4" data-question-id="<%= question.id %>" data-depends-on-id="<%= depends_on_id %>" data-depends-on-value="<%= depends_on_value %>" data-numbered="<%= numbered %>" data-question-number="<%= display_number %>">
               <div class="flex flex-wrap items-start justify-between gap-3">
@@ -52,7 +53,12 @@
                   <% if display_number.present? %>
                     <span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">Q<%= display_number %></span>
                   <% end %>
-                  <span><%= question.question_text %></span>
+                  <span>
+                    <%= question.question_text %>
+                    <% if desc.present? %>
+                      <%= render 'shared/proficiency_icon', text: desc, only_text: true %>
+                    <% end %>
+                  </span>
                   <% if question.is_required? %>
                     <span class="ml-1 text-rose-600" aria-hidden="true">*</span>
                     <span class="sr-only">Required question</span>
@@ -60,6 +66,10 @@
                 </div>
                 <span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700"><%= question.question_type.humanize %></span>
               </div>
+
+              <% if desc.present? %>
+                <div class="text-xs text-slate-600">Students see this competency description alongside the info button.</div>
+              <% end %>
 
               <% case question.question_type %>
               <% when "short_answer" %>
@@ -93,6 +103,24 @@
                 <div class="space-y-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
                   <p class="font-semibold">Evidence prompt enabled</p>
                   <p>Students will answer an additional evidence question tied to this prompt.</p>
+                </div>
+              <% end %>
+
+              <% if desc.present? %>
+                <div class="mt-3 space-y-1">
+                  <label class="block text-xs font-medium text-slate-700">
+                    <span class="inline-flex items-center gap-2">
+                      <span>Self-rating (1–5)</span>
+                      <%= render 'shared/proficiency_icon' %>
+                    </span>
+                  </label>
+                  <select disabled class="w-32 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-600">
+                    <option selected>—</option>
+                    <% (1..5).each do |value| %>
+                      <option><%= value %></option>
+                    <% end %>
+                  </select>
+                  <p class="text-xs text-slate-500">Preview of the self-rating selector students complete for competency items.</p>
                 </div>
               <% end %>
             </article>

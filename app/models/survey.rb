@@ -19,7 +19,15 @@ class Survey < ApplicationRecord
 
   accepts_nested_attributes_for :categories, allow_destroy: true
 
-  validates :title, presence: true
+  before_validation :normalize_title_and_semester
+
+  validates :title,
+            presence: true,
+            uniqueness: {
+              scope: :semester,
+              case_sensitive: false,
+              message: "already exists for this semester"
+            }
   validates :semester, presence: true
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
@@ -99,5 +107,25 @@ class Survey < ApplicationRecord
       .reject(&:blank?)
       .uniq
       .sort
+  end
+
+  def normalize_title_and_semester
+    self.title = title.to_s.strip.squeeze(" ")
+
+    normalized_semester = semester.to_s.strip
+    if normalized_semester.present?
+      tokens = normalized_semester.split(/\s+/)
+      self.semester = tokens.map.with_index do |token, index|
+        if token.match?(/^\d+$/)
+          token
+        elsif index.zero?
+          token.capitalize
+        else
+          token
+        end
+      end.join(" ")
+    else
+      self.semester = normalized_semester
+    end
   end
 end

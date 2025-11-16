@@ -2,6 +2,7 @@
 class SurveysController < ApplicationController
   protect_from_forgery except: :save_progress
   before_action :set_survey, only: %i[show submit save_progress]
+  before_action :redirect_completed_assignment!, only: %i[show submit save_progress]
 
   # Lists active surveys ordered by display priority.
   #
@@ -396,6 +397,19 @@ class SurveysController < ApplicationController
   # @return [void]
   def set_survey
     @survey = Survey.includes(categories: :questions).find(params[:id])
+  end
+
+  # Prevents students from editing a survey that has already been submitted.
+  # Redirects them to the read-only SurveyResponse view instead.
+  def redirect_completed_assignment!
+    student = current_student
+    return unless student && @survey
+
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    return unless assignment&.completed_at?
+
+    survey_response = SurveyResponse.build(student: student, survey: @survey)
+    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and can only be viewed." and return
   end
 
   # Checks if a Google Drive/Docs link is publicly accessible.

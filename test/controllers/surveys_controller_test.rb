@@ -38,4 +38,39 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match /Survey submitted successfully!/, response.body
   end
+
+  test "show redirects students with completed surveys to survey response" do
+    sign_in @student_user
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(completed_at: Time.current)
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    get survey_path(@survey)
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match /already been submitted/i, response.body
+  end
+
+  test "save_progress redirects when survey already submitted" do
+    sign_in @student_user
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(completed_at: Time.current)
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    post save_progress_survey_path(@survey), params: { answers: { "1" => "data" } }
+
+    assert_redirected_to survey_response_path(survey_response)
+  end
+
+  test "submit redirects when survey already submitted" do
+    sign_in @student_user
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(completed_at: Time.current)
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    post submit_survey_path(@survey), params: { answers: {} }
+
+    assert_redirected_to survey_response_path(survey_response)
+  end
 end

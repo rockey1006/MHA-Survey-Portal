@@ -82,7 +82,18 @@ class Notification < ApplicationRecord
     when "admin"
       admin_survey_path(assignment.survey_id)
     else
-      survey_path(assignment.survey_id)
+      survey_response_path_for_assignment(assignment) || survey_path(assignment.survey_id)
     end
+  end
+
+  def survey_response_path_for_assignment(assignment)
+    return unless assignment.completed_at?
+
+    student = assignment.student
+    survey = assignment.survey
+    return unless student && survey
+
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+    survey_response_path(survey_response)
   end
 end

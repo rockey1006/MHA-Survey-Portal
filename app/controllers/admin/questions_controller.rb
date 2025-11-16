@@ -45,6 +45,14 @@ class Admin::QuestionsController < Admin::BaseController
   # @return [void]
   def update
     if @question.update(question_params)
+      SurveyNotificationJob.perform_later(
+        event: :question_updated,
+        question_id: @question.id,
+        metadata: {
+          editor_name: current_user.display_name,
+          editor_id: current_user.id
+        }
+      )
       redirect_to admin_questions_path, notice: "Question updated successfully."
     else
       load_categories

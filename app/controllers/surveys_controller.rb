@@ -153,7 +153,6 @@ class SurveysController < ApplicationController
           invalid_links << question unless accessible
         end
       end
-
     end
 
     if missing_required.any? || invalid_links.any?

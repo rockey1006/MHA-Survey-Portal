@@ -178,7 +178,7 @@ class Admin::SurveysController < Admin::BaseController
     @questions = @survey.questions.includes(:category).order(:question_order)
     @category_names = @category_groups.map(&:name)
     @track_list = @survey.track_list
-    @excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"]
+    @excluded_categories = [ "Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service" ]
     @computed_required = {}
 
     @category_groups.each do |category|

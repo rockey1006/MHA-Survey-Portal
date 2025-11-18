@@ -99,8 +99,8 @@ class Admin::QuestionsController < Admin::BaseController
       category_ids: []
     )
 
-    # Support legacy multi-select params by coalescing the first selected value
-    # into the single category_id attribute used by the model.
+      # Support legacy multi-select params by coalescing the first selected value
+      # into the single category_id attribute used by the model.
       permitted[:category_id] = permitted[:category_id].presence
       question_alias = permitted.delete(:question)
       permitted[:question_text] = question_alias.presence || permitted[:question_text]

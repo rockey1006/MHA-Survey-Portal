@@ -11,14 +11,13 @@
     </p>
   </header>
 
-  <% if (@invalid_evidence.present? || @missing_rating_ids.present?) %>
+  <% if @invalid_evidence.present? %>
     <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
       <p class="font-medium">Please fix the highlighted items:</p>
       <ul class="mt-1 list-disc pl-5">
         <% if @invalid_evidence.present? %>
           <li>One or more evidence links are invalid or not publicly accessible.</li>
         <% end %>
-        <%# Per-item self-rating errors are shown under each rating select; don't duplicate here. %>
       </ul>
     </div>
   <% end %>
@@ -44,48 +43,28 @@
           <% required = @computed_required[question.id] %>
 
           <article class="space-y-2 question-block" data-question-id="<%= question.id %>">
+            <% q_text = question.question_text.to_s.strip %>
+            <% desc = nil %>
+            <% if question.question_type == "multiple_choice" %>
+              <% desc = question.description.presence || competency_description_for(q_text) %>
+            <% end %>
+
             <label class="block text-sm font-medium text-slate-900" for="question-<%= question.id %>">
               <span class="font-semibold">Q<%= index + 1 %></span>
-              <span class="ml-2">
-                <%= question.question_text %>
-                <%# show tooltip only for the 17 competency question titles with specific descriptions %>
-                <% competency_descriptions = {
-                  'Public and Population Health Assessment' => 'Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets.',
-                  'Delivery, Organization, and Financing of Health Services and Health Systems' => 'Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods.',
-                  'Policy Analysis' => 'Creation, analysis, and implications for the rules governing health care structures and delivery systems',
-                  'Legal & Ethical Bases for Health Services and Health Systems' => 'Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery',
-                  'Ethics, Accountability, and Self-Assessment' => 'Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development.',
-                  'Organizational Dynamics' => 'Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness.',
-                  'Problem Solving, Decision Making, and Critical Thinking' => 'Data, analytic methods, and judgment used in support of leadership decisions',
-                  'Team Building and Collaboration' => 'Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals',
-                  'Strategic Planning' => 'Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods.',
-                  'Business Planning' => 'Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information.',
-                  'Communication' => 'Verbal and non-verbal communication to effectively convey pertinent information',
-                  'Financial Management' => 'Read, understand, and analyze financial statements and audited financial reports',
-                  'Performance Improvement' => 'Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations',
-                  'Project Management' => 'Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals',
-                  'Systems Thinking' => 'Interrelationships between and among constituent parts of an organization',
-                  'Data Analysis and Information Management' => 'Data, information, technology, and supporting structures used in completing assigned tasks',
-                  'Quantitative Methods for Health Services Delivery' => 'Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions'
-                } %>
-                <% q_text = question.question_text.to_s.strip %>
-                <% desc = competency_descriptions[q_text] %>
-                <%# Fallback: substring/case-insensitive matches for variants like 'Delivery' or 'Legal and Ethical' %>
-                <% if desc.blank? %>
-                  <% down = q_text.downcase %>
-                  <% if down.include?('delivery') || down.include?('financing') || down.include?('health systems') %>
-                    <% desc = competency_descriptions.find { |k,_| k.downcase.include?('delivery') }&.last %>
-                  <% elsif down.include?('legal') || down.include?('ethical') %>
-                    <% desc = competency_descriptions.find { |k,_| k.downcase.include?('legal') }&.last %>
+              <span class="ml-2 inline-flex flex-col gap-1">
+                <span class="flex flex-wrap items-center gap-2">
+                  <span><%= q_text %></span>
+                  <% if desc.present? %>
+                    <span class="inline-flex"><%= render 'shared/proficiency_icon' %></span>
                   <% end %>
-                <% end %>
+                  <% if required %>
+                    <span class="text-red-600" aria-hidden="true">*</span>
+                  <% end %>
+                </span>
                 <% if desc.present? %>
-                  <%= render 'shared/proficiency_icon', text: desc, only_text: true %>
+                  <span class="text-xs text-slate-600"><%= desc %></span>
                 <% end %>
               </span>
-              <% if required %>
-                <span class="ml-1 text-red-600" aria-hidden="true">*</span>
-              <% end %>
             </label>
 
             <% case question.question_type %>
@@ -122,7 +101,7 @@
                   <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
                 <% end %>
 
-                <%# No self-rating for evidence questions — self-rating only shown for competency questions below %>
+                <%# Evidence questions render link input only when allowed %>
               <% end %>
               
             <% else %>
@@ -142,33 +121,6 @@
                   <div class="text-xs text-red-600 mt-1">This question is required</div>
                 <% end %>
               <% end %>
-            <% end %>
-
-            <%# Render self-rating only for competency questions (the 17 mapped items) %>
-            <% if desc.present? %>
-              <% rating_value = if current_value.is_a?(Hash)
-                current_value["rating"]
-              else
-                (@existing_ratings && @existing_ratings[question.id.to_s]) || current_value
-              end %>
-              <% missing_rating = (@missing_rating_ids && @missing_rating_ids.include?(question.id)) || (request.post? && (rating_value.nil? || rating_value.to_s.strip.blank?)) %>
-              <div class="mt-3 space-y-1">
-                <label class="block text-xs font-medium text-slate-700" for="question-<%= question.id %>-rating">
-                  <span class="inline-flex items-center gap-2">
-                    <span>Self-rating (1–5)</span>
-                    <%= render 'shared/proficiency_icon' %>
-                  </span>
-                  <span class="text-red-600" aria-hidden="true">*</span>
-                </label>
-                <%= select_tag "answers_rating[#{question.id}]",
-                              options_for_select((1..5).map { |n| [n, n] }, rating_value),
-                              include_blank: true,
-                              id: "question-#{question.id}-rating",
-                              class: "w-32 rounded-md border border-slate-300 px-2 py-1 text-sm" %>
-                <% if @missing_rating_ids && (@missing_rating_ids.include?(question.id) || @missing_rating_ids.include?(question.id.to_s)) %>
-                  <div class="text-xs text-red-600 mt-1">Self-rating (1–5) is required for this evidence item.</div>
-                <% end %>
-              </div>
             <% end %>
 
           </article>

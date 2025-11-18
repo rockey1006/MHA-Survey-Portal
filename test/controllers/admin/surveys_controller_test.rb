@@ -70,22 +70,22 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
         survey: {
           title: "Updated Survey Title",
           description: "Updated details",
-          track_list: [ "Residential" ]
+          track_list: [ "Executive" ]
         }
       }
     end
 
     assert_redirected_to admin_surveys_path
 
-  survey.reload
-  assert_equal "Updated Survey Title", survey.title
-  assert_equal [ "Residential" ], survey.track_list
+    survey.reload
+    assert_equal "Updated Survey Title", survey.title
+    assert_equal [ "Executive" ], survey.track_list
 
     log = SurveyChangeLog.order(:created_at).last
     assert_equal "update", log.action
     assert_equal survey, log.survey
     assert_equal @admin_user, log.admin
-    assert_includes log.description, "Tracks updated to Residential"
+    assert_includes log.description, "Tracks updated to Executive"
     assert_includes log.description, "Title changed from"
   end
 

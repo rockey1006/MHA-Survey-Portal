@@ -73,4 +73,47 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to survey_response_path(survey_response)
   end
+
+  test "index shows only surveys for the student's track" do
+    sign_in @student_user
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "Fall 2025 Health Assessment"
+    refute_includes response.body, "Spring 2025 Health Assessment"
+  end
+
+  test "index prompts profile completion when track missing" do
+    @student.update!(track: nil)
+    sign_in @student_user
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "Finish setting up your profile"
+  ensure
+    @student.update!(track: "Residential")
+  end
+
+  test "index shows current semester badge" do
+    sign_in @student_user
+
+    ProgramSemester.current.update!(name: "Winter 2099")
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "Winter 2099"
+  end
+
+  test "index falls back to current month when no semester configured" do
+    sign_in @student_user
+    ProgramSemester.delete_all
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, Time.zone.now.strftime("%B %Y")
+  end
 end

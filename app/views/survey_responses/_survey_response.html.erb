@@ -68,63 +68,40 @@
                   <% else %>
                     <% answer_text = raw_answer %>
                   <% end %>
+                  <% q_text = question.question_text.to_s.strip %>
+                  <% desc = nil %>
+                  <% if question.question_type == "multiple_choice" %>
+                    <% desc = question.description.presence || competency_description_for(q_text) %>
+                  <% end %>
 
                 <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <header class="flex items-start gap-3">
                     <span class="text-sm font-semibold text-[#500000]">Q<%= index + 1 %></span>
                     <div class="space-y-1">
-                      <p class="text-sm font-medium text-slate-800">
-                        <%= question.question_text %>
-                        <% # Compute if this question is required using the same logic as the controller %>
-                        <% required = question.is_required? %>
-                        <% if !required && question.question_type_multiple_choice? %>
-                          <% options = question.answer_options_list.map(&:strip).map(&:downcase) %>
-                          <% is_flexibility_scale = (options == %w[1 2 3 4 5]) && question.question_text.to_s.downcase.include?("flexible") %>
-                          <% required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale) %>
+                      <% # Compute if this question is required using the same logic as the controller %>
+                      <% required = question.is_required? %>
+                      <% if !required && question.question_type_multiple_choice? %>
+                        <% options = question.answer_options_list.map(&:strip).map(&:downcase) %>
+                        <% is_flexibility_scale = (options == %w[1 2 3 4 5]) && question.question_text.to_s.downcase.include?("flexible") %>
+                        <% required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale) %>
+                      <% end %>
+                      <% dependent_by_text = question.question_text.to_s.downcase.match?(/if|yes|no|如果|why not|请说明/) rescue false %>
+
+                      <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800">
+                        <span><%= q_text %></span>
+                        <% if desc.present? %>
+                          <span class="inline-flex"><%= render 'shared/proficiency_icon' %></span>
                         <% end %>
-                        <% dependent_by_text = question.question_text.to_s.downcase.match?(/if|yes|no|如果|why not|请说明/) rescue false %>
                         <% if required && !dependent_by_text %>
-                          <span class="text-red-600 font-semibold ml-1">*</span>
+                          <span class="text-red-600 font-semibold">*</span>
                         <% end %>
-                      </p>
+                      </div>
                     </div>
                   </header>
 
-                  <span class="ml-2 align-middle">
-                    <% competency_descriptions = {
-                      'Public and Population Health Assessment' => 'Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets.',
-                      'Delivery, Organization, and Financing of Health Services and Health Systems' => 'Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods.',
-                      'Policy Analysis' => 'Creation, analysis, and implications for the rules governing health care structures and delivery systems',
-                      'Legal & Ethical Bases for Health Services and Health Systems' => 'Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery',
-                      'Ethics, Accountability, and Self-Assessment' => 'Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development.',
-                      'Organizational Dynamics' => 'Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness.',
-                      'Problem Solving, Decision Making, and Critical Thinking' => 'Data, analytic methods, and judgment used in support of leadership decisions',
-                      'Team Building and Collaboration' => 'Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals',
-                      'Strategic Planning' => 'Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods.',
-                      'Business Planning' => 'Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information.',
-                      'Communication' => 'Verbal and non-verbal communication to effectively convey pertinent information',
-                      'Financial Management' => 'Read, understand, and analyze financial statements and audited financial reports',
-                      'Performance Improvement' => 'Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations',
-                      'Project Management' => 'Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals',
-                      'Systems Thinking' => 'Interrelationships between and among constituent parts of an organization',
-                      'Data Analysis and Information Management' => 'Data, information, technology, and supporting structures used in completing assigned tasks',
-                      'Quantitative Methods for Health Services Delivery' => 'Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions'
-                    } %>
-                    <% q_text = question.question_text.to_s.strip %>
-                    <% desc = competency_descriptions[q_text] %>
-                    <%# Fallback: substring/case-insensitive matches for variants like 'Delivery' or 'Legal and Ethical' %>
-                    <% if desc.blank? %>
-                      <% down = q_text.downcase %>
-                      <% if down.include?('delivery') || down.include?('financing') || down.include?('health systems') %>
-                        <% desc = competency_descriptions.find { |k,_| k.downcase.include?('delivery') }&.last %>
-                      <% elsif down.include?('legal') || down.include?('ethical') %>
-                        <% desc = competency_descriptions.find { |k,_| k.downcase.include?('legal') }&.last %>
-                      <% end %>
-                    <% end %>
-                    <% if desc.present? %>
-                      <%= render 'shared/proficiency_icon', text: desc, only_text: true %>
-                    <% end %>
-                  </span>
+                  <% if desc.present? %>
+                    <p class="ml-7 text-xs text-slate-600"><%= desc %></p>
+                  <% end %>
                   <% case question.question_type %>
                   <% when "short_answer" %>
                     <%= text_area_tag nil, (answer_text || ""), rows: 3, class: "w-full max-w-full break-words rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-inner focus:outline-none", disabled: true %>
@@ -159,44 +136,12 @@
                               <a class="mt-1 block truncate text-[#500000] underline hover:text-[#330000]" href="<%= link_value %>" target="_blank" rel="noopener noreferrer"><%= link_value %></a>
                             <% end %>
                         </div>
-                        <%# Only show saved self-rating on read-only pages for the competency questions (desc present) %>
-                        <% if desc.present? && !(question.category&.name.to_s == "Employment Information") %>
-                          <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-600">
-                              <span class="inline-flex items-center gap-2">
-                                <span>Self-rating</span>
-                                <%= render 'shared/proficiency_icon' %>
-                              </span>
-                            </label>
-                              <%= select_tag nil,
-                                              options_for_select((1..5).map(&:to_s), rating_value&.to_s),
-                                              include_blank: true,
-                                              class: "w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700 shadow-sm focus:outline-none",
-                                              disabled: true %>
-                          </div>
-                        <% end %>
                       </div>
                     <% end %>
                   <% else %>
                     <%= text_field_tag nil, (answer_text || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
                   <% end %>
 
-                  <%# For competency questions (desc present) show saved self-rating for non-evidence types too %>
-                  <% if desc.present? && question.question_type != 'evidence' && !(question.category&.name.to_s == "Employment Information") %>
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-slate-600">
-                        <span class="inline-flex items-center gap-2">
-                          <span>Self-rating</span>
-                          <%= render 'shared/proficiency_icon' %>
-                        </span>
-                      </label>
-                      <%= select_tag nil,
-                                      options_for_select((1..5).map(&:to_s), rating_val&.to_s),
-                                      include_blank: true,
-                                      class: "w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700 shadow-sm focus:outline-none",
-                                      disabled: true %>
-                    </div>
-                  <% end %>
                 </article>
               <% end %>
             </div>

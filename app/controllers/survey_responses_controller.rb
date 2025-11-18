@@ -107,8 +107,17 @@ class SurveyResponsesController < ApplicationController
     return if params[:token].present? # signed token grants access without session
 
     current = current_user
-    if current&.role_admin? || current&.role_advisor?
+    if current&.role_admin?
       return
+    end
+
+    if current&.role_advisor?
+      advisor_profile = current_advisor_profile
+      assigned_advisor_id = @survey_response&.advisor_id
+
+      if advisor_profile && assigned_advisor_id.present? && advisor_profile.advisor_id == assigned_advisor_id
+        return
+      end
     end
 
     student_profile = current_student

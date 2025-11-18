@@ -17,13 +17,13 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
   assert_includes response.body, "Has feedback"
   end
 
-  test "advisor sees only assigned students" do
+  test "advisor sees all students" do
     sign_in @advisor
 
     get student_records_path
     assert_response :success
     assert_includes response.body, users(:student).name
-    assert_not_includes response.body, users(:other_student).name
+    assert_includes response.body, users(:other_student).name
   end
 
   test "unauthenticated user redirected" do

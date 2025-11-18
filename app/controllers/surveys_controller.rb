@@ -8,7 +8,30 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def index
-    @surveys = Survey.active.ordered
+    @student = current_student
+    track_value = @student&.track.to_s
+
+    @surveys = if track_value.present?
+                 Survey.active
+                       .includes(:questions, :track_assignments)
+                       .joins(:track_assignments)
+                       .where("LOWER(survey_track_assignments.track) = ?", track_value.downcase)
+                       .distinct
+                       .ordered
+    else
+                 Survey.none
+    end
+
+    survey_ids = @surveys.map(&:id)
+    @assignment_lookup = if survey_ids.any? && @student
+                           SurveyAssignment
+                             .where(student_id: @student.student_id, survey_id: survey_ids)
+                             .index_by(&:survey_id)
+    else
+                           {}
+    end
+
+    @current_semester_label = ProgramSemester.current_name.presence || fallback_semester_label
   end
 
   # Presents the survey form, pre-populating answers and required flags.
@@ -31,7 +54,6 @@ class SurveysController < ApplicationController
 
       Rails.logger.info "[SHOW DEBUG] Found #{responses.count} saved responses"
 
-      @existing_ratings = {}
       responses.each do |response|
         ans = response.answer
         # Normalize stored shapes so views get a text answer and a separate rating when present
@@ -39,11 +61,11 @@ class SurveysController < ApplicationController
           if response.question.question_type == "evidence" && ans["link"].present?
             @existing_answers[response.question_id.to_s] = ans["link"]
           else
-            # For competency/non-evidence questions we may store {"text"=>..., "rating"=>n}
-            @existing_answers[response.question_id.to_s] = ans["text"] || ans["answer"] || nil
+            # For competency/non-evidence questions we previously stored {"text"=>..., "rating"=>n}
+            text_value = ans["text"] || ans["answer"]
+            text_value = ans["rating"].to_s if text_value.blank? && ans["rating"].present?
+            @existing_answers[response.question_id.to_s] = text_value
           end
-
-          @existing_ratings[response.question_id.to_s] = ans["rating"] if ans["rating"].present?
         else
           # Use string key to match view's expectation
           @existing_answers[response.question_id.to_s] = ans
@@ -96,7 +118,6 @@ class SurveysController < ApplicationController
 
     missing_required = []
     invalid_links = []
-    missing_ratings = []
 
     questions_map.each_value do |question|
       submitted_value = answers[question.id.to_s]
@@ -132,55 +153,13 @@ class SurveysController < ApplicationController
           invalid_links << question unless accessible
         end
       end
-
-      # Require self-rating only for competency questions (the mapped 17 competencies)
-      # Define the same competency title map used in the view and detect by question text
-      competency_titles = [
-        "Public and Population Health Assessment",
-        "Delivery, Organization, and Financing of Health Services and Health Systems",
-        "Policy Analysis",
-        "Legal & Ethical Bases for Health Services and Health Systems",
-        "Ethics, Accountability, and Self-Assessment",
-        "Organizational Dynamics",
-        "Problem Solving, Decision Making, and Critical Thinking",
-        "Team Building and Collaboration",
-        "Strategic Planning",
-        "Business Planning",
-        "Communication",
-        "Financial Management",
-        "Performance Improvement",
-        "Project Management",
-        "Systems Thinking",
-        "Data Analysis and Information Management",
-        "Quantitative Methods for Health Services Delivery"
-      ]
-
-      text = question.question_text.to_s.strip
-      is_competency = competency_titles.include?(text)
-      if !is_competency
-        down = text.downcase
-        if down.include?("delivery") || down.include?("financing") || down.include?("health systems")
-          is_competency = true
-        elsif down.include?("legal") || down.include?("ethical")
-          is_competency = true
-        end
-      end
-
-      if is_competency
-        rating_val = params.dig(:answers_rating, question.id.to_s)
-        if rating_val.to_s.strip.blank?
-          missing_ratings << question
-        end
-      end
     end
 
-    if missing_required.any? || invalid_links.any? || missing_ratings.any?
+    if missing_required.any? || invalid_links.any?
       @category_groups = @survey.categories.includes(:questions).order(:id)
       @existing_answers = answers
-      @existing_ratings = (params[:answers_rating] || {}).transform_keys(&:to_s)
       @computed_required = {}
       @invalid_evidence = invalid_links.map(&:id)
-      @missing_rating_ids = missing_ratings.map(&:id)
       @category_groups.each do |category|
         category.questions.each do |question|
           required = question.is_required?
@@ -194,7 +173,7 @@ class SurveysController < ApplicationController
         end
       end
 
-      # Persist all provided answers (including self-ratings) even when submit fails
+      # Persist provided answers even when submit fails
       ActiveRecord::Base.transaction do
         allowed_question_ids.each do |question_id|
           submitted_value = answers[question_id.to_s]
@@ -202,31 +181,11 @@ class SurveysController < ApplicationController
           record.advisor_id ||= student.advisor_id
 
           question = questions_map[question_id]
-          if question&.question_type == "evidence"
-            rating_value = params.dig(:answers_rating, question_id.to_s)
-            if submitted_value.present? || rating_value.present?
-              combined = { "link" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
-              record.answer = combined
-              record.save(validate: false)
-            elsif record.persisted?
-              record.destroy!
-            end
-          else
-            rating_value = params.dig(:answers_rating, question_id.to_s)
-            if submitted_value.present? && rating_value.present?
-              # Store both text and rating so one doesn't overwrite the other
-              combined = { "text" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
-              record.answer = combined
-              record.save(validate: false)
-            elsif submitted_value.present?
-              record.answer = submitted_value
-              record.save(validate: false)
-            elsif rating_value.present?
-              record.answer = { "rating" => (rating_value.presence && rating_value.to_i) }
-              record.save(validate: false)
-            elsif record.persisted?
-              record.destroy!
-            end
+          if submitted_value.present?
+            record.answer = submitted_value
+            record.save(validate: false)
+          elsif record.persisted?
+            record.destroy!
           end
         end
       end
@@ -240,30 +199,11 @@ class SurveysController < ApplicationController
         record.advisor_id ||= student.advisor_id
 
         question = questions_map[question_id]
-        if question&.question_type == "evidence"
-          rating_value = params.dig(:answers_rating, question_id.to_s)
-          if submitted_value.present? || rating_value.present?
-            combined = { "link" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
-            record.answer = combined
-            record.save!
-          elsif record.persisted?
-            record.destroy!
-          end
-        else
-          rating_value = params.dig(:answers_rating, question_id.to_s)
-          if submitted_value.present? && rating_value.present?
-            combined = { "text" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
-            record.answer = combined
-            record.save!
-          elsif submitted_value.present?
-            record.answer = submitted_value
-            record.save!
-          elsif rating_value.present?
-            record.answer = { "rating" => (rating_value.presence && rating_value.to_i) }
-            record.save!
-          elsif record.persisted?
-            record.destroy!
-          end
+        if submitted_value.present?
+          record.answer = submitted_value
+          record.save!
+        elsif record.persisted?
+          record.destroy!
         end
       end
     end
@@ -281,6 +221,7 @@ class SurveysController < ApplicationController
       Rails.logger.info "[SUBMIT] Enqueueing notification job"
       begin
         SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
+        SurveyNotificationJob.perform_later(event: :response_submitted, survey_assignment_id: assignment.id)
       rescue StandardError => job_error
         # Don't fail submission if job enqueue fails
         Rails.logger.warn "[SUBMIT] Failed to enqueue notification job: #{job_error.class}: #{job_error.message}"
@@ -337,51 +278,18 @@ class SurveysController < ApplicationController
         record.advisor_id ||= student.advisor_id
 
         question = @survey.questions.find { |q| q.id == question_id }
-        if question&.question_type == "evidence"
-          rating_value = params.dig(:answers_rating, question_id.to_s)
-          if submitted_value.present? || rating_value.present?
-            combined = { "link" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
-            record.answer = combined
-            if record.save(validate: false)
-              saved_count += 1
-              Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved evidence+rating #{question_id} (validations skipped)"
-            end
-          elsif record.persisted?
-            record.destroy!
-            Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty evidence+rating for question #{question_id}"
+        if submitted_value.present?
+          record.answer = submitted_value
+          # Skip validations when saving progress; validations happen on submit
+          if record.save(validate: false)
+            saved_count += 1
+            Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved question #{question_id} with value: #{submitted_value} (validations skipped)"
+          else
+            Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save question #{question_id} during save_progress (validations skipped)"
           end
-        else
-          rating_value = params.dig(:answers_rating, question_id.to_s)
-          if submitted_value.present? && rating_value.present?
-            combined = { "text" => submitted_value, "rating" => (rating_value.presence && rating_value.to_i) }.compact
-            record.answer = combined
-            if record.save(validate: false)
-              saved_count += 1
-              Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved question #{question_id} with value+rating (validations skipped)"
-            else
-              Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save question #{question_id} during save_progress (validations skipped)"
-            end
-          elsif submitted_value.present?
-            record.answer = submitted_value
-            # Skip validations when saving progress; validations happen on submit
-            if record.save(validate: false)
-              saved_count += 1
-              Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved question #{question_id} with value: #{submitted_value} (validations skipped)"
-            else
-              Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save question #{question_id} during save_progress (validations skipped)"
-            end
-          elsif rating_value.present?
-            record.answer = { "rating" => (rating_value.presence && rating_value.to_i) }
-            if record.save(validate: false)
-              saved_count += 1
-              Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved self-rating for question #{question_id} (validations skipped)"
-            else
-              Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save self-rating for question #{question_id} during save_progress (validations skipped)"
-            end
-          elsif record.persisted?
-            record.destroy!
-            Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty answer for question #{question_id}"
-          end
+        elsif record.persisted?
+          record.destroy!
+          Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty answer for question #{question_id}"
         end
       end
     end

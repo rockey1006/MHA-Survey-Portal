@@ -30,8 +30,10 @@ class ActiveSupport::TestCase
            :surveys,
            :survey_track_assignments,
            :survey_assignments,
+           :program_semesters,
            :users,
-           :survey_change_logs
+           :survey_change_logs,
+           :notifications
 end
 
 class ActionDispatch::IntegrationTest

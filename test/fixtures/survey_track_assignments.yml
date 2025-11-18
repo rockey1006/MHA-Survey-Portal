@@ -1,11 +1,11 @@
-fall_2025_exec:
+fall_2025_residential:
   survey: fall_2025
-  track: Executive MBA
+  track: Residential
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
-spring_2025_undergrad:
+spring_2025_executive:
   survey: spring_2025
-  track: Undergraduate Health
+  track: Executive
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>

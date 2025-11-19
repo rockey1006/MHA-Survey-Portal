@@ -31,12 +31,16 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "batch create creates feedback records and redirects" do
+    # Controller now expects ratings keyed by question id (per-question feedback)
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+    q2 = @cat2.questions.first || @cat2.questions.create!(question_text: "Auto Q2", question_order: 1, question_type: "short_answer")
+
     params = {
       survey_id: @survey.id,
       student_id: @student.student_id,
       ratings: {
-        @cat1.id.to_s => { average_score: "4", comments: "Good" },
-        @cat2.id.to_s => { average_score: "3", comments: "Ok" }
+        q1.id.to_s => { average_score: "4", comments: "Good" },
+        q2.id.to_s => { average_score: "3", comments: "Ok" }
       }
     }
 

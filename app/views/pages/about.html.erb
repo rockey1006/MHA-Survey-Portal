@@ -3,35 +3,35 @@
 <%= render "shared/login_navbar" %>
 
 <main class="flex justify-center px-4 py-16 bg-slate-50">
-  <div class="w-full max-w-5xl space-y-12">
+  <div class="w-full max-w-5xl space-y-20">
     <!-- Page header / hero -->
-    <section class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200">
-      <div class="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-        <div class="space-y-4">
+  <section class="rounded-3xl bg-white px-8 py-10 md:py-12 shadow-sm ring-1 ring-slate-200">
+      <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div class="space-y-3 max-w-3xl">
           <div class="inline-flex items-center gap-2 rounded-full bg-[#f5f0eb] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#500000]">
             <span class="text-base">🧭</span>
             <span>About the Portal</span>
           </div>
-          <h1 class="text-3xl font-semibold text-[#500000] md:text-4xl">
-            MHA Program Portal Overview
+          <h1 class="text-3xl font-semibold text-[#500000] md:text-4xl leading-tight">
+            MHA Program Portal — Overview & Roles
           </h1>
           <p class="text-sm leading-relaxed text-slate-700 md:text-base">
-            Welcome to the MHA Program Portal — a centralized platform designed to simplify survey
-            management, feedback exchange, and role-based coordination between students, advisors,
-            and administrators. This guide explains what you can do in the portal depending on your role.
+            Welcome to the MHA Program Portal — a centralized platform for survey management,
+            feedback exchange, and role-based coordination between students, advisors, and
+            administrators. Below is a quick reference for what each role can do.
           </p>
         </div>
 
-        <div class="rounded-2xl bg-slate-50 px-5 py-5 text-sm text-slate-700 shadow-inner space-y-3">
-          <p class="font-semibold text-slate-900">Quick role shortcuts</p>
-          <div class="flex flex-wrap gap-2">
-            <a href="#student-view" class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
+  <div class="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-700 shadow-inner space-y-3 w-full md:w-64">
+          <p class="font-semibold text-slate-900 text-sm">Quick shortcuts</p>
+          <div class="flex flex-col gap-2">
+            <a href="#student-view" class="inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
               🎓 Student View
             </a>
-            <a href="#advisor-view" class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
+            <a href="#advisor-view" class="inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
               🧑‍🏫 Advisor View
             </a>
-            <a href="#admin-view" class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
+            <a href="#admin-view" class="inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
               🛠️ Admin View
             </a>
           </div>
@@ -39,206 +39,181 @@
       </div>
     </section>
 
-    <!-- Student View -->
-    <section id="student-view" class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200">
-      <header class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between border-l-4 border-[#500000] pl-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">
-            🎓
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
-            <h2 class="text-2xl font-semibold text-[#500000]">Student View</h2>
-          </div>
+    <!-- Student View (regular two-column layout) -->
+  <section id="student-view" class="rounded-3xl bg-white px-8 py-10 md:py-14 shadow-sm ring-1 ring-slate-200 mb-20 md:mb-24">
+      <div class="flex items-start gap-4 border-l-4 border-[#500000] pl-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">🎓</div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
+          <h2 class="text-2xl font-semibold text-[#500000]">Student View</h2>
+          <p class="mt-2 max-w-xl text-sm text-slate-600">Manage assigned surveys, track completion, and review advisor feedback in one place.</p>
         </div>
-        <p class="max-w-md text-sm text-slate-600">
-          Manage assigned surveys, track completion, and review advisor feedback in one place.
-        </p>
-      </header>
+      </div>
 
-      <div class="mt-8 grid gap-5 md:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-1">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Overview</p>
-          <p class="mt-2 text-sm text-slate-700">
-            Students see a personalized list of surveys, completion status, and any feedback that has
-            been shared with them.
-          </p>
-        </div>
-
-        <div class="space-y-4 md:col-span-2">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Pending Surveys</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>View any surveys that are assigned but not yet completed.</li>
+      <div class="mt-6 grid gap-4 md:grid-cols-2">
+        <div class="space-y-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Pending Surveys</span></p>
+            <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+              <li>View surveys assigned to you that are not yet completed.</li>
             </ul>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Completed Surveys</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Once a survey is completed, it automatically moves into this section.</li>
-              <li>Students can review their previous responses at any time.</li>
-              <li>If an advisor has submitted feedback, it appears at the bottom of the survey.</li>
-              <li>Surveys can be downloaded as PDFs for record-keeping.</li>
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Completed Surveys</span></p>
+            <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+              <li>Completed surveys appear here and can be reviewed anytime.</li>
+              <li>Advisor feedback, when provided, appears below the survey.</li>
+              <li>Surveys are downloadable as PDFs for records.</li>
             </ul>
           </div>
+        </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Notifications</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Displays recent updates or reminders related to surveys and feedback.</li>
+        <div class="space-y-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Notifications</span></p>
+            <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+              <li>Shows recent reminders and updates related to your surveys and feedback.</li>
             </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Advisor View -->
-    <section id="advisor-view" class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200">
-      <header class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between border-l-4 border-[#500000] pl-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">
-            🧑‍🏫
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
-            <h2 class="text-2xl font-semibold text-[#500000]">Advisor View</h2>
-          </div>
-        </div>
-        <p class="max-w-md text-sm text-slate-600">
-          Monitor advisee progress, assign surveys, and provide structured feedback to students.
-        </p>
-      </header>
+    <!-- (Advisor section consolidated below) -->
 
-      <div class="mt-8 grid gap-5 md:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="font-medium text-slate-900">Student Records</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>View all students and their associated tracks.</li>
-            <li>Click <span class="font-semibold">“Review”</span> to give initial feedback on a student’s completed survey.</li>
-            <li>After feedback is submitted, the button changes to <span class="font-semibold">“Edit Feedback.”</span></li>
+    <!-- Advisor View (regular two-column layout) -->
+  <section id="advisor-view" class="rounded-3xl bg-white px-8 py-10 md:py-14 shadow-sm ring-1 ring-slate-200 mb-20 md:mb-24">
+      <div class="flex items-start gap-4 border-l-4 border-[#500000] pl-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">🧑‍🏫</div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
+          <h2 class="text-2xl font-semibold text-[#500000]">Advisor View</h2>
+          <p class="mt-2 max-w-xl text-sm text-slate-600">Monitor advisee progress, assign surveys, and provide structured feedback to students.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 grid gap-4 md:grid-cols-2">
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Student Records</span></p>
+          <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+            <li>View students and their tracks in a single list.</li>
+            <li>Use <span class="font-semibold">Review</span> to provide feedback on completed surveys.</li>
+            <li>After submitting feedback the action is changeable via <span class="font-semibold">Edit Feedback</span>.</li>
             <li>Download surveys and feedback for documentation.</li>
-            <li>Submitted feedback becomes visible to students in their Completed Surveys section.</li>
+            <li>Students see submitted feedback in their Completed Surveys section.</li>
           </ul>
         </div>
 
         <div class="space-y-4">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Surveys</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Assign specific surveys to individual students (useful for late joiners or advisor swaps).</li>
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Surveys</span></p>
+            <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+              <li>Assign surveys to individual students when needed.</li>
             </ul>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Notifications</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Notifications</span></p>
+            <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
               <li>View updates related to assigned surveys or feedback deadlines.</li>
             </ul>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Manage Students</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Manage Students</span></p>
+            <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
               <li>Reassign students to a different advisor when necessary.</li>
             </ul>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- Admin View -->
-    <section id="admin-view" class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200 mb-4">
-      <header class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between border-l-4 border-[#500000] pl-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">
-            🛠️
+    <!-- Admin View (regular two-column layout) -->
+  <section id="admin-view" class="rounded-3xl bg-white px-8 py-10 md:py-14 shadow-sm ring-1 ring-slate-200 mb-12">
+          <div class="flex items-start gap-4 border-l-4 border-[#500000] pl-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">🛠️</div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
+              <h2 class="text-2xl font-semibold text-[#500000]">Admin View</h2>
+              <p class="mt-2 max-w-xl text-sm text-slate-600">Configure surveys, manage membership, and oversee how the portal is used across the program.</p>
+            </div>
           </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
-            <h2 class="text-2xl font-semibold text-[#500000]">Admin View</h2>
+
+          <div class="mt-6 grid gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Student Records</span></p>
+              <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+                <li>Identical to the Advisor View — review surveys, feedback, and student data.</li>
+              </ul>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Surveys</span></p>
+              <ul class="mt-2 list-disc list-inside text-sm text-slate-700 space-y-1">
+                  <li><span class="italic">Different than the Advisor View:</span> create, edit, and manage all surveys distributed across the platform.</li>
+                </ul>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:col-span-2">
+              <p class="font-medium text-slate-900"><span class="text-[#500000] font-semibold">Member Management</span></p>
+              <ul class="mt-1 list-disc list-inside text-sm text-slate-700 space-y-0 leading-tight">
+                <li>Assign or change user roles between Student, Advisor, and Admin.</li>
+                <li>Each role has a distinct level of access and responsibility.</li>
+                <li>Counts of users by role are displayed in admin screens.</li>
+              </ul>
+            </div>
           </div>
-        </div>
-        <p class="max-w-md text-sm text-slate-600">
-          Configure surveys, manage membership, and oversee how the portal is used across the program.
-        </p>
-      </header>
+        </section>
 
-      <div class="mt-8 grid gap-5 md:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="font-medium text-slate-900">Student Records</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>Identical to the Advisor View — review surveys, feedback, and student data.</li>
-          </ul>
+    <!-- Final Documentation link and Back button -->
+  <section class="mt-6 mb-12">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Documentation</p>
+        <p class="mt-2 text-sm text-slate-700">Developer docs, onboarding notes, and detailed usage guides live in the project Wiki on GitHub. The Wiki contains migration notes, deployment tips, and admin guides useful for maintainers.</p>
+        <div class="mt-3">
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-md bg-[#500000] px-3 py-2 text-sm font-semibold text-white">Open GitHub Wiki</a>
         </div>
+      </div>
 
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="font-medium text-slate-900">Surveys</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>
-              <span class="italic">Different than the Advisor View:</span>
-              create, edit, and manage all surveys distributed across the platform.
-            </li>
-          </ul>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-2">
-          <p class="font-medium text-slate-900">Member Management</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>Assign or change user roles between Student, Advisor, and Admin.</li>
-            <li>Each role has a distinct level of access and responsibility.</li>
-            <li>The total number of users in each role is displayed at the top of the screen.</li>
-          </ul>
-        </div>
+      <div class="mt-4 flex">
+        <button type="button" onclick="window.history.back()" class="inline-flex items-center gap-2 rounded-md bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:shadow">← Back</button>
       </div>
     </section>
 
-    <!-- Back button -->
-    <div class="flex justify-start">
-      <button
-        type="button"
-        onclick="window.history.back()"
-        class="inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-300"
-      >
-        ← Back
-      </button>
-    </div>
-  </div>
-</main>
+    <!-- Hidden SSO forms to allow top nav "Students" / "Advisors" to act like the main page buttons -->
+    <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                  method: :post,
+                  data: { turbo: "false" },
+                  id: "hidden-student-signin",
+                  html: { style: "display:none" } do |f| %>
+      <%= f.hidden_field :role, value: "student" %>
+    <% end %>
 
-<!-- Hidden SSO forms to allow top nav "Students" / "Advisors" to act like the main page buttons -->
-<%= form_with url: user_google_oauth2_omniauth_authorize_path,
-              method: :post,
-              data: { turbo: "false" },
-              id: "hidden-student-signin",
-              html: { style: "display:none" } do |f| %>
-  <%= f.hidden_field :role, value: "student" %>
-<% end %>
+    <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                  method: :post,
+                  data: { turbo: "false" },
+                  id: "hidden-advisor-signin",
+                  html: { style: "display:none" } do |f| %>
+      <%= f.hidden_field :role, value: "advisor" %>
+    <% end %>
 
-<%= form_with url: user_google_oauth2_omniauth_authorize_path,
-              method: :post,
-              data: { turbo: "false" },
-              id: "hidden-advisor-signin",
-              html: { style: "display:none" } do |f| %>
-  <%= f.hidden_field :role, value: "advisor" %>
-<% end %>
+    <script>
+      (function () {
+        const studentTab = document.querySelector('[data-signin-role="student"]');
+        const advisorTab = document.querySelector('[data-signin-role="advisor"]');
+        const studentForm = document.getElementById('hidden-student-signin');
+        const advisorForm = document.getElementById('hidden-advisor-signin');
 
-<script>
-  (function () {
-    const studentTab = document.querySelector('[data-signin-role="student"]');
-    const advisorTab = document.querySelector('[data-signin-role="advisor"]');
-    const studentForm = document.getElementById('hidden-student-signin');
-    const advisorForm = document.getElementById('hidden-advisor-signin');
+        function wire(link, form) {
+          if (!link || !form) return;
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            form.submit();
+          });
+        }
 
-    function wire(link, form) {
-      if (!link || !form) return;
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        form.submit();
-      });
-    }
-
-    wire(studentTab, studentForm);
-    wire(advisorTab, advisorForm);
-  })();
-</script>
+        wire(studentTab, studentForm);
+        wire(advisorTab, advisorForm);
+      })();
+    </script>

@@ -3058,20 +3058,23 @@ body.high-contrast {
   background-color: #ffffff;  /* white */
   color: #000000;             /* black */
 
-  /* Core variable overrides */
+  /* Core variable overrides - NO MAROON */
   --primary-color: #000000;
-  --primary-hover: #222222;
-  --primary-active: #333333;
+  --primary-hover: #ffff00;  /* yellow hover */
+  --primary-active: #ffff00;
+  --tamu-maroon: #000000;    /* override maroon to black */
+  --tamu-maroon-light: #000000;
+  --tamu-maroon-dark: #000000;
 
   --gray-700: #000000;
   --gray-600: #111111;
   --gray-500: #222222;
   --gray-400: #333333;
 
-  --info-color: #0033aa;     /* 10.7:1 on white */
-  --warning-color: #b35a00;  /* 6.3:1 on white */
-  --success-color: #006b2e;  /* 4.6:1 on white */
-  --error-color: #b00020;    /* 5.8:1 on white */
+  --info-color: #000000;
+  --warning-color: #000000;
+  --success-color: #000000;
+  --error-color: #000000;
 }
 
 /* =========================================================
@@ -3104,33 +3107,48 @@ body.high-contrast .nav-link:focus {
    Buttons
    ========================================================= */
 
-/* Primary buttons: black on white, 21:1 */
+/* All buttons: white text on black background */
 body.high-contrast .btn,
+body.high-contrast .btn-primary,
 body.high-contrast button,
 body.high-contrast [type="button"],
 body.high-contrast [type="submit"],
 body.high-contrast [role="button"] {
-  background-color: #000000 !important;
-  color: #ffffff !important;
-  border: 2px solid #ffffff !important;  /* strong edge contrast */
+  background-color: #000000 !important;  /* black background */
+  color: #ffffff !important;             /* white text */
+  border: 2px solid #ffffff !important;  /* white border */
 }
 
-/* Hover / active – maintain ≥3:1 contrast */
+/* Secondary buttons and links with button classes - white background with black text */
+body.high-contrast .btn-secondary,
+body.high-contrast a[class*="btn"],
+body.high-contrast a[href*="feedbacks/new"],
+body.high-contrast a[class*="bg-[#500000]"],
+body.high-contrast .bg-\[\#500000\],
+body.high-contrast [class*="text-[#500000]"],
+body.high-contrast a[class*="border-[#500000]"] {
+  background-color: #ffffff !important;  /* white background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
+}
+
+/* All button hovers: yellow background with black text */
 body.high-contrast .btn:hover:not(:disabled),
-body.high-contrast button:hover:not(:disabled) {
-  background-color: #222222 !important;   /* darker shade */
-}
-
-/* Secondary button: inverted scheme */
-body.high-contrast .btn-secondary {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  border-color: #000000 !important;       /* 21:1 border */
-}
-
-body.high-contrast .btn-secondary:hover:not(:disabled) {
-  background-color: #ffff00 !important;   /* yellow */
-  color: #000000 !important;              /* 19.6:1 contrast */
+body.high-contrast .btn-primary:hover:not(:disabled),
+body.high-contrast .btn-secondary:hover:not(:disabled),
+body.high-contrast button:hover:not(:disabled),
+body.high-contrast [type="button"]:hover:not(:disabled),
+body.high-contrast [type="submit"]:hover:not(:disabled),
+body.high-contrast [role="button"]:hover:not(:disabled),
+body.high-contrast a[class*="btn"]:hover,
+body.high-contrast a[href*="feedbacks/new"]:hover,
+body.high-contrast a[class*="bg-[#500000]"]:hover,
+body.high-contrast .bg-\[\#500000\]:hover,
+body.high-contrast [class*="text-[#500000]"]:hover,
+body.high-contrast a[class*="border-[#500000]"]:hover {
+  background-color: #ffff00 !important;  /* yellow background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
 }
 
 /* =========================================================
@@ -3209,3 +3227,36 @@ body.high-contrast .role-badge {
   color: #ffffff !important;
   border: 2px solid #ffffff !important;
 }
+
+/* =========================================================
+   Survey "Open" button and all button-like links
+   ========================================================= */
+
+/* Open button and all survey/feedback links - white text on black */
+body.high-contrast .survey-list-card .btn,
+body.high-contrast .survey-list-card .btn-primary,
+body.high-contrast .survey-list-card .btn-secondary,
+body.high-contrast .survey-list-card button,
+body.high-contrast .survey-list-card a,
+body.high-contrast a[class*="button"],
+body.high-contrast a[class*="btn"] {
+  background-color: #000000 !important;  /* black background */
+  color: #ffffff !important;             /* white text */
+  border: 2px solid #ffffff !important;  /* white border */
+  text-decoration: none !important;
+}
+
+/* Hover state: yellow background with black text */
+body.high-contrast .survey-list-card .btn:hover,
+body.high-contrast .survey-list-card .btn-primary:hover,
+body.high-contrast .survey-list-card .btn-secondary:hover,
+body.high-contrast .survey-list-card button:hover,
+body.high-contrast .survey-list-card a:hover,
+body.high-contrast a[class*="button"]:hover,
+body.high-contrast a[class*="btn"]:hover {
+  background-color: #ffff00 !important;  /* yellow background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
+  text-decoration: none !important;
+}
+

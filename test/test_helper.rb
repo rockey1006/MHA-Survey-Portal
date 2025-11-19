@@ -37,8 +37,10 @@ if Rails.env.test? && ENV["LOAD_SEEDS"] == "true"
 end
 require "rails/test_help"
 require "minitest/mock"
+require "factory_bot_rails"
 
 class ActiveSupport::TestCase
+  include FactoryBot::Syntax::Methods
   parallelize(workers: 1)
   fixtures :admins,
            :advisors,
@@ -52,6 +54,7 @@ class ActiveSupport::TestCase
            :program_semesters,
            :users,
            :survey_change_logs,
+           :student_questions,
            :notifications
 end
 

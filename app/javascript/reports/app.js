@@ -25,6 +25,13 @@ const STATUS_LABELS = {
   not_assessed: "Not assessed"
 }
 
+const STATUS_COLOR_MAP = {
+  exceeds: COLORS.exceeds,
+  achieved: COLORS.achieved,
+  not_met: COLORS.notMet,
+  not_assessed: COLORS.notAssessed
+}
+
 let percentagePluginRegistered = false
 
 const percentageLabelPlugin = {
@@ -62,7 +69,7 @@ const API_ENDPOINTS = {
   benchmark: "/api/reports/benchmark",
   competency: "/api/reports/competency-summary",
   competencyDetail: "/api/reports/competency-detail",
-  course: "/api/reports/course-summary"
+  track: "/api/reports/course-summary"
 }
 
 const DEFAULT_FILTERS = {
@@ -706,16 +713,16 @@ const CompetencyDetailChart = ({ data, selectedDomain, onDomainChange, sort, onS
   ])
 }
 
-const CourseAchievementChart = ({ courses }) => {
+const TrackAchievementChart = ({ tracks }) => {
   const canvasRef = useRef(null)
 
   useEffect(() => {
-    if (!canvasRef.current || !Array.isArray(courses) || courses.length === 0) return undefined
+    if (!canvasRef.current || !Array.isArray(tracks) || tracks.length === 0) return undefined
 
-    const labels = courses.map((course) => course.title)
-    const achievedPercents = courses.map((course) => safeNumber(course.achieved_percent) ?? 0)
-    const notMetPercents = courses.map((course) => safeNumber(course.not_met_percent) ?? 0)
-    const notAssessedPercents = courses.map((course) => safeNumber(course.not_assessed_percent) ?? 0)
+    const labels = tracks.map((track) => track.track || track.title)
+    const achievedPercents = tracks.map((track) => safeNumber(track.achieved_percent) ?? 0)
+    const notMetPercents = tracks.map((track) => safeNumber(track.not_met_percent) ?? 0)
+    const notAssessedPercents = tracks.map((track) => safeNumber(track.not_assessed_percent) ?? 0)
 
     const chart = new Chart(canvasRef.current.getContext("2d"), {
       type: "bar",
@@ -751,21 +758,24 @@ const CourseAchievementChart = ({ courses }) => {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: "top" },
+          legend: { display: false },
           tooltip: {
             callbacks: {
               title(context) {
-                const course = courses[context[0].dataIndex]
-                return course ? `${course.title} (${course.semester || "No term"})` : null
+                const trackEntry = tracks[context[0].dataIndex]
+                if (!trackEntry) return null
+                const primary = trackEntry.track || trackEntry.title
+                const secondary = compact([ trackEntry.title, trackEntry.semester ]).join(" · ")
+                return primary || secondary || "Track"
               },
               label(context) {
-                const course = courses[context.dataIndex]
+                const trackEntry = tracks[context.dataIndex]
                 const label = context.dataset.label
                 const percent = safeNumber(context.raw) ?? 0
                 let count = 0
-                if (label === "Achieved") count = course?.achieved_count ?? 0
-                if (label === "Not met") count = course?.not_met_count ?? 0
-                if (label === "Not assessed") count = course?.not_assessed_count ?? 0
+                if (label === "Achieved") count = trackEntry?.achieved_count ?? 0
+                if (label === "Not met") count = trackEntry?.not_met_count ?? 0
+                if (label === "Not assessed") count = trackEntry?.not_assessed_count ?? 0
                 return `${label}: ${percent.toFixed(1)}% (${count})`
               }
             }
@@ -796,24 +806,18 @@ const CourseAchievementChart = ({ courses }) => {
     })
 
     return () => chart.destroy()
-  }, [ courses ])
+  }, [ tracks ])
 
-  if (!Array.isArray(courses) || courses.length === 0) {
-    return h("p", { className: "reports-placeholder" }, "No survey performance data available.")
+  if (!Array.isArray(tracks) || tracks.length === 0) {
+    return h("p", { className: "reports-placeholder" }, "No track performance data available.")
   }
 
-  return h("div", { className: "reports-chart", role: "img", "aria-label": "Percent achieved by course", style: { minHeight: "360px" } },
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Percent achieved by track", style: { minHeight: "360px" } },
     h("canvas", { ref: canvasRef })
   )
 }
 
 const INLINE_EXPORT_BUTTON_CLASS = "inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
-
-const ExportButtons = ({ onExport }) =>
-  h("div", { className: "reports-actions" }, [
-    h("button", { type: "button", className: "reports-button reports-button--primary", onClick: () => onExport("pdf") }, "Export PDF"),
-    h("button", { type: "button", className: "reports-button", onClick: () => onExport("excel") }, "Export Excel")
-  ])
 
 const SectionExportButtons = ({ onExport, section }) => {
   if (!section) return null
@@ -876,13 +880,16 @@ const TabNavigation = ({ tabs, activeKey, onChange }) => {
   )
 }
 
-const StatusLegend = () => {
-  const entries = [
-    { key: "exceeds", label: STATUS_LABELS.exceeds, color: COLORS.exceeds },
-    { key: "achieved", label: STATUS_LABELS.achieved, color: COLORS.achieved },
-    { key: "not_met", label: STATUS_LABELS.not_met, color: COLORS.notMet },
-    { key: "not_assessed", label: STATUS_LABELS.not_assessed, color: COLORS.notAssessed }
-  ]
+const StatusLegend = ({ statuses = [ "exceeds", "achieved", "not_met", "not_assessed" ] }) => {
+  const entries = statuses
+    .map((status) => ({
+      key: status,
+      label: STATUS_LABELS[status],
+      color: STATUS_COLOR_MAP[status] || ratingColor(status)
+    }))
+    .filter((entry) => entry.label && entry.color)
+
+  if (entries.length === 0) return null
 
   return h("div", { className: "flex flex-wrap gap-4 text-xs text-slate-600" },
     entries.map((entry) => h("span", { key: entry.key, className: "inline-flex items-center gap-2" }, [
@@ -897,7 +904,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
   const [ filters, setFilters ] = useState(DEFAULT_FILTERS)
   const [ benchmark, setBenchmark ] = useState(null)
   const [ competencies, setCompetencies ] = useState([])
-  const [ courses, setCourses ] = useState([])
+  const [ tracks, setTracks ] = useState([])
   const [ competencyDetail, setCompetencyDetail ] = useState(null)
   const [ loading, setLoading ] = useState(true)
   const [ error, setError ] = useState(null)
@@ -917,10 +924,10 @@ const ReportsApp = ({ exportUrls = {} }) => {
       const inputFilters = (nextFilters && typeof nextFilters === "object") ? nextFilters : filtersRef.current
       const resolvedFilters = { ...DEFAULT_FILTERS, ...inputFilters }
       const query = buildQueryString(resolvedFilters)
-      const [ benchmarkRes, competencyRes, courseRes, competencyDetailRes ] = await Promise.all([
+      const [ benchmarkRes, competencyRes, trackRes, competencyDetailRes ] = await Promise.all([
         fetchJson(`${API_ENDPOINTS.benchmark}${query}`),
         fetchJson(`${API_ENDPOINTS.competency}${query}`),
-        fetchJson(`${API_ENDPOINTS.course}${query}`),
+        fetchJson(`${API_ENDPOINTS.track}${query}`),
         fetchJson(`${API_ENDPOINTS.competencyDetail}${query}`)
       ])
 
@@ -928,7 +935,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       setFilters(resolvedFilters)
       setBenchmark(benchmarkRes)
       setCompetencies(Array.isArray(competencyRes) ? competencyRes : [])
-      setCourses(Array.isArray(courseRes) ? courseRes : [])
+      setTracks(Array.isArray(trackRes) ? trackRes : [])
       setCompetencyDetail(competencyDetailRes)
     } catch (err) {
       console.error(err)
@@ -1054,7 +1061,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       label: "Trend",
       title: "Progress Over Time",
       description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "benchmark" }),
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
       content: timeline.length > 0
         ? h(TrendChart, { timeline })
         : h("p", { className: "reports-placeholder" }, "No trend data available."),
@@ -1066,7 +1073,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       label: "Domain",
       title: "Num Achieved by Domain",
       description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per domain.",
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "domain" }),
       content: h(DomainAverageChart, { items: competencies }),
       footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
         "Averages are calculated based on all responses within each domain.",
@@ -1088,19 +1095,22 @@ const ReportsApp = ({ exportUrls = {} }) => {
     })
 
     tabs.push({
-      key: "course",
-      label: "Course",
+      key: "track",
+      label: "Track",
       title: "% All Competency Achieved by Track",
       description: "Horizontal stacked bars highlight attainment percentages alongside missing and unassessed counts.",
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "course" }),
-      content: h(CourseAchievementChart, { courses }),
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "track" }),
+      content: h(React.Fragment, null, [
+        h(StatusLegend, { statuses: [ "achieved", "not_met", "not_assessed" ] }),
+        h(TrackAchievementChart, { tracks })
+      ]),
       footnote: (filtersDescription && filtersDescription !== "None")
         ? h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
         : null
     })
 
     return tabs
-  }, [ competencies, competencyAchievementItems, courses, filtersDescription, handleExport, handleViewModeChange, singleStudentDisabled, studentSelectionRequired, timeline, viewMode ])
+  }, [ competencies, competencyAchievementItems, filtersDescription, handleExport, handleViewModeChange, singleStudentDisabled, studentSelectionRequired, timeline, tracks, viewMode ])
 
   useEffect(() => {
     if (!Array.isArray(chartTabs) || chartTabs.length === 0) return
@@ -1125,7 +1135,6 @@ const ReportsApp = ({ exportUrls = {} }) => {
 
   return h("div", { className: "reports-layout space-y-8" }, [
     h(FilterBar, { filters, options, onChange: handleFilterChange, onReset: handleReset }),
-    h(ExportButtons, { onExport: handleExport }),
     summaryCards.length > 0 ? h(SummaryCards, { cards: summaryCards }) : null,
     h("section", { className: "reports-panel space-y-5" }, [
       h("div", { className: "space-y-1" }, [

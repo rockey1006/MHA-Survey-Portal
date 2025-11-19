@@ -21,7 +21,13 @@
   <div class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-slate-700">Language</label>
-            <%= f.select :language, options_for_select([["English", "en"], ["Spanish", "es"]], @user.language), include_blank: "Select language", class: "mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm" %>
+            <%# Show current app language as plain text. Keep a hidden input so the settings form
+                can still submit the language value if JS updates it (e.g., Google Translate handler).
+            %>
+            <% lang_code = (@user&.language.presence || 'en') %>
+            <% lang_labels = { 'en' => 'English', 'es' => 'Spanish', 'fr' => 'Français', 'de' => 'Deutsch', 'zh-CN' => '中文 (简体)', 'zh-TW' => '中文 (繁體)', 'ja' => '日本語', 'ko' => '한국어', 'pt' => 'Português', 'ru' => 'Русский' } %>
+            <div id="current-language-display" class="mt-1 block w-full rounded-md border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"><%= lang_labels[lang_code] || lang_code %></div>
+            <%= f.hidden_field :language, value: lang_code, id: 'settings_language_input' %>
           </div>
 
           <div>
@@ -34,12 +40,7 @@
             <p class="text-xs text-slate-500 mt-1">Increase text size up to 200% for accessibility. Line spacing and controls will scale proportionally.</p>
           </div>
 
-          <div>
-            <div class="flex items-center gap-3">
-              <%= f.check_box :notifications_enabled, class: "h-4 w-4 text-blue-600" %>
-              <label class="text-sm text-slate-700">Enable email notifications</label>
-            </div>
-          </div>
+          <%# Email notifications setting removed per product request - kept in DB for now but no UI control %>
 
           <div class="pt-4">
             <%= f.submit "Save changes", class: "inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white text-sm hover:bg-blue-700" %>
@@ -111,5 +112,42 @@
         alert('Failed to save settings. Please try again.');
       });
     });
+  })();
+</script>
+<script>
+  // Update the visible language display from Google Translate cookie if present.
+  (function() {
+    function readCookie(name) {
+      var m = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]+)'));
+      return m ? decodeURIComponent(m[2]) : null;
+    }
+
+    var display = document.getElementById('current-language-display');
+    var hiddenInput = document.getElementById('settings_language_input');
+    if (!display || !hiddenInput) return;
+
+    // Map common language codes to labels
+    var labels = {
+      'en': 'English', 'es': 'Spanish', 'fr': 'Français', 'de': 'Deutsch',
+      'zh-CN': '中文 (简体)', 'zh-TW': '中文 (繁體)', 'ja': '日本語', 'ko': '한국어',
+      'pt': 'Português', 'ru': 'Русский'
+    };
+
+    try {
+      var g = readCookie('googtrans');
+      if (g && g !== '/auto/en') {
+        var code = g.split('/').pop();
+        // Google sometimes uses short codes like 'zh-CN' or 'zh_TW' with underscore
+        code = code.replace('_', '-');
+        display.textContent = labels[code] || code;
+        hiddenInput.value = code;
+      } else {
+        // No active translation cookie; ensure display matches saved user language
+        var saved = hiddenInput.value || 'en';
+        display.textContent = labels[saved] || saved;
+      }
+    } catch (e) {
+      // ignore
+    }
   })();
 </script>

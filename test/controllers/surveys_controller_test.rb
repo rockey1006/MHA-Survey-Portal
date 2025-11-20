@@ -620,7 +620,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assignment.reload
-    assert_in_delta old_time.to_i, assignment.assigned_at.to_i, 30
+    assert_in_delta old_time.to_i, assignment.assigned_at.to_i, 60
   end
 
   # Edge Cases

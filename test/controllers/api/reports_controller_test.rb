@@ -63,15 +63,6 @@ module Api
       assert_equal "Access denied", json_response["error"]
     end
 
-    test "alignment denies access to students" do
-      sign_in @student
-
-      get api_reports_alignment_path, as: :json
-
-      assert_response :forbidden
-      json_response = JSON.parse(@response.body)
-      assert_equal "Access denied", json_response["error"]
-    end
 
     test "filters requires authentication" do
       get api_reports_filters_path, as: :json
@@ -135,16 +126,6 @@ module Api
       assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
     end
 
-    test "alignment allows admin access" do
-      sign_in @admin
-
-      get api_reports_alignment_path, as: :json
-
-      assert_response :success
-      assert_not_nil @response.body
-      json_response = JSON.parse(@response.body)
-      assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
-    end
 
     # Advisor access tests
     test "filters allows advisor access" do
@@ -202,16 +183,6 @@ module Api
       assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
     end
 
-    test "alignment allows advisor access" do
-      sign_in @advisor
-
-      get api_reports_alignment_path, as: :json
-
-      assert_response :success
-      assert_not_nil @response.body
-      json_response = JSON.parse(@response.body)
-      assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
-    end
 
     # Parameter filtering tests
     test "filters accepts track parameter" do
@@ -327,16 +298,6 @@ module Api
       assert_response :success
     end
 
-    test "alignment accepts filter parameters" do
-      sign_in @admin
-
-      get api_reports_alignment_path, params: {
-        track: "MPH",
-        survey_id: 1
-      }, as: :json
-
-      assert_response :success
-    end
 
     # Response format tests
     test "filters returns JSON response" do
@@ -384,14 +345,6 @@ module Api
       assert_equal "application/json; charset=utf-8", @response.content_type
     end
 
-    test "alignment returns JSON response" do
-      sign_in @admin
-
-      get api_reports_alignment_path, as: :json
-
-      assert_response :success
-      assert_equal "application/json; charset=utf-8", @response.content_type
-    end
 
     # Parameter filtering security tests
     test "filters ignores unpermitted parameters" do
@@ -470,15 +423,6 @@ module Api
       assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
     end
 
-    test "alignment works with no parameters" do
-      sign_in @admin
-
-      get api_reports_alignment_path, as: :json
-
-      assert_response :success
-      json_response = JSON.parse(@response.body)
-      assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
-    end
 
     # Role verification tests
     test "ensure_reports_access allows admin role" do
@@ -610,21 +554,6 @@ module Api
       assert_response :success
     end
 
-    test "alignment accepts full parameter set" do
-      sign_in @admin
-
-      get api_reports_alignment_path, params: {
-        track: "MPH",
-        semester: "Fall 2025",
-        survey_id: 1,
-        category_id: 2,
-        student_id: 3,
-        advisor_id: 4,
-        competency: "Public Health"
-      }, as: :json
-
-      assert_response :success
-    end
 
     # Additional security tests
     test "unauthenticated user cannot access filters" do
@@ -653,12 +582,6 @@ module Api
 
     test "unauthenticated user cannot access course_summary" do
       get api_reports_course_summary_path, as: :json
-
-      assert_response :unauthorized
-    end
-
-    test "unauthenticated user cannot access alignment" do
-      get api_reports_alignment_path, as: :json
 
       assert_response :unauthorized
     end

@@ -3,17 +3,25 @@ require "test_helper"
 class RegressionEvidenceValidationTest < ActiveSupport::TestCase
   test "evidence question rejects non-drive links on submit" do
     survey = surveys(:fall_2025)
-    q = questions(:fall_q1)
-    assert_not_equal "evidence", q.question_type
+    category = survey.categories.first || survey.categories.create!(name: "Temp", description: "Temp")
+    evidence_question = survey.questions.find_by(question_type: "evidence")
+    evidence_question ||= Question.create!(
+      category: category,
+      question_text: "Upload evidence",
+      question_order: 999,
+      question_type: "evidence",
+      is_required: false
+    )
 
-    # simulate an evidence question validation via StudentQuestion validate_evidence_link
-    sq = StudentQuestion.new(student_id: students(:student).student_id, question: q)
+    student = students(:student)
+    StudentQuestion.where(student_id: student.student_id, question_id: evidence_question.id).delete_all
+
+    sq = StudentQuestion.new(student_id: student.student_id, question: evidence_question)
     sq.response_value = "https://example.com/not-drive"
-    if q.question_type == "evidence"
-      refute sq.valid?
-    else
-      # if the fixture question is not evidence type, ensure StudentQuestion.valid? still returns true
-      assert sq.valid?
-    end
+    refute sq.valid?, "Expected evidence validation to reject non-drive links"
+    assert_includes sq.errors[:response_value], "must be a Google Drive file or folder link"
+
+    sq.response_value = "https://drive.google.com/file/d/abc/view"
+    assert sq.valid?, "Expected evidence validation to accept drive links"
   end
 end

@@ -39,6 +39,7 @@ class SurveyResponseTest < ActiveSupport::TestCase
 
     @survey = surveys(:fall_2025)
     @question = questions(:fall_q1)
+    StudentQuestion.where(student_id: @student.student_id).delete_all
   end
 
   test "answers returns student responses keyed by question id" do

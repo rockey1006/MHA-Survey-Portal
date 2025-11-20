@@ -10,9 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_10_000200) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "admin_activity_logs", force: :cascade do |t|
+    t.bigint "admin_id", null: false
+    t.string "action", null: false
+    t.string "subject_type"
+    t.bigint "subject_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id"], name: "index_admin_activity_logs_on_admin_id"
+    t.index ["subject_type", "subject_id"], name: "index_admin_activity_logs_on_subject"
+  end
 
   create_table "admins", primary_key: "admin_id", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -42,8 +55,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_10_000200) do
     t.string "comments"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "question_id"
     t.index ["advisor_id"], name: "index_feedback_on_advisor_id"
     t.index ["category_id"], name: "index_feedback_on_category_id"
+    t.index ["question_id"], name: "index_feedback_on_question_id"
     t.index ["student_id"], name: "index_feedback_on_student_id"
     t.index ["survey_id"], name: "index_feedback_on_survey_id"
   end
@@ -63,8 +78,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_10_000200) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "program_semesters", force: :cascade do |t|
+    t.string "name", null: false
+    t.boolean "current", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["current"], name: "index_program_semesters_on_current", where: "(current = true)"
+    t.index ["name"], name: "index_program_semesters_on_name", unique: true
+  end
+
   create_table "questions", force: :cascade do |t|
     t.string "question_text", null: false
+    t.text "description"
     t.integer "question_order", null: false
     t.boolean "is_required", default: false, null: false
     t.string "question_type", null: false
@@ -146,6 +171,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_10_000200) do
     t.text "description"
     t.boolean "is_active", default: true, null: false
     t.bigint "created_by_id"
+    t.index "lower((title)::text), lower((semester)::text)", name: "index_surveys_on_lower_title_and_semester", unique: true
     t.index ["created_by_id"], name: "index_surveys_on_created_by_id"
     t.index ["is_active"], name: "index_surveys_on_is_active"
     t.index ["track"], name: "index_surveys_on_track"
@@ -169,11 +195,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_10_000200) do
     t.index ["uid"], name: "index_users_on_uid", unique: true
   end
 
+  add_foreign_key "admin_activity_logs", "users", column: "admin_id", on_delete: :cascade
   add_foreign_key "admins", "users", column: "admin_id", on_delete: :cascade
   add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
   add_foreign_key "categories", "surveys"
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
+  add_foreign_key "feedback", "questions"
   add_foreign_key "feedback", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "feedback", "surveys", on_delete: :cascade
   add_foreign_key "notifications", "users", on_delete: :cascade

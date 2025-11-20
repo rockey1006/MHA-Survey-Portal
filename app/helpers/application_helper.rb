@@ -4,7 +4,7 @@ module ApplicationHelper
   # Base Tailwind utility classes applied to flash messages.
   FLASH_BASE_CLASSES = "mb-4 flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 shadow-sm".freeze
   # Query string keys that should be preserved when building sortable headers.
-  SURVEY_SORTABLE_KEYS = %w[q track semester group_by].freeze
+  SURVEY_SORTABLE_KEYS = %w[q track semester].freeze
 
   # Computes alert styling classes based on the flash key.
   #

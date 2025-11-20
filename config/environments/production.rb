@@ -50,8 +50,14 @@ Rails.application.configure do
   config.cache_store = :solid_cache_store
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
+  # Use inline in production temporarily to avoid dependency on SolidQueue and
+  # its separate queue DB while diagnosing Heroku failures. This makes jobs
+  # execute synchronously within the request lifecycle — acceptable as a
+  # short-term mitigation but not for long-term async workloads.
+  config.active_job.queue_adapter = :inline
+  # If you later re-enable SolidQueue, restore the following line and ensure
+  # the queue database is migrated and SolidQueue workers are running:
+  # config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

@@ -11,15 +11,12 @@
     </p>
   </header>
 
-  <% if (@invalid_evidence.present? || @missing_rating_ids.present?) %>
+  <% if @invalid_evidence.present? %>
     <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
       <p class="font-medium">Please fix the highlighted items:</p>
       <ul class="mt-1 list-disc pl-5">
         <% if @invalid_evidence.present? %>
           <li>One or more evidence links are invalid or not publicly accessible.</li>
-        <% end %>
-        <% if @missing_rating_ids.present? %>
-          <li>Self-rating (1–5) is required for each evidence item.</li>
         <% end %>
       </ul>
     </div>
@@ -35,26 +32,45 @@
           <% end %>
         </header>
 
+        <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
         <% category.questions.ordered.each_with_index do |question, index| %>
+          <%# Skip evidence question entirely for selected categories (don't render label or input) %>
+          <% if question.question_type == 'evidence' && excluded_categories.include?(category.name.to_s) %>
+            <% next %>
+          <% end %>
           <% field_name = "answers[#{question.id}]" %>
           <% current_value = @existing_answers[question.id.to_s] %>
           <% required = @computed_required[question.id] %>
 
           <article class="space-y-2 question-block" data-question-id="<%= question.id %>">
+            <% q_text = question.question_text.to_s.strip %>
+            <% desc = nil %>
+            <% if question.question_type == "multiple_choice" %>
+              <% desc = question.description.presence || competency_description_for(q_text) %>
+            <% end %>
+
             <label class="block text-sm font-medium text-slate-900" for="question-<%= question.id %>">
               <span class="font-semibold">Q<%= index + 1 %></span>
-              <span class="ml-2"><%= question.question_text %></span>
-              <% if required %>
-                <span class="ml-1 text-red-600" aria-hidden="true">*</span>
-              <% end %>
+              <span class="ml-2 inline-flex flex-col gap-1">
+                <span class="flex flex-wrap items-center gap-2">
+                  <span><%= q_text %></span>
+                  <% if desc.present? %>
+                    <span class="inline-flex"><%= render 'shared/proficiency_icon' %></span>
+                  <% end %>
+                  <% if required %>
+                    <span class="text-red-600" aria-hidden="true">*</span>
+                  <% end %>
+                </span>
+                <% if desc.present? %>
+                  <span class="text-xs text-slate-600"><%= desc %></span>
+                <% end %>
+              </span>
             </label>
 
             <% case question.question_type %>
             <% when "short_answer" %>
               <%= text_area_tag field_name, current_value, rows: 3, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-              <% if required && (current_value.nil? || current_value.to_s.strip.blank?) && request.post? %>
-                <div class="text-xs text-red-600 mt-1">This question is required</div>
-              <% end %>
+              
             <% when "multiple_choice" %>
               <% options = question.answer_options_list.presence || [] %>
               <div class="flex flex-col gap-2" role="radiogroup">
@@ -65,48 +81,45 @@
                   </label>
                 <% end %>
               </div>
-              <% if required && (current_value.nil? || current_value.to_s.strip.blank?) && request.post? %>
-                <div class="text-xs text-red-600 mt-1">This question is required</div>
-              <% end %>
+              
             <% when "scale" %>
               <div class="flex items-center gap-3">
                 <span class="text-xs text-slate-500">Low</span>
                 <%= range_field_tag field_name, current_value || 3, in: 1..5, step: 1, id: "question-#{question.id}", class: "w-full" %>
                 <span class="text-xs text-slate-500">High</span>
               </div>
-              <% if required && (current_value.nil? || current_value.to_s.strip.blank?) && request.post? %>
-                <div class="text-xs text-red-600 mt-1">This question is required</div>
-              <% end %>
+              
             <% when "evidence" %>
-              <% evidence_link = current_value.is_a?(Hash) ? current_value["link"] : current_value %>
-              <%= text_field_tag field_name, evidence_link, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-              <% if required && (evidence_link.nil? || evidence_link.to_s.strip.blank?) && request.post? %>
-                <div class="text-xs text-red-600 mt-1">This question is required</div>
-              <% elsif evidence_link.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
-                <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
-              <% end %>
+              <%# Skip rendering evidence link questions for specific categories per request %>
+              <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
+              <% if excluded_categories.exclude?(category.name.to_s) %>
+                <% evidence_link = current_value.is_a?(Hash) ? current_value["link"] : current_value %>
+                <%= text_field_tag field_name, evidence_link, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                <% if required && (evidence_link.nil? || evidence_link.to_s.strip.blank?) && request.post? %>
+                  
+                <% elsif evidence_link.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
+                  <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
+                <% end %>
 
-              <% unless category.name == "Employment Information" %>
-                <% rating_value = current_value.is_a?(Hash) ? current_value["rating"] : (@existing_ratings && @existing_ratings[question.id.to_s]) %>
-                <div class="mt-3 space-y-1">
-                  <label class="block text-xs font-medium text-slate-700" for="question-<%= question.id %>-rating">
-                    Self-rating (1–5)
-                    <span class="text-red-600" aria-hidden="true">*</span>
-                  </label>
-                  <%= select_tag "answers_rating[#{question.id}]",
-                                options_for_select((1..5).map { |n| [n, n] }, rating_value),
-                                include_blank: true,
-                                id: "question-#{question.id}-rating",
-                                class: "w-32 rounded-md border border-slate-300 px-2 py-1 text-sm" %>
-                  <% if (@missing_rating_ids && @missing_rating_ids.include?(question.id)) %>
-                    <div class="text-xs text-red-600 mt-1">Self-rating is required</div>
-                  <% end %>
-                </div>
+                <%# Evidence questions render link input only when allowed %>
               <% end %>
+              
             <% else %>
               <%= text_field_tag field_name, current_value, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-              <% if required && (current_value.nil? || current_value.to_s.strip.blank?) && request.post? %>
-                <div class="text-xs text-red-600 mt-1">This question is required</div>
+              
+            <% end %>
+
+            <%# Render required message under the question input if missing (for question-level required) %>
+            <% if required && request.post? %>
+              <% if question.question_type == 'evidence' %>
+                <% evidence_link = current_value.is_a?(Hash) ? current_value["link"] : current_value %>
+                <% if evidence_link.nil? || evidence_link.to_s.strip.blank? %>
+                  <div class="text-xs text-red-600 mt-1">This question is required</div>
+                <% end %>
+              <% else %>
+                <% if current_value.nil? || current_value.to_s.strip.blank? %>
+                  <div class="text-xs text-red-600 mt-1">This question is required</div>
+                <% end %>
               <% end %>
             <% end %>
 

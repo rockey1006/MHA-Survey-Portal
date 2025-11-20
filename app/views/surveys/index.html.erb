@@ -1,37 +1,75 @@
-<h1 class="page-title">Active Surveys</h1>
+<% welcome_source = @student&.user&.name.presence || current_user&.name.presence || current_user&.email.presence %>
+<% welcome_name = welcome_source.to_s.split(/\s+/).first.presence || "Welcome" %>
+<div class="surveys-page">
+  <section class="survey-hero">
+    <div>
+      <p class="eyebrow">My Surveys</p>
+      <h1><%= welcome_name %>, here's what's waiting for you</h1>
+      <% if @student&.track.present? %>
+        <p class="subtitle">You are viewing surveys for the <strong><%= @student.track %></strong> track.</p>
+      <% else %>
+        <p class="subtitle">Select your program track so we can curate the correct surveys for you.</p>
+      <% end %>
+    </div>
+    <div class="survey-hero__badge">
+      <span>Semester</span>
+      <strong><%= @current_semester_label %></strong>
+    </div>
+  </section>
 
-<% if @surveys.any? %>
-  <div class="survey-grid">
-    <% @surveys.each do |survey| %>
-      <article class="survey-card">
-        <header class="survey-card__header">
-          <h2 class="survey-card__title"><%= link_to survey.title, survey_path(survey) %></h2>
-          <span class="survey-card__meta">Semester: <%= survey.semester.presence || "TBD" %></span>
-        </header>
+  <% if @student&.track.blank? %>
+    <section class="empty-state-card">
+      <h2>Finish setting up your profile</h2>
+      <p>We need to know your track before we can display the correct surveys. Head over to your profile and select Residential or Executive.</p>
+      <%= link_to "Complete Profile", edit_student_profile_path, class: "btn btn-primary" %>
+    </section>
+  <% elsif @surveys.any? %>
+    <div class="survey-board" role="list">
+      <% @surveys.each do |survey| %>
+        <% assignment = @assignment_lookup[survey.id] %>
+        <% status_label, status_variant = survey_assignment_status(assignment) %>
+        <article class="survey-card" role="listitem">
+          <header class="survey-card__header">
+            <div>
+              <p class="survey-card__semester"><%= survey.semester.presence || "Semester TBD" %></p>
+              <h2><%= link_to survey.title, survey_path(survey) %></h2>
+            </div>
+            <div class="survey-card__status">
+              <span class="status-badge status-badge--<%= status_variant %>"><%= status_label %></span>
+              <span class="status-note"><%= survey_due_badge_text(assignment) %></span>
+            </div>
+          </header>
 
-        <dl class="survey-card__details">
-          <div>
-            <dt>Assigned Tracks</dt>
-            <dd><%= survey.track_list.presence&.join(", ") || "Not yet assigned" %></dd>
-          </div>
-          <div>
-            <dt>Questions</dt>
-            <dd><%= pluralize(survey.questions.count, "question") %></dd>
-          </div>
-          <div>
-            <dt>Created</dt>
-            <dd><%= l survey.created_at, format: :long %></dd>
-          </div>
-        </dl>
+          <ul class="survey-card__stats">
+            <li>
+              <span>Questions</span>
+              <strong><%= survey.questions.count %></strong>
+            </li>
+            <li>
+              <span>Track</span>
+              <strong><%= survey.track_list.presence&.join(" • ") || "Unassigned" %></strong>
+            </li>
+            <li>
+              <span>Last updated</span>
+              <strong><%= l survey.updated_at, format: :long %></strong>
+            </li>
+          </ul>
 
-        <footer class="survey-card__footer">
-          <%= link_to "Open Survey", survey_path(survey), class: "btn btn-primary" %>
-        </footer>
-      </article>
-    <% end %>
-  </div>
-<% else %>
-  <p class="empty-state">No active surveys are available right now.</p>
-<% end %>
+          <p class="survey-card__description"><%= survey.description.presence || "Complete this survey to capture your latest progress." %></p>
+
+          <footer class="survey-card__footer">
+            <%= link_to(assignment&.completed_at? ? "View Submission" : "Open Survey", survey_path(survey), class: "btn btn-primary") %>
+          </footer>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <section class="empty-state-card">
+      <h2>No surveys assigned (yet)</h2>
+      <p>Your advisor hasn't published surveys for the <%= @student.track %> track. We'll notify you as soon as one arrives.</p>
+      <%= link_to "Back to dashboard", student_dashboard_path, class: "btn btn-secondary" %>
+    </section>
+  <% end %>
+</div>
 
 

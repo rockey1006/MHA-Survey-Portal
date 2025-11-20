@@ -71,9 +71,6 @@ surveys:
           - order: 11
             text: "If no, why not?"
             type: "short_answer"
-          - order: 12
-            text: "Please provide a Google Drive link as evidence for this section."
-            type: "evidence"
             required: true
       - name: "Mentor Relationships (RMHA Only)"
         description: "Mentorship Information"
@@ -102,10 +99,7 @@ surveys:
           - order: 6
             text: "If not, why not?"
             type: "short_answer"
-          - order: 7
-            text: "Please provide a Google Drive link as evidence for this section."
-            type: "evidence"
-            required: true
+          # evidence question removed per request
       - name: "Volunteering/Service"
         description: "Volunteer Work Information"
         questions:
@@ -120,128 +114,202 @@ surveys:
           - order: 3
             text: "If no, why not?"
             type: "short_answer"
-          - order: 4
-            text: "Please provide a Google Drive link as evidence for this section."
-            type: "evidence"
-            required: true
+          # evidence question removed per request
       - name: "Health Care Environment and Community"
         description: "Relation between health care operations and community organizations and policies"
         questions:
           - order: 1
             text: "Public and Population Health Assessment"
-            type: "short_answer"
-            required: true
-            required: true
-            required: true
-            required: true
-            required: true
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
           - order: 2
-            text: "Delivery, Organization, and Financing of Health Services"
+            text: "Public and Population Health Assessment Reflection"
             type: "short_answer"
-            required: true
-            required: true
-            required: true
-            required: true
-            required: true
-            required: true
+            required: false
           - order: 3
-            text: "Policy Analysis"
-            type: "short_answer"
-            required: true
-            required: true
-            required: true
-            required: true
-            required: true
+            text: "Delivery, Organization, and Financing of Health Services and Health Systems"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
           - order: 4
-            text: "Legal and Ethical Bases for Health Services"
+            text: "Delivery, Organization, and Financing of Health Services and Health Systems Reflection"
             type: "short_answer"
-            required: true
-            required: true
-            required: true
-            required: true
-            required: true
+            required: false
           - order: 5
+            text: "Policy Analysis"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
+            required: true
+          - order: 6
+            text: "Policy Analysis Reflection"
+            type: "short_answer"
+            required: false
+          - order: 7
+            text: "Legal & Ethical Bases for Health Services and Health Systems"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
+            required: true
+          - order: 8
+            text: "Legal & Ethical Bases for Health Services and Health Systems Reflection"
+            type: "short_answer"
+            required: false
+          - order: 9
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
-            required: true
             required: true
       - name: "Leadership Skills"
         description: "Motivation and empowerment of organizational resources"
         questions:
           - order: 1
             text: "Ethics, Accountability, and Self-Assessment"
-            type: "short_answer"
-            required: true
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
           - order: 2
-            text: "Organizational Dynamics"
+            text: "Ethics, Accountability, and Self-Assessment Reflection"
             type: "short_answer"
-            required: true
-            required: true
+            required: false
           - order: 3
-            text: "Problem Solving, Decision Making, and Critical Thinking"
-            type: "short_answer"
-            required: true
+            text: "Organizational Dynamics"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
           - order: 4
-            text: "Team Building and Collaboration"
+            text: "Organizational Dynamics Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 5
+            text: "Problem Solving, Decision Making, and Critical Thinking"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Data, analytic methods, and judgment used in support of leadership decisions"
+            required: true
+          - order: 6
+            text: "Problem Solving, Decision Making, and Critical Thinking Reflection"
+            type: "short_answer"
+            required: false
+          - order: 7
+            text: "Team Building and Collaboration"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
+            required: true
+          - order: 8
+            text: "Team Building and Collaboration Reflection"
+            type: "short_answer"
+            required: false
+          - order: 9
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
-            required: true
             required: true
       - name: "Management Skills"
         description: "Control and organization of health services delivery"
         questions:
           - order: 1
             text: "Strategic Planning"
-            type: "short_answer"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
           - order: 2
-            text: "Business Planning"
+            text: "Strategic Planning Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 3
-            text: "Communication"
-            type: "short_answer"
+            text: "Business Planning"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
           - order: 4
-            text: "Financial Management"
+            text: "Business Planning Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 5
-            text: "Performance Improvement"
-            type: "short_answer"
+            text: "Communication"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
           - order: 6
-            text: "Project Management"
+            text: "Communication Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 7
+            text: "Financial Management"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Read, understand, and analyze financial statements and audited financial reports"
+            required: true
+          - order: 8
+            text: "Financial Management Reflection"
+            type: "short_answer"
+            required: false
+          - order: 9
+            text: "Performance Improvement"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
+            required: true
+          - order: 10
+            text: "Performance Improvement Reflection"
+            type: "short_answer"
+            required: false
+          - order: 11
+            text: "Project Management"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
+            required: true
+          - order: 12
+            text: "Project Management Reflection"
+            type: "short_answer"
+            required: false
+          - order: 13
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
-            required: true
             required: true
       - name: "Analytic and Technical Skills"
         description: "Successful accomplishment of tasks in health services delivery"
         questions:
           - order: 1
             text: "Systems Thinking"
-            type: "short_answer"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Interrelationships between and among constituent parts of an organization"
             required: true
           - order: 2
-            text: "Data Analysis and Information Management"
+            text: "Systems Thinking Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 3
-            text: "Quantitative Methods for Health Services Delivery"
-            type: "short_answer"
+            text: "Data Analysis and Information Management"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
           - order: 4
+            text: "Data Analysis and Information Management Reflection"
+            type: "short_answer"
+            required: false
+          - order: 5
+            text: "Quantitative Methods for Health Services Delivery"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
+            required: true
+          - order: 6
+            text: "Quantitative Methods for Health Services Delivery Reflection"
+            type: "short_answer"
+            required: false
+          - order: 7
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
             required: true
@@ -279,21 +347,45 @@ surveys:
         questions:
           - order: 1
             text: "Public and Population Health Assessment"
-            type: "short_answer"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
           - order: 2
-            text: "Delivery, Organization, and Financing of Health Services"
+            text: "Public and Population Health Assessment Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 3
-            text: "Policy Analysis"
-            type: "short_answer"
+            text: "Delivery, Organization, and Financing of Health Services and Health Systems"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
           - order: 4
-            text: "Legal and Ethical Bases for Health Services"
+            text: "Delivery, Organization, and Financing of Health Services and Health Systems Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 5
+            text: "Policy Analysis"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
+            required: true
+          - order: 6
+            text: "Policy Analysis Reflection"
+            type: "short_answer"
+            required: false
+          - order: 7
+            text: "Legal & Ethical Bases for Health Services and Health Systems"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
+            required: true
+          - order: 8
+            text: "Legal & Ethical Bases for Health Services and Health Systems Reflection"
+            type: "short_answer"
+            required: false
+          - order: 9
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
             required: true
@@ -302,21 +394,45 @@ surveys:
         questions:
           - order: 1
             text: "Ethics, Accountability, and Self-Assessment"
-            type: "short_answer"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
           - order: 2
-            text: "Organizational Dynamics"
+            text: "Ethics, Accountability, and Self-Assessment Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 3
-            text: "Problem Solving, Decision Making, and Critical Thinking"
-            type: "short_answer"
+            text: "Organizational Dynamics"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
           - order: 4
-            text: "Team Building and Collaboration"
+            text: "Organizational Dynamics Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 5
+            text: "Problem Solving, Decision Making, and Critical Thinking"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Data, analytic methods, and judgment used in support of leadership decisions"
+            required: true
+          - order: 6
+            text: "Problem Solving, Decision Making, and Critical Thinking Reflection"
+            type: "short_answer"
+            required: false
+          - order: 7
+            text: "Team Building and Collaboration"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
+            required: true
+          - order: 8
+            text: "Team Building and Collaboration Reflection"
+            type: "short_answer"
+            required: false
+          - order: 9
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
             required: true
@@ -325,29 +441,65 @@ surveys:
         questions:
           - order: 1
             text: "Strategic Planning"
-            type: "short_answer"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
           - order: 2
-            text: "Business Planning"
+            text: "Strategic Planning Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 3
-            text: "Communication"
-            type: "short_answer"
+            text: "Business Planning"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
           - order: 4
-            text: "Financial Management"
+            text: "Business Planning Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 5
-            text: "Performance Improvement"
-            type: "short_answer"
+            text: "Communication"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
           - order: 6
-            text: "Project Management"
+            text: "Communication Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 7
+            text: "Financial Management"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Read, understand, and analyze financial statements and audited financial reports"
+            required: true
+          - order: 8
+            text: "Financial Management Reflection"
+            type: "short_answer"
+            required: false
+          - order: 9
+            text: "Performance Improvement"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
+            required: true
+          - order: 10
+            text: "Performance Improvement Reflection"
+            type: "short_answer"
+            required: false
+          - order: 11
+            text: "Project Management"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
+            required: true
+          - order: 12
+            text: "Project Management Reflection"
+            type: "short_answer"
+            required: false
+          - order: 13
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
             required: true
@@ -356,17 +508,35 @@ surveys:
         questions:
           - order: 1
             text: "Systems Thinking"
-            type: "short_answer"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Interrelationships between and among constituent parts of an organization"
             required: true
           - order: 2
-            text: "Data Analysis and Information Management"
+            text: "Systems Thinking Reflection"
             type: "short_answer"
-            required: true
+            required: false
           - order: 3
-            text: "Quantitative Methods for Health Services Delivery"
-            type: "short_answer"
+            text: "Data Analysis and Information Management"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
           - order: 4
+            text: "Data Analysis and Information Management Reflection"
+            type: "short_answer"
+            required: false
+          - order: 5
+            text: "Quantitative Methods for Health Services Delivery"
+            type: "multiple_choice"
+            options: ["1", "2", "3", "4", "5"]
+            description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
+            required: true
+          - order: 6
+            text: "Quantitative Methods for Health Services Delivery Reflection"
+            type: "short_answer"
+            required: false
+          - order: 7
             text: "Please provide a Google Drive link as evidence for this section."
             type: "evidence"
             required: true

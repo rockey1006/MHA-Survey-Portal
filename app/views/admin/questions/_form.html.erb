@@ -28,6 +28,12 @@
           </div>
 
           <div class="form-field">
+            <%= form.label :description, "Question description (optional)" %>
+            <%= form.text_area :description, rows: 3, class: "input", placeholder: "Provide context or competency definition students should always see." %>
+            <p class="field-hint">Shown under the prompt and inside tooltips so students and advisors know what each competency means.</p>
+          </div>
+
+          <div class="form-field">
             <%= form.label :question_type, "Question type" %>
             <%= form.select :question_type, Question.question_types.keys.map { |type| [type.humanize, type] }, {}, class: "input", required: true %>
           </div>

@@ -9,11 +9,13 @@ class SurveyNotificationJob < ApplicationJob
   # @param event [Symbol, String]
   # @param survey_assignment_id [Integer, nil]
   # @param survey_id [Integer, nil]
+  # @param question_id [Integer, nil]
   # @param user_id [Integer, nil]
   # @param metadata [Hash]
   # @return [void]
-  def perform(event:, survey_assignment_id: nil, survey_id: nil, user_id: nil, metadata: {})
+  def perform(event:, survey_assignment_id: nil, survey_id: nil, question_id: nil, user_id: nil, metadata: {})
     event_key = event.to_sym
+    metadata = metadata.present? ? metadata.with_indifferent_access : {}
 
     case event_key
     when :assigned
@@ -24,10 +26,14 @@ class SurveyNotificationJob < ApplicationJob
       handle_past_due_notification(survey_assignment_id)
     when :completed
       handle_completed_notification(survey_assignment_id)
+    when :response_submitted
+      handle_response_submitted_notification(survey_assignment_id)
     when :survey_updated
       handle_survey_updated_notification(survey_id, metadata)
     when :survey_archived
       handle_survey_archived_notification(survey_id)
+    when :question_updated
+      handle_question_updated_notification(question_id, metadata)
     when :custom
       handle_custom_notification(user_id, metadata)
     else
@@ -89,6 +95,19 @@ class SurveyNotificationJob < ApplicationJob
     )
   end
 
+  def handle_response_submitted_notification(survey_assignment_id)
+    assignment = SurveyAssignment.includes(:survey, student: :user).find(survey_assignment_id)
+    student_user = assignment.recipient_user
+    return unless student_user
+
+    Notification.deliver!(
+      user: student_user,
+      title: "Survey Submitted",
+      message: "Thanks! Your responses for '#{assignment.survey.title}' were received.",
+      notifiable: assignment
+    )
+  end
+
   def handle_survey_updated_notification(survey_id, metadata)
     survey = Survey.find(survey_id)
     advisor_ids = SurveyAssignment.where(survey_id: survey_id).distinct.pluck(:advisor_id).compact
@@ -117,6 +136,24 @@ class SurveyNotificationJob < ApplicationJob
     end
   end
 
+  def handle_question_updated_notification(question_id, metadata)
+    question = Question.includes(category: :survey).find(question_id)
+    survey = question.category&.survey
+    return unless survey
+
+    editor_name = metadata[:editor_name].presence || "An administrator"
+    message = "#{editor_name} updated the question '#{question.question_text}' in the '#{survey.title}' survey. Review the latest instructions before proceeding."
+
+    participant_users_for_survey(survey.id).each do |user|
+      Notification.deliver!(
+        user: user,
+        title: "Question Updated",
+        message: message,
+        notifiable: question
+      )
+    end
+  end
+
   def handle_custom_notification(user_id, metadata)
     return if user_id.blank?
 
@@ -124,5 +161,23 @@ class SurveyNotificationJob < ApplicationJob
     title = metadata[:title] || "Notification"
     message = metadata[:message] || "You have a new notification."
     Notification.deliver!(user: user, title: title, message: message)
+  end
+
+  def participant_users_for_survey(survey_id)
+    assignments = SurveyAssignment.includes(student: :user, advisor: :user).where(survey_id: survey_id)
+    unique_users = {}
+
+    assignments.find_each do |assignment|
+      collect_user(unique_users, assignment.student&.user)
+      collect_user(unique_users, assignment.advisor&.user)
+    end
+
+    unique_users.values
+  end
+
+  def collect_user(bucket, user)
+    return unless user&.id
+
+    bucket[user.id] = user
   end
 end

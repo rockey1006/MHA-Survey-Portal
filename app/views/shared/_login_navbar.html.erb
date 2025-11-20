@@ -11,18 +11,7 @@
       </div>
 
       <nav class="nav-links" aria-label="Primary">
-        <!-- Clicking these will submit a POST to the Google OAuth path with role=student/advisor -->
-        <a href="#"
-           class="nav-link"
-           data-login-role="student">
-          Students
-        </a>
-
-        <a href="#"
-           class="nav-link"
-           data-login-role="advisor">
-          Advisors
-        </a>
+        <%= link_to "Home", root_path, class: "nav-link" %>
 
         <!-- About page (documentation landing) -->
         <%= link_to "About the Portal", about_path, class: "nav-link" %>
@@ -58,61 +47,150 @@
         Program Overview
       </a>
 
-      <button type="button"
-              class="btn btn-primary"
-              aria-label="Scroll to sign in"
-              onclick="(function(){
-                var target = document.querySelector('#login-sections');
-                if (target) { target.scrollIntoView({ behavior: 'smooth' }); }
-              })()">
-        Sign In
-      </button>
+      <div class="sign-in-launcher" data-signin-menu>
+        <button type="button"
+                class="btn btn-primary sign-in-launcher__button"
+                data-signin-trigger
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="sign-in-menu-panel">
+          Sign In
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div class="sign-in-launcher__panel"
+             id="sign-in-menu-panel"
+             data-signin-panel
+             hidden
+             role="menu"
+             aria-label="Choose a role to sign in">
+          <p class="sign-in-launcher__label">Pick the dashboard you need:</p>
+          <button type="button"
+                  class="sign-in-launcher__option"
+                  data-login-role="student"
+                  role="menuitem">
+            <span>🎓 Student access</span>
+            <span class="sign-in-launcher__chevron">→</span>
+          </button>
+          <button type="button"
+                  class="sign-in-launcher__option"
+                  data-login-role="advisor"
+                  role="menuitem">
+            <span>🧑‍🏫 Advisor access</span>
+            <span class="sign-in-launcher__chevron">→</span>
+          </button>
+          <a href="<%= new_user_session_path %>"
+             class="sign-in-launcher__link"
+             role="menuitem">
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </header>
 
 <script>
   (function () {
-    // Make top-bar "Students" / "Advisors" behave like their respective Google sign-in buttons.
-    var links = document.querySelectorAll('[data-login-role]');
-    if (!links.length) return;
+    function bootNavbarLogin() {
+      var links = document.querySelectorAll('[data-login-role]');
+      if (!links.length) return;
 
-    function submitRoleLogin(role) {
-      try {
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '<%= user_google_oauth2_omniauth_authorize_path %>';
-        form.style.display = 'none';
+      function submitRoleLogin(role) {
+        try {
+          var form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '<%= user_google_oauth2_omniauth_authorize_path %>';
+          form.style.display = 'none';
 
-        // CSRF token
-        var token = document.querySelector('meta[name="csrf-token"]');
-        if (token && token.content) {
-          var csrf = document.createElement('input');
-          csrf.type = 'hidden';
-          csrf.name = 'authenticity_token';
-          csrf.value = token.content;
-          form.appendChild(csrf);
+          var token = document.querySelector('meta[name="csrf-token"]');
+          if (token && token.content) {
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'authenticity_token';
+            csrf.value = token.content;
+            form.appendChild(csrf);
+          }
+
+          var roleField = document.createElement('input');
+          roleField.type = 'hidden';
+          roleField.name = 'role';
+          roleField.value = role;
+          form.appendChild(roleField);
+
+          document.body.appendChild(form);
+          form.submit();
+        } catch (e) {
+          console.error('Role login submit failed:', e);
         }
-
-        var roleField = document.createElement('input');
-        roleField.type = 'hidden';
-        roleField.name = 'role';
-        roleField.value = role; // "student" or "advisor"
-        form.appendChild(roleField);
-
-        document.body.appendChild(form);
-        form.submit();
-      } catch (e) {
-        console.error('Role login submit failed:', e);
       }
+
+      if (typeof window.__navbarSignInCleanup === 'function') {
+        window.__navbarSignInCleanup();
+        window.__navbarSignInCleanup = null;
+      }
+
+      var signInMenu = document.querySelector('[data-signin-menu]');
+      var signInPanel = signInMenu ? signInMenu.querySelector('[data-signin-panel]') : null;
+      var signInTrigger = signInMenu ? signInMenu.querySelector('[data-signin-trigger]') : null;
+      var panelOpen = false;
+
+      function closeSignInPanel() {
+        if (!signInPanel || !signInTrigger) return;
+        panelOpen = false;
+        signInPanel.hidden = true;
+        signInTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      function openSignInPanel() {
+        if (!signInPanel || !signInTrigger) return;
+        panelOpen = true;
+        signInPanel.hidden = false;
+        signInTrigger.setAttribute('aria-expanded', 'true');
+      }
+
+      if (signInTrigger && signInPanel) {
+        signInTrigger.addEventListener('click', function (event) {
+          event.preventDefault();
+          panelOpen ? closeSignInPanel() : openSignInPanel();
+        });
+
+        var docClickHandler = function (event) {
+          if (!signInMenu) return;
+          if (!signInMenu.contains(event.target)) {
+            closeSignInPanel();
+          }
+        };
+
+        var keyHandler = function (event) {
+          if (event.key === 'Escape') {
+            closeSignInPanel();
+          }
+        };
+
+        document.addEventListener('click', docClickHandler);
+        document.addEventListener('keydown', keyHandler);
+
+        document.addEventListener('turbo:before-cache', closeSignInPanel, { once: true });
+
+        window.__navbarSignInCleanup = function () {
+          document.removeEventListener('click', docClickHandler);
+          document.removeEventListener('keydown', keyHandler);
+        };
+
+      } else {
+        window.__navbarSignInCleanup = null;
+      }
+
+      links.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          var role = a.getAttribute('data-login-role');
+          if (!role) return;
+          closeSignInPanel();
+          submitRoleLogin(role);
+        });
+      });
     }
 
-    links.forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        e.preventDefault();
-        var role = a.getAttribute('data-login-role');
-        if (role) submitRoleLogin(role);
-      });
-    });
+    bootNavbarLogin();
   })();
 </script>

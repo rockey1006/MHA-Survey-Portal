@@ -88,6 +88,6 @@ class QuestionsController < ApplicationController
       params[:question][:question_text] = params[:question].delete(:text)
     end
 
-    params.require(:question).permit(:category_id, :question_order, :question_type, :question_text, :answer_options, :is_required, :has_evidence_field)
+    params.require(:question).permit(:category_id, :question_order, :question_type, :question_text, :description, :answer_options, :is_required, :has_evidence_field)
   end
 end

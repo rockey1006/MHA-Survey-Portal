@@ -1,0 +1,11 @@
+fall_2025:
+  name: Fall 2025
+  current: true
+  created_at: <%= 1.year.ago %>
+  updated_at: <%= 1.year.ago %>
+
+spring_2026:
+  name: Spring 2026
+  current: false
+  created_at: <%= 8.months.ago %>
+  updated_at: <%= 8.months.ago %>

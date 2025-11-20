@@ -31,21 +31,7 @@ class StudentProfilesController < ApplicationController
     if @student.valid?(:profile_completion)
       @student.save!(context: :profile_completion) # This will also save the user and student changes
 
-      # Automatic Survey Assignment: assign surveys matching the student's track
-      if @student.track.present?
-        surveys = Survey
-          .joins(:track_assignments)
-          .where(survey_track_assignments: { track: @student.track })
-          .distinct
-
-        surveys.find_each do |survey|
-          # Create a SurveyAssignment so it shows in the student's to-do list.
-          SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: @student.student_id) do |assignment|
-            assignment.advisor_id = @student.advisor_id
-            assignment.assigned_at = Time.current
-          end
-        end
-      end
+      SurveyAssignments::AutoAssigner.call(student: @student)
 
       redirect_to student_dashboard_path, notice: "Profile completed successfully!"
     else

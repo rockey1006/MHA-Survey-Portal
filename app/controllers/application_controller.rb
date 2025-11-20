@@ -56,4 +56,11 @@ class ApplicationController < ActionController::Base
     @unread_notification_count = notifications_scope.unread.count
     @recent_notifications = notifications_scope.recent.limit(10)
   end
+
+  # Fallback semester label used when there is no ProgramSemester configured yet.
+  #
+  # @return [String]
+  def fallback_semester_label
+    Time.zone.now.strftime("%B %Y")
+  end
 end

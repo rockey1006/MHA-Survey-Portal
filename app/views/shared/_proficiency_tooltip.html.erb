@@ -1,0 +1,46 @@
+<div class="proficiency-label">
+  <span class="tooltip-container" tabindex="0" aria-haspopup="true">
+    <span class="info-icon">ⓘ</span>
+    <span class="tooltip-text proficiency-tooltip" role="dialog" aria-label="Proficiency scale" style="display:none;">
+      <strong>Mastery (5)</strong><br>
+      • The student is a recognized authority and a leader who can shape professional practice.<br>
+      • They demonstrate extensive knowledge of current trends and complex theories.<br>
+      • They can pioneer new solutions and troubleshoot complex, non-routine problems.<br>
+      • They function with complete independence and contribute to strategic-level decision-making.<br><br>
+
+      <strong>Experienced (4)</strong><br>
+      • The student has a strong, well-developed skill set and can apply complex theories in their professional practice.<br>
+      • They have a deep understanding of core concepts and specialized theories.<br>
+      • They independently apply theoretical knowledge to solve real-world problems with minimal to no guidance.<br><br>
+
+      <strong>Capable (3)</strong><br>
+      • The student has a practical working grasp of the professional area and can perform standard tasks independently.<br>
+      • They possess foundational knowledge and skills and can complete a range of standard job tasks.<br>
+      • They can work without assistance on most routine assignments and effectively participate in team projects.<br>
+      • They reliably meet expectations for their position but may need minimal guidance for unusual situations.<br><br>
+
+      <strong>Emerging (2)</strong><br>
+      • The student has a limited but growing understanding of professional concepts and requires direct guidance for complex tasks.<br>
+      • They are familiar with foundational terminology and techniques.<br>
+      • They can perform basic tasks but their performance does not consistently meet professional standards.<br>
+      • They operate under close supervision and need frequent checks and clear instructions.<br><br>
+
+      <strong>Beginner (1)</strong><br>
+      • The student has only a basic or superficial understanding with little to no practical experience.<br>
+      • They have a basic awareness of the topic and can identify core concepts.<br>
+      • They cannot perform job duties independently, and their performance generally fails to meet expectations even with guidance.<br>
+      • They require constant and direct supervision.<br><br>
+
+      <strong>Not able to assess (0)</strong><br>
+      • Advisor-only rating: select when the advisor cannot evaluate the student’s proficiency at this time.
+    </span>
+  </span>
+
+  <style>
+    .proficiency-label { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .tooltip-container { position: relative; display: inline-block; }
+    .info-icon { cursor: default; color: #475569; font-size: 1rem; }
+    .proficiency-tooltip { position: absolute; left: 100%; top: 0; margin-left: 0.5rem; width: 28rem; max-width: calc(100vw - 6rem); background: white; border: 1px solid #e2e8f0; padding: 0.75rem; box-shadow: 0 6px 18px rgba(2,6,23,0.08); color: #0f172a; font-size: 0.9rem; z-index: 50; }
+    .tooltip-container:hover .proficiency-tooltip, .tooltip-container:focus-within .proficiency-tooltip { display: block; }
+  </style>
+</div>

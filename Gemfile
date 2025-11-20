@@ -36,7 +36,7 @@ gem "caxlsx"
 # gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
+gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]
 
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
 gem "solid_cache"
@@ -62,8 +62,9 @@ gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 
 group :development, :test do
+  gem "factory_bot_rails"
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "debug", platforms: %i[ mri mingw x64_mingw ], require: "debug/prelude"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
@@ -93,4 +94,10 @@ group :test do
   # Code coverage analysis
   gem "simplecov", require: false
   gem "simplecov-html", require: false
+
+  # HTTP stubbing for testing
+  gem "webmock"
+
+  # Controller testing helpers
+  gem "rails-controller-testing"
 end

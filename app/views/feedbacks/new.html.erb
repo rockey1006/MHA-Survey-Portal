@@ -3,7 +3,7 @@
 <h3>Advisor Feedback (per-category)</h3>
 <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true do |f| %>
   <div class="space-y-4">
-    <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_category: @existing_feedbacks_by_category, prefill: params[:prefill].present? } %>
+    <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question, prefill: params[:prefill].present? } %>
   </div>
 
   <div class="mt-4">

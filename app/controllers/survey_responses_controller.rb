@@ -12,31 +12,37 @@ class SurveyResponsesController < ApplicationController
     @question_responses = preload_question_responses
   end
 
-  # Streams a PDF version of the survey response when WickedPdf is available.
-  # Falls back with an error when server-side rendering is disabled.
+  # Streams a PDF version of the survey response that matches the composite report payload.
   #
   # @return [void]
   def download
-    @question_responses = preload_question_responses
-
+    unavailable_message = "Server-side PDF generation unavailable. Please use the 'Download as PDF' button which uses your browser's Print/Save-as-PDF feature."
     unless defined?(WickedPdf)
       logger.warn "Server-side PDF generation requested but WickedPdf is not available"
-      render plain: "Server-side PDF generation unavailable. Please use the 'Download as PDF' button which uses your browser's Print/Save-as-PDF feature.", status: :service_unavailable and return
+      render plain: unavailable_message, status: :service_unavailable and return
     end
 
-    pdf_data = generate_pdf
-
-    unless pdf_data&.start_with?("%PDF")
-      logger.error "PDF generation returned non-PDF payload for SurveyResponse=#{@survey_response.id}: first bytes=#{pdf_data&.byteslice(0, 128).inspect}"
-      head :internal_server_error and return
-    end
+    result = nil
 
     begin
+      generator = CompositeReportGenerator.new(survey_response: @survey_response, cache: false)
+      result = generator.render
       filename = "survey_response_#{@survey_response.id}.pdf"
-      send_data pdf_data, filename: filename, disposition: "attachment", type: "application/pdf"
-    rescue => e
-      logger.error "Download PDF failed for SurveyResponse #{@survey_response.id}: #{e.class} - #{e.message}\n#{e.backtrace&.join("\n")}"
+      stream_pdf_result(result, filename, unavailable_message: unavailable_message)
+    rescue CompositeReportGenerator::MissingDependency
+      render plain: "Server-side PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
+    rescue CompositeReportGenerator::GenerationError => e
+      logger.error "Download PDF failed for SurveyResponse #{@survey_response.id}: #{e.message}"
       head :internal_server_error
+    rescue => e
+      message = <<~MSG
+        Download PDF failed for SurveyResponse #{@survey_response.id}: #{e.class} - #{e.message}
+        #{e.backtrace&.join("\n")}
+      MSG
+      logger.error(message.strip)
+      head :internal_server_error
+    ensure
+      result&.cleanup!
     end
   end
 
@@ -44,29 +50,34 @@ class SurveyResponsesController < ApplicationController
   #
   # @return [void]
   def composite_report
+    unavailable_message = "Composite PDF generation unavailable. Please try again later."
     unless defined?(WickedPdf)
       logger.warn "Composite PDF generation requested but WickedPdf is not available"
-      render plain: "Composite PDF generation unavailable. Please try again later.", status: :service_unavailable and return
+      render plain: unavailable_message, status: :service_unavailable and return
     end
 
-    generator = CompositeReportGenerator.new(survey_response: @survey_response)
-    pdf_data = generator.render
+    result = nil
 
-    unless pdf_data&.start_with?("%PDF")
-      logger.error "Composite PDF generation returned non-PDF payload for SurveyResponse=#{@survey_response.id}: first bytes=#{pdf_data&.byteslice(0, 128).inspect}"
-      head :internal_server_error and return
+    begin
+      generator = CompositeReportGenerator.new(survey_response: @survey_response)
+      result = generator.render
+      filename = "composite_assessment_#{@survey_response.id}.pdf"
+      stream_pdf_result(result, filename, unavailable_message: unavailable_message)
+    rescue CompositeReportGenerator::MissingDependency
+      render plain: "Composite PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
+    rescue CompositeReportGenerator::GenerationError => e
+      logger.error "Composite report generation failed for SurveyResponse #{@survey_response.id}: #{e.message}"
+      head :internal_server_error
+    rescue => e
+      message = <<~MSG
+        Download composite PDF failed for SurveyResponse #{@survey_response.id}: #{e.class} - #{e.message}
+        #{e.backtrace&.join("\n")}
+      MSG
+      logger.error(message.strip)
+      head :internal_server_error
+    ensure
+      result&.cleanup!
     end
-
-    filename = "composite_assessment_#{@survey_response.id}.pdf"
-    send_data pdf_data, filename: filename, disposition: "attachment", type: "application/pdf"
-  rescue CompositeReportGenerator::MissingDependency
-    render plain: "Composite PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
-  rescue CompositeReportGenerator::GenerationError => e
-    logger.error "Composite report generation failed for SurveyResponse #{@survey_response.id}: #{e.message}"
-    head :internal_server_error
-  rescue => e
-    logger.error "Download composite PDF failed for SurveyResponse #{@survey_response.id}: #{e.class} - #{e.message}\n#{e.backtrace&.join("\n")}"
-    head :internal_server_error
   end
 
   private
@@ -96,8 +107,17 @@ class SurveyResponsesController < ApplicationController
     return if params[:token].present? # signed token grants access without session
 
     current = current_user
-    if current&.role_admin? || current&.role_advisor?
+    if current&.role_admin?
       return
+    end
+
+    if current&.role_advisor?
+      advisor_profile = current_advisor_profile
+      assigned_advisor_id = @survey_response&.advisor_id
+
+      if advisor_profile && assigned_advisor_id.present? && advisor_profile.advisor_id == assigned_advisor_id
+        return
+      end
     end
 
     student_profile = current_student
@@ -150,21 +170,42 @@ class SurveyResponsesController < ApplicationController
     @survey_response.question_responses
   end
 
-  # Generates a PDF payload from the survey response using WickedPdf.
+  # Sends the generated PDF with validation to guard against corrupt files.
   #
-  # @return [String, nil]
-  def generate_pdf
-    html = render_to_string(
-      template: "survey_responses/show",
-      layout: "pdf",
-      formats: [ :html ],
-      encoding: "UTF-8",
-      locals: { survey_response: @survey_response }
-    )
+  # @param result [CompositeReportGenerator::Result]
+  # @param filename [String]
+  # @return [void]
+  def stream_pdf_result(result, filename, unavailable_message: nil)
+    path = result&.path
 
-    WickedPdf.new.pdf_from_string(html)
-  rescue => e
-    logger.error "PDF generation raised #{e.class} - #{e.message}\n#{e.backtrace&.join("\n")}"
+    unless path && File.exist?(path)
+      logger.error "Composite PDF generation returned an invalid file for SurveyResponse=#{@survey_response.id}"
+      return render_unavailable(unavailable_message)
+    end
+
+    pdf_data = read_pdf_bytes(path)
+    return render_unavailable(unavailable_message) unless pdf_data
+
+    unless pdf_data.start_with?("%PDF")
+      logger.error "Composite PDF generation returned non-PDF payload for SurveyResponse=#{@survey_response.id}: first bytes=#{pdf_data.byteslice(0, 4).inspect}"
+      return render_unavailable(unavailable_message)
+    end
+
+    send_data pdf_data, filename: filename, disposition: "attachment", type: "application/pdf"
+  end
+
+  def read_pdf_bytes(path)
+    File.binread(path)
+  rescue Errno::ENOENT => e
+    logger.error "Composite PDF generation file missing for SurveyResponse=#{@survey_response.id}: #{e.message}"
     nil
+  end
+
+  def render_unavailable(message)
+    if message.present?
+      render plain: message, status: :service_unavailable
+    else
+      head :internal_server_error
+    end
   end
 end

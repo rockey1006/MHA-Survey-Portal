@@ -73,6 +73,8 @@ class QuestionTest < ActiveSupport::TestCase
     # Exclude Employment Information questions which have conditional/optional logic
     employment_category_ids = Category.where("LOWER(name) LIKE ?", "%employment%").pluck(:id)
     non_employment = non_evidence.where.not(category_id: employment_category_ids)
+    # Reflection prompts are intentionally optional even though they sit with competencies
+    non_employment = non_employment.where.not("LOWER(question_text) LIKE ?", "%reflection%")
 
     required_count = non_employment.where(required: true).count
     total = non_employment.count

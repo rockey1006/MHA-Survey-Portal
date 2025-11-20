@@ -19,7 +19,15 @@ class Survey < ApplicationRecord
 
   accepts_nested_attributes_for :categories, allow_destroy: true
 
-  validates :title, presence: true
+  before_validation :normalize_title_and_semester
+
+  validates :title,
+            presence: true,
+            uniqueness: {
+              scope: :semester,
+              case_sensitive: false,
+              message: "already exists for this semester"
+            }
   validates :semester, presence: true
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
@@ -33,7 +41,14 @@ class Survey < ApplicationRecord
 
   # @return [Array<String>] unique tracks assigned to the survey
   def track_list
-  track_assignments.order(:track).pluck(:track)
+    track_assignments.order(:track).pluck(:track).uniq
+  end
+
+  def self.canonical_track(value)
+    text = value.to_s.strip
+    return if text.blank?
+
+    TRACK_OPTIONS.find { |option| option.casecmp?(text) }
   end
 
   # Replaces the survey's track assignments with the provided list.
@@ -83,14 +98,34 @@ class Survey < ApplicationRecord
       .map { |value| value.is_a?(String) ? value.strip : value }
       .reject(&:blank?)
       .map do |value|
+        canonical = Survey.canonical_track(value)
+        next canonical if canonical.present?
+
         text = value.to_s
-        if text.length > 255
-          text[0..254]
-        else
-          text
-        end
+        text.length > 255 ? text[0..254] : text
       end
+      .reject(&:blank?)
       .uniq
       .sort
+  end
+
+  def normalize_title_and_semester
+    self.title = title.to_s.strip.squeeze(" ")
+
+    normalized_semester = semester.to_s.strip
+    if normalized_semester.present?
+      tokens = normalized_semester.split(/\s+/)
+      self.semester = tokens.map.with_index do |token, index|
+        if token.match?(/^\d+$/)
+          token
+        elsif index.zero?
+          token.capitalize
+        else
+          token
+        end
+      end.join(" ")
+    else
+      self.semester = normalized_semester
+    end
   end
 end

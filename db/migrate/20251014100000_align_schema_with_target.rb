@@ -5,12 +5,15 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     create_enum :question_types, %w[multiple_choice scale short_answer evidence]
 
   # Entity table: application user accounts (students, advisors, admins).
-  create_table :users do |t|
+    create_table :users do |t|
       t.string :email, null: false
       t.string :name, null: false
       t.string :uid
       t.string :avatar_url
       t.string :role, null: false
+      t.string :language
+      t.boolean :notifications_enabled, null: false, default: true
+      t.integer :text_scale_percent, null: false, default: 100
       t.timestamps
 
       t.index :email, unique: true
@@ -60,6 +63,15 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.index %i[user_id title notifiable_type notifiable_id], unique: true, name: "index_notifications_unique_per_user"
     end
 
+  # Entity table: available program semesters (used for survey assignment windows).
+  create_table :program_semesters do |t|
+      t.string :name, null: false
+      t.boolean :current, null: false, default: false
+      t.timestamps
+    end
+    add_index :program_semesters, :name, unique: true
+    add_index :program_semesters, :current, where: "current = true"
+
   # Entity table: survey definitions.
   create_table :surveys do |t|
       t.string :title, null: false
@@ -71,6 +83,10 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :surveys, :semester
     add_index :surveys, :is_active
+    execute <<~SQL
+      CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_semester
+      ON surveys (LOWER(title), LOWER(semester));
+    SQL
 
   # Entity table: survey categories grouping related questions.
   create_table :categories do |t|
@@ -84,6 +100,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
   create_table :questions do |t|
       t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
       t.string :question_text, null: false
+      t.text :description
       t.integer :question_order, null: false
       t.boolean :is_required, null: false, default: false
       t.enum :question_type, enum_type: :question_types, null: false
@@ -172,12 +189,25 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :survey_change_logs, :created_at
 
+  # Entity table: logs high-level administrator actions for dashboards.
+  create_table :admin_activity_logs do |t|
+      t.references :admin, null: false, foreign_key: { to_table: :users, on_delete: :cascade }
+      t.string :action, null: false
+      t.string :subject_type
+      t.bigint :subject_id
+      t.jsonb :metadata, null: false, default: {}
+      t.text :description
+      t.timestamps
+    end
+    add_index :admin_activity_logs, %i[subject_type subject_id], name: "index_admin_activity_logs_on_subject"
+
   # Entity table: advisor feedback summaries for students.
   create_table :feedback do |t|
       t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
       t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
       t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
       t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.references :question, foreign_key: { to_table: :questions }, index: true
       t.float :average_score
       t.string :comments
       t.timestamps

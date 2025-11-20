@@ -1,244 +1,187 @@
 <% content_for :title, "About the Portal" %>
 
-<%= render "shared/login_navbar" %>
-
-<main class="flex justify-center px-4 py-16 bg-slate-50">
-  <div class="w-full max-w-5xl space-y-12">
-    <!-- Page header / hero -->
-    <section class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200">
-      <div class="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-        <div class="space-y-4">
-          <div class="inline-flex items-center gap-2 rounded-full bg-[#f5f0eb] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#500000]">
-            <span class="text-base">🧭</span>
-            <span>About the Portal</span>
-          </div>
-          <h1 class="text-3xl font-semibold text-[#500000] md:text-4xl">
-            MHA Program Portal Overview
-          </h1>
-          <p class="text-sm leading-relaxed text-slate-700 md:text-base">
-            Welcome to the MHA Program Portal — a centralized platform designed to simplify survey
-            management, feedback exchange, and role-based coordination between students, advisors,
-            and administrators. This guide explains what you can do in the portal depending on your role.
-          </p>
-        </div>
-
-        <div class="rounded-2xl bg-slate-50 px-5 py-5 text-sm text-slate-700 shadow-inner space-y-3">
-          <p class="font-semibold text-slate-900">Quick role shortcuts</p>
-          <div class="flex flex-wrap gap-2">
-            <a href="#student-view" class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
-              🎓 Student View
-            </a>
-            <a href="#advisor-view" class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
-              🧑‍🏫 Advisor View
-            </a>
-            <a href="#admin-view" class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
-              🛠️ Admin View
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Student View -->
-    <section id="student-view" class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200">
-      <header class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between border-l-4 border-[#500000] pl-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">
-            🎓
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
-            <h2 class="text-2xl font-semibold text-[#500000]">Student View</h2>
-          </div>
-        </div>
-        <p class="max-w-md text-sm text-slate-600">
-          Manage assigned surveys, track completion, and review advisor feedback in one place.
-        </p>
-      </header>
-
-      <div class="mt-8 grid gap-5 md:grid-cols-3">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-1">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Overview</p>
-          <p class="mt-2 text-sm text-slate-700">
-            Students see a personalized list of surveys, completion status, and any feedback that has
-            been shared with them.
-          </p>
-        </div>
-
-        <div class="space-y-4 md:col-span-2">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Pending Surveys</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>View any surveys that are assigned but not yet completed.</li>
-            </ul>
-          </div>
-
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Completed Surveys</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Once a survey is completed, it automatically moves into this section.</li>
-              <li>Students can review their previous responses at any time.</li>
-              <li>If an advisor has submitted feedback, it appears at the bottom of the survey.</li>
-              <li>Surveys can be downloaded as PDFs for record-keeping.</li>
-            </ul>
-          </div>
-
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Notifications</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Displays recent updates or reminders related to surveys and feedback.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Advisor View -->
-    <section id="advisor-view" class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200">
-      <header class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between border-l-4 border-[#500000] pl-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">
-            🧑‍🏫
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
-            <h2 class="text-2xl font-semibold text-[#500000]">Advisor View</h2>
-          </div>
-        </div>
-        <p class="max-w-md text-sm text-slate-600">
-          Monitor advisee progress, assign surveys, and provide structured feedback to students.
-        </p>
-      </header>
-
-      <div class="mt-8 grid gap-5 md:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="font-medium text-slate-900">Student Records</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>View all students and their associated tracks.</li>
-            <li>Click <span class="font-semibold">“Review”</span> to give initial feedback on a student’s completed survey.</li>
-            <li>After feedback is submitted, the button changes to <span class="font-semibold">“Edit Feedback.”</span></li>
-            <li>Download surveys and feedback for documentation.</li>
-            <li>Submitted feedback becomes visible to students in their Completed Surveys section.</li>
-          </ul>
-        </div>
-
-        <div class="space-y-4">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Surveys</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Assign specific surveys to individual students (useful for late joiners or advisor swaps).</li>
-            </ul>
-          </div>
-
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Notifications</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>View updates related to assigned surveys or feedback deadlines.</li>
-            </ul>
-          </div>
-
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p class="font-medium text-slate-900">Manage Students</p>
-            <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-              <li>Reassign students to a different advisor when necessary.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Admin View -->
-    <section id="admin-view" class="rounded-3xl bg-white px-8 py-10 shadow-sm ring-1 ring-slate-200 mb-4">
-      <header class="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between border-l-4 border-[#500000] pl-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f0eb] text-xl">
-            🛠️
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Role</p>
-            <h2 class="text-2xl font-semibold text-[#500000]">Admin View</h2>
-          </div>
-        </div>
-        <p class="max-w-md text-sm text-slate-600">
-          Configure surveys, manage membership, and oversee how the portal is used across the program.
-        </p>
-      </header>
-
-      <div class="mt-8 grid gap-5 md:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="font-medium text-slate-900">Student Records</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>Identical to the Advisor View — review surveys, feedback, and student data.</li>
-          </ul>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p class="font-medium text-slate-900">Surveys</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>
-              <span class="italic">Different than the Advisor View:</span>
-              create, edit, and manage all surveys distributed across the platform.
-            </li>
-          </ul>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-2">
-          <p class="font-medium text-slate-900">Member Management</p>
-          <ul class="mt-2 list-disc pl-5 text-sm text-slate-700 space-y-1">
-            <li>Assign or change user roles between Student, Advisor, and Admin.</li>
-            <li>Each role has a distinct level of access and responsibility.</li>
-            <li>The total number of users in each role is displayed at the top of the screen.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- Back button -->
-    <div class="flex justify-start">
-      <button
-        type="button"
-        onclick="window.history.back()"
-        class="inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-300"
-      >
-        ← Back
-      </button>
-    </div>
-  </div>
-</main>
-
-<!-- Hidden SSO forms to allow top nav "Students" / "Advisors" to act like the main page buttons -->
-<%= form_with url: user_google_oauth2_omniauth_authorize_path,
-              method: :post,
-              data: { turbo: "false" },
-              id: "hidden-student-signin",
-              html: { style: "display:none" } do |f| %>
-  <%= f.hidden_field :role, value: "student" %>
+<% content_for :header do %>
+  <%= render "shared/login_navbar" %>
 <% end %>
 
-<%= form_with url: user_google_oauth2_omniauth_authorize_path,
-              method: :post,
-              data: { turbo: "false" },
-              id: "hidden-advisor-signin",
-              html: { style: "display:none" } do |f| %>
-  <%= f.hidden_field :role, value: "advisor" %>
-<% end %>
+<main class="about-page px-4 py-16">
+  <div class="about-container mx-auto max-w-6xl space-y-16">
+    <section class="about-hero">
+      <div class="about-hero__content">
+        <p class="eyebrow">Texas A&M · Master of Health Administration</p>
+        <h1>MHA Program Portal</h1>
+        <p>
+          A unified workspace for survey workflows, feedback loops, and role-aware insights. Each dashboard in the portal is designed
+          around the needs called out in the <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Project-Overview" target="_blank" rel="noopener" class="about-link">Project Overview</a> and
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features" target="_blank" rel="noopener" class="about-link">Features</a> wiki pages—so the UI mirrors the documentation.
+        </p>
+        <div class="about-hero__badges">
+          <span>
+            <strong>3</strong>
+            Roles, each with guided dashboards
+          </span>
+          <span>
+            <strong>12+</strong>
+            Surveys & feedback automations
+          </span>
+          <span>
+            <strong>100%</strong>
+            TAMU SSO coverage and audit trails
+          </span>
+        </div>
+      </div>
+      <div class="about-hero__card">
+        <p class="eyebrow">Quick jumps</p>
+        <a href="#student-view">🎓 Student experience</a>
+        <a href="#advisor-view">🧑‍🏫 Advisor workspace</a>
+        <a href="#admin-view">🛠️ Admin controls</a>
+        <div class="about-hero__cta">
+          <p>New to the stack?</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started" target="_blank" rel="noopener">Read Getting Started →</a>
+        </div>
+      </div>
+    </section>
 
-<script>
-  (function () {
-    const studentTab = document.querySelector('[data-signin-role="student"]');
-    const advisorTab = document.querySelector('[data-signin-role="advisor"]');
-    const studentForm = document.getElementById('hidden-student-signin');
-    const advisorForm = document.getElementById('hidden-advisor-signin');
+    <section class="about-pillars">
+      <header>
+        <p class="eyebrow">Why the portal exists</p>
+        <h2>Program pillars lifted from the wiki</h2>
+        <p>Everything here ties directly to the goals described in <em>Project Overview</em>: centralized data, streamlined surveys, and actionable analytics.</p>
+      </header>
+      <div class="about-pillars__grid">
+        <article>
+          <p class="eyebrow">Centralized data</p>
+          <h3>Student health + survey history</h3>
+          <p>Rails + PostgreSQL keep student records, survey assignments, and evidence attachments cohesive for advisors and admins.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Architecture" target="_blank" rel="noopener" class="about-link">See wiki › Architecture</a>
+        </article>
+        <article>
+          <p class="eyebrow">Track-aware surveys</p>
+          <h3>Residential & Executive cohorts</h3>
+          <p>Survey builder, track assignments, and notifications (see <em>Features › Surveys</em>) ensure each cohort receives the right cadence.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features#surveys-feedback--evidence" target="_blank" rel="noopener" class="about-link">See wiki › Features → Surveys</a>
+        </article>
+        <article>
+          <p class="eyebrow">Analytics & reporting</p>
+          <h3>Reports hub + exports</h3>
+          <p>`Reports::DataAggregator` powers KPI cards, PDF/Excel exports, and adviser-ready snapshots documented in the Analytics wiki section.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features#analytics--reporting" target="_blank" rel="noopener" class="about-link">See wiki › Features → Analytics</a>
+        </article>
+      </div>
+    </section>
 
-    function wire(link, form) {
-      if (!link || !form) return;
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        form.submit();
-      });
-    }
+    <section class="about-roles">
+      <header>
+        <p class="eyebrow">Role playbooks</p>
+        <h2>Dashboards aligned to each persona</h2>
+        <p>Borrowed from the “Authentication & Access Control” and role sections of the wiki: dashboards are scoped but share a design language.</p>
+      </header>
+      <div class="about-roles__grid">
+        <article id="student-view" class="about-role-card">
+          <div class="about-role-card__icon">🎓</div>
+          <h3>Student view</h3>
+          <p>Focus on assignments, completion progress, and advisor feedback.</p>
+          <ul>
+            <li>Pending & completed surveys with PDF exports.</li>
+            <li>Evidence uploads validated via the evidence checker.</li>
+            <li>Notifications mirroring Survey Notification Jobs.</li>
+          </ul>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Student-Experience" target="_blank" rel="noopener" class="about-role-card__hint">See wiki › Student Experience</a>
+        </article>
 
-    wire(studentTab, studentForm);
-    wire(advisorTab, advisorForm);
-  })();
-</script>
+        <article id="advisor-view" class="about-role-card">
+          <div class="about-role-card__icon">🧑‍🏫</div>
+          <h3>Advisor view</h3>
+          <p>Progress dashboards for advisees plus quick assignment tools.</p>
+          <ul>
+            <li>Roster management with “Review” & “Edit feedback” flows.</li>
+            <li>Assign/unassign surveys, including bulk actions.</li>
+            <li>Real-time notifications for due dates and updates.</li>
+          </ul>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Advisor-Experience" target="_blank" rel="noopener" class="about-role-card__hint">See wiki › Advisor Experience</a>
+        </article>
+
+        <article id="admin-view" class="about-role-card">
+          <div class="about-role-card__icon">🛠️</div>
+          <h3>Admin view</h3>
+          <p>Configuration for surveys, membership, and compliance.</p>
+          <ul>
+            <li>Survey builder with lifecycle controls + audit logs.</li>
+            <li>Role & membership management to balance cohorts.</li>
+            <li>System overview dashboard with counts and activity.</li>
+          </ul>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Administrator-Tooling" target="_blank" rel="noopener" class="about-role-card__hint">See wiki › Administrator Tooling</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="about-resources">
+      <header>
+        <p class="eyebrow">Documentation map</p>
+        <h2>Start with these wiki entries</h2>
+        <p>Use the wiki as the source of truth for environment setup, deployment, and day-to-day administration.</p>
+      </header>
+      <div class="about-resources__grid">
+        <article>
+          <h3>Getting Started</h3>
+          <p>Local setup, Docker stack, and credential tips for new contributors.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started" target="_blank" rel="noopener">Open wiki › Getting-Started</a>
+        </article>
+        <article>
+          <h3>Development Guide</h3>
+          <p>Branch strategy, lint/test commands, and UI conventions used across the portal.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Development-Guide" target="_blank" rel="noopener">Open wiki › Development-Guide</a>
+        </article>
+        <article>
+          <h3>System Administration</h3>
+          <p>Deployment, environment variables, and Heroku transfer checklists.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/System-Administration" target="_blank" rel="noopener">Open wiki › System-Administration</a>
+        </article>
+        <article>
+          <h3>Features deep dive</h3>
+          <p>End-to-end walk through of authentication, surveys, analytics, and automation.</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features" target="_blank" rel="noopener">Open wiki › Features</a>
+        </article>
+      </div>
+      <div class="about-resources__footer">
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki" target="_blank" rel="noopener" class="about-btn about-btn--primary">Browse full wiki</a>
+        <button type="button" onclick="window.history.back()" class="about-btn about-btn--ghost">← Back to previous page</button>
+      </div>
+    </section>
+
+    <!-- Hidden SSO forms to allow top nav "Students" / "Advisors" to act like the main page buttons -->
+    <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                  method: :post,
+                  data: { turbo: "false" },
+                  id: "hidden-student-signin",
+                  html: { style: "display:none" } do |f| %>
+      <%= f.hidden_field :role, value: "student" %>
+    <% end %>
+
+    <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                  method: :post,
+                  data: { turbo: "false" },
+                  id: "hidden-advisor-signin",
+                  html: { style: "display:none" } do |f| %>
+      <%= f.hidden_field :role, value: "advisor" %>
+    <% end %>
+
+    <script>
+      (function () {
+        const studentTab = document.querySelector('[data-signin-role="student"]');
+        const advisorTab = document.querySelector('[data-signin-role="advisor"]');
+        const studentForm = document.getElementById('hidden-student-signin');
+        const advisorForm = document.getElementById('hidden-advisor-signin');
+
+        function wire(link, form) {
+          if (!link || !form) return;
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            form.submit();
+          });
+        }
+
+        wire(studentTab, studentForm);
+        wire(advisorTab, advisorForm);
+      })();
+    </script>

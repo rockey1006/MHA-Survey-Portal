@@ -913,7 +913,6 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assert_response :redirect
-    
   end
 
   test "submit rejects evidence with access-required interstitial page" do
@@ -967,7 +966,6 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assert_response :redirect
-    
   end
 
   # Google Docs specific tests
@@ -991,11 +989,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1003,7 +997,6 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assert_response :redirect
-    
   end
 
   test "submit falls back to page check when Docs export is restricted" do
@@ -1033,11 +1026,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1045,7 +1034,6 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assert_response :redirect
-    
   end
 
   test "submit rejects Google Docs with export timeout" do
@@ -1068,11 +1056,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1108,11 +1092,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1120,7 +1100,6 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assert_response :redirect
-    
   end
 
   test "submit rejects redirect to non-allowlisted domain" do
@@ -1142,11 +1121,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1182,11 +1157,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1216,11 +1187,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1259,11 +1226,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1271,7 +1234,6 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assert_response :redirect
-    
   end
 
   test "submit handles sniff timeout during GET fallback" do
@@ -1301,11 +1263,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 
@@ -1335,11 +1293,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
 
     @survey.questions.each do |q|
-
-
       answers[q.id.to_s] = "Test answer" if q.is_required?
-
-
     end
 
 

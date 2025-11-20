@@ -39,6 +39,18 @@ require "rails/test_help"
 require "minitest/mock"
 require "factory_bot_rails"
 
+# Load WebMock for HTTP stubbing in tests
+require "webmock/minitest"
+# Allow real HTTP connections to Google domains for evidence validation tests
+WebMock.disable_net_connect!(
+  allow_localhost: true,
+  allow: [
+    /drive\.google\.com/,
+    /docs\.google\.com/,
+    /googleusercontent\.com/
+  ]
+)
+
 class ActiveSupport::TestCase
   include FactoryBot::Syntax::Methods
   parallelize(workers: 1)

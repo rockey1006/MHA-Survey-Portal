@@ -94,4 +94,10 @@ group :test do
   # Code coverage analysis
   gem "simplecov", require: false
   gem "simplecov-html", require: false
+
+  # HTTP stubbing for testing
+  gem "webmock"
+
+  # Controller testing helpers
+  gem "rails-controller-testing"
 end

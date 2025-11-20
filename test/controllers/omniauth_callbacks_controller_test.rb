@@ -34,6 +34,32 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     assert_equal email, User.find_by(email: email)&.email
   end
 
+  test "OAuth sign in triggers sessions controller callbacks" do
+    email = "sessions_callback@tamu.edu"
+    mock_oauth(email: email)
+
+    # This will trigger SessionsController#after_sign_in_path_for
+    get user_google_oauth2_omniauth_callback_path, params: { role: "student" }
+
+    assert_redirected_to student_dashboard_path
+
+    # Clean up
+    User.find_by(email: email)&.destroy
+  end
+
+  test "OAuth sign in auto-assigns surveys for students" do
+    email = "student_surveys@tamu.edu"
+    mock_oauth(email: email)
+
+    get user_google_oauth2_omniauth_callback_path, params: { role: "student" }
+
+    assert_redirected_to student_dashboard_path
+    # The sessions controller ensure_track_survey_assignment is called via after_sign_in_path_for
+
+    # Clean up
+    User.find_by(email: email)&.destroy
+  end
+
   private
 
   def mock_oauth(email:)

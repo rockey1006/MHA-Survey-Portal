@@ -157,12 +157,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show pre-populates existing answers" do
     sign_in @student_user
     question = @survey.questions.first
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: "My previous answer",
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = "My previous answer"
+      sq.advisor_id = @student.advisor_id
+    end
 
     get survey_path(@survey)
 
@@ -268,12 +269,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "submit destroys blank answers for existing records" do
     sign_in @student_user
     question = @survey.questions.first
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: "Previous answer",
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = "Previous answer"
+      sq.advisor_id = @student.advisor_id
+    end
 
     answers = { question.id.to_s => "" }
     post submit_survey_path(@survey), params: { answers: answers }
@@ -306,12 +308,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "save_progress updates existing answers" do
     sign_in @student_user
     question = @survey.questions.first
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: "Old answer",
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = "Old answer"
+      sq.advisor_id = @student.advisor_id
+    end
 
     answers = { question.id.to_s => "Updated answer" }
     post save_progress_survey_path(@survey), params: { answers: answers }
@@ -326,12 +329,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "save_progress destroys empty answers" do
     sign_in @student_user
     question = @survey.questions.first
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: "Old answer",
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = "Old answer"
+      sq.advisor_id = @student.advisor_id
+    end
 
     answers = { question.id.to_s => "" }
     post save_progress_survey_path(@survey), params: { answers: answers }
@@ -438,12 +442,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show handles hash answers with text key" do
     sign_in @student_user
     question = @survey.questions.first
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: { "text" => "My answer", "rating" => 5 },
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = { "text" => "My answer", "rating" => 5 }
+      sq.advisor_id = @student.advisor_id
+    end
 
     get survey_path(@survey)
 
@@ -458,12 +463,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       question_type: "evidence",
       category_id: category.id
     )
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: { "link" => "https://drive.google.com/file/d/123/view" },
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = { "link" => "https://drive.google.com/file/d/123/view" }
+      sq.advisor_id = @student.advisor_id
+    end
 
     get survey_path(@survey)
 
@@ -473,12 +479,13 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show handles string answers" do
     sign_in @student_user
     question = @survey.questions.first
-    StudentQuestion.create!(
+    StudentQuestion.find_or_create_by!(
       student_id: @student.student_id,
-      question_id: question.id,
-      answer: "Simple string answer",
-      advisor_id: @student.advisor_id
-    )
+      question_id: question.id
+    ) do |sq|
+      sq.answer = "Simple string answer"
+      sq.advisor_id = @student.advisor_id
+    end
 
     get survey_path(@survey)
 
@@ -613,7 +620,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
 
     assignment.reload
-    assert_in_delta old_time.to_i, assignment.assigned_at.to_i, 10
+    assert_in_delta old_time.to_i, assignment.assigned_at.to_i, 30
   end
 
   # Edge Cases

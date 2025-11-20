@@ -1,82 +1,120 @@
-<div class="mx-auto max-w-2xl py-8 px-4">
-  <div class="bg-white shadow-sm rounded-lg border border-slate-200 p-8">
-    <div class="mb-6">
-      <h1 class="text-2xl font-semibold text-slate-900">Complete Your Profile</h1>
-      <p class="mt-2 text-sm text-slate-600">
-        Please provide your information to complete your profile setup. This information is required to assign you the correct surveys.
-      </p>
-    </div>
+<% content_for :title, "Edit Student Profile" %>
 
-    <%= form_with model: @student, url: student_profile_path, method: :patch, local: true, class: "space-y-6" do |form| %>
-      <% if @student.errors.any? %>
-        <div class="rounded-md bg-red-50 p-4">
-          <div class="flex">
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">
-                <%= pluralize(@student.errors.count, "error") %> prohibited this profile from being saved:
-              </h3>
-              <div class="mt-2 text-sm text-red-700">
-                <ul class="list-disc list-inside space-y-1">
-                  <% @student.errors.full_messages.each do |message| %>
-                    <li><%= message %></li>
-                  <% end %>
-                </ul>
-              </div>
-            </div>
+<% full_name = @student.full_name.presence || @student.user&.name || "Student" %>
+<% track = @student.track.presence || "Select a track" %>
+<% major = @student.major.presence || "Add your program" %>
+<% initials = full_name.split.first(2).map { |part| part.first&.upcase }.join.presence || "ST" %>
+
+<main class="student-profile-edit-page px-4 py-10">
+  <div class="student-profile-edit-container mx-auto max-w-6xl space-y-10">
+    <section class="student-edit-hero">
+      <div class="student-edit-hero__content">
+        <div>
+          <p class="student-edit-hero__eyebrow">Profile setup</p>
+          <h1 class="student-edit-hero__title">Complete your student profile</h1>
+          <p class="student-edit-hero__subtitle">
+            Accurate details keep your advisor assignments and surveys aligned with your program path.
+          </p>
+          <div class="student-edit-hero__badges">
+            <span class="hero-badge">
+              <span class="hero-badge__dot"></span>
+              Track · <%= track %>
+            </span>
+            <span class="hero-badge">
+              Major · <%= major %>
+            </span>
           </div>
         </div>
-      <% end %>
-
-      <div>
-        <%= form.label :name, "Full Name", class: "block text-sm font-medium text-slate-700" %>
-        <%= form.text_field :name, value: @student.user.name, 
-            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-            placeholder: "John Doe",
-            required: true %>
+        <div class="student-edit-hero__avatar">
+          <span><%= initials %></span>
+        </div>
       </div>
+    </section>
 
-      <div>
-        <%= form.label :uin, "UIN (University Identification Number)", class: "block text-sm font-medium text-slate-700" %>
-        <%= form.text_field :uin, 
-            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-            placeholder: "123456789",
-            required: true %>
-        <p class="mt-1 text-xs text-slate-500">Your 9-digit student identification number</p>
-      </div>
+    <div class="student-edit-layout">
+      <section class="student-edit-card">
+        <header>
+          <p class="eyebrow">Required sections</p>
+          <h2>Identity & program details</h2>
+        </header>
 
-      <div>
-        <%= form.label :major, "Major/Program", class: "block text-sm font-medium text-slate-700" %>
-        <%= form.text_field :major, 
-            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-            placeholder: "Health Administration",
-            required: true %>
-      </div>
+        <%= form_with model: @student, url: student_profile_path, method: :patch, local: true, class: "student-edit-form" do |form| %>
+          <% if @student.errors.any? %>
+            <div class="student-edit-alert">
+              <h3>
+                <%= pluralize(@student.errors.count, "error") %> need your attention before saving
+              </h3>
+              <ul>
+                <% @student.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
 
-      <div>
-        <%= form.label :track, "Program Track", class: "block text-sm font-medium text-slate-700" %>
-        <%= form.select :track, 
-            options_for_select([
-              ["Residential", "Residential"],
-              ["Executive", "Executive"]
-            ], @student.track),
-            { prompt: "Select your track" },
-            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-            required: true %>
-        <p class="mt-1 text-xs text-slate-500">Your program cohort</p>
-      </div>
+          <div class="form-grid">
+            <div class="form-field">
+              <%= form.label :name, "Full name" %>
+              <%= form.text_field :name, value: @student.user&.name,
+                  placeholder: "John Doe",
+                  required: true %>
+            </div>
 
-      <div>
-        <%= form.label :advisor_id, "Advisor", class: "block text-sm font-medium text-slate-700" %>
-        <%= form.select :advisor_id,
-            options_from_collection_for_select(@advisors, :advisor_id, :name, @student.advisor_id),
-            { prompt: "Select your advisor (optional)" },
-            class: "mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-      </div>
+            <div class="form-field">
+              <%= form.label :uin, "UIN" %>
+              <%= form.text_field :uin,
+                  placeholder: "123456789",
+                  required: true %>
+              <small>Your 9-digit University ID</small>
+            </div>
 
-      <div class="flex items-center justify-end gap-3 pt-4">
-        <%= form.submit "Complete Profile", 
-            class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
-      </div>
-    <% end %>
+            <div class="form-field">
+              <%= form.label :major, "Major / Program" %>
+              <%= form.text_field :major,
+                  placeholder: "Health Administration",
+                  required: true %>
+            </div>
+
+            <div class="form-field">
+              <%= form.label :track, "Program track" %>
+              <%= form.select :track,
+                  options_for_select([
+                    ["Residential", "Residential"],
+                    ["Executive", "Executive"]
+                  ], @student.track),
+                  { prompt: "Select your track" },
+                  required: true %>
+              <small>Pick the cohort you belong to</small>
+            </div>
+
+            <div class="form-field form-field--full">
+              <%= form.label :advisor_id, "Advisor" %>
+              <%= form.select :advisor_id,
+                  options_from_collection_for_select(@advisors, :advisor_id, :name, @student.advisor_id),
+                  { prompt: "Select your advisor (optional)" } %>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <%= link_to student_dashboard_path, class: "student-btn student-btn--ghost" do %>
+              Cancel
+            <% end %>
+            <%= form.submit "Save profile", class: "student-btn student-btn--primary" %>
+          </div>
+        <% end %>
+      </section>
+
+      <aside class="student-edit-card student-edit-card--support">
+        <header>
+          <p class="eyebrow">Why we ask</p>
+          <h2>Keep info fresh</h2>
+        </header>
+        <ul class="support-list">
+          <li>We use your track to schedule the right survey cadence.</li>
+          <li>Advisor selections unlock targeted reminders.</li>
+          <li>UIN ensures records sync with TAMU systems.</li>
+        </ul>
+      </aside>
+    </div>
   </div>
-</div>
+</main>

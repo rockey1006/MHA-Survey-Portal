@@ -29,11 +29,19 @@ RUN update-ca-certificates
 # Install wkhtmltopdf from packaging release
 ARG WKHTMLTOPDF_VERSION=0.12.6.1-3
 ARG WKHTMLTOPDF_PACKAGE=wkhtmltox_0.12.6.1-3.bookworm_amd64.deb
-RUN curl -fsSL "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/${WKHTMLTOPDF_PACKAGE}" -o /tmp/wkhtmltox.deb && \
-    apt-get update -qq && \
-    apt-get install --no-install-recommends -y /tmp/wkhtmltox.deb && \
-    rm /tmp/wkhtmltox.deb && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+ARG SKIP_WKHTMLTOPDF=0
+# Make the wkhtmltopdf .deb installation optional. This helps on platforms (e.g. Apple Silicon)
+# where the prebuilt amd64 .deb is incompatible with the image's architecture.
+RUN if [ "${SKIP_WKHTMLTOPDF}" != "1" ]; then \
+            echo "Installing wkhtmltopdf package ${WKHTMLTOPDF_PACKAGE}"; \
+            curl -fsSL "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/${WKHTMLTOPDF_PACKAGE}" -o /tmp/wkhtmltox.deb && \
+            apt-get update -qq && \
+            apt-get install --no-install-recommends -y /tmp/wkhtmltox.deb && \
+            rm -f /tmp/wkhtmltox.deb; \
+        else \
+            echo "SKIP_WKHTMLTOPDF=1, skipping wkhtmltopdf .deb installation"; \
+        fi && \
+        rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment
 ENV RAILS_ENV="production" \

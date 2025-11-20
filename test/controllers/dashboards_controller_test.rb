@@ -97,6 +97,21 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     @other_student.update!(role: "student")
   end
 
+  test "update_roles logs admin activity" do
+    sign_in @admin
+    payload = { @other_student.id => "advisor" }
+
+    assert_difference -> { AdminActivityLog.count }, 1 do
+      patch update_roles_path, params: { role_updates: payload }
+    end
+
+    activity = AdminActivityLog.order(created_at: :desc).first
+    assert_equal "role_update", activity.action
+    assert_equal @admin, activity.admin
+  ensure
+    @other_student.update!(role: "student")
+  end
+
   test "debug_users returns expected json" do
     sign_in @admin
     get debug_users_path
@@ -120,6 +135,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Save Changes"
     assert_includes response.body, "advisor-management-form"
+    assert_includes response.body, "track_updates"
   end
 
   test "update_student_advisor updates assignment" do
@@ -129,6 +145,22 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to manage_students_path
     assert_match "Advisor updated successfully", flash[:notice]
     assert_equal advisors(:other_advisor).advisor_id, student.reload.advisor_id
+  ensure
+    student.update!(advisor: advisors(:advisor))
+  end
+
+  test "update_student_advisor logs admin activity" do
+    sign_in @admin
+    student = students(:student)
+
+    assert_difference -> { AdminActivityLog.count }, 1 do
+      patch update_student_advisor_path(student), params: { student: { advisor_id: advisors(:other_advisor).advisor_id } }
+    end
+
+    activity = AdminActivityLog.order(created_at: :desc).first
+    assert_equal "advisor_assignment", activity.action
+    assert_equal @admin, activity.admin
+    assert_equal student, activity.subject
   ensure
     student.update!(advisor: advisors(:advisor))
   end
@@ -152,6 +184,24 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   ensure
     student.update!(advisor: advisors(:advisor))
     other_student.update!(advisor: advisors(:other_advisor))
+  end
+
+  test "update_student_advisors changes track and logs activity" do
+    sign_in @admin
+
+    student = students(:student)
+    original_track = student.track
+
+    assert_difference -> { AdminActivityLog.where(action: "track_update").count }, 1 do
+      patch update_student_advisors_path, params: { track_updates: { student.student_id => "executive" } }
+    end
+
+    assert_redirected_to manage_students_path
+    follow_redirect!
+    assert_match "Updated 1 track", flash[:notice]
+    assert_equal "executive", student.reload.track
+  ensure
+    student.update!(track: original_track)
   end
 
   test "student dashboard recreates missing profile" do
@@ -179,6 +229,16 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "Welcome"
+  end
+
+  test "student dashboard only shows surveys for student's track" do
+    sign_in @student
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Fall 2025 Health Assessment"
+    refute_includes response.body, "Spring 2025 Health Assessment"
   end
 
   test "advisor dashboard handles admin impersonation" do

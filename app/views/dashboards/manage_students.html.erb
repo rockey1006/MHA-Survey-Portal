@@ -1,6 +1,6 @@
 <!-- Student Advisor Management view -->
-<main class="main-content">
-    <section class="dashboard-section">
+<main class="main-content" style="display: flex; justify-content: center;">
+    <section class="dashboard-section" style="max-width: 1200px; width: 100%;">
         <div class="section-header">
             <h1 class="section-title">🎓 Student Advisor Management</h1>
             <p class="section-subtitle">Review advisees and assign advisors across the program.</p>
@@ -40,17 +40,20 @@
         <% elsif @can_manage %>
             <%= form_with url: update_student_advisors_path, method: :patch, local: true, id: "advisor-management-form", data: { turbo: false }, remote: false do |form| %>
                 <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                <% track_select_options = [["Select track", ""]] + @track_select_options %>
 
-                <div class="users-table-container">
+                <div class="users-table-container" style="overflow-x: auto;">
                     <table class="users-table">
                         <thead>
                             <tr>
                                 <th class="table-header-avatar">Avatar</th>
-                                <th class="table-header-name">Student</th>
-                                <th class="table-header-email">Email</th>
-                                <th class="table-header-current-role">Current Advisor</th>
-                                <th class="table-header-new-role">New Advisor</th>
-                                <th class="table-header-actions">Actions</th>
+                                <th class="table-header-name" style="min-width: 15rem;">Student</th>
+                                <th class="table-header-email" style="min-width: 16rem;">Email</th>
+                                <th class="table-header-track" style="min-width: 8rem;">Track</th>
+                                <th class="table-header-track min-w-[10rem]" style="min-width: 12rem;">New Track</th>
+                                <th class="table-header-current-role" style="min-width: 12rem;">Current Advisor</th>
+                                <th class="table-header-new-role" style="min-width: 12rem;">New Advisor</th>
+                                <th class="table-header-actions" style="min-width: 12rem;">Changes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,8 +62,10 @@
                                 <% current_advisor = student.advisor %>
                                 <% current_advisor_name = current_advisor&.display_name || "Unassigned" %>
                                 <% current_advisor_id = student.advisor_id.present? ? student.advisor_id.to_s : "" %>
+                                <% track_key = student.track.presence || "" %>
+                                <% track_label = track_key.present? ? track_key.titleize : "Unassigned" %>
 
-                                <tr class="user-row">
+                                <tr class="user-row" data-student-row="<%= student.student_id %>">
                                     <td class="user-avatar-cell">
                                         <div class="user-table-avatar"
                                                  <% if user&.avatar_url.present? %>
@@ -70,19 +75,38 @@
                                         </div>
                                     </td>
 
-                                    <td class="user-name-cell">
+                                    <td class="user-name-cell" style="min-width: 15rem;">
                                         <div class="user-name"><%= user&.name || "Unknown Student" %></div>
                                     </td>
 
-                                    <td class="user-email-cell">
+                                    <td class="user-email-cell" style="min-width: 16rem;">
                                         <%= user&.email || "—" %>
                                     </td>
 
-                                    <td class="user-current-role-cell">
+                                    <td class="user-track-cell" style="min-width: 8rem;">
+                                        <span class="role-badge track"><%= track_label %></span>
+                                    </td>
+
+                                    <td class="user-track-update-cell" style="min-width: 13rem;">
+                                        <div class="role-selector">
+                                            <%= select_tag "track_updates[#{student.student_id}]",
+                                                    options_for_select(track_select_options, track_key),
+                                                    class: "role-select track-select w-full",
+                                                    data: {
+                                                        student_id: student.student_id,
+                                                        original_track: track_key,
+                                                        original_track_name: track_label,
+                                                        student_name: user&.name || "Student ##{student.student_id}"
+                                                    },
+                                                    id: "track_select_#{student.student_id}" %>
+                                        </div>
+                                    </td>
+
+                                    <td class="user-current-role-cell" style="min-width: 12rem;">
                                         <span class="role-badge advisor"><%= current_advisor_name %></span>
                                     </td>
 
-                                    <td class="user-new-role-cell">
+                                    <td class="user-new-role-cell" style="min-width: 12rem;">
                                         <div class="role-selector">
                                             <%= select_tag "advisor_updates[#{student.student_id}]",
                                                     options_for_select(@advisor_select_options, current_advisor_id),
@@ -97,8 +121,8 @@
                                         </div>
                                     </td>
 
-                                    <td class="user-actions-cell">
-                                        <span class="advisor-change-indicator" data-student-id="<%= student.student_id %>">
+                                    <td class="user-actions-cell" style="min-width: 12rem;">
+                                        <span class="student-change-indicator" data-student-id="<%= student.student_id %>">
                                             No changes
                                         </span>
                                     </td>
@@ -109,7 +133,7 @@
                 </div>
 
                 <div class="mt-6 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                    <div class="text-sm text-slate-600" id="advisor-changes-summary" style="display: none;">
+                    <div class="text-sm text-slate-600" id="student-changes-summary" style="display: none;">
                         <span class="changes-count font-semibold">0 changes pending</span>
                     </div>
 
@@ -120,13 +144,14 @@
                 </div>
             <% end %>
         <% else %>
-            <div class="users-table-container">
+            <div class="users-table-container" style="overflow-x: auto;">
                 <table class="users-table">
                     <thead>
                         <tr>
                             <th class="table-header-avatar">Avatar</th>
-                            <th class="table-header-name">Student</th>
-                            <th class="table-header-email">Email</th>
+                            <th class="table-header-name" style="min-width: 15rem;">Student</th>
+                            <th class="table-header-email" style="min-width: 16rem;">Email</th>
+                            <th class="table-header-track" style="min-width: 8rem;">Track</th>
                             <th class="table-header-current-role">Advisor</th>
                         </tr>
                     </thead>
@@ -143,13 +168,16 @@
                                         <% unless user&.avatar_url.present? %>👤<% end %>
                                     </div>
                                 </td>
-                                <td class="user-name-cell">
+                                <td class="user-name-cell" style="min-width: 15rem;">
                                     <div class="user-name"><%= user&.name || "Unknown Student" %></div>
                                 </td>
-                                <td class="user-email-cell">
+                                <td class="user-email-cell" style="min-width: 16rem;">
                                     <%= user&.email || "—" %>
                                 </td>
-                                <td class="user-current-role-cell">
+                                <td class="user-track-cell" style="min-width: 8rem;">
+                                    <span class="role-badge track"><%= student.track.present? ? student.track.titleize : "Unassigned" %></span>
+                                </td>
+                                <td class="user-current-role-cell" style="min-width: 12rem;">
                                     <span class="role-badge advisor"><%= current_advisor&.display_name || "Unassigned" %></span>
                                 </td>
                             </tr>
@@ -179,32 +207,65 @@
             form.dataset.initialized = 'true';
 
             const saveButton = document.getElementById('advisor-save-btn');
-            const changesSummary = document.getElementById('advisor-changes-summary');
+            const changesSummary = document.getElementById('student-changes-summary');
             const changesCount = changesSummary ? changesSummary.querySelector('.changes-count') : null;
 
             if (!saveButton || !changesSummary || !changesCount) {
                 return;
             }
 
-            const pendingChanges = {};
+            const changeRegistry = new Map();
 
             function indicatorFor(studentId) {
-                return form.querySelector(`.advisor-change-indicator[data-student-id="${studentId}"]`);
+                return form.querySelector(`.student-change-indicator[data-student-id="${studentId}"]`);
             }
 
-            function formatChange(fromName, toName) {
-                return `${fromName} → ${toName}`;
+            function rowFor(studentId) {
+                return form.querySelector(`.user-row[data-student-row="${studentId}"]`);
+            }
+
+            function updateIndicator(studentId) {
+                const indicator = indicatorFor(studentId);
+                if (!indicator) {
+                    return;
+                }
+
+                const row = rowFor(studentId);
+                const entry = changeRegistry.get(studentId);
+                const messages = [];
+
+                if (entry && entry.advisor) {
+                    messages.push(`Advisor: ${entry.advisor.from} → ${entry.advisor.to}`);
+                }
+
+                if (entry && entry.track) {
+                    messages.push(`Track: ${entry.track.from} → ${entry.track.to}`);
+                }
+
+                if (messages.length > 0) {
+                    indicator.textContent = messages.join(' | ');
+                    indicator.className = 'student-change-indicator changed';
+                    if (row) {
+                        row.classList.add('has-changes');
+                    }
+                } else {
+                    indicator.textContent = 'No changes';
+                    indicator.className = 'student-change-indicator';
+                    if (row) {
+                        row.classList.remove('has-changes');
+                    }
+                }
             }
 
             function updateUI() {
-                const changeCount = Object.keys(pendingChanges).length;
+                const changeCount = changeRegistry.size;
 
                 if (changeCount > 0) {
                     saveButton.disabled = false;
                     saveButton.style.opacity = '1';
                     saveButton.style.cursor = 'pointer';
                     changesSummary.style.display = 'block';
-                    changesCount.textContent = `${changeCount} change${changeCount > 1 ? 's' : ''} pending`;
+                    changesCount.textContent = `${changeCount} student${changeCount === 1 ? '' : 's'} pending updates`;
                     saveButton.setAttribute('data-has-changes', 'true');
                 } else {
                     saveButton.disabled = true;
@@ -215,49 +276,75 @@
                 }
             }
 
+            function setChange(studentId, type, payload) {
+                const existing = changeRegistry.get(studentId) || { studentName: (payload && payload.studentName) || `Student ${studentId}`, advisor: null, track: null };
+
+                if (payload) {
+                    existing.studentName = payload.studentName || existing.studentName;
+                    existing[type] = payload;
+                } else {
+                    existing[type] = null;
+                }
+
+                if (!existing.advisor && !existing.track) {
+                    changeRegistry.delete(studentId);
+                } else {
+                    changeRegistry.set(studentId, existing);
+                }
+
+                updateIndicator(studentId);
+                updateUI();
+            }
+
             form.querySelectorAll('.advisor-select').forEach(select => {
                 const studentId = select.dataset.studentId;
                 const originalAdvisor = select.dataset.originalAdvisor || '';
                 const originalName = select.dataset.originalAdvisorName || 'Unassigned';
-                const indicator = indicatorFor(studentId);
-                const row = select.closest('.user-row');
-
-                if (!indicator) {
-                    return;
-                }
+                const studentName = select.dataset.studentName || `Student ${studentId}`;
 
                 select.value = originalAdvisor;
 
                 select.addEventListener('change', function() {
-                    const newAdvisor = this.value;
-                    const newAdvisorName = this.options[this.selectedIndex].text.trim() || 'Unassigned';
-                    const studentName = this.dataset.studentName || `Student ${studentId}`;
+                    const newAdvisor = this.value || '';
+                    const selectedOption = this.options[this.selectedIndex];
+                    const newAdvisorName = selectedOption ? selectedOption.text.trim() : 'Unassigned';
 
                     if (newAdvisor !== originalAdvisor) {
-                        pendingChanges[studentId] = {
-                            studentName: studentName,
-                            fromName: originalName,
-                            toName: newAdvisorName,
-                            advisorId: newAdvisor
-                        };
-
-                        indicator.textContent = formatChange(originalName, newAdvisorName);
-                        indicator.className = 'advisor-change-indicator changed';
-
-                        if (row) {
-                            row.classList.add('has-changes');
-                        }
+                        setChange(studentId, 'advisor', {
+                            from: originalName,
+                            to: newAdvisorName,
+                            value: newAdvisor,
+                            studentName: studentName
+                        });
                     } else {
-                        delete pendingChanges[studentId];
-                        indicator.textContent = 'No changes';
-                        indicator.className = 'advisor-change-indicator';
-
-                        if (row) {
-                            row.classList.remove('has-changes');
-                        }
+                        setChange(studentId, 'advisor', null);
                     }
+                });
+            });
 
-                    updateUI();
+            form.querySelectorAll('.track-select').forEach(select => {
+                const studentId = select.dataset.studentId;
+                const originalTrack = select.dataset.originalTrack || '';
+                const originalTrackName = select.dataset.originalTrackName || 'Unassigned';
+                const studentName = select.dataset.studentName || `Student ${studentId}`;
+
+                select.value = originalTrack;
+
+                select.addEventListener('change', function() {
+                    const newTrack = this.value || '';
+                    const selectedOption = this.options[this.selectedIndex];
+                    const newTrackName = selectedOption ? selectedOption.text.trim() : 'Unassigned';
+
+                    if (newTrack !== originalTrack) {
+                        setChange(studentId, 'track', {
+                            from: originalTrackName,
+                            to: newTrackName,
+                            value: newTrack,
+                            studentName: studentName
+                        });
+                    } else {
+                        setChange(studentId, 'track', null);
+                    }
                 });
             });
 
@@ -265,24 +352,38 @@
                 if (this.disabled) {
                     e.preventDefault();
                     e.stopPropagation();
-                    alert('No changes to save. Please make advisor updates first.');
+                    alert('No changes to save. Please make student updates first.');
                 }
             });
 
             form.addEventListener('submit', function(e) {
-                const changeCount = Object.keys(pendingChanges).length;
-
-                if (changeCount === 0) {
+                if (changeRegistry.size === 0) {
                     alert('No changes to save.');
                     e.preventDefault();
                     return false;
                 }
 
-                const changeList = Object.values(pendingChanges)
-                    .map(change => `• ${change.studentName}: ${change.fromName} → ${change.toName}`)
-                    .join('\n');
+                const changeLines = [];
+                let fieldChangeCount = 0;
 
-                const confirmMessage = `You are about to apply ${changeCount} advisor change${changeCount > 1 ? 's' : ''}:\n\n${changeList}\n\nProceed?`;
+                changeRegistry.forEach(entry => {
+                    if (entry.advisor) {
+                        changeLines.push(`• ${entry.studentName}: Advisor ${entry.advisor.from} → ${entry.advisor.to}`);
+                        fieldChangeCount += 1;
+                    }
+                    if (entry.track) {
+                        changeLines.push(`• ${entry.studentName}: Track ${entry.track.from} → ${entry.track.to}`);
+                        fieldChangeCount += 1;
+                    }
+                });
+
+                if (fieldChangeCount === 0) {
+                    alert('No changes to save.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                const confirmMessage = `You are about to apply ${fieldChangeCount} change${fieldChangeCount === 1 ? '' : 's'} across ${changeRegistry.size} student${changeRegistry.size === 1 ? '' : 's'}:\n\n${changeLines.join('\n')}\n\nProceed?`;
 
                 if (!confirm(confirmMessage)) {
                     e.preventDefault();

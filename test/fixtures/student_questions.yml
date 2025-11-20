@@ -1,0 +1,8 @@
+# frozen_string_literal: true
+
+one:
+  student: student
+  question: fall_q1
+  response_value: "4"
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

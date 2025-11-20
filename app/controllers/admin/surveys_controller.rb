@@ -2,6 +2,7 @@
 # surveys. Provides search, filtering, and management capabilities for survey
 # definitions used throughout the program.
 class Admin::SurveysController < Admin::BaseController
+  helper :surveys
   before_action :set_survey, only: %i[edit update destroy preview archive activate]
   before_action :prepare_supporting_data, only: %i[new create edit update]
 
@@ -13,6 +14,9 @@ class Admin::SurveysController < Admin::BaseController
   def index
     @search_query = params[:q].to_s.strip
     @selected_track = params[:track].presence
+    @program_semesters = ProgramSemester.ordered
+    @current_program_semester = ProgramSemester.current
+    @new_program_semester = ProgramSemester.new
 
     allowed_sort_columns = {
       "title" => "surveys.title",
@@ -25,8 +29,7 @@ class Admin::SurveysController < Admin::BaseController
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
     @sort_direction = params[:direction] == "asc" ? "asc" : "desc"
 
-  active_scope = Survey.active
-             .left_joins(:track_assignments)
+    active_scope = Survey.active.left_joins(:track_assignments)
 
     if @selected_track.present?
       if @selected_track == unassigned_track_token
@@ -43,6 +46,8 @@ class Admin::SurveysController < Admin::BaseController
         term: term
       )
     end
+
+    active_scope = active_scope.distinct
 
     active_scope = active_scope
       .left_joins(:categories, :questions)
@@ -65,7 +70,7 @@ class Admin::SurveysController < Admin::BaseController
     ).compact.map(&:to_s).reject(&:blank?).uniq.sort
     @unassigned_track_token = unassigned_track_token
 
-  @archived_surveys = Survey.archived.includes(:categories, :track_assignments, :creator).order(updated_at: :desc)
+    @archived_surveys = Survey.archived.includes(:categories, :track_assignments, :creator).order(updated_at: :desc)
     @recent_logs = SurveyChangeLog.recent.includes(:survey, :admin).limit(12)
   end
 
@@ -168,10 +173,28 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    @categories = @survey.categories.includes(:questions).order(:id)
+    @category_groups = @survey.categories.includes(:questions).order(:id)
+    @categories = @category_groups
     @questions = @survey.questions.includes(:category).order(:question_order)
-    @category_names = @categories.map(&:name)
+    @category_names = @category_groups.map(&:name)
     @track_list = @survey.track_list
+    @excluded_categories = [ "Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service" ]
+    @computed_required = {}
+
+    @category_groups.each do |category|
+      category.questions.each do |question|
+        required = question.is_required?
+
+        if !required && question.question_type_multiple_choice?
+          options = question.answer_options_list.map(&:strip).map(&:downcase)
+          is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
+                                 question.question_text.to_s.downcase.include?("flexible")
+          required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
+        end
+
+        @computed_required[question.id] = required
+      end
+    end
     @survey.log_change!(admin: current_user, action: "preview", description: "Previewed from admin panel")
   end
 
@@ -202,6 +225,7 @@ class Admin::SurveysController < Admin::BaseController
         questions_attributes: [
           :id,
           :question_text,
+          :description,
           :question_type,
           :question_order,
           :answer_options,
@@ -217,10 +241,11 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [Array<String>] list of unique track identifiers chosen by the admin
   def selected_tracks
-    permitted = params.fetch(:survey, {}).permit(track_list: [], additional_track_names: "")
-    base = Array(permitted[:track_list]).map(&:to_s)
-    extras = permitted[:additional_track_names].to_s.split(/[,\n;]/)
-    (base + extras).map(&:strip).reject(&:blank?).uniq
+    permitted = params.fetch(:survey, {}).permit(track_list: [])
+    Array(permitted[:track_list])
+      .map { |value| Survey.canonical_track(value) }
+      .compact
+      .uniq
   end
 
   # Loads supporting data such as available tracks and question types for the
@@ -228,12 +253,9 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def prepare_supporting_data
-    @available_tracks = (
-      Survey::TRACK_OPTIONS +
-      Student.distinct.pluck(:track).compact +
-  SurveyTrackAssignment.distinct.pluck(:track).compact
-    ).map(&:to_s).reject(&:blank?).uniq.sort
+    @available_tracks = Survey::TRACK_OPTIONS
     @question_types = Question.question_types.keys
+    @program_semester_options = ProgramSemester.ordered.pluck(:name)
   end
 
   # Ensures the survey has at least one category with a question scaffolded for
@@ -270,6 +292,10 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [String]
   def default_semester
+    ProgramSemester.current_name.presence || calculated_semester_from_calendar
+  end
+
+  def calculated_semester_from_calendar
     current = Time.zone.today
     year = current.year
     season = case current.month

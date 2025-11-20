@@ -2,14 +2,22 @@
 require "json"
 require "yaml"
 require "active_support/core_ext/numeric/time"
+require "set"
 
 puts "\n== Seeding Health sample data =="
 
 previous_queue_adapter = ActiveJob::Base.queue_adapter
+seed_async_adapter = nil
 
 unless Rails.env.test?
-  ActiveJob::Base.queue_adapter = :inline
-  at_exit { ActiveJob::Base.queue_adapter = previous_queue_adapter }
+  # Use a dedicated async adapter during seeding so notification jobs run concurrently
+  # while still flushing before the process exits.
+  seed_async_adapter = ActiveJob::QueueAdapters::AsyncAdapter.new(min_threads: 2, max_threads: 4, idletime: 1.second)
+  ActiveJob::Base.queue_adapter = seed_async_adapter
+  at_exit do
+    seed_async_adapter&.shutdown if seed_async_adapter.respond_to?(:shutdown)
+    ActiveJob::Base.queue_adapter = previous_queue_adapter
+  end
 end
 
 Rails.cache.clear
@@ -118,6 +126,7 @@ survey_templates.each do |definition|
       Array(category_definition.fetch("questions", [])).each do |question_definition|
         category.questions.build(
           question_text: question_definition.fetch("text"),
+          description: question_definition["description"],
           question_order: question_definition.fetch("order"),
           question_type: question_definition.fetch("type"),
           is_required: question_definition.fetch("required", false),
@@ -138,6 +147,22 @@ survey_templates.each do |definition|
       surveys_by_track[normalized_track] << survey
     end
   end
+end
+
+semester_names = survey_templates.map { |definition| definition["semester"].to_s.strip.presence }.compact.uniq
+if semester_names.blank?
+  semester_names = [Time.zone.now.strftime("%B %Y")]
+end
+
+puts "• Syncing program semesters"
+ProgramSemester.transaction do
+  target_current = semester_names.last
+  semester_names.each do |name|
+    ProgramSemester.find_or_create_by!(name: name)
+  end
+
+  ProgramSemester.where.not(name: target_current).update_all(current: false)
+  ProgramSemester.find_by(name: target_current)&.update!(current: true)
 end
 
 puts "• Assigning surveys to each student"
@@ -173,14 +198,17 @@ drive_links = %w[
   https://docs.google.com/document/d/1SampleDocumentId/edit?usp=drive_link
 ]
 
-competency_category_names = [
-  "Health Care Environment and Community",
-  "Leadership Skills",
-  "Management Skills",
-  "Analytic and Technical Skills",
-  "Mentor Relationships (RMHA Only)",
-  "Semester"
-].freeze
+competency_titles = Reports::DataAggregator::COMPETENCY_TITLES
+competency_title_lookup = competency_titles.map { |title| title.to_s.strip }.to_set
+
+competency_rating_value = lambda do |high_performer:|
+  pool = if high_performer
+           [4, 4, 5, 5, 5]
+         else
+           [2, 3, 3, 4, 4, 5]
+         end
+  pool.sample(random: response_rng).to_s
+end
 
 students.each do |student|
   track_value = student.track.presence || student.read_attribute(:track)
@@ -193,62 +221,59 @@ students.each do |student|
 
       response_roll = response_rng.rand
       advisor_profile = student.advisor
+      question_label = question.question_text.to_s.strip
+      is_competency_question = competency_title_lookup.include?(question_label)
+      high_performer = high_performer_ids.include?(student.student_id)
 
-      # Decide whether this entry is captured as a student reflection or advisor evaluation
-      record.advisor_id = case response_roll
-                          when 0.0..0.20
-                            nil
-                          when 0.20..0.65
+      # Ensure competency metrics always capture a student self-rating entry
+      record.advisor_id = if is_competency_question
                             nil
                           else
-                            advisor_profile&.advisor_id
+                            case response_roll
+                            when 0.0..0.20
+                              nil
+                            when 0.20..0.65
+                              nil
+                            else
+                              advisor_profile&.advisor_id
+                            end
                           end
 
-      response_value = nil
-      if high_performer_ids.include?(student.student_id)
-        response_value = case question.question_type
-                         when "evidence"
-                           drive_links.first
-                         when "multiple_choice"
-                           "Yes"
-                         when "short_answer"
-                           if competency_category_names.include?(question.category.name) && question.question_order == 1
-                             "4.8"
-                           else
-                             "Delivered an exceptional outcome that exceeded expectations."
-                           end
-                         else
-                           "Completed with distinction."
+      response_value = case question.question_type
+                       when "evidence"
+                         high_performer ? drive_links.first : drive_links.sample(random: response_rng)
+                       when "multiple_choice"
+                         options = begin
+                           raw = question.answer_options.presence || "[]"
+                           parsed = JSON.parse(raw)
+                           Array.wrap(parsed)
+                         rescue JSON::ParserError
+                           []
                          end
-        record.advisor_id ||= advisor_profile&.advisor_id
-      else
-        case question.question_type
-        when "evidence"
-          response_value = drive_links.sample(random: response_rng)
-        when "multiple_choice"
-          options = begin
-            raw = question.answer_options.presence || "[]"
-            parsed = JSON.parse(raw)
-            Array.wrap(parsed)
-          rescue JSON::ParserError
-            []
-          end
-          response_value = options.sample(random: response_rng).presence || "Yes"
-        when "short_answer"
-          if competency_category_names.include?(question.category.name) && question.question_order == 1
-            # First question in competency-style categories drives numeric analytics
-            min, max = record.advisor_id.present? ? [3.2, 4.9] : [2.5, 4.5]
-            response_value = sample_numeric.call(min:, max:)
-          else
-            response_value = sample_text.call(question)
-          end
-        else
-          response_value = sample_text.call(question)
-        end
-      end
+
+                         if is_competency_question
+                           rating_value = competency_rating_value.call(high_performer: high_performer)
+                           options.include?(rating_value) ? rating_value : (options.sample(random: response_rng).presence || rating_value || "3")
+                         else
+                           preferred = high_performer ? "Yes" : nil
+                           selection = options.sample(random: response_rng).presence
+                           fallback = preferred && options.include?(preferred) ? preferred : selection
+                           fallback.presence || preferred || options.first || "Yes"
+                         end
+                       when "short_answer"
+                         if is_competency_question
+                           competency_rating_value.call(high_performer: high_performer)
+                         else
+                           high_performer ? "Delivered an exceptional outcome that exceeded expectations." : sample_text.call(question)
+                         end
+                       else
+                         high_performer ? "Completed with distinction." : sample_text.call(question)
+                       end
+
+      record.advisor_id ||= advisor_profile&.advisor_id if high_performer && !is_competency_question
 
       # Introduce the occasional "not assessed" entry for advisors (skip top performers)
-      if record.advisor_id.present? && response_roll < 0.28 && !high_performer_ids.include?(student.student_id)
+      if !is_competency_question && record.advisor_id.present? && response_roll < 0.28 && !high_performer_ids.include?(student.student_id)
         response_value = nil
       end
 
@@ -261,21 +286,9 @@ students.each do |student|
       record.save!
     end
 
-    assignment = SurveyAssignment.find_or_initialize_by(survey:, student:)
-    assignment.advisor ||= student.advisor
-    assignment.assigned_at ||= Time.zone.now
-    assignment.due_date ||= 2.weeks.from_now
-
-    created_assignment = assignment.new_record?
-    assignment.save! if assignment.new_record? || assignment.changed?
-
-    if created_assignment
-      SurveyNotificationJob.perform_now(event: :assigned, survey_assignment_id: assignment.id)
-    end
-
-    puts "   • Prepared #{survey.questions.count} questions and assignment for #{student.user.name} (#{track_value})"
-  puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
-    puts "     ↳ Due #{assignment.due_date&.to_date}#{' (new notification queued)' if created_assignment}"
+    puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
+    puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
+    puts "     ↳ Track auto-assign will create survey tasks on next profile update"
   end
 end
 

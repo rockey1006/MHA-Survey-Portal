@@ -53,26 +53,30 @@ class FeedbacksController < ApplicationController
       saved_feedbacks = []
 
       Feedback.transaction do
-        ratings.each do |cat_id_str, data|
-          Rails.logger.debug "[FeedbacksController#create] processing category=#{cat_id_str} data=#{data.inspect}"
-          cat_id = cat_id_str.to_i
+        ratings.each do |qid_str, data|
+          Rails.logger.debug "[FeedbacksController#create] processing question=#{qid_str} data=#{data.inspect}"
+          qid = qid_str.to_i
           attrs = data.to_h
 
           # Skip empty inputs
           next if attrs["average_score"].blank? && attrs["comments"].blank?
 
-      fb = if attrs["id"].present?
-        Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
-      else
-        Feedback.new(student_id: @student.student_id,
-            survey_id: @survey.id,
-            category_id: cat_id,
-            advisor_id: @advisor&.advisor_id)
-      end
+          question = Question.find_by(id: qid)
+
+          fb = if attrs["id"].present?
+            Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
+          else
+            Feedback.new(student_id: @student.student_id,
+              survey_id: @survey.id,
+              question_id: qid,
+              category_id: question&.category_id,
+              advisor_id: @advisor&.advisor_id)
+          end
+
           Rails.logger.debug "[FeedbacksController#create] found fb=#{fb.inspect} attrs=#{attrs.inspect}"
 
           unless fb
-            batch_errors[cat_id] = [ "Feedback record not found" ]
+            batch_errors[qid] = [ "Feedback record not found" ]
             next
           end
 
@@ -81,10 +85,10 @@ class FeedbacksController < ApplicationController
           fb.survey_id = @survey.id
           fb.student_id = @student.student_id
           fb.advisor_id = @advisor&.advisor_id
-          fb.category_id = cat_id
+          fb.question_id = qid
 
           unless fb.save
-            batch_errors[cat_id] = fb.errors.full_messages
+            batch_errors[qid] = fb.errors.full_messages
           else
             saved_feedbacks << fb
           end
@@ -126,15 +130,16 @@ class FeedbacksController < ApplicationController
         format.json { render json: saved_feedbacks, status: :created }
       end
       return
-    elsif params[:feedback].present? && params.dig(:feedback, :category_id).present?
-      # per-category single feedback
+    elsif params[:feedback].present? && params.dig(:feedback, :question_id).present?
+      # per-question single feedback
       set_survey_and_student unless @survey && @student
       @advisor = current_advisor_profile
       @feedback = Feedback.new(
         survey_id: @survey.id,
         student_id: @student.student_id,
         advisor_id: @advisor&.advisor_id,
-        category_id: feedback_params[:category_id],
+        question_id: feedback_params[:question_id],
+        category_id: Question.find_by(id: feedback_params[:question_id])&.category_id,
         average_score: feedback_params[:average_score],
         comments: feedback_params[:comments]
       )
@@ -213,8 +218,9 @@ class FeedbacksController < ApplicationController
     @survey_response = SurveyResponse.build(student: @student, survey: @survey)
     question_ids = @survey.questions.select(:id)
     @responses = StudentQuestion.where(student_id: @student.student_id, question_id: question_ids).includes(question: :category)
-    @existing_feedbacks = Feedback.where(student_id: @student.student_id, survey_id: @survey.id).includes(:category, :advisor)
+    @existing_feedbacks = Feedback.where(student_id: @student.student_id, survey_id: @survey.id).includes(:category, :advisor, :question)
     @existing_feedbacks_by_category = @existing_feedbacks.index_by(&:category_id)
+    @existing_feedbacks_by_question = @existing_feedbacks.index_by(&:question_id)
   end
 
   def set_survey_and_student

@@ -57,8 +57,9 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
     survey = surveys(:fall_2025)
     q1 = survey.questions[0]
     q2 = survey.questions[1] || Question.create!(category: survey.categories.first, question_text: "Temp", question_order: 999, question_type: "short_answer", is_required: false)
-  StudentQuestion.create!(student_id: student.student_id, question: q1, response_value: "X", updated_at: 2.days.ago)
-  StudentQuestion.create!(student_id: student.student_id, question: q2, response_value: "Y", updated_at: 1.day.ago)
+    StudentQuestion.where(student_id: student.student_id, question_id: [ q1.id, q2.id ]).delete_all
+    StudentQuestion.create!(student_id: student.student_id, question: q1, response_value: "X", updated_at: 2.days.ago)
+    StudentQuestion.create!(student_id: student.student_id, question: q2, response_value: "Y", updated_at: 1.day.ago)
     sr = SurveyResponse.new(student: student, survey: survey)
     assert_in_delta 1.day.ago.to_i, sr.completion_date.to_i, 5
   end

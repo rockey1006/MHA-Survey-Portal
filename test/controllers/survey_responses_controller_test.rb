@@ -10,6 +10,8 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     @student_user = users(:student)
     @student = students(:student)
     @survey = surveys(:fall_2025)
+    @assigned_advisor = users(:advisor)
+    @other_advisor = users(:other_advisor)
   end
 
   test "set_survey_response via id param returns not found for bad id" do
@@ -31,13 +33,18 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     assert_response :success
   end
 
-  test "authorize_view prevents unauthorized users" do
-    other = users(:advisor)
-    sign_in other
+  test "authorize_view allows assigned advisor" do
+    sign_in @assigned_advisor
     sr = SurveyResponse.build(student: @student, survey: @survey)
     get :show, params: { id: sr.id }
-    # advisor should be allowed if role_advisor? but this advisor fixture is advisor role; advisors allowed
     assert_response :success
+  end
+
+  test "authorize_view blocks advisors for unassigned students" do
+    sign_in @other_advisor
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :show, params: { id: sr.id }
+    assert_response :unauthorized
   end
 
   test "download returns service_unavailable when WickedPdf not defined" do

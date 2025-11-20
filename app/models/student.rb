@@ -19,7 +19,7 @@ class Student < ApplicationRecord
   validates :major, presence: true, on: :profile_completion
   validates :track, presence: true, on: :profile_completion
 
-  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? && track.present? }
+  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? }
 
   # Checks if the student has completed their profile setup
   #

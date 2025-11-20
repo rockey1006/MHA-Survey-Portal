@@ -1,6 +1,8 @@
 <% content_for :title, "FAQ - MHA Program Portal" %>
 
-<%= render "shared/login_navbar" %>
+<% content_for :header do %>
+  <%= render "shared/login_navbar" %>
+<% end %>
 
 <main class="flex justify-center px-4 py-12">
   <div class="w-full max-w-4xl space-y-6">

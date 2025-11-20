@@ -7,9 +7,12 @@ module Reports
   class ExcelExporter
     SECTION_SHEETS = {
       "benchmark" => %i[add_summary_sheet],
-      "competency" => %i[add_competency_sheet],
-      "course" => %i[add_course_sheet],
-      "alignment" => %i[add_alignment_sheet]
+      "trend" => %i[add_summary_sheet],
+      "domain" => %i[add_competency_sheet],
+      "competency_summary" => %i[add_competency_sheet],
+      "competency" => %i[add_competency_detail_sheet],
+      "competency_detail" => %i[add_competency_detail_sheet],
+      "track" => %i[add_track_sheet add_course_sheet]
     }.freeze
     DEFAULT_SHEETS = SECTION_SHEETS.values.flatten.uniq.freeze
 
@@ -122,6 +125,43 @@ module Reports
       end
     end
 
+    def add_competency_detail_sheet(workbook)
+      detail = Array(payload.dig(:competency_detail, :items))
+      return if detail.blank?
+
+      workbook.add_worksheet(name: "Competency Detail") do |sheet|
+        sheet.add_row [
+          "Competency",
+          "Domain",
+          "Student Avg",
+          "Advisor Avg",
+          "Gap",
+          "Achieved",
+          "Not Met",
+          "Not Assessed",
+          "Achieved %",
+          "Not Met %",
+          "Not Assessed %"
+        ]
+
+        detail.each do |item|
+          sheet.add_row [
+            item[:name],
+            item[:domain_name],
+            format_number(item[:student_average], 2),
+            format_number(item[:advisor_average], 2),
+            format_number(item[:gap], 2),
+            item[:achieved_count],
+            item[:not_met_count],
+            item[:not_assessed_count],
+            format_number(item[:achieved_percent], 1, suffix: "%"),
+            format_number(item[:not_met_percent], 1, suffix: "%"),
+            format_number(item[:not_assessed_percent], 1, suffix: "%")
+          ]
+        end
+      end
+    end
+
     def add_course_sheet(workbook)
       courses = Array(payload[:course_summary])
       return if courses.blank?
@@ -165,20 +205,40 @@ module Reports
       end
     end
 
-    def add_alignment_sheet(workbook)
-      data = payload[:alignment] || {}
-      labels = Array(data[:labels])
-      return if labels.blank?
+    def add_track_sheet(workbook)
+      tracks = Array(payload[:track_summary])
+      return if tracks.blank?
 
-      workbook.add_worksheet(name: "Alignment") do |sheet|
-        sheet.add_row [ "Competency", "Student Avg", "Advisor Avg", "Gap" ]
+      workbook.add_worksheet(name: "Tracks") do |sheet|
+        sheet.add_row [
+          "Track",
+          "Student Avg",
+          "Advisor Avg",
+          "Gap",
+          "On Track %",
+          "Submissions",
+          "Achieved",
+          "Not Met",
+          "Not Assessed",
+          "Achieved %",
+          "Not Met %",
+          "Not Assessed %"
+        ]
 
-        labels.each_with_index do |label, index|
+        tracks.each do |entry|
           sheet.add_row [
-            label,
-            format_number(Array(data[:student])[index], 2),
-            format_number(Array(data[:advisor])[index], 2),
-            format_number(Array(data[:gap])[index], 2)
+            entry[:track],
+            format_number(entry[:student_average], 2),
+            format_number(entry[:advisor_average], 2),
+            format_number(entry[:gap], 2),
+            format_number(entry[:achieved_percent], 1, suffix: "%"),
+            entry[:submissions],
+            entry[:achieved_count],
+            entry[:not_met_count],
+            entry[:not_assessed_count],
+            format_number(entry[:achieved_percent], 1, suffix: "%"),
+            format_number(entry[:not_met_percent], 1, suffix: "%"),
+            format_number(entry[:not_assessed_percent], 1, suffix: "%")
           ]
         end
       end

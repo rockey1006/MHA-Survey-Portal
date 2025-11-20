@@ -36,7 +36,7 @@ class DashboardsController < ApplicationController
       redirect_to dashboard_path, alert: "Student profile not found." and return
     end
 
-    surveys = Survey.includes(:questions).ordered
+    surveys = surveys_for_student(@student)
 
     student_responses = StudentQuestion
                           .joins(question: :category)
@@ -191,12 +191,27 @@ class DashboardsController < ApplicationController
       end
     end
 
+    log_metadata = { successes: successful_updates, failures: failed_updates }.reject { |_k, v| v.blank? }
+
     if successful_updates.present?
       message = "Updated #{successful_updates.size} user role#{'s' if successful_updates.size > 1}."
       message += " Failures: #{failed_updates.join(', ')}" if failed_updates.present?
+      AdminActivityLog.record!(
+        admin: current_user,
+        action: "role_update",
+        description: message,
+        metadata: log_metadata
+      ) if log_metadata.present?
       redirect_to manage_members_path, notice: message
     elsif failed_updates.present?
-      redirect_to manage_members_path, alert: "Role update errors: #{failed_updates.join(', ')}"
+      error_message = "Role update errors: #{failed_updates.join(', ')}"
+      AdminActivityLog.record!(
+        admin: current_user,
+        action: "role_update",
+        description: error_message,
+        metadata: log_metadata
+      ) if log_metadata.present?
+      redirect_to manage_members_path, alert: error_message
     else
       redirect_to manage_members_path, notice: "No role changes were needed."
     end
@@ -262,6 +277,7 @@ class DashboardsController < ApplicationController
     @students = load_students
     @advisors = Advisor.left_joins(:user).includes(:user).order(Arel.sql("LOWER(users.name) ASC"))
     @advisor_select_options = [ [ "Unassigned", "" ] ] + @advisors.map { |advisor| [ advisor.display_name, advisor.advisor_id.to_s ] }
+    @track_select_options = Student.tracks.keys.map { |key| [ key.titleize, key ] }
     @assignment_stats = {
       total: @students.size,
       assigned: @students.count { |student| student.advisor_id.present? },
@@ -275,7 +291,18 @@ class DashboardsController < ApplicationController
   # @return [void]
   def update_student_advisor
     @student = Student.find(params[:id])
+    previous_advisor = @student.advisor
     if @student.update(student_params)
+      AdminActivityLog.record!(
+        admin: current_user,
+        action: "advisor_assignment",
+        description: "Updated advisor for #{@student.user&.email || @student.student_id} from #{previous_advisor&.display_name || 'Unassigned'} to #{@student.advisor&.display_name || 'Unassigned'}",
+        subject: @student,
+        metadata: {
+          previous_advisor_id: previous_advisor&.advisor_id,
+          new_advisor_id: @student.advisor_id
+        }
+      )
       redirect_to manage_students_path, notice: "Advisor updated successfully."
     else
       redirect_to manage_students_path, alert: "Failed to update advisor."
@@ -288,59 +315,88 @@ class DashboardsController < ApplicationController
   def update_student_advisors
     return unless ensure_admin!
 
-    advisor_updates = params[:advisor_updates] || {}
-    if advisor_updates.blank?
-      redirect_to manage_students_path, alert: "No advisor changes were submitted."
+    advisor_updates = normalize_student_updates(params[:advisor_updates])
+    track_updates = normalize_student_updates(params[:track_updates])
+
+    if advisor_updates.blank? && track_updates.blank?
+      redirect_to manage_students_path, alert: "No student changes were submitted."
       return
     end
 
-    advisor_ids = advisor_updates.values.filter_map { |value| value.presence&.to_i }
-    advisor_lookup = Advisor.includes(:user).where(advisor_id: advisor_ids).index_by(&:advisor_id)
+    advisor_lookup = build_advisor_lookup(advisor_updates.values)
+    student_ids = (advisor_updates.keys + track_updates.keys).uniq
+    students = Student.includes(:user, advisor: :user)
+                      .where(student_id: student_ids)
+                      .index_by { |student| student.student_id.to_s }
 
-    successes = []
-    failures = []
+    advisor_successes = []
+    advisor_failures = []
+    track_successes = []
+    track_failures = []
 
     ActiveRecord::Base.transaction do
-      advisor_updates.each do |student_id, advisor_id_value|
-        student = Student.includes(:user, advisor: :user).find_by(student_id: student_id)
+      student_ids.each do |student_id|
+        student = students[student_id]
 
-        unless student
-          failures << "Student ##{student_id} not found"
+        if student.nil?
+          advisor_failures << "Student ##{student_id} not found" if advisor_updates.key?(student_id)
+          track_failures << "Student ##{student_id} not found" if track_updates.key?(student_id)
           next
         end
 
-        normalized_advisor_id = advisor_id_value.presence&.to_i
-
-        if normalized_advisor_id.present? && advisor_lookup[normalized_advisor_id].nil?
-          failures << "#{student.user&.email || student.student_id}: advisor not found"
-          next
+        if track_updates.key?(student_id)
+          apply_track_update(student, track_updates[student_id], track_successes, track_failures)
         end
 
-        current_advisor_id = student.advisor_id
-        next if (current_advisor_id || nil) == normalized_advisor_id
-
-        previous_label = student.advisor&.display_name || "Unassigned"
-        new_advisor_record = normalized_advisor_id.present? ? advisor_lookup[normalized_advisor_id] : nil
-        new_label = new_advisor_record&.display_name || "Unassigned"
-
-        begin
-          student.update!(advisor_id: normalized_advisor_id)
-          successes << "#{student.user&.email || student.student_id}: #{previous_label} → #{new_label}"
-        rescue StandardError => e
-          failures << "#{student.user&.email || student.student_id}: #{e.message}"
+        if advisor_updates.key?(student_id)
+          apply_advisor_update(student, advisor_updates[student_id], advisor_lookup, advisor_successes, advisor_failures)
         end
       end
     end
 
-    if successes.present?
-      message = "Updated #{successes.size} student advisor assignment#{'s' if successes.size != 1}."
-      message += " Failures: #{failures.join(', ')}" if failures.present?
-      redirect_to manage_students_path, notice: message
-    elsif failures.present?
-      redirect_to manage_students_path, alert: "Advisor update errors: #{failures.join(', ')}"
-    else
-      redirect_to manage_students_path, notice: "No advisor changes were needed."
+    notice_parts = []
+    alert_parts = []
+
+    if advisor_successes.present?
+      message = "Updated #{advisor_successes.size} student advisor assignment#{'s' if advisor_successes.size != 1}."
+      message += " Failures: #{advisor_failures.join(', ')}" if advisor_failures.present?
+      log_metadata = { successes: advisor_successes, failures: advisor_failures }.reject { |_k, v| v.blank? }
+      AdminActivityLog.record!(
+        admin: current_user,
+        action: "bulk_advisor_assignment",
+        description: message,
+        metadata: log_metadata
+      ) if log_metadata.present?
+      notice_parts << message
+    elsif advisor_failures.present?
+      error_message = "Advisor update errors: #{advisor_failures.join(', ')}"
+      AdminActivityLog.record!(
+        admin: current_user,
+        action: "bulk_advisor_assignment",
+        description: error_message,
+        metadata: { successes: [], failures: advisor_failures }
+      )
+      alert_parts << error_message
     end
+
+    if track_successes.present?
+      summary = "Updated #{track_successes.size} track#{'s' if track_successes.size != 1}"
+      summary += ". Changes: #{track_successes.join(', ')}" if track_successes.any?
+      notice_parts << "#{summary}."
+    end
+
+    if track_failures.present?
+      alert_parts << "Track update errors: #{track_failures.join(', ')}"
+    end
+
+    if notice_parts.blank? && alert_parts.blank?
+      notice_parts << "No student changes were needed."
+    end
+
+    flash[:notice] = notice_parts.join(" ") if notice_parts.any?
+    flash[:alert] = alert_parts.join(" ") if alert_parts.any?
+
+    redirect_to manage_students_path
   end
 
   private
@@ -422,6 +478,18 @@ class DashboardsController < ApplicationController
     !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
   end
 
+  def surveys_for_student(student)
+    track_value = student&.track.to_s
+    return Survey.none if track_value.blank?
+
+    Survey
+      .includes(:questions)
+      .joins(:track_assignments)
+      .where("LOWER(survey_track_assignments.track) = ?", track_value.downcase)
+      .distinct
+      .ordered
+  end
+
 
   # Loads students visible to the current user, respecting admin/advisor scope.
   #
@@ -446,6 +514,122 @@ class DashboardsController < ApplicationController
   # @return [ActionController::Parameters]
   def student_params
     params.require(:student).permit(:advisor_id)
+  end
+
+  # Normalizes nested form parameters keyed by student_id into a string-keyed hash.
+  #
+  # @param raw_updates [Hash, ActionController::Parameters, nil]
+  # @return [Hash{String=>String}] string-keyed hash of updates
+  def normalize_student_updates(raw_updates)
+    return {} if raw_updates.blank?
+
+    updates_hash = if raw_updates.respond_to?(:to_unsafe_h)
+      raw_updates.to_unsafe_h
+    else
+      raw_updates
+    end
+
+    updates_hash.each_with_object({}) do |(student_id, value), memo|
+      memo[student_id.to_s] = value
+    end
+  end
+
+  # Builds a lookup of advisors referenced in the submitted payload to avoid
+  # repeated queries when processing many students.
+  #
+  # @param advisor_values [Array<String>]
+  # @return [Hash{Integer=>Advisor}]
+  def build_advisor_lookup(advisor_values)
+    ids = Array(advisor_values).map { |value| value.to_s.presence&.to_i }.compact
+    return {} if ids.blank?
+
+    Advisor.includes(:user).where(advisor_id: ids).index_by(&:advisor_id)
+  end
+
+  # Applies a single track update for the provided student, recording success
+  # and failure messages and emitting an AdminActivityLog entry on success.
+  #
+  # @param student [Student]
+  # @param new_track_value [String]
+  # @param successes [Array<String>]
+  # @param failures [Array<String>]
+  # @return [void]
+  def apply_track_update(student, new_track_value, successes, failures)
+    new_track_key = new_track_value.to_s
+    student_label = student_display_label(student)
+
+    if new_track_key.blank?
+      return if student.track.blank?
+
+      failures << "#{student_label}: track selection is required"
+      return
+    end
+
+    unless Student.tracks.key?(new_track_key)
+      failures << "#{student_label}: invalid track selection"
+      return
+    end
+
+    return if student.track == new_track_key
+
+    previous_track = student.track
+    previous_label = previous_track.present? ? previous_track.titleize : "Unassigned"
+    new_label = new_track_key.titleize
+
+    student.update!(track: new_track_key)
+    successes << "#{student_label}: #{previous_label} → #{new_label}"
+
+    AdminActivityLog.record!(
+      admin: current_user,
+      action: "track_update",
+      description: "Track updated for #{student_label}: #{previous_label} → #{new_label}",
+      subject: student,
+      metadata: {
+        previous_track: previous_track,
+        new_track: new_track_key
+      }
+    )
+  rescue StandardError => e
+    failures << "#{student_label}: #{e.message}"
+  end
+
+  # Applies a single advisor update for the provided student, appending
+  # descriptive success/failure strings used in the flash message.
+  #
+  # @param student [Student]
+  # @param advisor_value [String]
+  # @param advisor_lookup [Hash]
+  # @param successes [Array<String>]
+  # @param failures [Array<String>]
+  # @return [void]
+  def apply_advisor_update(student, advisor_value, advisor_lookup, successes, failures)
+    normalized_advisor_id = advisor_value.to_s.presence&.to_i
+    student_label = student_display_label(student)
+
+    if normalized_advisor_id.present? && advisor_lookup[normalized_advisor_id].nil?
+      failures << "#{student_label}: advisor not found"
+      return
+    end
+
+    current_advisor_id = student.advisor_id
+    return if (current_advisor_id || nil) == normalized_advisor_id
+
+    previous_label = student.advisor&.display_name || "Unassigned"
+    new_advisor_record = normalized_advisor_id.present? ? advisor_lookup[normalized_advisor_id] : nil
+    new_label = new_advisor_record&.display_name || "Unassigned"
+
+    student.update!(advisor_id: normalized_advisor_id)
+    successes << "#{student_label}: #{previous_label} → #{new_label}"
+  rescue StandardError => e
+    failures << "#{student_label}: #{e.message}"
+  end
+
+  # Human-friendly identifier for logging/flash messages.
+  #
+  # @param student [Student]
+  # @return [String]
+  def student_display_label(student)
+    student.user&.name.presence || student.user&.email.presence || "Student ##{student.student_id}"
   end
 
   # Builds a combined activity feed for the admin dashboard from several
@@ -481,6 +665,37 @@ class DashboardsController < ApplicationController
           title: "#{action_label}: #{survey_title}",
           subtitle: log.description.presence || "#{admin_name} (#{log.action})",
           url: log.survey ? admin_survey_path(log.survey) : nil
+        }
+      end
+
+    AdminActivityLog
+      .includes(:admin, :subject)
+      .order(created_at: :desc)
+      .limit(15)
+      .each do |activity|
+        admin_name = activity.admin&.display_name.presence || activity.admin&.email || "Admin"
+
+        icon = case activity.action
+        when "role_update" then "🛡️"
+        when "advisor_assignment", "bulk_advisor_assignment" then "👥"
+        when "track_update" then "🧭"
+        else
+          "⚙️"
+        end
+
+        url = case activity.action
+        when "role_update" then manage_members_path
+        when "advisor_assignment", "bulk_advisor_assignment", "track_update" then manage_students_path
+        else
+          admin_dashboard_path
+        end
+
+        entries << {
+          timestamp: activity.created_at,
+          icon: icon,
+          title: activity.description.presence || "Admin action recorded",
+          subtitle: admin_name,
+          url: url
         }
       end
 

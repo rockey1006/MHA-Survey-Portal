@@ -34,8 +34,9 @@
   <% evidence_history = sr&.evidence_history_by_category || {} %>
 
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
-  <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_category) ? local_assigns[:existing_feedbacks_by_category] : @existing_feedbacks_by_category %>
+  <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
   <% prefill_flag = local_assigns.key?(:prefill) ? local_assigns[:prefill] : params[:prefill].present? %>
+  <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
 
   <% if survey&.categories&.any? %>
     <div class="space-y-8">
@@ -51,37 +52,63 @@
 
           <% if category.questions.any? %>
             <div class="space-y-5">
+              <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
               <% category.questions.ordered.each_with_index do |question, index| %>
-                <% answer = existing_answers[question.id] %>
-                <% display = answer.is_a?(Array) ? answer.join(", ") : answer %>
+                <% if question.question_type == 'evidence' && excluded_categories.include?(question.category&.name.to_s) %>
+                  <% next %>
+                <% end %>
+                  <% raw_answer = existing_answers[question.id] %>
+                  <%# Normalize stored shapes: prefer `text`/`answer`/`link` fields for display and `rating` for self-rating %>
+                  <% answer_text = nil %>
+                  <% rating_val = nil %>
+                  <% if raw_answer.is_a?(Hash) %>
+                    <% answer_text = raw_answer["text"] || raw_answer["answer"] || raw_answer["link"] %>
+                    <% rating_val = raw_answer["rating"] %>
+                  <% elsif raw_answer.is_a?(Array) %>
+                    <% answer_text = raw_answer.join(", ") %>
+                  <% else %>
+                    <% answer_text = raw_answer %>
+                  <% end %>
+                  <% q_text = question.question_text.to_s.strip %>
+                  <% desc = nil %>
+                  <% if question.question_type == "multiple_choice" %>
+                    <% desc = question.description.presence || competency_description_for(q_text) %>
+                  <% end %>
 
                 <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <header class="flex items-start gap-3">
                     <span class="text-sm font-semibold text-[#500000]">Q<%= index + 1 %></span>
                     <div class="space-y-1">
-                      <p class="text-sm font-medium text-slate-800">
-                        <%= question.question_text %>
-                        <% # Compute if this question is required using the same logic as the controller %>
-                        <% required = question.is_required? %>
-                        <% if !required && question.question_type_multiple_choice? %>
-                          <% options = question.answer_options_list.map(&:strip).map(&:downcase) %>
-                          <% is_flexibility_scale = (options == %w[1 2 3 4 5]) && question.question_text.to_s.downcase.include?("flexible") %>
-                          <% required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale) %>
+                      <% # Compute if this question is required using the same logic as the controller %>
+                      <% required = question.is_required? %>
+                      <% if !required && question.question_type_multiple_choice? %>
+                        <% options = question.answer_options_list.map(&:strip).map(&:downcase) %>
+                        <% is_flexibility_scale = (options == %w[1 2 3 4 5]) && question.question_text.to_s.downcase.include?("flexible") %>
+                        <% required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale) %>
+                      <% end %>
+                      <% dependent_by_text = question.question_text.to_s.downcase.match?(/if|yes|no|如果|why not|请说明/) rescue false %>
+
+                      <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800">
+                        <span><%= q_text %></span>
+                        <% if desc.present? %>
+                          <span class="inline-flex"><%= render 'shared/proficiency_icon' %></span>
                         <% end %>
-                        <% dependent_by_text = question.question_text.to_s.downcase.match?(/if|yes|no|如果|why not|请说明/) rescue false %>
                         <% if required && !dependent_by_text %>
-                          <span class="text-red-600 font-semibold ml-1">*</span>
+                          <span class="text-red-600 font-semibold">*</span>
                         <% end %>
-                      </p>
+                      </div>
                     </div>
                   </header>
 
+                  <% if desc.present? %>
+                    <p class="ml-7 text-xs text-slate-600"><%= desc %></p>
+                  <% end %>
                   <% case question.question_type %>
                   <% when "short_answer" %>
-                    <%= text_area_tag nil, (display || ""), rows: 3, class: "w-full max-w-full break-words rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-inner focus:outline-none", disabled: true %>
+                    <%= text_area_tag nil, (answer_text || ""), rows: 3, class: "w-full max-w-full break-words rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-inner focus:outline-none", disabled: true %>
                   <% when "multiple_choice" %>
                     <% options = question.answer_options_list %>
-                    <% selected = display.to_s %>
+                    <% selected = answer_text.to_s %>
                     <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Options">
                       <% options.each do |opt| %>
                         <% checked = selected.casecmp?(opt.to_s) %>
@@ -93,62 +120,60 @@
                     </div>
                   <% when "scale" %>
                     <%= select_tag nil,
-                                    options_for_select((1..5).map(&:to_s), display&.to_s),
+                                    options_for_select((1..5).map(&:to_s), answer_text&.to_s),
                                     include_blank: true,
                                     class: "w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none",
                                     disabled: true %>
                   <% when "evidence" %>
-                    <% link_value = (answer.is_a?(Hash) ? answer["link"] : display) %>
-                    <% rating_value = (answer.is_a?(Hash) ? answer["rating"] : nil) %>
-                    <div class="space-y-3">
-                      <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Evidence link</label>
-                        <%= text_field_tag nil, (link_value || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
-                        <% if link_value.present? %>
-                          <a class="mt-1 block truncate text-[#500000] underline hover:text-[#330000]" href="<%= link_value %>" target="_blank" rel="noopener noreferrer"><%= link_value %></a>
-                        <% end %>
-                      </div>
-                      <% unless question.category&.name.to_s == "Employment Information" %>
+                    <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
+                    <% if excluded_categories.exclude?(question.category&.name.to_s) %>
+                      <% link_value = answer_text %>
+                      <% rating_value = rating_val %>
+                      <div class="space-y-3">
                         <div>
-                          <label class="mb-1 block text-xs font-medium text-slate-600">Self-rating</label>
-                          <%= select_tag nil,
-                                          options_for_select((1..5).map(&:to_s), rating_value&.to_s),
-                                          include_blank: true,
-                                          class: "w-24 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700 shadow-sm focus:outline-none",
-                                          disabled: true %>
+                          <label class="mb-1 block text-xs font-medium text-slate-600">Evidence link</label>
+                          <%= text_field_tag nil, (link_value || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
+                          <% if link_value.present? %>
+                              <a class="mt-1 block truncate text-[#500000] underline hover:text-[#330000]" href="<%= link_value %>" target="_blank" rel="noopener noreferrer"><%= link_value %></a>
+                            <% end %>
                         </div>
-                      <% end %>
-                    </div>
+                      </div>
+                    <% end %>
                   <% else %>
-                    <%= text_field_tag nil, (display || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
+                    <%= text_field_tag nil, (answer_text || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
                   <% end %>
+
                 </article>
+                <%# Don't render advisor feedback prompts for Employment Information category %>
+        <%# Only render advisor feedback prompts when include_feedback_form is set,
+          the category is not Employment Information, and the question number is even (Q2, Q4, ...). %>
+        <% if include_feedback_form && (category.name.to_s.strip.downcase != 'employment information') && ((index + 1).even?) %>
+                  <% existing_q = passed_existing_feedbacks && passed_existing_feedbacks[question.id] %>
+                  <section class="mt-3 p-3 border rounded bg-white">
+                    <h5 class="font-semibold">Advisor feedback — Q<%= index + 1 %></h5>
+                    <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+                      <div>
+                        <label for="ratings_<%= question.id %>_average_score">Score (0-5)</label>
+                        <input id="ratings_<%= question.id %>_average_score" name="ratings[<%= question.id %>][average_score]" value="<%= prefill_flag && existing_q ? existing_q.average_score : '' %>" type="number" min="0" max="5" step="1" class="w-full border rounded px-2 py-1" />
+                      </div>
+                      <div class="md:col-span-2">
+                        <label for="ratings_<%= question.id %>_comments">Comment (optional)</label>
+                        <input id="ratings_<%= question.id %>_comments" name="ratings[<%= question.id %>][comments]" value="<%= prefill_flag && existing_q ? existing_q.comments : '' %>" type="text" class="w-full border rounded px-2 py-1" />
+                      </div>
+                    </div>
+                    <% if prefill_flag && existing_q %>
+                      <input type="hidden" name="ratings[<%= question.id %>][id]" value="<%= existing_q.id %>" />
+                    <% end %>
+                  </section>
+                  <% end %>
+                  <div class="h-6" aria-hidden="true"></div>
               <% end %>
             </div>
           <% else %>
             <p class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">No questions for this competency.</p>
           <% end %>
         </section>
-        <%# If the caller requested feedback inputs, render them adjacent to the category %>
-        <% if include_feedback_form %>
-          <% existing = passed_existing_feedbacks && passed_existing_feedbacks[category.id] %>
-          <section class="mt-3 p-4 border rounded bg-white">
-            <h4 class="font-semibold">Advisor feedback — <%= category.name %></h4>
-            <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
-              <div>
-                <label for="ratings_<%= category.id %>_average_score">Score (0-5)</label>
-                <input id="ratings_<%= category.id %>_average_score" name="ratings[<%= category.id %>][average_score]" value="<%= prefill_flag && existing ? existing.average_score : '' %>" type="number" min="0" max="5" step="1" class="w-full border rounded px-2 py-1" />
-              </div>
-              <div class="md:col-span-2">
-                <label for="ratings_<%= category.id %>_comments">Comment (optional)</label>
-                <input id="ratings_<%= category.id %>_comments" name="ratings[<%= category.id %>][comments]" value="<%= prefill_flag && existing ? existing.comments : '' %>" type="text" class="w-full border rounded px-2 py-1" />
-              </div>
-            </div>
-            <% if prefill_flag && existing %>
-              <input type="hidden" name="ratings[<%= category.id %>][id]" value="<%= existing.id %>" />
-            <% end %>
-          </section>
-        <% end %>
+        <%# per-question feedback inputs are rendered inline with each question above %>
         <div class="h-14" aria-hidden="true"></div>
       <% end %>
     </div>
@@ -165,72 +190,63 @@
       1) multiple Feedback rows (one per category), and
       2) a single legacy Feedback whose `comments` is JSON with per-category data.
   %>
-  <% feedbacks = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id).includes(:category, :advisor) %>
-  <% per_category_map = {} %>
-  <% legacy_map = {} %>
+  <% feedbacks = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id).includes(:question, :advisor) %>
+  <% per_question_map = {} %>
+  <% per_category_legacy = {} %>
   <% feedbacks.each do |fb| %>
-    <% if fb.category_id.present? %>
-      <% per_category_map[fb.category_id] = fb %>
-      <%# Try parse legacy JSON in comments if present %>
-        <% if fb.comments.present? %>
-        <% begin %>
-          <% parsed = JSON.parse(fb.comments) rescue nil %>
-          <% if parsed.is_a?(Hash) %>
-            <% parsed.each do |k, v| %>
-              <% cid = k.to_i %>
-              <% legacy_map[cid] = v %>
-            <% end %>
+    <% if fb.question_id.present? %>
+      <% per_question_map[fb.question_id] = fb %>
+    <% elsif fb.category_id.present? %>
+      <% per_category_legacy[fb.category_id] = fb %>
+    <% end %>
+    <%# Try parse legacy JSON in comments if present for category-level legacy entries %>
+    <% if fb.comments.present? && fb.category_id.present? %>
+      <% begin %>
+        <% parsed = JSON.parse(fb.comments) rescue nil %>
+        <% if parsed.is_a?(Hash) %>
+          <% parsed.each do |k, v| %>
+            <% cid = k.to_i %>
+            <% per_category_legacy[cid] ||= {} %>
+            <% per_category_legacy[cid] = v %>
           <% end %>
-        <% rescue StandardError %>
         <% end %>
+      <% rescue StandardError %>
       <% end %>
     <% end %>
   <% end %>
 
   <%# If we have any feedback entries (either per-category rows or legacy JSON), render them grouped by category
       unless the caller requested inline feedback inputs (to avoid duplicating the display). %>
-  <% if !(include_feedback_form) && (per_category_map.any? || legacy_map.any?) %>
+  <% if !(include_feedback_form) && (per_question_map.any? || per_category_legacy.any?) %>
     <section class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6">
       <h3 class="text-lg font-semibold">Advisor feedback</h3>
       <div class="mt-4 space-y-3">
         <% survey.categories.order(:id).each do |category| %>
-          <% fb = per_category_map[category.id] %>
-          <% legacy = legacy_map[category.id] %>
-          <div class="rounded-lg border bg-white p-3">
-            <div class="flex items-center justify-between gap-3">
-              <div class="text-sm font-medium"><%= category.name %></div>
-              <div class="text-sm text-slate-600">
-                Score:
-                <% if fb %>
-                  <%= fb.average_score.presence || '—' %>
-                <% else %>
-                  <% if legacy.is_a?(Hash) %>
-                    <%= legacy['score'] || legacy['average_score'] || '—' %>
-                  <% else %>
-                    <%= legacy.presence || '—' %>
-                  <% end %>
+          <%# If current viewer is the student who owns this response, skip showing advisor feedback for Employment Information category %>
+          <% if viewer_is_student_owner && category.name.to_s.strip.downcase == 'employment information' %>
+            <% next %>
+          <% end %>
+          <%# For student viewers, make category headers larger/bold and add spacing between categories %>
+          <div class="<%= viewer_is_student_owner ? 'rounded-lg border bg-white p-3 mb-6' : 'rounded-lg border bg-white p-3' %>">
+            <div class="<%= viewer_is_student_owner ? 'text-lg font-bold' : 'text-sm font-medium' %>"><%= category.name %></div>
+            <div class="mt-2 space-y-2">
+              <%# When the viewer is the student owner, only show advisor feedback for even-numbered questions (Q2, Q4, ...).
+                  Use each_with_index so we can detect odd/even question numbers within the category. %>
+              <% category.questions.ordered.each_with_index do |question, q_index| %>
+                <% if viewer_is_student_owner && ((q_index + 1).odd?) %>
+                  <% next %>
                 <% end %>
-              </div>
-            </div>
-
-            <% comment_text = nil %>
-            <% if fb && fb.comments.present? %>
-              <% comment_text = fb.comments %>
-            <% elsif legacy.present? %>
-              <% if legacy.is_a?(Hash) %>
-                <% comment_text = legacy['comments'] || legacy['comment'] || legacy['notes'] %>
-              <% else %>
-                <% comment_text = legacy.to_s %>
+                <% fb = per_question_map[question.id] %>
+                <div class="rounded border p-2">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm font-medium"><%= question.question_text.truncate(80) %></div>
+                    <div class="text-sm text-slate-600">Score: <%= fb ? (fb.average_score.presence || '—') : '—' %></div>
+                  </div>
+                  <div class="mt-1 text-sm text-slate-700"><%= fb&.comments.presence || 'No feedback yet' %></div>
+                  <div class="mt-1 text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>
+                </div>
               <% end %>
-            <% end %>
-
-            <% if comment_text.present? %>
-              <div class="mt-2 text-sm text-slate-700"><%= comment_text %></div>
-            <% else %>
-              <div class="mt-2 text-sm text-slate-500">No feedback yet</div>
-            <% end %>
-
-            <div class="mt-2 text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>
+            </div>
           </div>
         <% end %>
       </div>

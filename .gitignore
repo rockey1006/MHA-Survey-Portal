@@ -70,3 +70,5 @@ doc/
 mkcert_development_CA_*.crt
 
 .copilot-instructions.md
+
+MHA-Survey-Portal.wiki/

@@ -53,7 +53,7 @@ class ReportsController < ApplicationController
   end
 
   def reports_params
-    params.permit(:track, :semester, :survey_id, :category_id, :student_id, :advisor_id, :section)
+    params.permit(:track, :semester, :survey_id, :category_id, :student_id, :advisor_id, :competency, :section)
   end
 
   def reports_filter_params

@@ -2,7 +2,12 @@
   <div class="w-full max-w-5xl space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-[#500000]">Student Records</h1>
-      <p class="text-sm text-slate-600">Browse survey progress by semester for your assigned students.</p>
+      <% intro_text = if current_user&.respond_to?(:role_advisor?) && current_user.role_advisor?
+        "Browse survey progress across all students. Surveys you do not advise remain read-only."
+      else
+        "Browse survey progress by semester for your assigned students."
+      end %>
+      <p class="text-sm text-slate-600"><%= intro_text %></p>
     </header>
 
     <% if @students.blank? %>
@@ -64,7 +69,7 @@
                           <th scope="col" class="px-4 py-3">#</th>
                           <th scope="col" class="px-4 py-3">Student</th>
                           <th scope="col" class="px-4 py-3">Advisor</th>
-                          <th scope="col" class="px-4 py-3">Track / Cohort</th>
+                          <th scope="col" class="px-4 py-3">Track</th>
                           <th scope="col" class="px-4 py-3">Status</th>
                           <th scope="col" class="px-4 py-3">Completion</th>
                           <th scope="col" class="px-4 py-3">Feedback</th>
@@ -122,23 +127,6 @@
                                 <% else %>
                                   <div class="font-semibold text-slate-400">Track unknown</div>
                                 <% end %>
-                                <div class="mt-1 text-xs text-slate-500">Cohort <%= student.created_at&.year || "—" %></div>
-
-                                <div class="mt-3">
-                                  <%= form_with url: advisors_student_path(student),
-                                                method: :patch,
-                                                class: "inline-block",
-                                                data: { turbo: true } do %>
-                                    <%= select_tag "student[track]",
-                                      options_for_select(
-                                        Student.tracks.keys.map { |k| [k.titleize, k] },
-                                        selected: student.track
-                                      ),
-                                      class: "rounded-md border border-slate-300 px-2 py-1",
-                                      data: { current: student.track },
-                                      onchange: "if(confirm(\"Are you sure you want to change this student's track?\")){ this.form.requestSubmit(); } else { this.value = this.dataset.current; }" %>
-                                  <% end %>
-                                </div>
                               </td>
 
                               <td class="px-4 py-3 text-sm text-slate-700">
@@ -164,17 +152,15 @@
 
                               <td class="px-4 py-3 text-right text-sm">
                                 <% can_open = (defined?(current_user) && current_user.respond_to?(:role_admin?) && current_user.role_admin?) || (defined?(current_advisor_profile) && student.advisor_id.present? && student.advisor_id == current_advisor_profile&.advisor_id) %>
-                                <div class="flex flex-wrap justify-end gap-2">
+                                <div class="flex justify-end gap-2 whitespace-nowrap">
                                   <% if can_open %>
-                                    <%= link_to survey_label, survey_link, class: tailwind_button_classes(:secondary) %>
+                                    <%= link_to survey_label,
+                                                survey_link,
+                                                class: [tailwind_button_classes(:secondary), "whitespace-nowrap"].join(" ") %>
                                     <% if status_text == "Completed" && survey_response.present? %>
                                       <%= link_to "Download PDF",
                                                   download_survey_response_path(survey_response, token: download_token),
-                                                  class: tailwind_button_classes(:primary),
-                                                  target: "_blank", rel: "noopener noreferrer" %>
-                                      <%= link_to "Composite PDF",
-                                                  composite_report_survey_response_path(survey_response),
-                                                  class: tailwind_button_classes(:secondary),
+                                                  class: [tailwind_button_classes(:primary), "whitespace-nowrap"].join(" "),
                                                   target: "_blank", rel: "noopener noreferrer" %>
                                     <% end %>
                                   <% else %>

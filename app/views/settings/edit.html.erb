@@ -1,62 +1,106 @@
-<main class="flex justify-center px-6 py-8">
-  <div class="w-full max-w-2xl">
-    <header class="mb-6">
-      <h1 class="text-2xl font-semibold">Settings</h1>
-      <p class="text-sm text-slate-600">Update your preferences. Changes are saved to your account.</p>
-    </header>
+<% content_for :title, "Settings" %>
 
-    <div class="rounded-sm bg-white p-6 shadow-sm border ring-1 ring-slate-200">
-      <%= form_with model: @user, url: settings_path, method: :patch, local: true, id: "settings-form" do |f| %>
-        <% if @user.errors.any? %>
-          <div class="mb-4">
-            <div class="text-sm font-semibold text-red-700">There were errors with your submission:</div>
-            <ul class="text-sm text-red-600 list-disc list-inside">
-              <% @user.errors.full_messages.each do |msg| %>
-                <li><%= msg %></li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
+<% lang_code = (@user&.language.presence || 'en') %>
+<% lang_labels = {
+  'en' => 'English', 'es' => 'Spanish', 'fr' => 'Français', 'de' => 'Deutsch',
+  'zh-CN' => '中文 (简体)', 'zh-TW' => '中文 (繁體)', 'ja' => '日本語',
+  'ko' => '한국어', 'pt' => 'Português', 'ru' => 'Русский'
+} %>
+<% current_language_label = lang_labels[lang_code] || lang_code %>
+<% text_scale = @user.text_scale_percent || 100 %>
+<% back_path = if current_user&.role_admin?
+                 admin_dashboard_path
+               elsif current_user&.role_advisor?
+                 advisor_dashboard_path
+               elsif current_user&.role_student?
+                 student_dashboard_path
+               else
+                 root_path
+               end %>
 
-  <div class="space-y-6">
-          <div>
-            <label class="block text-sm font-medium text-slate-700">Language</label>
-            <%= f.select :language, options_for_select([["English", "en"], ["Spanish", "es"]], @user.language), include_blank: "Select language", class: "mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm" %>
-          </div>
+<main class="settings-page px-4 py-12">
+  <div class="settings-container mx-auto max-w-6xl space-y-10">
+    <section class="settings-hero">
+      <div>
+        <p class="settings-hero__eyebrow">Experience controls</p>
+        <h1 class="settings-hero__title">Personalize your workspace</h1>
+        <p class="settings-hero__subtitle">Language and text settings sync everywhere you sign in, so dashboards, surveys, and reports stay readable.</p>
+        <div class="settings-hero__badges">
+          <span class="hero-badge">
+            <span class="hero-badge__dot"></span>
+            Language · <span id="current-language-display"><%= current_language_label %></span>
+          </span>
+          <span class="hero-badge">
+            Text scale · <%= text_scale %>%
+          </span>
+        </div>
+      </div>
+      <div class="settings-hero__card">
+        <p class="eyebrow">Need to revert?</p>
+        <h2>Changes apply instantly</h2>
+        <p>We refresh the app after saving so your accessibility preferences update without hunting for toggles again.</p>
+        <p class="card-hint">Prefer the default view? Set text size back to 100%.</p>
+      </div>
+    </section>
 
-          <div>
-            <label class="block text-sm font-medium text-slate-700">Text size</label>
-            <%= f.select :text_scale_percent,
-                  options_for_select([["100% (default)", 100], ["125%", 125], ["150%", 150], ["175%", 175], ["200%", 200]], @user.text_scale_percent || 100),
-                  {},
-                  class: "mt-1 block w-full rounded-md border-slate-300 px-3 py-2 text-sm"
-            %>
-            <p class="text-xs text-slate-500 mt-1">Increase text size up to 200% for accessibility. Line spacing and controls will scale proportionally.</p>
-          </div>
+    <div class="settings-grid">
+      <section class="settings-card">
+        <header>
+          <p class="eyebrow">Account-wide</p>
+          <h2>Accessibility preferences</h2>
+          <p>These settings change typography scales and translation helpers across reports, dashboards, and emails.</p>
+        </header>
 
-          <div>
-            <div class="flex items-center gap-3">
-              <%= f.check_box :notifications_enabled, class: "h-4 w-4 text-blue-600" %>
-              <label class="text-sm text-slate-700">Enable email notifications</label>
+        <%= form_with model: @user, url: settings_path, method: :patch, local: true, id: "settings-form", class: "settings-form" do |f| %>
+          <% if @user.errors.any? %>
+            <div class="settings-alert">
+              <h3><%= pluralize(@user.errors.count, "error") %> need attention</h3>
+              <ul>
+                <% @user.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Language</label>
+              <div class="language-pill">
+                <span id="language-pill-label"><%= current_language_label %></span>
+                <span class="pill-hint">Managed automatically via translation bar</span>
+              </div>
+              <%= f.hidden_field :language, value: lang_code, id: 'settings_language_input' %>
+            </div>
+
+            <div class="form-field">
+              <label>Text size</label>
+              <%= f.select :text_scale_percent,
+                    options_for_select([["100% (default)", 100], ["125%", 125], ["150%", 150], ["175%", 175], ["200%", 200]], text_scale),
+                    {},
+                    class: "settings-select" %>
+              <small>Increase up to 200% for larger copy. We scale line-height and key controls automatically.</small>
             </div>
           </div>
 
-          <div class="pt-4">
-            <%= f.submit "Save changes", class: "inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white text-sm hover:bg-blue-700" %>
-            <%# Back button goes to the appropriate dashboard based on user role %>
-            <% back_path = if current_user&.role_admin?
-                              admin_dashboard_path
-                            elsif current_user&.role_advisor?
-                              advisor_dashboard_path
-                            elsif current_user&.role_student?
-                              student_dashboard_path
-                            else
-                              root_path
-                            end %>
-            <%= link_to "← Back", back_path, class: "ml-3 inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300" %>
+          <div class="form-actions">
+            <%= link_to "← Back", back_path, class: "settings-btn settings-btn--ghost" %>
+            <%= f.submit "Save changes", class: "settings-btn settings-btn--primary" %>
           </div>
-        </div>
-      <% end %>
+        <% end %>
+      </section>
+
+      <aside class="settings-card settings-card--support">
+        <header>
+          <p class="eyebrow">Helpful context</p>
+          <h2>Why these settings live here</h2>
+        </header>
+        <ul class="support-list">
+          <li>Language preference follows your Google Translate selection so dashboards are instantly readable.</li>
+          <li>Text scale applies to reports, surveys, and exports — no extra zooming required.</li>
+        </ul>
+        <p class="support-tip">Future releases will add notification controls based on these preferences.</p>
+      </aside>
     </div>
   </div>
 </main>
@@ -111,5 +155,42 @@
         alert('Failed to save settings. Please try again.');
       });
     });
+  })();
+</script>
+<script>
+  // Update the visible language display from Google Translate cookie if present.
+  (function() {
+    function readCookie(name) {
+      var m = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]+)'));
+      return m ? decodeURIComponent(m[2]) : null;
+    }
+
+    var display = document.getElementById('current-language-display');
+    var hiddenInput = document.getElementById('settings_language_input');
+    if (!display || !hiddenInput) return;
+
+    // Map common language codes to labels
+    var labels = {
+      'en': 'English', 'es': 'Spanish', 'fr': 'Français', 'de': 'Deutsch',
+      'zh-CN': '中文 (简体)', 'zh-TW': '中文 (繁體)', 'ja': '日本語', 'ko': '한국어',
+      'pt': 'Português', 'ru': 'Русский'
+    };
+
+    try {
+      var g = readCookie('googtrans');
+      if (g && g !== '/auto/en') {
+        var code = g.split('/').pop();
+        // Google sometimes uses short codes like 'zh-CN' or 'zh_TW' with underscore
+        code = code.replace('_', '-');
+        display.textContent = labels[code] || code;
+        hiddenInput.value = code;
+      } else {
+        // No active translation cookie; ensure display matches saved user language
+        var saved = hiddenInput.value || 'en';
+        display.textContent = labels[saved] || saved;
+      }
+    } catch (e) {
+      // ignore
+    }
   })();
 </script>

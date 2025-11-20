@@ -56,6 +56,11 @@ Rails.application.routes.draw do
     end
     resources :questions
     resources :survey_change_logs, only: :index
+    resources :program_semesters, only: %i[create destroy] do
+      member do
+        patch :make_current
+      end
+    end
   end
 
   resources :categories
@@ -76,6 +81,10 @@ Rails.application.routes.draw do
     post :submit, on: :member
     post :save_progress, on: :member
   end
+
+  # Accept GET requests to /surveys/:id/submit and redirect to the survey show page.
+  # This avoids a noisy RoutingError if a user or external crawler follows a cached/old GET link.
+  get 'surveys/:id/submit', to: redirect('/surveys/%{id}')
 
   resources :notifications, only: %i[index show update] do
     collection do
@@ -104,8 +113,8 @@ Rails.application.routes.draw do
 
   namespace :api do
     get "reports/filters", to: "reports#filters"
-    get "reports/alignment", to: "reports#alignment"
     get "reports/competency-summary", to: "reports#competency_summary"
+    get "reports/competency-detail", to: "reports#competency_detail"
     get "reports/course-summary", to: "reports#course_summary"
     get "reports/benchmark", to: "reports#benchmark"
   end

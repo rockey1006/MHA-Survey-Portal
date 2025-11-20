@@ -9,34 +9,57 @@ class CompositeReportGenerator
   class GenerationError < StandardError; end
 
   CACHE_TTL = 6.hours
+  MAX_EVIDENCE_HISTORY = Integer(ENV.fetch("COMPOSITE_REPORT_MAX_EVIDENCE_HISTORY", 5))
+  # Lightweight value object so callers can ensure temporary files are cleaned up.
+  class Result
+    attr_reader :path, :size_bytes
+
+    def initialize(path:, cached:, size_bytes:, cleanup: nil)
+      @path = path
+      @cached = cached
+      @size_bytes = size_bytes
+      @cleanup = cleanup
+    end
+
+    def cached?
+      @cached
+    end
+
+    def cleanup!
+      @cleanup&.call
+      @cleanup = nil
+    end
+  end
 
   include ActiveSupport::NumberHelper
 
-  def initialize(survey_response:)
+  def initialize(survey_response:, cache: true, logger: Rails.logger)
     @survey_response = survey_response
+    @cache_enabled = cache
+    @logger = logger || Rails.logger
   end
 
-  # Renders (or retrieves) the PDF string for the survey response composite report.
+  # Renders (or retrieves) the PDF payload for the survey response composite report.
   #
-  # @return [String]
+  # @return [Result]
   def render
     ensure_dependency!
-    fingerprint = cache_fingerprint
+    result = cache_enabled? ? render_with_cache : render_without_cache
 
-    CompositeReportCache.fetch(cache_key, fingerprint, ttl: CACHE_TTL) do
-      html = render_html
-      html_size = html.bytesize
-      Rails.logger.info("[CompositeReportGenerator] HTML payload size=#{number_to_human_size(html_size)} for SurveyResponse=#{@survey_response.id}")
-
-      pdf = WickedPdf.new.pdf_from_string(html)
-      pdf_size = pdf ? number_to_human_size(pdf.bytesize) : "unknown"
-      Rails.logger.info("[CompositeReportGenerator] PDF payload size=#{pdf_size} for SurveyResponse=#{@survey_response.id}")
-      pdf
+    unless result&.path && File.exist?(result.path)
+      raise GenerationError, "Composite PDF generation failed"
     end
+
+    result
   rescue MissingDependency
     raise
   rescue => e
-    Rails.logger.error "[CompositeReportGenerator] generation failed for SurveyResponse=#{@survey_response.id}: #{e.class} - #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
+    log_prefix = "[CompositeReportGenerator] generation failed for SurveyResponse=#{@survey_response.id}"
+    message = [
+      "#{log_prefix}: #{e.class} - #{e.message}",
+      e.backtrace&.first(10)&.join("\n")
+    ].compact.join("\n")
+    logger.error(message)
     raise GenerationError, e.message
   end
 
@@ -82,6 +105,66 @@ class CompositeReportGenerator
     raise MissingDependency, "WickedPdf not loaded" unless defined?(WickedPdf)
   end
 
+  def cache_enabled?
+    @cache_enabled
+  end
+
+  def logger
+    @logger || Rails.logger
+  end
+
+  def render_with_cache
+    pdf_tempfile = nil
+    fingerprint = cache_fingerprint
+
+    cache_entry = CompositeReportCache.fetch(cache_key, fingerprint, ttl: CACHE_TTL) do
+      html = render_html
+      log_html_size(html)
+
+      pdf_tempfile = build_pdf_file(html)
+      pdf_tempfile.close
+      pdf_tempfile.path
+    end
+
+    unless cache_entry&.path && File.exist?(cache_entry.path)
+      raise GenerationError, "Composite PDF generation failed"
+    end
+
+    size_bytes = cache_entry.size_bytes || File.size?(cache_entry.path)
+    log_pdf_size(size_bytes, cache_entry.cached? ? "cache" : "fresh")
+
+    Result.new(path: cache_entry.path, cached: cache_entry.cached?, size_bytes: size_bytes)
+  ensure
+    cleanup_tempfile(pdf_tempfile)
+  end
+
+  def render_without_cache
+    pdf_tempfile = nil
+    result_ready = false
+
+    html = render_html
+    log_html_size(html)
+
+    pdf_tempfile = build_pdf_file(html)
+    pdf_path = pdf_tempfile.path
+    pdf_tempfile.flush if pdf_tempfile.respond_to?(:flush)
+    pdf_tempfile.close
+
+    size_bytes = File.size?(pdf_path)
+    log_pdf_size(size_bytes, "fresh")
+
+    result = Result.new(
+      path: pdf_path,
+      cached: false,
+      size_bytes: size_bytes,
+      cleanup: -> { cleanup_tempfile(pdf_tempfile) }
+    )
+    result_ready = true
+    result
+  ensure
+    cleanup_tempfile(pdf_tempfile) unless result_ready
+  end
+
   def cache_key
     "composite-report:#{@survey_response.id}"
   end
@@ -96,6 +179,30 @@ class CompositeReportGenerator
     )
   end
 
+  def build_pdf_file(html)
+    WickedPdf.new.pdf_from_string(
+      html,
+      encoding: "UTF-8",
+      viewport_size: "1024x768",
+      margin: { top: 10, bottom: 12, left: 8, right: 8 },
+      disable_smart_shrinking: true,
+      load_error_handling: "ignore",
+      load_media_error_handling: "ignore",
+      no_stop_slow_scripts: true,
+      print_media_type: true,
+      quiet: true,
+      extra: [
+        "--dpi", "96",
+        "--image-dpi", "96",
+        "--image-quality", "60",
+        "--no-outline",
+        "--javascript-delay", "500"
+      ],
+      return_file: true,
+      delete_temporary_files: true
+    )
+  end
+
   def view_locals(generated_at)
     {
       survey_response: @survey_response,
@@ -104,7 +211,7 @@ class CompositeReportGenerator
       survey: survey,
       categories: categories,
       question_responses: question_responses,
-  responses_by_question: responses_by_question,
+      responses_by_question: responses_by_question,
       answers_by_question: answers_by_question,
       feedbacks_by_category: feedbacks_by_category,
       feedback_summary: feedback_summary,
@@ -176,7 +283,13 @@ class CompositeReportGenerator
   end
 
   def evidence_history_by_category
-    @evidence_history_by_category ||= @survey_response.evidence_history_by_category
+    @evidence_history_by_category ||= begin
+      history = @survey_response.evidence_history_by_category
+      limit = MAX_EVIDENCE_HISTORY
+      return history if limit.to_i <= 0
+
+      history.transform_values { |entries| entries.first(limit) }
+    end
   end
 
   def answered_count
@@ -185,5 +298,23 @@ class CompositeReportGenerator
 
   def total_questions
     @total_questions ||= @survey_response.total_questions
+  end
+
+  def log_html_size(html)
+    html_size = html.to_s.bytesize
+    logger.info("[CompositeReportGenerator] HTML payload size=#{number_to_human_size(html_size)} for SurveyResponse=#{@survey_response.id}")
+  end
+
+  def log_pdf_size(size_bytes, origin)
+    human_size = number_to_human_size(size_bytes.to_i)
+    logger.info("[CompositeReportGenerator] PDF payload size=#{human_size} (#{origin}) for SurveyResponse=#{@survey_response.id}")
+  end
+
+  def cleanup_tempfile(tempfile)
+    return unless tempfile
+
+    tempfile.close!
+  rescue Errno::ENOENT, IOError
+       # File already moved or deleted.
   end
 end

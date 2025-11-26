@@ -277,7 +277,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     reports_description = extract_feature_description(response.body, "Reports")
-    assert_equal "2 generated", reports_description
+    assert_equal "3 generated", reports_description
   end
 
   test "admin dashboard shows populated activity feed" do

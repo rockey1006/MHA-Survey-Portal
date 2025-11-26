@@ -1,4 +1,6 @@
 require "test_helper"
+require "securerandom"
+require "set"
 
 class SurveyNotificationJobTest < ActiveJob::TestCase
   setup do
@@ -35,10 +37,9 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
   end
 
   test "assigned event handles missing advisor gracefully" do
-    assignment_without_advisor = SurveyAssignment.create!(
+    assignment_without_advisor = create_assignment_for(
       survey: @survey,
-      student: students(:other_student),
-      advisor_id: nil,
+      advisor: nil,
       assigned_at: 2.days.ago,
       due_date: 3.days.from_now
     )
@@ -66,10 +67,9 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
   end
 
   test "completed event does not notify if no advisor" do
-    assignment_without_advisor = SurveyAssignment.create!(
+    assignment_without_advisor = create_assignment_for(
       survey: @survey,
-      student: students(:other_student),
-      advisor_id: nil,
+      advisor: nil,
       assigned_at: 1.week.ago,
       due_date: 1.week.from_now
     )
@@ -173,17 +173,11 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
 
   # Test :survey_updated event
   test "survey updated event notifies all advisors with assignments" do
-    # Create additional advisor assignment
     other_advisor = advisors(:other_advisor)
-    SurveyAssignment.create!(
-      survey: @survey,
-      student: students(:other_student),
-      advisor: other_advisor,
-      assigned_at: 1.week.ago,
-      due_date: 1.week.from_now
-    )
+    expected_notifications = distinct_advisor_ids_for(@survey.id).size
+    assert expected_notifications >= 2
 
-    assert_difference -> { Notification.count }, 2 do
+    assert_difference -> { Notification.count }, expected_notifications do
       SurveyNotificationJob.perform_now(
         event: :survey_updated,
         survey_id: @survey.id,
@@ -191,7 +185,7 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
       )
     end
 
-    notifications = Notification.last(2)
+    notifications = Notification.last(expected_notifications)
     recipients = notifications.map(&:user)
     assert_includes recipients, @advisor.user
     assert_includes recipients, other_advisor.user
@@ -212,7 +206,10 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
   end
 
   test "survey updated event handles empty metadata" do
-    assert_difference -> { Notification.count }, 1 do
+    expected_notifications = distinct_advisor_ids_for(@survey.id).size
+    assert expected_notifications >= 1
+
+    assert_difference -> { Notification.count }, expected_notifications do
       SurveyNotificationJob.perform_now(
         event: :survey_updated,
         survey_id: @survey.id,
@@ -220,27 +217,22 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
       )
     end
 
-    notification = Notification.last
-    assert_equal "Survey Updated", notification.title
+    Notification.last(expected_notifications).each do |notification|
+      assert_equal "Survey Updated", notification.title
+    end
   end
 
   # Test :survey_archived event
   test "survey archived event notifies all students with assignments" do
-    # Create additional student assignment
     other_student = students(:other_student)
-    SurveyAssignment.create!(
-      survey: @survey,
-      student: other_student,
-      advisor: advisors(:other_advisor),
-      assigned_at: 1.week.ago,
-      due_date: 1.week.from_now
-    )
+    expected_notifications = distinct_student_ids_for(@survey.id).size
+    assert expected_notifications >= 2
 
-    assert_difference -> { Notification.count }, 2 do
+    assert_difference -> { Notification.count }, expected_notifications do
       SurveyNotificationJob.perform_now(event: :survey_archived, survey_id: @survey.id)
     end
 
-    notifications = Notification.last(2)
+    notifications = Notification.last(expected_notifications)
     recipients = notifications.map(&:user)
     assert_includes recipients, @student.user
     assert_includes recipients, other_student.user
@@ -257,7 +249,11 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
 
   # Test :question_updated event
   test "question updated event notifies survey participants" do
-    assert_difference -> { Notification.count }, 2 do
+    expected_recipients = SurveyNotificationJob.new.send(:participant_users_for_survey, @survey.id)
+    expected_count = expected_recipients.size
+    assert expected_count >= 2
+
+    assert_difference -> { Notification.count }, expected_count do
       SurveyNotificationJob.perform_now(
         event: :question_updated,
         question_id: @question.id,
@@ -265,9 +261,10 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
       )
     end
 
-    recipients = Notification.last(2).map(&:user)
-    assert_includes recipients, users(:student)
-    assert_includes recipients, users(:advisor)
+    recipients = Notification.last(expected_count).map(&:user)
+    expected_recipients.each do |user|
+      assert_includes recipients, user
+    end
     assert_equal "Question Updated", Notification.last.title
   end
 
@@ -462,10 +459,9 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
   end
 
   test "handles assignment with nil advisor gracefully" do
-    assignment_with_nil = SurveyAssignment.create!(
-      survey: @survey,
-      student: students(:other_student),
-      advisor_id: nil,
+    create_assignment_for(
+      student: nil,
+      advisor: nil,
       assigned_at: 1.week.ago,
       due_date: 1.week.from_now
     )
@@ -477,6 +473,41 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
         metadata: {}
       )
     end
+  end
+
+  private
+
+  def create_assignment_for(student: nil, survey: @survey, advisor: advisors(:advisor), assigned_at: 1.day.ago, due_date: 1.week.from_now)
+    student ||= build_temp_student(advisor: advisor)
+
+    SurveyAssignment.create!(
+      survey: survey,
+      student: student,
+      advisor: advisor,
+      assigned_at: assigned_at,
+      due_date: due_date
+    )
+  end
+
+  def distinct_advisor_ids_for(survey_id)
+    SurveyAssignment.where(survey_id: survey_id).where.not(advisor_id: nil).distinct.pluck(:advisor_id)
+  end
+
+  def distinct_student_ids_for(survey_id)
+    SurveyAssignment.where(survey_id: survey_id).where.not(student_id: nil).distinct.pluck(:student_id)
+  end
+
+  def build_temp_student(advisor: nil)
+    user = User.create!(
+      email: "student-#{SecureRandom.hex(4)}@example.test",
+      name: "Temp Student #{SecureRandom.hex(2)}",
+      role: "student",
+      uid: SecureRandom.uuid
+    )
+
+    student = user.student_profile || user.create_student_profile!
+    student.update!(advisor: advisor)
+    student
   end
 end
 

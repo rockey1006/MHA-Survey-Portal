@@ -3395,17 +3395,6 @@ body.high-contrast .logo-text {
   color: #ffffff;
 }
 
-body.high-contrast .nav-link {
-  color: #ffffff;
-}
-
-body.high-contrast .nav-link:hover,
-body.high-contrast .nav-link.active {
-  background-color: #ffff00; /* bright yellow */
-  color: #000000;
-  text-decoration: none;
-}
-
 /* Buttons */
 body.high-contrast .btn-primary,
 body.high-contrast .btn.btn-primary {
@@ -3494,10 +3483,11 @@ body.high-contrast .nav-link:visited {
 }
 
 body.high-contrast .nav-link:hover,
-body.high-contrast .nav-link:focus {
-  background-color: #ffffff !important;   /* white bg, black text */
+body.high-contrast .nav-link:focus,
+body.high-contrast .nav-link.active {
+  background-color: #ffff00 !important;   /* yellow bg, black text */
   color: #000000 !important;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* Generic links (not styled as nav/buttons) */
@@ -3557,7 +3547,7 @@ body.high-contrast .role-badge {
    Survey "Open" button and all button-like links
    ========================================================= */
 
-/* Open button and all survey/feedback links - white text on black */
+/* Open button and all survey/feedback links - black text on white */
 body.high-contrast .survey-list-card .btn,
 body.high-contrast .survey-list-card .btn-primary,
 body.high-contrast .survey-list-card .btn-secondary,
@@ -3565,9 +3555,9 @@ body.high-contrast .survey-list-card button,
 body.high-contrast .survey-list-card a,
 body.high-contrast a[class*="button"],
 body.high-contrast a[class*="btn"] {
-  background-color: #000000 !important;  /* black background */
-  color: #ffffff !important;             /* white text */
-  border: 2px solid #ffffff !important;  /* white border */
+  background-color: #ffffff !important;  /* white background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
   text-decoration: none !important;
 }
 
@@ -3645,12 +3635,6 @@ body.high-contrast .advisor-back-link:focus-visible {
   background-color: #ffff00 !important;
   color: #000000 !important;
   border-color: #000000 !important;
-}
-
-body.high-contrast .advisor-back-link {
-  background-color: #000000 !important;
-  color: #ffffff !important;
-  border: 2px solid #ffffff !important;
 }
 
 /* --------------------------------------------------------

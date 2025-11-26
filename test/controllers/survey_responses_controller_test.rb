@@ -85,6 +85,20 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     @survey_response = SurveyResponse.build(student: student, survey: survey)
   end
 
+  test "student can view their own survey response" do
+    sign_in @student_user
+
+    get survey_response_path(@survey_response)
+    assert_response :success
+  end
+
+  test "other students are blocked from viewing the response" do
+    sign_in users(:other_student)
+
+    get survey_response_path(@survey_response)
+    assert_response :unauthorized
+  end
+
   test "download returns 503 when WickedPdf missing" do
     # No WickedPdf available in test environment so expect service_unavailable
     sign_in users(:admin)
@@ -113,5 +127,13 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     else
       assert response.body.present? || response.headers["Content-Disposition"].present?
     end
+  end
+
+  test "composite report rejects token access even for admins" do
+    sign_in users(:admin)
+    token = @survey_response.signed_download_token
+
+    get composite_report_survey_response_path(@survey_response), params: { token: token }
+    assert_response :unauthorized
   end
 end

@@ -3,22 +3,25 @@
   <%= question_fields.hidden_field :_destroy, value: 0 %>
 
   <% question_type_value = question_fields.object.question_type.to_s %>
-  <% supports_description = question_type_value.blank? || question_type_value == "multiple_choice" %>
+  <% supports_description = true %>
 
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="flex-1 space-y-2">
       <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
       <%= question_fields.text_area :question_text, class: textarea_classes, placeholder: "Describe the competency being assessed." %>
       <% if supports_description %>
-        <%= question_fields.label :description, "Description (always shown)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-        <%= question_fields.text_area :description, class: textarea_classes, placeholder: "Add the competency definition or extra context students should read." %>
-        <% desc = question_fields.object.description.presence || competency_description_for(question_fields.object.question_text) %>
-        <% if desc.present? %>
-          <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span>Student info tooltip preview:</span>
-            <%= render 'shared/proficiency_icon' %>
-          </div>
-        <% end %>
+        <%= question_fields.label :description, "Question description (optional)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+        <%= question_fields.text_area :description, class: textarea_classes, placeholder: "Shown under the prompt for everyone completing the survey." %>
+      <% end %>
+
+      <%= question_fields.label :tooltip_text, "Tooltip text (optional)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+      <%= question_fields.text_area :tooltip_text, class: textarea_classes, placeholder: "Appears inside the tooltip icon when defined." %>
+      <% tooltip_preview = question_fields.object.tooltip_text.to_s.strip.presence %>
+      <% if tooltip_preview.present? %>
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <span>Tooltip preview:</span>
+          <%= render 'shared/question_tooltip', text: tooltip_preview %>
+        </div>
       <% end %>
     </div>
 

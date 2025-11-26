@@ -61,7 +61,7 @@
               <% end %>
               <%# Evidence error message, same style as required %>
               <% if qr.errors[:response_value].any? %>
-                <div class="text-xs text-rose-600 mt-1">Invalid Google Drive link</div>
+                <div class="text-xs text-rose-600 mt-1">Invalid Google link</div>
               <% end %>
             <% else %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>

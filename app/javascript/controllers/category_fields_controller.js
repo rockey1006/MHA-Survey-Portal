@@ -3,6 +3,10 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["container", "template", "item"]
 
+  notifyChange() {
+    window.dispatchEvent(new CustomEvent("survey:categories-changed"))
+  }
+
   add(event) {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
@@ -10,6 +14,7 @@ export default class extends Controller {
     const uniqueId = Date.now().toString()
     const content = this.templateTarget.innerHTML.replace(/NEW_CATEGORY/g, uniqueId)
     this.containerTarget.insertAdjacentHTML("beforeend", content)
+    this.notifyChange()
   }
 
   remove(event) {
@@ -25,5 +30,7 @@ export default class extends Controller {
     } else {
       wrapper.remove()
     }
+
+    this.notifyChange()
   }
 }

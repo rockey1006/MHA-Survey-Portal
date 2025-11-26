@@ -74,20 +74,66 @@
     </div>
   </section>
 
-  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="category-fields">
+  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="section-fields">
     <header class="space-y-1">
-      <h2 class="text-lg font-semibold text-slate-900">Categories &amp; questions</h2>
-      <p class="text-sm text-slate-600">Every category should contain at least one question. Use the buttons below to add or remove items.</p>
+      <h2 class="text-lg font-semibold text-slate-900">Sections</h2>
+      <p class="text-sm text-slate-600">Group related categories under optional headers shown to students.</p>
     </header>
 
-    <div class="space-y-6" data-category-fields-target="container">
-      <%= form.fields_for :categories do |category_fields| %>
-        <%= render "admin/surveys/category_fields",
-                   category_fields: category_fields,
+    <div class="space-y-4" data-section-fields-target="container">
+      <%= form.fields_for :sections do |section_fields| %>
+        <%= render "admin/surveys/section_fields",
+                   section_fields: section_fields,
                    input_classes: input_classes,
-                   textarea_classes: textarea_classes,
-                   checkbox_classes: checkbox_classes %>
+                   textarea_classes: textarea_classes %>
       <% end %>
+    </div>
+
+    <% new_section = survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
+    <% new_section.form_uid ||= "NEW_SECTION_UID" %>
+    <% section_template = capture do %>
+      <%= form.fields_for :sections, new_section, child_index: "NEW_SECTION" do |section_fields| %>
+        <%= render "admin/surveys/section_fields",
+                   section_fields: section_fields,
+                   input_classes: input_classes,
+                   textarea_classes: textarea_classes %>
+      <% end %>
+    <% end %>
+    <% survey.sections.target.delete(new_section) %>
+
+    <template data-section-fields-target="template"><%= section_template %></template>
+
+    <button type="button"
+            class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+            data-action="section-fields#add">
+      + Add section
+    </button>
+  </section>
+
+  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="category-fields survey-structure">
+    <header class="space-y-1">
+      <h2 class="text-lg font-semibold text-slate-900">Categories &amp; questions</h2>
+      <p class="text-sm text-slate-600">Build each category on the right, then drag it to reorder or drop it on a section (or select it and click) in the sidebar.</p>
+    </header>
+
+    <div class="gap-6 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+      <aside class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div class="mb-3 space-y-1">
+          <p class="text-sm font-medium text-slate-800">Category organizer</p>
+          <p class="text-xs text-slate-500">Drag a category above/below another to reorder, or drop it onto a section title. Use “No section” to leave it ungrouped.</p>
+        </div>
+        <div class="space-y-3" data-survey-structure-target="sidebarList"></div>
+      </aside>
+
+      <div class="space-y-6" data-category-fields-target="container" data-survey-structure-target="categoriesContainer">
+        <%= form.fields_for :categories do |category_fields| %>
+          <%= render "admin/surveys/category_fields",
+                     category_fields: category_fields,
+                     input_classes: input_classes,
+                     textarea_classes: textarea_classes,
+                     checkbox_classes: checkbox_classes %>
+        <% end %>
+      </div>
     </div>
 
     <% new_category = survey.categories.build(name: "", description: "") %>

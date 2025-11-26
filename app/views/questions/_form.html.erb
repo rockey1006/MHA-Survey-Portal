@@ -22,6 +22,18 @@
   </div>
 
   <div>
+    <%= form.label :description, style: "display: block" %>
+    <%= form.text_area :description, rows: 3 %>
+    <small>Shown under the prompt for all viewers.</small>
+  </div>
+
+  <div>
+    <%= form.label :tooltip_text, style: "display: block" %>
+    <%= form.text_area :tooltip_text, rows: 2 %>
+    <small>Displayed inside the tooltip icon when present.</small>
+  </div>
+
+  <div>
     <%= form.label :question_order, style: "display: block" %>
     <%= form.number_field :question_order %>
   </div>

@@ -1,8 +1,9 @@
 # Admin interface for building, editing, and tracking lifecycle events for
 # surveys. Provides search, filtering, and management capabilities for survey
 # definitions used throughout the program.
+require "securerandom"
+
 class Admin::SurveysController < Admin::BaseController
-  helper :surveys
   before_action :set_survey, only: %i[edit update destroy preview archive activate]
   before_action :prepare_supporting_data, only: %i[new create edit update]
 
@@ -81,6 +82,7 @@ class Admin::SurveysController < Admin::BaseController
   def new
     @survey = Survey.new(creator: current_user, semester: default_semester)
     build_default_structure(@survey)
+    ensure_section_form_state(@survey)
   end
 
   # Creates a new survey, assigns tracks, and logs the change for auditing.
@@ -92,14 +94,17 @@ class Admin::SurveysController < Admin::BaseController
     @survey.semester ||= default_semester
 
     tracks = selected_tracks
+    resolve_category_sections(@survey)
 
     if @survey.save
+      persist_category_section_links
       @survey.assign_tracks!(tracks)
       @survey.log_change!(admin: current_user, action: "create", description: "Survey created with #{tracks.size} track(s)")
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: "New survey created" })
       redirect_to admin_surveys_path, notice: "Survey created successfully."
     else
       build_default_structure(@survey)
+      ensure_section_form_state(@survey)
       render :new, status: :unprocessable_entity
     end
   end
@@ -110,6 +115,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [void]
   def edit
     build_default_structure(@survey)
+    ensure_section_form_state(@survey)
   end
 
   # Updates survey attributes, persisted category/question structure, and track
@@ -120,7 +126,11 @@ class Admin::SurveysController < Admin::BaseController
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
-    if @survey.update(survey_params)
+    @survey.assign_attributes(survey_params)
+    resolve_category_sections(@survey)
+
+    if @survey.save
+      persist_category_section_links
       @survey.assign_tracks!(tracks)
       description = change_summary(before_snapshot, survey_snapshot(@survey), tracks)
       @survey.log_change!(admin: current_user, action: "update", description: description)
@@ -128,6 +138,7 @@ class Admin::SurveysController < Admin::BaseController
       redirect_to admin_surveys_path, notice: "Survey updated successfully."
     else
       build_default_structure(@survey)
+      ensure_section_form_state(@survey)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -173,12 +184,11 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    @category_groups = @survey.categories.includes(:questions).order(:id)
+    @category_groups = @survey.categories.includes(:section, :questions).order(:id)
     @categories = @category_groups
     @questions = @survey.questions.includes(:category).order(:question_order)
     @category_names = @category_groups.map(&:name)
     @track_list = @survey.track_list
-    @excluded_categories = [ "Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service" ]
     @computed_required = {}
 
     @category_groups.each do |category|
@@ -204,7 +214,7 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def set_survey
-    @survey = Survey.find(params[:id])
+    @survey = Survey.includes(:sections, categories: :section).find(params[:id])
   end
 
   # Strong parameters for survey creation/update, including nested category and
@@ -221,11 +231,13 @@ class Admin::SurveysController < Admin::BaseController
         :id,
         :name,
         :description,
+        :section_form_uid,
         :_destroy,
         questions_attributes: [
           :id,
           :question_text,
           :description,
+          :tooltip_text,
           :question_type,
           :question_order,
           :answer_options,
@@ -233,6 +245,14 @@ class Admin::SurveysController < Admin::BaseController
           :has_evidence_field,
           :_destroy
         ]
+      ],
+      sections_attributes: [
+        :id,
+        :title,
+        :description,
+        :position,
+        :form_uid,
+        :_destroy
       ]
     )
   end
@@ -359,5 +379,83 @@ class Admin::SurveysController < Admin::BaseController
   # @return [String]
   def unassigned_track_token
     "__unassigned"
+  end
+
+  def ensure_section_form_state(survey)
+    return if survey.blank?
+
+    survey.sections.each do |section|
+      section.form_uid = section_form_uid_for(section)
+    end
+
+    survey.categories.each do |category|
+      next if category.section_form_uid.present?
+
+      if category.section.present?
+        section_uid = section_form_uid_for(category.section)
+        category.section_form_uid = section_uid if section_uid.present?
+      elsif category.survey_section_id.present?
+        category.section_form_uid = "section-#{category.survey_section_id}"
+      end
+    end
+  end
+
+  def resolve_category_sections(survey)
+    return if survey.blank?
+
+    section_lookup = {}
+    survey.sections.each do |section|
+      next if section.marked_for_destruction?
+
+      section.survey ||= survey
+      uid = section_form_uid_for(section)
+      next if uid.blank?
+
+      section_lookup[uid] = section
+      section_lookup[section.id.to_s] = section if section.id.present?
+    end
+
+    survey.categories.each do |category|
+      key = category.section_form_uid.presence
+      next if key.blank?
+
+      section = section_lookup[key]
+      section ||= section_lookup["section-#{key}"] unless key.start_with?("section-")
+      next unless section
+
+      if section.persisted?
+        category.section = section
+      else
+        pending_category_section_links << [category, section]
+      end
+    end
+  end
+
+  def section_form_uid_for(section)
+    return if section.blank?
+
+    if section.form_uid.present?
+      section.form_uid
+    elsif section.id.present?
+      section.form_uid = "section-#{section.id}"
+    else
+      section.form_uid = "section-temp-#{SecureRandom.hex(6)}"
+    end
+  end
+
+  def pending_category_section_links
+    @pending_category_section_links ||= []
+  end
+
+  def persist_category_section_links
+    return if pending_category_section_links.empty?
+
+    pending_category_section_links.each do |category, section|
+      next unless category.persisted? && section.persisted?
+
+      category.update_columns(survey_section_id: section.id)
+    end
+
+    pending_category_section_links.clear
   end
 end

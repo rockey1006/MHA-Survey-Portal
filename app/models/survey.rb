@@ -10,6 +10,10 @@ class Survey < ApplicationRecord
   belongs_to :creator, class_name: "User", foreign_key: :created_by_id, optional: true
 
   has_many :categories, inverse_of: :survey, dependent: :destroy
+  has_many :sections,
+           class_name: "SurveySection",
+           inverse_of: :survey,
+           dependent: :destroy
   has_many :questions, through: :categories
   has_many :track_assignments, class_name: "SurveyTrackAssignment", inverse_of: :survey, dependent: :destroy
   has_many :survey_assignments, inverse_of: :survey, dependent: :destroy
@@ -18,6 +22,7 @@ class Survey < ApplicationRecord
   has_many :student_questions, through: :questions
 
   accepts_nested_attributes_for :categories, allow_destroy: true
+  accepts_nested_attributes_for :sections, allow_destroy: true
 
   before_validation :normalize_title_and_semester
 

@@ -235,7 +235,7 @@ class CompositeReportGenerator
   end
 
   def categories
-    @categories ||= survey.categories.includes(:questions).order(:id).to_a
+    @categories ||= survey.categories.includes(:questions, :section).order(:id).to_a
   end
 
   def question_responses

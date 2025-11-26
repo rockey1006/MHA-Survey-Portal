@@ -90,7 +90,7 @@ unless File.exist?(survey_template_path)
   raise "Survey template data file not found: #{survey_template_path}. Please ensure the survey definitions are available."
 end
 
-template_data = YAML.safe_load_file(survey_template_path)
+template_data = YAML.safe_load_file(survey_template_path, aliases: true)
 survey_templates = Array(template_data.fetch("surveys"))
 
 answer_options_for = lambda do |options|
@@ -116,17 +116,43 @@ survey_templates.each do |definition|
     survey.categories.destroy_all if survey.persisted?
     survey.categories.reset
 
+    sections_supported = SurveySection.table_exists?
+    if sections_supported
+      survey.sections.destroy_all if survey.persisted?
+      survey.sections.reset
+    end
+
     categories = Array(definition.fetch("categories", []))
+    section_assignments = sections_supported ? {} : nil
     categories.each do |category_definition|
       category = survey.categories.build(
         name: category_definition.fetch("name"),
         description: category_definition["description"]
       )
 
+      section_definition = category_definition["section"]
+      section_title = section_definition&.fetch("title", nil).to_s.strip
+      is_mha_competency_section = section_title.present? && section_title.casecmp?(SurveySection::MHA_COMPETENCY_SECTION_TITLE)
+      if sections_supported && section_definition.present?
+        if section_title.present?
+          section_assignments[category] = {
+            title: section_title,
+            description: section_definition["description"],
+            position: section_definition["position"]
+          }
+        end
+      end
+
       Array(category_definition.fetch("questions", [])).each do |question_definition|
+        tooltip_value = question_definition["tooltip"].to_s.strip
+        if tooltip_value.blank? && is_mha_competency_section && question_definition["type"].to_s == "multiple_choice"
+          tooltip_value = question_definition["description"].to_s.strip
+        end
+
         category.questions.build(
           question_text: question_definition.fetch("text"),
           description: question_definition["description"],
+          tooltip_text: tooltip_value.presence,
           question_order: question_definition.fetch("order"),
           question_type: question_definition.fetch("type"),
           is_required: question_definition.fetch("required", false),
@@ -137,6 +163,30 @@ survey_templates.each do |definition|
     end
 
     survey.save!
+    if sections_supported && section_assignments.present?
+      section_records = {}
+      ordered_keys = []
+
+      section_assignments.each_value do |attrs|
+        title = attrs[:title]
+        next if title.blank?
+        next if section_records.key?(title)
+
+        ordered_keys << title
+        section_records[title] = survey.sections.create!(
+          title: title,
+          description: attrs[:description],
+          position: attrs[:position].presence || ordered_keys.size
+        )
+      end
+
+      section_assignments.each do |category, attrs|
+        section = section_records[attrs[:title]]
+        next unless section
+
+        category.update!(section: section)
+      end
+    end
 
     tracks = Array(definition.fetch("tracks", [])).map(&:to_s)
     survey.assign_tracks!(tracks)

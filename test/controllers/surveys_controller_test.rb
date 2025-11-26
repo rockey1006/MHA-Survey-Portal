@@ -24,6 +24,19 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_select "form"
   end
 
+  test "submit surfaces alert and scroll flags on validation failure" do
+    sign_in @student_user
+    question = @survey.questions.first
+    question.update!(is_required: true)
+
+    post submit_survey_path(@survey), params: { answers: {} }
+
+    assert_response :unprocessable_entity
+    assert_match "Unable to submit", flash[:alert]
+    assert assigns(:scroll_to_form_top), "Expected scroll_to_form_top to be true when no answers were provided"
+    assert_equal question.id, assigns(:first_error_question_id)
+  end
+
   test "submit persists answers and redirects on success" do
     sign_in @student_user
     answers = {}
@@ -243,8 +256,21 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
   test "submit persists partial answers even on validation failure" do
     sign_in @student_user
-    questions = @survey.questions.limit(2).to_a
-    skip "Need at least 2 questions" if questions.size < 2
+    questions = @survey.questions.order(:question_order).limit(2).to_a
+    if questions.size < 2
+      category = @survey.categories.first || categories(:clinical_skills)
+      needed = 2 - questions.size
+      needed.times do |index|
+        Question.create!(
+          category: category,
+          question_text: "Generated question ##{index}",
+          question_order: category.questions.maximum(:question_order).to_i + 1 + index,
+          question_type: "short_answer",
+          is_required: false
+        )
+      end
+      questions = @survey.questions.order(:question_order).limit(2).to_a
+    end
     q1 = questions.first
     q2 = questions.second
     q1.update!(is_required: true)
@@ -906,6 +932,29 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     # Provide answers for all required questions
     answers = { evidence_question.id.to_s => "https://drive.google.com/file/d/valid123/view" }
+    @survey.questions.each do |q|
+      answers[q.id.to_s] = "Test answer" if q.is_required?
+    end
+
+    post submit_survey_path(@survey), params: { answers: answers }
+
+    assert_response :redirect
+  end
+
+  test "submit accepts google sites evidence link" do
+    sign_in @student_user
+    evidence_question = @survey.categories.first.questions.create!(
+      question_text: "Upload evidence",
+      question_type: "evidence",
+      is_required: false
+    )
+
+    stub_request(:head, "https://sites.google.com/view/public-site").to_return(status: 200)
+    stub_request(:get, "https://sites.google.com/view/public-site")
+      .with(headers: { "Range" => "bytes=0-2047" })
+      .to_return(status: 200, body: "Public Google Site")
+
+    answers = { evidence_question.id.to_s => "https://sites.google.com/view/public-site" }
     @survey.questions.each do |q|
       answers[q.id.to_s] = "Test answer" if q.is_required?
     end

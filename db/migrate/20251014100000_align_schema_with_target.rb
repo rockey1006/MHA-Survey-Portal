@@ -1,4 +1,29 @@
 class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
+  SECTION_TITLE = "MHA Competency Self-Assessment".freeze
+  SECTION_DESCRIPTION = "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale.".freeze
+  CATEGORY_NAMES = [
+    "Health Care Environment and Community",
+    "Leadership Skills",
+    "Management Skills",
+    "Analytic and Technical Skills"
+  ].freeze
+
+  class MigrationSurveySection < ActiveRecord::Base
+    self.table_name = "survey_sections"
+    has_many :categories, class_name: "AlignSchemaWithTarget::MigrationCategory"
+  end
+
+  class MigrationCategory < ActiveRecord::Base
+    self.table_name = "categories"
+    belongs_to :survey_section, class_name: "AlignSchemaWithTarget::MigrationSurveySection", optional: true
+    has_many :questions, class_name: "AlignSchemaWithTarget::MigrationQuestion"
+  end
+
+  class MigrationQuestion < ActiveRecord::Base
+    self.table_name = "questions"
+    belongs_to :category, class_name: "AlignSchemaWithTarget::MigrationCategory", optional: true
+  end
+
   def up
     create_enum :student_classifications, %w[G1 G2 G3]
     create_enum :student_tracks, %w[Residential Executive]
@@ -88,12 +113,26 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       ON surveys (LOWER(title), LOWER(semester));
     SQL
 
+  # Logical sections grouping related categories (used for instructions/banners).
+  create_table :survey_sections do |t|
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.string :title, null: false
+      t.text :description
+      t.integer :position, null: false, default: 0
+      t.timestamps
+
+      t.index %i[survey_id position], name: "index_survey_sections_on_survey_id_and_position"
+    end
+
   # Entity table: survey categories grouping related questions.
   create_table :categories do |t|
       t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.references :survey_section, foreign_key: { to_table: :survey_sections, on_delete: :nullify }
       t.string :name, null: false
       t.string :description
       t.timestamps
+
+      t.index :survey_section_id, name: "index_categories_on_survey_section_id"
     end
 
   # Entity table: individual survey questions.
@@ -101,6 +140,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
       t.string :question_text, null: false
       t.text :description
+      t.text :tooltip_text
       t.integer :question_order, null: false
       t.boolean :is_required, null: false, default: false
       t.enum :question_type, enum_type: :question_types, null: false
@@ -213,9 +253,67 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.timestamps
     end
     add_index :feedback, :survey_id
+
+    backfill_mha_competency_sections
+    backfill_mha_competency_tooltips
   end
 
   def down
     raise ActiveRecord::IrreversibleMigration, "AlignSchemaWithTarget cannot be rolled back"
+  end
+
+  private
+
+  def backfill_mha_competency_sections
+    return if CATEGORY_NAMES.empty?
+
+    MigrationSurveySection.reset_column_information
+    MigrationCategory.reset_column_information
+
+    say_with_time "Backfilling MHA competency survey sections" do
+      survey_ids = MigrationCategory.where(name: CATEGORY_NAMES).distinct.pluck(:survey_id)
+      survey_ids.each do |survey_id|
+        section = MigrationSurveySection.find_or_create_by!(survey_id: survey_id, title: SECTION_TITLE) do |record|
+          record.description = SECTION_DESCRIPTION
+          record.position = next_section_position_for(survey_id)
+        end
+
+        MigrationCategory.where(survey_id: survey_id, name: CATEGORY_NAMES).update_all(survey_section_id: section.id)
+      end
+    end
+  end
+
+  def backfill_mha_competency_tooltips
+    return if CATEGORY_NAMES.empty?
+
+    MigrationCategory.reset_column_information
+    MigrationQuestion.reset_column_information
+
+    say_with_time "Backfilling tooltip text for MHA competency questions" do
+      target_category_ids = MigrationCategory.left_joins(:survey_section)
+                                             .where("survey_sections.title = ? OR categories.name IN (?)", SECTION_TITLE, CATEGORY_NAMES)
+                                             .distinct
+                                             .pluck(:id)
+
+      if target_category_ids.empty?
+        0
+      else
+        scope = MigrationQuestion.where(category_id: target_category_ids, tooltip_text: nil, question_type: "multiple_choice")
+                                  .where.not(description: [nil, ""])
+
+        updated_count = 0
+        scope.find_in_batches(batch_size: 200) do |batch|
+          batch.each do |question|
+            question.update_columns(tooltip_text: question.description)
+            updated_count += 1
+          end
+        end
+        updated_count
+      end
+    end
+  end
+
+  def next_section_position_for(survey_id)
+    (MigrationSurveySection.where(survey_id: survey_id).maximum(:position) || 0) + 1
   end
 end

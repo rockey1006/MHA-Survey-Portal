@@ -14,6 +14,20 @@
     <%= question.question_order %>
   </p>
 
+  <% if question.description.present? %>
+    <p>
+      <strong>Description:</strong>
+      <%= simple_format(question.description) %>
+    </p>
+  <% end %>
+
+  <% if question.tooltip_text.present? %>
+    <p>
+      <strong>Tooltip text:</strong>
+      <%= simple_format(question.tooltip_text) %>
+    </p>
+  <% end %>
+
   <p>
     <strong>Question type:</strong>
     <%= question.question_type %>

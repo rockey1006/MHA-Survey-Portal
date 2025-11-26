@@ -36,6 +36,6 @@ class SurveysControllerValidationTest < ActionController::TestCase
     post :submit, params: { id: @survey.id, answers: answers }
     assert_response :unprocessable_entity
     body = @response.body.to_s.downcase
-    assert(body.include?("invalid") || body.include?("invalid google drive") || body.include?("invalid link"))
+    assert(body.include?("invalid") || body.include?("invalid google") || body.include?("invalid link"))
   end
 end

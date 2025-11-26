@@ -282,6 +282,79 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal @admin_user, survey.creator
   end
 
+  test "create allows tooltip text" do
+    params = {
+      survey: {
+        title: "Tooltip Survey",
+        semester: "Fall 2026",
+        categories_attributes: {
+          "0" => {
+            name: "Leadership",
+            questions_attributes: {
+              "0" => {
+                question_text: "Describe a recent win",
+                question_type: "short_answer",
+                question_order: 1,
+                tooltip_text: "Connect your answer to STAR outcomes."
+              }
+            }
+          }
+        }
+      }
+    }
+
+    assert_difference "Survey.count", 1 do
+      post admin_surveys_path, params: params
+    end
+
+    survey = Survey.order(:created_at).last
+    tooltip = survey.questions.first.tooltip_text
+    assert_equal "Connect your answer to STAR outcomes.", tooltip
+  end
+
+  test "create supports sections with category assignments" do
+    section_uid = "section-temp-test"
+    params = {
+      survey: {
+        title: "Sectioned Survey",
+        semester: "Fall 2026",
+        sections_attributes: {
+          "0" => {
+            title: "Student Experience",
+            description: "Covers advising touchpoints",
+            position: 0,
+            form_uid: section_uid
+          }
+        },
+        categories_attributes: {
+          "0" => {
+            name: "Touchpoints",
+            description: "Advising interactions",
+            section_form_uid: section_uid,
+            questions_attributes: {
+              "0" => {
+                question_text: "List recent meetings",
+                question_type: "short_answer",
+                question_order: 1
+              }
+            }
+          }
+        }
+      }
+    }
+
+    assert_difference ["Survey.count", "SurveySection.count"], 1 do
+      post admin_surveys_path, params: params
+    end
+
+    survey = Survey.order(:created_at).last
+    section = survey.sections.first
+    category = survey.categories.first
+
+    assert_equal "Student Experience", section.title
+    assert_equal section, category.section
+  end
+
   test "create with invalid params renders new with errors" do
     params = {
       survey: {
@@ -407,6 +480,73 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     log = SurveyChangeLog.order(:created_at).last
     assert_includes log.description, "Semester changed from"
+  end
+
+  test "update allows reassigning categories to new sections" do
+    category = @survey.categories.first
+    existing_section = @survey.sections.create!(title: "Existing", description: "", position: 0)
+    section_uid = "section-#{existing_section.id}"
+    new_section_uid = "section-temp-xyz"
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        title: @survey.title,
+        sections_attributes: {
+          "0" => {
+            id: existing_section.id,
+            title: existing_section.title,
+            description: existing_section.description,
+            position: existing_section.position,
+            form_uid: section_uid
+          },
+          "1" => {
+            title: "Advisor Touchpoints",
+            description: "",
+            position: existing_section.position + 1,
+            form_uid: new_section_uid
+          }
+        },
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            name: category.name,
+            description: category.description,
+            section_form_uid: new_section_uid
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    category.reload
+    assert_equal "Advisor Touchpoints", category.section.title
+  end
+
+  test "update allows editing tooltip text" do
+    category = @survey.categories.first
+    question = category.questions.first
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => {
+                id: question.id,
+                tooltip_text: "Use concise bullet points"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    question.reload
+    assert_equal "Use concise bullet points", question.tooltip_text
   end
 
   test "update with description change" do

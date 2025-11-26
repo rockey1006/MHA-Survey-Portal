@@ -1,10 +1,32 @@
 <% category = category_fields.object %>
-<article class="space-y-5 rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm" data-category-fields-target="item">
+<% panel_dom_id = category.instance_variable_get(:@panel_dom_id) %>
+<% panel_dom_id ||= "category-panel-#{category.object_id}" %>
+<% category.instance_variable_set(:@panel_dom_id, panel_dom_id) %>
+<% section_uid = category.respond_to?(:section_form_uid) ? category.section_form_uid.presence : nil %>
+<article class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+         data-category-fields-target="item"
+         data-survey-structure-target="panel"
+         data-panel-type="category"
+         data-panel-key="<%= panel_dom_id %>"
+         data-panel-label="<%= category.name.presence || 'Untitled category' %>"
+         data-section-uid="<%= section_uid %>">
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="flex-1 space-y-2">
       <%= category_fields.hidden_field :id %>
       <%= category_fields.label :name, "Category name", class: "block text-sm font-medium text-slate-700" %>
-      <%= category_fields.text_field :name, required: true, class: input_classes, placeholder: "Leadership" %>
+      <%= category_fields.text_field :name,
+                                     required: true,
+                                     class: input_classes,
+                                     placeholder: "Leadership",
+                                     data: { action: "input->survey-structure#syncPanelLabel" } %>
+      <%= category_fields.hidden_field :section_form_uid,
+                                       value: section_uid,
+                                       data: { survey_structure_target: "assignmentField", panel_key: panel_dom_id } %>
+      <p class="text-xs text-slate-500"
+         data-survey-structure-target="assignmentLabel"
+         data-panel-key="<%= panel_dom_id %>">
+        <%= section_uid.present? ? "Linked to section" : "No section selected" %>
+      </p>
     </div>
 
     <% if category.persisted? %>

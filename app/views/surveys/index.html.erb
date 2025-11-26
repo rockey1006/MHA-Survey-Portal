@@ -27,7 +27,26 @@
     <div class="survey-board" role="list">
       <% @surveys.each do |survey| %>
         <% assignment = @assignment_lookup[survey.id] %>
-        <% status_label, status_variant = survey_assignment_status(assignment) %>
+        <% status_label, status_variant = if assignment&.completed_at?
+            ["Completed", "success"]
+          elsif assignment.present?
+            ["In Progress", "info"]
+          else
+            ["Not Started", "muted"]
+          end %>
+        <% due_note = if assignment&.due_date.present?
+            due_date = assignment.due_date.to_date
+            today = Time.zone.today
+            if due_date < today
+              "Overdue · #{l(due_date, format: :long)}"
+            elsif due_date == today
+              "Due today"
+            else
+              "Due #{l(due_date, format: :long)}"
+            end
+          else
+            "No due date"
+          end %>
         <article class="survey-card" role="listitem">
           <header class="survey-card__header">
             <div>
@@ -36,7 +55,7 @@
             </div>
             <div class="survey-card__status">
               <span class="status-badge status-badge--<%= status_variant %>"><%= status_label %></span>
-              <span class="status-note"><%= survey_due_badge_text(assignment) %></span>
+              <span class="status-note"><%= due_note %></span>
             </div>
           </header>
 

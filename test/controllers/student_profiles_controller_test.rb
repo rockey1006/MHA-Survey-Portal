@@ -344,14 +344,45 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   # Survey Auto-Assignment
-  test "update triggers survey auto-assignment on success" do
+  test "update auto-assigns when track changes" do
     sign_in @student_user
+    target_track = @student.track == "Residential" ? "Executive" : "Residential"
+    auto_assign_called = false
 
-    patch student_profile_path, params: {
-      student: valid_student_params
-    }
+    SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
+      patch student_profile_path, params: {
+        student: valid_student_params(track: target_track)
+      }
+    end
 
-    assert_redirected_to student_dashboard_path
+    assert auto_assign_called, "Expected auto-assigner to run when track changes"
+  end
+
+  test "update auto-assigns when student has no assignments" do
+    sign_in @student_user
+    SurveyAssignment.where(student_id: @student.student_id).delete_all
+    auto_assign_called = false
+
+    SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
+      patch student_profile_path, params: {
+        student: valid_student_params
+      }
+    end
+
+    assert auto_assign_called, "Expected auto-assigner to run when no assignments exist"
+  end
+
+  test "update skips auto-assignment when track unchanged and assignments exist" do
+    sign_in @student_user
+    auto_assign_called = false
+
+    SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
+      patch student_profile_path, params: {
+        student: valid_student_params
+      }
+    end
+
+    refute auto_assign_called, "Expected auto-assigner to be skipped when unnecessary"
   end
 
   # Profile Completion Check Skip

@@ -346,7 +346,8 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   # Survey Auto-Assignment
   test "update auto-assigns when track changes" do
     sign_in @student_user
-    target_track = @student.track == "Residential" ? "Executive" : "Residential"
+    current_track_value = Student.tracks[@student.track] || @student.track
+    target_track = current_track_value == "Residential" ? "Executive" : "Residential"
     auto_assign_called = false
 
     SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do

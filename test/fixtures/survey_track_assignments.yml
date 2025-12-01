@@ -9,3 +9,9 @@ spring_2025_executive:
   track: Executive
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+fall_2025_executive_track:
+  survey: fall_2025_executive
+  track: Executive
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

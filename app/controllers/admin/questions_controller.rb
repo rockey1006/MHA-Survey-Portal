@@ -92,6 +92,7 @@ class Admin::QuestionsController < Admin::BaseController
       :question,
       :question_text,
       :description,
+      :tooltip_text,
       :question_type,
       :question_order,
       :answer_options,

@@ -3,7 +3,10 @@
 <% textarea_classes = "#{input_classes} min-h-[5rem]" %>
 <% checkbox_classes = "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" %>
 
-<%= form_with(model: [:admin, survey], local: true, class: "space-y-10") do |form| %>
+<%= form_with(model: [:admin, survey],
+              local: true,
+              class: "space-y-10",
+              data: { controller: "survey-autosave", "survey-autosave-debounce-value": 4000 }) do |form| %>
   <% if survey.errors.any? %>
     <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
       <h2 class="mb-2 text-base font-semibold"><%= pluralize(survey.errors.count, "error") %> prevented this survey from being saved:</h2>
@@ -14,6 +17,10 @@
       </ul>
     </div>
   <% end %>
+
+  <div class="flex justify-end text-xs text-slate-500" aria-live="polite">
+    <span data-survey-autosave-target="status">All changes saved</span>
+  </div>
 
   <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <header class="space-y-1">
@@ -74,10 +81,59 @@
     </div>
   </section>
 
+  <% if survey.new_record? && survey.sections.empty? %>
+    <% survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
+  <% end %>
+
+  <% survey.sections.each do |section_record| %>
+    <% next unless section_record.respond_to?(:form_uid=) %>
+    <% if section_record.form_uid.blank? %>
+      <% section_record.form_uid = section_record.id.present? ? "section-#{section_record.id}" : "section-temp-#{SecureRandom.hex(6)}" %>
+    <% end %>
+  <% end %>
+
+  <% section_select_options = [["No section", ""]] + survey.sections.map { |section_record| [section_record.title.presence || "Untitled section", section_record.form_uid] } %>
+
+  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="section-fields">
+    <header class="space-y-1">
+      <h2 class="text-lg font-semibold text-slate-900">Sections</h2>
+      <p class="text-sm text-slate-600">Add optional headers that group categories. Use the display order field to control their sequence.</p>
+    </header>
+
+    <div class="space-y-4" data-section-fields-target="container">
+      <%= form.fields_for :sections do |section_fields| %>
+        <%= render "admin/surveys/section_fields",
+                   section_fields: section_fields,
+                   input_classes: input_classes,
+                   textarea_classes: textarea_classes %>
+      <% end %>
+    </div>
+
+    <% new_section = survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
+    <% new_section.form_uid ||= "NEW_SECTION_UID" %>
+    <% section_template = capture do %>
+      <%= form.fields_for :sections, new_section, child_index: "NEW_SECTION" do |section_fields| %>
+        <%= render "admin/surveys/section_fields",
+                   section_fields: section_fields,
+                   input_classes: input_classes,
+                   textarea_classes: textarea_classes %>
+      <% end %>
+    <% end %>
+    <% survey.sections.target.delete(new_section) %>
+
+    <template data-section-fields-target="template"><%= section_template %></template>
+
+    <button type="button"
+            class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+            data-action="section-fields#add">
+      + Add section
+    </button>
+  </section>
+
   <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="category-fields">
     <header class="space-y-1">
       <h2 class="text-lg font-semibold text-slate-900">Categories &amp; questions</h2>
-      <p class="text-sm text-slate-600">Every category should contain at least one question. Use the buttons below to add or remove items.</p>
+      <p class="text-sm text-slate-600">Each category should contain the questions shown together. Assign categories to sections using the dropdown below and control order with the number fields.</p>
     </header>
 
     <div class="space-y-6" data-category-fields-target="container">
@@ -86,7 +142,8 @@
                    category_fields: category_fields,
                    input_classes: input_classes,
                    textarea_classes: textarea_classes,
-                   checkbox_classes: checkbox_classes %>
+                   checkbox_classes: checkbox_classes,
+                   section_options: section_select_options %>
       <% end %>
     </div>
 
@@ -98,7 +155,8 @@
                    category_fields: category_fields,
                    input_classes: input_classes,
                    textarea_classes: textarea_classes,
-                   checkbox_classes: checkbox_classes %>
+                   checkbox_classes: checkbox_classes,
+                   section_options: section_select_options %>
       <% end %>
     <% end %>
     <% survey.categories.target.delete(new_category) %>

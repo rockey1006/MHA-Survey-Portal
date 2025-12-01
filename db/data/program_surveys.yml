@@ -1,13 +1,57 @@
+mha_competency_tooltip: &mha_competency_tooltip |
+  Mastery (5)
+  ----------
+  - The student is a recognized authority and a leader who can shape professional practice.
+  - They demonstrate extensive knowledge of current trends and complex theories.
+  - They can pioneer new solutions and troubleshoot complex, non-routine problems.
+  - They function with complete independence and contribute to strategic-level decision-making.
+
+  Experienced (4)
+  -------------
+  - The student has a strong, well-developed skill set and can apply complex theories in their professional practice.
+  - They have a deep understanding of core concepts and specialized theories and can articulate nuances to others.
+  - They independently apply theoretical knowledge to solve real-world problems with minimal to no guidance.
+
+  Capable (3)
+  ----------
+  - The student has a practical, working grasp of the professional area and can perform standard tasks independently.
+  - They possess foundational knowledge and skills and can complete a range of standard job tasks.
+  - They can work without assistance on most routine assignments and effectively participate in team projects.
+  - They reliably meet expectations for their position but may need minimal guidance for unusual situations.
+
+  Emerging (2)
+  ----------
+  - The student has a limited, but growing, understanding of professional concepts and requires direct guidance for complex tasks.
+  - They are familiar with foundational terminology and techniques, but their understanding is limited in scope.
+  - They can perform basic, simple tasks but their performance does not consistently meet professional standards.
+  - They operate under close supervision and need frequent checks and clear instructions.
+
+  Beginner (1)
+  ----------
+  - The student has only a basic or superficial understanding with little to no practical experience.
+  - They have a basic awareness of the topic and can identify core concepts.
+  - They cannot perform job duties independently, and their performance generally fails to meet expectations even with guidance.
+  - They require constant and direct supervision for all tasks.
+
+  Not able to assess (0) [Advisor Only]
+  ---------------------
+  - Advisor only option for cases where a rating cannot be provided.
+
 surveys:
-  - title: "Executive Survey"
+  - &executive_survey_base
+    title: "Executive Survey"
     semester: "Fall 2025"
     description: "Executive cohort semester activity and competency tracking."
     is_active: true
+    seed_auto_assign_students: true
     tracks:
       - "Executive"
     categories:
       - name: "Employment Information"
         description: "Current Employment Status and Details"
+        section:
+          title: "Professional Snapshot"
+          description: "Share your current employment context for the Executive cohort."
         questions:
           - order: 1
             text: "Are you currently employed?"
@@ -27,101 +71,43 @@ surveys:
             text: "How flexible are your work hours?"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
-      - name: "Semester"
-        description: "Semester Activity Information"
-        questions:
-          - order: 1
-            text: "Which student organizations are you currently a member of?"
-            type: "multiple_choice"
-            options: ["AFHL", "AAHL", "HFA", "IHI", "MGMA", "AC3"]
-            required: true
-          - order: 2
-            text: "Other Organization - please specify the name"
-            type: "short_answer"
-          - order: 3
-            text: "Did you participate in any professional meetings?"
-            type: "multiple_choice"
-            options: ["Yes", "No"]
-            required: true
-          - order: 4
-            text: "If yes, please provide the meeting name, date, and location"
-            type: "short_answer"
-          - order: 5
-            text: "If no, why not?"
-            type: "short_answer"
-          - order: 6
-            text: "Did you compete in a Case Competition?"
-            type: "multiple_choice"
-            options: ["Yes", "No"]
-            required: true
-          - order: 7
-            text: "If yes, name and date"
-            type: "short_answer"
-          - order: 8
-            text: "If no, why not?"
-            type: "short_answer"
-          - order: 9
-            text: "Did you engage in a community service activity?"
-            type: "multiple_choice"
-            options: ["Yes", "No"]
-            required: true
-          - order: 10
-            text: "If yes, provide the activity name, date, and location"
-            type: "short_answer"
-          - order: 11
-            text: "If no, why not?"
-            type: "short_answer"
-            required: true
-      - name: "Mentor Relationships (RMHA Only)"
-        description: "Mentorship Information"
-        questions:
-          - order: 1
-            text: "Did you meet with your alumni mentor?"
-            type: "multiple_choice"
-            options: ["Yes", "No"]
-            required: true
-          - order: 2
-            text: "Summarize your discussions"
-            type: "short_answer"
-            required: true
-          - order: 3
-            text: "If not, why not?"
-            type: "short_answer"
-          - order: 4
-            text: "Did you meet with your student mentor/mentee?"
-            type: "multiple_choice"
-            options: ["Yes", "No"]
-            required: true
-          - order: 5
-            text: "Summarize your meetings"
-            type: "short_answer"
-            required: true
-          - order: 6
-            text: "If not, why not?"
-            type: "short_answer"
-          # evidence question removed per request
-      - name: "Volunteering/Service"
-        description: "Volunteer Work Information"
-        questions:
-          - order: 1
-            text: "Any volunteer service?"
-            type: "multiple_choice"
-            options: ["Yes", "No"]
-            required: true
-          - order: 2
-            text: "If yes, please describe."
-            type: "short_answer"
-          - order: 3
-            text: "If no, why not?"
-            type: "short_answer"
-          # evidence question removed per request
+            description: 
+            tooltip: |
+              Highly Flexible (5)
+              -------------------
+              - Your work hours are fully adjustable, with complete autonomy to set or shift your schedule.
+              - Changes to your hours rarely require approval and have minimal constraints.
+
+              Very Flexible (4)
+              -----------------
+              - You have strong control over your schedule and can adjust hours when needed.
+              - Some coordination may be required, but flexibility is generally supported.
+
+              Moderately Flexible (3)
+              ----------------------
+              - You have set hours but can make occasional adjustments.
+              - Flexibility exists but usually requires prior communication or approval.
+
+              Somewhat Limited (2)
+              --------------------
+              - Your schedule is mostly fixed, with only minor or infrequent adjustments allowed.
+              - Changes require approval and may not always be granted.
+
+              Not Flexible (1)
+              ----------------
+              - Your work hours are strictly fixed and cannot be adjusted.
+              - Schedule changes are rarely permitted and typically not feasible.
       - name: "Health Care Environment and Community"
         description: "Relation between health care operations and community organizations and policies"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Public and Population Health Assessment"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
           - order: 2
@@ -132,6 +118,7 @@ surveys:
             text: "Delivery, Organization, and Financing of Health Services and Health Systems"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
           - order: 4
@@ -142,6 +129,7 @@ surveys:
             text: "Policy Analysis"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
             required: true
           - order: 6
@@ -152,6 +140,7 @@ surveys:
             text: "Legal & Ethical Bases for Health Services and Health Systems"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
             required: true
           - order: 8
@@ -159,16 +148,20 @@ surveys:
             type: "short_answer"
             required: false
           - order: 9
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
       - name: "Leadership Skills"
         description: "Motivation and empowerment of organizational resources"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Ethics, Accountability, and Self-Assessment"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
           - order: 2
@@ -179,6 +172,7 @@ surveys:
             text: "Organizational Dynamics"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
           - order: 4
@@ -189,6 +183,7 @@ surveys:
             text: "Problem Solving, Decision Making, and Critical Thinking"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Data, analytic methods, and judgment used in support of leadership decisions"
             required: true
           - order: 6
@@ -199,6 +194,7 @@ surveys:
             text: "Team Building and Collaboration"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
             required: true
           - order: 8
@@ -206,16 +202,20 @@ surveys:
             type: "short_answer"
             required: false
           - order: 9
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
       - name: "Management Skills"
         description: "Control and organization of health services delivery"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Strategic Planning"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
           - order: 2
@@ -226,6 +226,7 @@ surveys:
             text: "Business Planning"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
           - order: 4
@@ -236,6 +237,7 @@ surveys:
             text: "Communication"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
           - order: 6
@@ -246,6 +248,7 @@ surveys:
             text: "Financial Management"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Read, understand, and analyze financial statements and audited financial reports"
             required: true
           - order: 8
@@ -256,6 +259,7 @@ surveys:
             text: "Performance Improvement"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
             required: true
           - order: 10
@@ -266,6 +270,7 @@ surveys:
             text: "Project Management"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
             required: true
           - order: 12
@@ -273,16 +278,20 @@ surveys:
             type: "short_answer"
             required: false
           - order: 13
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
       - name: "Analytic and Technical Skills"
         description: "Successful accomplishment of tasks in health services delivery"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Systems Thinking"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Interrelationships between and among constituent parts of an organization"
             required: true
           - order: 2
@@ -293,6 +302,7 @@ surveys:
             text: "Data Analysis and Information Management"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
           - order: 4
@@ -303,6 +313,7 @@ surveys:
             text: "Quantitative Methods for Health Services Delivery"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
             required: true
           - order: 6
@@ -310,19 +321,24 @@ surveys:
             type: "short_answer"
             required: false
           - order: 7
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
 
-  - title: "Residential Survey"
+  - &residential_survey_base
+    title: "Residential Survey"
     semester: "Fall 2025"
     description: "Residential cohort competency and experience tracking."
     is_active: true
+    seed_auto_assign_students: true
     tracks:
       - "Residential"
     categories:
       - name: "Employment Information"
         description: "Current Employment Status and Details"
+        section:
+          title: "Professional Snapshot"
+          description: "Share your current employment context for the Residential cohort."
         questions:
           - order: 1
             text: "Are you currently employed?"
@@ -342,13 +358,42 @@ surveys:
             text: "How flexible are your work hours?"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: |
+              Highly Flexible (5)
+              -------------------
+              - Your work hours are fully adjustable, with complete autonomy to set or shift your schedule.
+              - Changes to your hours rarely require approval and have minimal constraints.
+
+              Very Flexible (4)
+              -----------------
+              - You have strong control over your schedule and can adjust hours when needed.
+              - Some coordination may be required, but flexibility is generally supported.
+
+              Moderately Flexible (3)
+              ----------------------
+              - You have set hours but can make occasional adjustments.
+              - Flexibility exists but usually requires prior communication or approval.
+
+              Somewhat Limited (2)
+              --------------------
+              - Your schedule is mostly fixed, with only minor or infrequent adjustments allowed.
+              - Changes require approval and may not always be granted.
+
+              Not Flexible (1)
+              ----------------
+              - Your work hours are strictly fixed and cannot be adjusted.
+              - Schedule changes are rarely permitted and typically not feasible.
       - name: "Health Care Environment and Community"
         description: "Relationship between health care operations and their communities"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Public and Population Health Assessment"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
           - order: 2
@@ -359,6 +404,7 @@ surveys:
             text: "Delivery, Organization, and Financing of Health Services and Health Systems"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
           - order: 4
@@ -369,6 +415,7 @@ surveys:
             text: "Policy Analysis"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
             required: true
           - order: 6
@@ -379,6 +426,7 @@ surveys:
             text: "Legal & Ethical Bases for Health Services and Health Systems"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
             required: true
           - order: 8
@@ -386,16 +434,20 @@ surveys:
             type: "short_answer"
             required: false
           - order: 9
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
       - name: "Leadership Skills"
         description: "Motivation and empowerment of organizational resources"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Ethics, Accountability, and Self-Assessment"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
           - order: 2
@@ -406,6 +458,7 @@ surveys:
             text: "Organizational Dynamics"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
           - order: 4
@@ -416,6 +469,7 @@ surveys:
             text: "Problem Solving, Decision Making, and Critical Thinking"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Data, analytic methods, and judgment used in support of leadership decisions"
             required: true
           - order: 6
@@ -426,6 +480,7 @@ surveys:
             text: "Team Building and Collaboration"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
             required: true
           - order: 8
@@ -433,16 +488,20 @@ surveys:
             type: "short_answer"
             required: false
           - order: 9
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
       - name: "Management Skills"
         description: "Control and organization of health services delivery"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Strategic Planning"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
           - order: 2
@@ -453,6 +512,7 @@ surveys:
             text: "Business Planning"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
           - order: 4
@@ -463,6 +523,7 @@ surveys:
             text: "Communication"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
           - order: 6
@@ -473,6 +534,7 @@ surveys:
             text: "Financial Management"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Read, understand, and analyze financial statements and audited financial reports"
             required: true
           - order: 8
@@ -483,6 +545,7 @@ surveys:
             text: "Performance Improvement"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
             required: true
           - order: 10
@@ -493,6 +556,7 @@ surveys:
             text: "Project Management"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
             required: true
           - order: 12
@@ -500,16 +564,20 @@ surveys:
             type: "short_answer"
             required: false
           - order: 13
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
       - name: "Analytic and Technical Skills"
         description: "Successful accomplishment of tasks in health services delivery"
+        section:
+          title: "MHA Competency Self-Assessment"
+          description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
         questions:
           - order: 1
             text: "Systems Thinking"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Interrelationships between and among constituent parts of an organization"
             required: true
           - order: 2
@@ -520,6 +588,7 @@ surveys:
             text: "Data Analysis and Information Management"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
           - order: 4
@@ -530,6 +599,7 @@ surveys:
             text: "Quantitative Methods for Health Services Delivery"
             type: "multiple_choice"
             options: ["1", "2", "3", "4", "5"]
+            tooltip: *mha_competency_tooltip
             description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
             required: true
           - order: 6
@@ -537,6 +607,13 @@ surveys:
             type: "short_answer"
             required: false
           - order: 7
-            text: "Please provide a Google Drive link as evidence for this section."
+            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
             type: "evidence"
             required: true
+  - <<: *executive_survey_base
+    semester: "Spring 2025"
+    seed_auto_assign_students: false
+
+  - <<: *residential_survey_base
+    semester: "Spring 2025"
+    seed_auto_assign_students: false

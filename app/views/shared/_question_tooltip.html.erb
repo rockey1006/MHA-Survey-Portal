@@ -1,0 +1,220 @@
+<%# Standardized tooltip renderer used for both MHA proficiency content and per-question hints %>
+<%
+  tooltip_id = local_assigns[:id] || "tooltip-#{SecureRandom.hex(6)}"
+  label = local_assigns.fetch(:label, "Show additional context")
+  aria_label = local_assigns.fetch(:panel_label, label)
+  panel_classes = ["standard-tooltip-panel", local_assigns[:panel_classes]].compact.join(" ")
+  width_value = local_assigns[:width]
+  max_height_value = local_assigns[:max_height]
+  extra_style = local_assigns[:panel_style]
+  base_style_tokens = []
+  base_style_tokens << "--tooltip-width: #{width_value};" if width_value.present?
+  base_style_tokens << "max-height: #{max_height_value};" if max_height_value.present?
+  base_style_tokens << extra_style if extra_style.present?
+  panel_style = base_style_tokens.join(' ')
+  explicit_body_html = local_assigns[:body_html]
+  content_html = if explicit_body_html.present?
+                   explicit_body_html
+                 else
+                   raw_text = local_assigns.fetch(:text, "").to_s.strip
+                   if raw_text.present?
+                     sections = raw_text.split(/\r?\n\r?\n+/).map { |section| section.strip }.reject(&:blank?)
+                     if sections.present?
+                       section_html = sections.map do |section|
+                         lines = section.split(/\r?\n/).map { |line| line.strip }.reject(&:blank?)
+                         next if lines.empty?
+
+                         heading = nil
+                         if lines.length >= 2 && lines[1].match?(/\A[-]{2,}\z/)
+                           heading = lines.shift
+                           lines.shift
+                         end
+
+                         body_html = nil
+                         if lines.present? && lines.all? { |line| line.start_with?("- ") }
+                           list_items = lines.map do |line|
+                             content_tag(:li, line.sub(/\A-\s*/, ""))
+                           end
+                           body_html = content_tag(:ul, safe_join(list_items), class: "tooltip-list")
+                         else
+                           paragraphs = lines.map { |line| content_tag(:p, line) }
+                           body_html = safe_join(paragraphs)
+                         end
+
+                         inner_content = safe_join([
+                           heading.present? ? content_tag(:h4, heading, class: "tooltip-section-title") : nil,
+                           body_html
+                         ].compact)
+
+                         content_tag(:div, inner_content, class: "tooltip-section")
+                       end.compact
+
+                       section_html.present? ? safe_join(section_html) : raw_text.gsub(/\r?\n/, '<br>').html_safe
+                     else
+                       raw_text.gsub(/\r?\n/, '<br>').html_safe
+                     end
+                   end
+                 end
+%>
+<% return if content_html.blank? %>
+
+<div class="standard-tooltip" data-standard-tooltip>
+  <button type="button"
+          class="standard-tooltip-trigger"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="<%= tooltip_id %>"
+          aria-label="<%= label %>">
+    <span aria-hidden="true">ⓘ</span>
+  </button>
+
+  <div id="<%= tooltip_id %>"
+       class="<%= panel_classes %>"
+       role="dialog"
+       aria-label="<%= aria_label %>"
+       style="<%= panel_style %>">
+    <%= content_html %>
+  </div>
+</div>
+
+<% unless defined?(@_standard_tooltip_assets) && @_standard_tooltip_assets %>
+  <% @_standard_tooltip_assets = true %>
+  <style>
+    .standard-tooltip {
+      --tooltip-width: 26rem;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .standard-tooltip-trigger {
+      border: 1px solid #cbd5f5;
+      border-radius: 9999px;
+      background: #fff;
+      color: #475569;
+      width: 1.85rem;
+      height: 1.85rem;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.12);
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .standard-tooltip-trigger:hover,
+    .standard-tooltip-trigger:focus-visible {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .standard-tooltip-panel {
+      position: absolute;
+      top: 0;
+      left: calc(100% + 0.5rem);
+      width: var(--tooltip-width, 22rem);
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      box-shadow: 0 15px 35px rgba(15,23,42,0.12);
+      padding: 1rem;
+      color: #0f172a;
+      font-size: 0.85rem;
+      font-weight: 400;
+      line-height: 1.45;
+      z-index: 60;
+      display: none;
+    }
+
+    .standard-tooltip-panel .tooltip-section {
+      margin-bottom: 1rem;
+    }
+
+    .standard-tooltip-panel .tooltip-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .standard-tooltip-panel .tooltip-section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0 0 0.35rem;
+      color: #0f172a;
+    }
+
+    .standard-tooltip-panel p {
+      margin: 0 0 0.35rem;
+    }
+
+    .standard-tooltip-panel p:last-child {
+      margin-bottom: 0;
+    }
+
+    .standard-tooltip-panel .tooltip-list {
+      margin: 0;
+      padding-left: 1.2rem;
+      list-style-type: disc;
+    }
+
+    .standard-tooltip-panel .tooltip-list li {
+      margin-bottom: 0.35rem;
+    }
+
+    .standard-tooltip-panel .tooltip-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .standard-tooltip[data-tooltip-open="true"] .standard-tooltip-panel,
+    .standard-tooltip:hover .standard-tooltip-panel,
+    .standard-tooltip:focus-within .standard-tooltip-panel {
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      .standard-tooltip-panel {
+        position: fixed;
+        left: 50%;
+        top: 10vh;
+        transform: translateX(-50%);
+        width: calc(100vw - 2rem);
+        max-height: 70vh;
+        overflow: auto;
+      }
+    }
+  </style>
+
+  <script>
+    (function() {
+      function closeAll(except) {
+        document.querySelectorAll('[data-standard-tooltip]').forEach(function(root) {
+          if (root === except) return;
+          root.dataset.tooltipOpen = 'false';
+          var trigger = root.querySelector('.standard-tooltip-trigger');
+          if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        });
+      }
+
+      document.addEventListener('click', function(event) {
+        var root = event.target.closest('[data-standard-tooltip]');
+        var trigger = event.target.closest('.standard-tooltip-trigger');
+
+        if (!root) {
+          closeAll();
+          return;
+        }
+
+        if (trigger) {
+          var isOpen = root.dataset.tooltipOpen === 'true';
+          closeAll(root);
+          root.dataset.tooltipOpen = isOpen ? 'false' : 'true';
+          trigger.setAttribute('aria-expanded', root.dataset.tooltipOpen === 'true');
+        }
+      });
+
+      document.addEventListener('keyup', function(event) {
+        if (event.key === 'Escape') {
+          closeAll();
+        }
+      });
+    })();
+  </script>
+<% end %>

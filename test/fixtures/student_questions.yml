@@ -6,3 +6,10 @@ one:
   response_value: "4"
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+completed_entry:
+  student: other_student
+  question: fall_q1
+  response_value: "5"
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

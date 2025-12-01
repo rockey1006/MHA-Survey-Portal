@@ -14,6 +14,7 @@ module Reports
       @student_question, @advisor_question = create_competency_questions(@competency_name, @domain_name)
       @category = @student_question.category
       @survey = @category.survey
+      ensure_completed_assignment(student: @student, survey: @survey)
     end
 
     test "competency detail includes advisor averages" do
@@ -93,6 +94,17 @@ module Reports
         survey: @survey,
         average_score: score
       )
+    end
+
+    def ensure_completed_assignment(student:, survey:)
+      assignment = SurveyAssignment.find_or_initialize_by(
+        survey: survey,
+        student: student
+      )
+      assignment.advisor_id ||= student.advisor&.advisor_id
+      assignment.assigned_at ||= Time.current - 2.weeks
+      assignment.save!
+      assignment.update!(completed_at: assignment.completed_at || Time.current - 1.week)
     end
   end
 end

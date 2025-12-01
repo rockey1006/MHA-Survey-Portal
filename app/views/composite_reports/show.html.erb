@@ -39,6 +39,9 @@
   <div class="metric-card">
     <div class="metric-label">Questions Answered</div>
     <div class="metric-value"><%= answered_count %> / <%= total_questions %></div>
+    <% if required_total_questions.to_i.positive? %>
+      <div class="metric-subtext">Required: <%= required_answered_count %> / <%= required_total_questions %></div>
+    <% end %>
   </div>
   <div class="metric-card">
     <div class="metric-label">Advisor Feedback Entries</div>
@@ -94,11 +97,12 @@
                   <% end %>
                 </ul>
               <% when "scale" %>
+                <% scale_display = scale_label_for_value(question, display_answer) %>
                 <div class="answer-text">
                   <strong>Rating:</strong>
-                  <%= truncated_answer.presence || "Not answered" %>
-                  <% if display_answer.present? %>
-                    <span class="muted">/ 5</span>
+                  <%= display_answer.present? ? scale_display : "Not answered" %>
+                  <% if display_answer.present? && scale_display.to_s != display_answer.to_s %>
+                    <span class="muted">(Value <%= display_answer %>)</span>
                   <% end %>
                 </div>
               <% when "evidence" %>

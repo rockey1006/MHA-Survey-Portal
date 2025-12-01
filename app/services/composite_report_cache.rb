@@ -108,7 +108,7 @@ class CompositeReportCache
       last_accessed_at: time_from_store(data[:last_accessed_at]) || Time.current,
       path: pdf_path(key).to_s
     }
-  rescue JSON::ParserError
+  rescue JSON::ParserError, Errno::ENOENT, Errno::EACCES
     remove_entry(key)
     nil
   end

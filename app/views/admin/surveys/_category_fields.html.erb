@@ -1,10 +1,30 @@
 <% category = category_fields.object %>
-<article class="space-y-5 rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm" data-category-fields-target="item">
+<% section_options = local_assigns[:section_options] || [["No section", ""]] %>
+<% selected_section_key = category.section_form_uid.presence %>
+<% if selected_section_key.blank? && category.respond_to?(:survey_section_id) && category.survey_section_id.present? %>
+  <% selected_section_key = "section-#{category.survey_section_id}" %>
+  <% category.section_form_uid = selected_section_key if category.respond_to?(:section_form_uid=) %>
+<% end %>
+<article class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+         data-category-fields-target="item">
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="flex-1 space-y-2">
       <%= category_fields.hidden_field :id %>
       <%= category_fields.label :name, "Category name", class: "block text-sm font-medium text-slate-700" %>
-      <%= category_fields.text_field :name, required: true, class: input_classes, placeholder: "Leadership" %>
+      <%= category_fields.text_field :name,
+                                     required: true,
+                                     class: input_classes,
+                                     placeholder: "Leadership" %>
+
+      <div class="space-y-2">
+        <%= category_fields.label :section_form_uid, "Section assignment", class: "block text-sm font-medium text-slate-700" %>
+        <%= category_fields.select :section_form_uid,
+                                   options_for_select(section_options, selected_section_key),
+                                   { include_blank: false },
+                                   class: input_classes,
+                                   data: { category_fields_target: "sectionSelect" } %>
+        <p class="text-xs text-slate-500">Choose the section this category belongs to or select "No section".</p>
+      </div>
     </div>
 
     <% if category.persisted? %>

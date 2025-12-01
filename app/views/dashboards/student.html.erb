@@ -23,10 +23,19 @@
                     Semester: <%= survey.semester %>
                   </div>
                 <% end %>
+                <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
                   Status: <%= entry[:status] %>
-                  <% if entry[:total_count].to_i.positive? %>
-                    <span class="survey-progress">&bull; <%= entry[:answered_count] %>/<%= entry[:total_count] %> answered</span>
+                  <% total_questions = progress[:total_questions].to_i %>
+                  <% answered_total = progress[:answered_total].to_i %>
+                  <% if total_questions.positive? %>
+                    <span class="survey-progress">
+                      &bull;
+                      <%= answered_total %>/<%= total_questions %> answered
+                      <% if progress[:total_required].to_i.positive? %>
+                        <span class="survey-progress-detail">(required <%= progress[:answered_required].to_i %>/<%= progress[:total_required].to_i %>)</span>
+                      <% end %>
+                    </span>
                   <% end %>
                 </div>
                 <div class="survey-actions">
@@ -63,10 +72,19 @@
                     Semester: <%= survey.semester %>
                   </div>
                 <% end %>
+                <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
                   Completed on <%= entry[:completed_at]&.to_date || 'N/A' %>
-                  <% if entry[:total_count].to_i.positive? %>
-                    <span class="survey-progress">&bull; <%= entry[:answered_count] %>/<%= entry[:total_count] %> answered</span>
+                  <% total_questions = progress[:total_questions].to_i %>
+                  <% answered_total = progress[:answered_total].to_i %>
+                  <% if total_questions.positive? %>
+                    <span class="survey-progress">
+                      &bull;
+                      <%= answered_total %>/<%= total_questions %> answered
+                      <% if progress[:total_required].to_i.positive? %>
+                        <span class="survey-progress-detail">(required <%= progress[:answered_required].to_i %>/<%= progress[:total_required].to_i %>)</span>
+                      <% end %>
+                    </span>
                   <% end %>
                 </div>
                 <div class="survey-actions">

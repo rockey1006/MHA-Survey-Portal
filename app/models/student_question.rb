@@ -13,8 +13,8 @@ class StudentQuestion < ApplicationRecord
 
   before_save :normalize_response_value
 
-  # Pattern used to validate Google Drive links for evidence responses.
-  DRIVE_URL_REGEX = %r{\Ahttps?://(?:drive\.google\.com|docs\.google\.com)/(?:file/d/|drive/folders/|document/d/|spreadsheets/d/|forms/d/|open\?).+}i
+  # Pattern used to validate Google-hosted links (Drive, Docs, Sites, etc.) for evidence responses.
+  GOOGLE_URL_REGEX = %r{\Ahttps?://(?:(?:drive|docs|sites)\.google\.com|(?:[a-z0-9-]+\.)?googleusercontent\.com)(?:/|$)\S*}i
 
   # Returns the deserialized answer for the question, handling stored JSON.
   #
@@ -80,6 +80,6 @@ class StudentQuestion < ApplicationRecord
     end
 
     return if link_str.blank?
-    errors.add(:response_value, "must be a Google Drive file or folder link") unless link_str =~ DRIVE_URL_REGEX
+    errors.add(:response_value, "must be a publicly shareable Google link") unless link_str =~ GOOGLE_URL_REGEX
   end
 end

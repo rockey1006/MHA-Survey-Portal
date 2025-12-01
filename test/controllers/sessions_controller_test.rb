@@ -160,3 +160,42 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 end
+
+class SessionsControllerCallbacksTest < ActionController::TestCase
+  tests SessionsController
+
+  setup do
+    @request.env["devise.mapping"] = Devise.mappings[:user]
+  end
+
+  test "sign out GET fallback always redirects to sign in" do
+    get :sign_out_get_fallback
+    assert_redirected_to new_user_session_path
+  end
+
+  test "after sign in prefers stored location and assigns surveys for students" do
+    student_user = users(:student)
+    calls = []
+
+    SurveyAssignments::AutoAssigner.stub :call, ->(**args) { calls << args } do
+      path = @controller.stub(:stored_location_for, "/kept-location") do
+        @controller.after_sign_in_path_for(student_user)
+      end
+
+      assert_equal "/kept-location", path
+    end
+
+    assert_equal 1, calls.length
+    assert_equal student_user.student_profile, calls.first[:student]
+  end
+
+  test "after sign in defaults to dashboard for advisors" do
+    SurveyAssignments::AutoAssigner.stub :call, ->(**) { raise "should not run" } do
+      path = @controller.stub(:stored_location_for, nil) do
+        @controller.after_sign_in_path_for(users(:advisor))
+      end
+
+      assert_equal dashboard_path, path
+    end
+  end
+end

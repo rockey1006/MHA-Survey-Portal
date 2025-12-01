@@ -26,7 +26,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     user = User.from_google(**from_google_params.merge(email:, role: role))
     Rails.logger.debug "User created/found: #{user.inspect}"
-    Rails.logger.debug "User role: #{user.role}"
+    Rails.logger.debug "User role: #{user&.role}"
 
     if user.present?
       sign_out_all_scopes

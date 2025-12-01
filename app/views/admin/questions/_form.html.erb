@@ -30,7 +30,13 @@
           <div class="form-field">
             <%= form.label :description, "Question description (optional)" %>
             <%= form.text_area :description, rows: 3, class: "input", placeholder: "Provide context or competency definition students should always see." %>
-            <p class="field-hint">Shown under the prompt and inside tooltips so students and advisors know what each competency means.</p>
+            <p class="field-hint">Displayed directly beneath the question prompt to give everyone constant context.</p>
+          </div>
+
+          <div class="form-field">
+            <%= form.label :tooltip_text, "Tooltip text (optional)" %>
+            <%= form.text_area :tooltip_text, rows: 3, class: "input", placeholder: "Short guidance that appears in the tooltip icon." %>
+            <p class="field-hint">Use for hover/click tooltips. Ideal for scales or advisor-only nudges you do not want inline.</p>
           </div>
 
           <div class="form-field">

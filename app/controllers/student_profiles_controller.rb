@@ -27,11 +27,15 @@ class StudentProfilesController < ApplicationController
 
     # Update student attributes
     @student.assign_attributes(student_params.except(:name))
+    track_will_change = @student.will_save_change_to_track?
+    had_assignments = @student.survey_assignments.exists?
 
     if @student.valid?(:profile_completion)
       @student.save!(context: :profile_completion) # This will also save the user and student changes
 
-      SurveyAssignments::AutoAssigner.call(student: @student)
+      if track_will_change || !had_assignments
+        SurveyAssignments::AutoAssigner.call(student: @student)
+      end
 
       redirect_to student_dashboard_path, notice: "Profile completed successfully!"
     else

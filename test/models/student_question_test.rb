@@ -1,11 +1,13 @@
 require "test_helper"
 
 class StudentQuestionTest < ActiveSupport::TestCase
-  test "drive url regex accepts Google Drive links and rejects others" do
-    good = "https://drive.google.com/file/d/1abcdef/view?usp=sharing"
+  test "google url regex accepts Google domains and rejects others" do
+    drive_link = "https://drive.google.com/file/d/1abcdef/view?usp=sharing"
+    sites_link = "https://sites.google.com/view/sample-site/home"
     bad = "https://example.com/not-drive"
-    assert_match StudentQuestion::DRIVE_URL_REGEX, good
-    refute_match StudentQuestion::DRIVE_URL_REGEX, bad
+    assert_match StudentQuestion::GOOGLE_URL_REGEX, drive_link
+    assert_match StudentQuestion::GOOGLE_URL_REGEX, sites_link
+    refute_match StudentQuestion::GOOGLE_URL_REGEX, bad
   end
 
   test "creating and updating a student question persists answers" do
@@ -38,7 +40,7 @@ class StudentQuestionTest < ActiveSupport::TestCase
     assert_equal "padded answer", sq.reload.response_value
   end
 
-  test "evidence link validation requires google drive url" do
+  test "evidence link validation requires google hosted url" do
     student = students(:student)
     category = categories(:clinical_skills)
     evidence_question = category.questions.create!(
@@ -55,9 +57,12 @@ class StudentQuestionTest < ActiveSupport::TestCase
     )
 
     refute sq.valid?
-    assert_includes sq.errors[:response_value], "must be a Google Drive file or folder link"
+    assert_includes sq.errors[:response_value], "must be a publicly shareable Google link"
 
     sq.response_value = "https://drive.google.com/file/d/123/view"
+    assert sq.valid?, sq.errors.full_messages.to_sentence
+
+    sq.response_value = "https://sites.google.com/view/demo/page"
     assert sq.valid?, sq.errors.full_messages.to_sentence
   end
 end

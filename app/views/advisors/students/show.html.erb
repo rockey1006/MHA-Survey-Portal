@@ -1,0 +1,15 @@
+<div class="student-detail-panel">
+  <header>
+    <h1><%= @student.user.name %></h1>
+    <p class="track-label"><%= @student.track.titleize %> Track</p>
+  </header>
+
+  <section>
+    <dl>
+      <dt>Email</dt>
+      <dd><%= @student.user.email %></dd>
+      <dt>Advisor</dt>
+      <dd><%= @student.advisor&.name || "Unassigned" %></dd>
+    </dl>
+  </section>
+</div>

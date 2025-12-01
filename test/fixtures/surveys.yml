@@ -13,3 +13,11 @@ spring_2025:
   is_active: true
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+fall_2025_executive:
+  title: Fall 2025 Executive Assessment
+  semester: Fall 2025
+  description: Executive track focus
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

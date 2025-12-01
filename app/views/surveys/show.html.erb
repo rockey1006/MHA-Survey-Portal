@@ -1,68 +1,113 @@
 <% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
 <div class="survey-container mx-auto max-w-4xl space-y-8">
+  <style>
+    .survey-container [id^="survey-section-"],
+    .survey-container [id^="survey-category-"],
+    .survey-container .question-block {
+      scroll-margin-top: 120px;
+    }
+    .survey-container .indented-description {
+      border-left: 2px solid #e2e8f0;
+      margin-left: 0.25rem;
+      padding-left: 1rem;
+    }
+  </style>
   <header class="survey-header text-center space-y-1">
     <h1 class="text-2xl font-semibold text-slate-900"><%= @survey.title %></h1>
     <p class="text-sm text-slate-600">
       Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %>
     </p>
-    <p class="text-xs text-slate-500">*
-      required to answer
+    <p class="text-xs text-slate-500">
+      Questions marked with an asterisk (*) are required.
     </p>
   </header>
 
-  <% if @invalid_evidence.present? %>
+  <% flash_alert_present = flash[:alert].present? || flash.now[:alert].present? %>
+  <% if @invalid_evidence.present? && !flash_alert_present %>
     <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
       <p class="font-medium">Please fix the highlighted items:</p>
       <ul class="mt-1 list-disc pl-5">
-        <% if @invalid_evidence.present? %>
-          <li>One or more evidence links are invalid or not publicly accessible.</li>
-        <% end %>
+        <li>One or more evidence links require Google sharing set to "Anyone with the link can view."</li>
       </ul>
     </div>
   <% end %>
 
   <%= form_with url: submit_survey_path(@survey), method: :post, local: true, data: { turbo: false }, class: "space-y-6 survey-form" do |form| %>
+    <% rendered_section_ids = [] %>
+    <% invalid_evidence_ids = Array(@invalid_evidence).map(&:to_s) %>
     <% @category_groups.each do |category| %>
-      <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <% section = category.section %>
+      <% section_anchor_id = section.present? ? "survey-section-#{section.id}" : nil %>
+      <% if section.present? && !rendered_section_ids.include?(section.id) %>
+        <div id="<%= section_anchor_id %>" class="space-y-2 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 text-left shadow-sm">
+          <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
+          <h2 class="text-xl font-bold text-[#500000]"><%= section.title %></h2>
+          <% if section.description.present? %>
+            <p class="text-sm text-slate-700"><%= section.description %></p>
+          <% end %>
+        </div>
+        <% rendered_section_ids << section.id %>
+      <% end %>
+      <section id="survey-category-<%= category.id %>" class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <header>
           <h2 class="text-xl font-semibold text-slate-900"><%= category.name %></h2>
-          <% if category.description.present? %>
-            <p class="text-sm text-slate-600"><%= category.description %></p>
+          <% category_desc = category.description.to_s.strip.presence %>
+          <% if category_desc.present? %>
+            <p class="indented-description text-sm text-slate-600"><%= category_desc.gsub(/\r?\n/, '<br>').html_safe %></p>
           <% end %>
         </header>
 
-        <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
         <% category.questions.ordered.each_with_index do |question, index| %>
-          <%# Skip evidence question entirely for selected categories (don't render label or input) %>
-          <% if question.question_type == 'evidence' && excluded_categories.include?(category.name.to_s) %>
-            <% next %>
-          <% end %>
           <% field_name = "answers[#{question.id}]" %>
           <% current_value = @existing_answers[question.id.to_s] %>
           <% required = @computed_required[question.id] %>
-
-          <article class="space-y-2 question-block" data-question-id="<%= question.id %>">
-            <% q_text = question.question_text.to_s.strip %>
-            <% desc = nil %>
-            <% if question.question_type == "multiple_choice" %>
-              <% desc = question.description.presence || competency_description_for(q_text) %>
+          <% evidence_value = if question.question_type == "evidence"
+                                current_value.is_a?(Hash) ? current_value["link"] : current_value
+                              else
+                                nil
+                              end %>
+          <% missing_required_error = false %>
+          <% if request.post? && required %>
+            <% if question.question_type == "evidence" %>
+              <% missing_required_error = evidence_value.to_s.strip.blank? %>
+            <% else %>
+              <% missing_required_error = current_value.to_s.strip.blank? %>
             <% end %>
+          <% end %>
+          <% invalid_evidence_error = question.question_type == "evidence" && invalid_evidence_ids.include?(question.id.to_s) %>
+          <% has_error = missing_required_error || invalid_evidence_error %>
+          <% article_classes = ["space-y-2", "question-block"] %>
+          <% article_classes << "ring-2 ring-rose-300 rounded-lg bg-rose-50/70" if has_error %>
+
+          <article id="question-block-<%= question.id %>" class="<%= article_classes.join(' ') %>" data-question-id="<%= question.id %>">
+            <% q_text = question.question_text.to_s.squish %>
+            <% desc_text = question.description.to_s.strip.presence %>
+            <% tooltip_text = question.tooltip_text.to_s.strip.presence %>
+            <% show_mha_tooltip = question.question_type == "multiple_choice" && section&.mha_competency? %>
+            <% show_custom_tooltip = tooltip_text.present? && !show_mha_tooltip %>
+            <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
             <label class="block text-sm font-medium text-slate-900" for="question-<%= question.id %>">
               <span class="font-semibold">Q<%= index + 1 %></span>
               <span class="ml-2 inline-flex flex-col gap-1">
                 <span class="flex flex-wrap items-center gap-2">
                   <span><%= q_text %></span>
-                  <% if desc.present? %>
-                    <span class="inline-flex"><%= render 'shared/proficiency_icon' %></span>
+                  <% if show_mha_tooltip %>
+                    <% if tooltip_text.present? %>
+                      <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
+                    <% else %>
+                      <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
+                    <% end %>
+                  <% elsif show_custom_tooltip %>
+                    <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
                   <% end %>
                   <% if required %>
                     <span class="text-red-600" aria-hidden="true">*</span>
                   <% end %>
                 </span>
-                <% if desc.present? %>
-                  <span class="text-xs text-slate-600"><%= desc %></span>
+                <% if formatted_desc.present? %>
+                  <div class="indented-description text-xs text-slate-600"><%= formatted_desc %></div>
                 <% end %>
               </span>
             </label>
@@ -83,25 +128,38 @@
               </div>
               
             <% when "scale" %>
-              <div class="flex items-center gap-3">
-                <span class="text-xs text-slate-500">Low</span>
-                <%= range_field_tag field_name, current_value || 3, in: 1..5, step: 1, id: "question-#{question.id}", class: "w-full" %>
-                <span class="text-xs text-slate-500">High</span>
+              <% scale_labels = scale_labels_for(question) %>
+              <% scale_steps = [scale_labels.size, 1].max %>
+              <% slider_value = (current_value.presence || ((scale_steps + 1) / 2.0).ceil).to_i.clamp(1, scale_steps) %>
+              <div class="survey-scale-input space-y-1" data-scale-input data-scale-labels="<%= scale_labels.to_json %>">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-slate-500"><%= scale_labels.first || "Low" %></span>
+                  <%= range_field_tag field_name,
+                                      slider_value,
+                                      min: 1,
+                                      max: scale_steps,
+                                      step: 1,
+                                      id: "question-#{question.id}",
+                                      class: "w-full",
+                                      data: { scale_slider: true } %>
+                  <span class="text-xs text-slate-500"><%= scale_labels.last || "High" %></span>
+                </div>
+                <div class="flex justify-between text-[0.7rem] text-slate-500">
+                  <% scale_labels.each do |label| %>
+                    <span><%= label %></span>
+                  <% end %>
+                </div>
+                <div class="text-xs text-slate-600">
+                  Selected: <span data-scale-value><%= scale_label_for_value(question, slider_value) %></span>
+                </div>
               </div>
               
             <% when "evidence" %>
-              <%# Skip rendering evidence link questions for specific categories per request %>
-              <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
-              <% if excluded_categories.exclude?(category.name.to_s) %>
-                <% evidence_link = current_value.is_a?(Hash) ? current_value["link"] : current_value %>
-                <%= text_field_tag field_name, evidence_link, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-                <% if required && (evidence_link.nil? || evidence_link.to_s.strip.blank?) && request.post? %>
-                  
-                <% elsif evidence_link.present? && Array(@invalid_evidence).map(&:to_s).include?(question.id.to_s) %>
-                  <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
-                <% end %>
-
-                <%# Evidence questions render link input only when allowed %>
+              <%= text_field_tag field_name, evidence_value, id: "question-#{question.id}", placeholder: "https://drive.google.com/...", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+              <% if invalid_evidence_error %>
+                <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
+              <% elsif missing_required_error %>
+                <div class="text-xs text-red-600 mt-1">This question is required</div>
               <% end %>
               
             <% else %>
@@ -109,18 +167,8 @@
               
             <% end %>
 
-            <%# Render required message under the question input if missing (for question-level required) %>
-            <% if required && request.post? %>
-              <% if question.question_type == 'evidence' %>
-                <% evidence_link = current_value.is_a?(Hash) ? current_value["link"] : current_value %>
-                <% if evidence_link.nil? || evidence_link.to_s.strip.blank? %>
-                  <div class="text-xs text-red-600 mt-1">This question is required</div>
-                <% end %>
-              <% else %>
-                <% if current_value.nil? || current_value.to_s.strip.blank? %>
-                  <div class="text-xs text-red-600 mt-1">This question is required</div>
-                <% end %>
-              <% end %>
+            <% if missing_required_error && question.question_type != "evidence" %>
+              <div class="text-xs text-red-600 mt-1">This question is required</div>
             <% end %>
 
           </article>
@@ -133,6 +181,93 @@
       <%= form.submit "Submit Survey", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
     </div>
   <% end %>
+
+  <% if request.post? && (@first_error_question_id.present? || @scroll_to_form_top) %>
+    <script>
+      (function() {
+        var scrolled = false;
+        function runScroll() {
+          if (scrolled) return;
+          scrolled = true;
+          <% if @scroll_to_form_top %>
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          <% end %>
+          <% if @first_error_question_id.present? %>
+            var field = document.getElementById("question-<%= @first_error_question_id %>");
+            var block = document.getElementById("question-block-<%= @first_error_question_id %>");
+            if (!block) {
+              block = document.querySelector('[data-question-id="<%= @first_error_question_id %>"]');
+            }
+            var sectionTargetId = "<%= j(@first_error_section_dom_id.to_s) %>";
+            var sectionBlock = sectionTargetId ? document.getElementById(sectionTargetId) : null;
+            var target = block || field || sectionBlock;
+            if (target && target.scrollIntoView) {
+              var blockOption = (target === sectionBlock) ? "start" : "center";
+              var performScroll = function() {
+                target.scrollIntoView({ behavior: "smooth", block: blockOption });
+              };
+              if (window.requestAnimationFrame) {
+                window.requestAnimationFrame(performScroll);
+              } else {
+                setTimeout(performScroll, 0);
+              }
+            }
+            if (field && typeof field.focus === "function") {
+              try { field.focus({ preventScroll: true }); } catch (err) {}
+            } else if (block && typeof block.focus === "function") {
+              if (!block.hasAttribute('tabindex')) { block.setAttribute('tabindex', '-1'); }
+              try { block.focus({ preventScroll: true }); } catch (err) {}
+            }
+          <% end %>
+        }
+        if (document.readyState === "complete" || document.readyState === "interactive") {
+          runScroll();
+        } else {
+          document.addEventListener("DOMContentLoaded", runScroll, { once: true });
+        }
+        document.addEventListener("turbo:load", runScroll, { once: true });
+      })();
+    </script>
+  <% end %>
+
+  <script>
+    (function() {
+      function initScaleInputs(root) {
+        var wrappers = (root || document).querySelectorAll('[data-scale-input]');
+        if (!wrappers.length) return;
+
+        wrappers.forEach(function(wrapper) {
+          if (wrapper.dataset.scaleInitialized) return;
+          wrapper.dataset.scaleInitialized = "true";
+          var input = wrapper.querySelector('input[type="range"]');
+          var valueTarget = wrapper.querySelector('[data-scale-value]');
+          if (!input || !valueTarget) return;
+
+          var labels = [];
+          try {
+            labels = JSON.parse(wrapper.dataset.scaleLabels || "[]");
+          } catch (error) {
+            labels = [];
+          }
+
+          var updateValue = function() {
+            var idx = parseInt(input.value || "0", 10) - 1;
+            var label = labels[idx];
+            valueTarget.textContent = label || input.value || "";
+          };
+
+          input.addEventListener('input', updateValue);
+          input.addEventListener('change', updateValue);
+          updateValue();
+        });
+      }
+
+      if (window.Turbo) {
+        document.addEventListener('turbo:load', function() { initScaleInputs(document); });
+      }
+      document.addEventListener('DOMContentLoaded', function() { initScaleInputs(document); });
+    })();
+  </script>
 
   <script>
     function saveSurveyProgress() {

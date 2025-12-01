@@ -218,7 +218,10 @@ class CompositeReportGenerator
       evidence_history_by_category: evidence_history_by_category,
       generated_at: generated_at,
       answered_count: answered_count,
-      total_questions: total_questions
+      total_questions: total_questions,
+      required_answered_count: required_answered_count,
+      required_total_questions: required_total_questions,
+      progress_summary: progress_summary
     }
   end
 
@@ -235,7 +238,7 @@ class CompositeReportGenerator
   end
 
   def categories
-    @categories ||= survey.categories.includes(:questions).order(:id).to_a
+    @categories ||= survey.categories.includes(:questions, :section).order(:id).to_a
   end
 
   def question_responses
@@ -293,11 +296,23 @@ class CompositeReportGenerator
   end
 
   def answered_count
-    @answered_count ||= @survey_response.answered_count
+    progress_summary[:answered_total]
   end
 
   def total_questions
-    @total_questions ||= @survey_response.total_questions
+    progress_summary[:total_questions]
+  end
+
+  def required_answered_count
+    progress_summary[:answered_required]
+  end
+
+  def required_total_questions
+    progress_summary[:total_required]
+  end
+
+  def progress_summary
+    @progress_summary ||= @survey_response.progress_summary
   end
 
   def log_html_size(html)

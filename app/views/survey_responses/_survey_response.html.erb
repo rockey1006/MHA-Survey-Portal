@@ -4,6 +4,7 @@
 
 <div class="space-y-8 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
   <% survey_name = survey&.title.presence || "Survey ##{survey&.id}" %>
+  <% progress = sr&.progress_summary || {} %>
 
   <h1 class="text-2xl font-semibold text-[#500000]"><%= survey_name %></h1>
 
@@ -28,6 +29,21 @@
       <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Submitted</dt>
       <dd class="mt-2 text-base font-medium text-slate-900"><%= sr&.completion_date ? sr.completion_date.strftime("%Y-%m-%d") : "—" %></dd>
     </div>
+    <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+      <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Questions Answered</dt>
+      <% total_questions = progress[:total_questions].to_i %>
+      <% answered_total = progress[:answered_total].to_i %>
+      <dd class="mt-2 text-base font-medium text-slate-900">
+        <% if total_questions.positive? %>
+          <%= answered_total %>/<%= total_questions %>
+          <% if progress[:total_required].to_i.positive? %>
+            <span class="ml-1 text-sm text-slate-600">(required <%= progress[:answered_required] %>/<%= progress[:total_required] %>)</span>
+          <% end %>
+        <% else %>
+          —
+        <% end %>
+      </dd>
+    </div>
   </dl>
 
   <% existing_answers = sr&.answers || {} %>
@@ -37,10 +53,23 @@
   <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
   <% prefill_flag = local_assigns.key?(:prefill) ? local_assigns[:prefill] : params[:prefill].present? %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
+  <% categories = survey.present? ? survey.categories.includes(:section, :questions).order(:id).to_a : [] %>
 
-  <% if survey&.categories&.any? %>
+  <% if categories.any? %>
     <div class="space-y-8">
-      <% survey.categories.includes(:questions).order(:id).each do |category| %>
+      <% rendered_section_ids = [] %>
+      <% categories.each do |category| %>
+        <% section = category.section %>
+        <% if section.present? && !rendered_section_ids.include?(section.id) %>
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 text-[#4b2c20] shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section overview</p>
+            <h2 class="text-xl font-bold text-[#500000]"><%= section.title %></h2>
+            <% if section.description.present? %>
+              <p class="text-sm text-slate-700"><%= section.description %></p>
+            <% end %>
+          </div>
+          <% rendered_section_ids << section.id %>
+        <% end %>
         <div class="space-y-6"> <!-- group category + feedback to avoid outer space-y separating them -->
         <section class="category-section space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
           <header class="space-y-1">
@@ -52,11 +81,7 @@
 
           <% if category.questions.any? %>
             <div class="space-y-5">
-              <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
               <% category.questions.ordered.each_with_index do |question, index| %>
-                <% if question.question_type == 'evidence' && excluded_categories.include?(question.category&.name.to_s) %>
-                  <% next %>
-                <% end %>
                   <% raw_answer = existing_answers[question.id] %>
                   <%# Normalize stored shapes: prefer `text`/`answer`/`link` fields for display and `rating` for self-rating %>
                   <% answer_text = nil %>
@@ -70,10 +95,11 @@
                     <% answer_text = raw_answer %>
                   <% end %>
                   <% q_text = question.question_text.to_s.strip %>
-                  <% desc = nil %>
-                  <% if question.question_type == "multiple_choice" %>
-                    <% desc = question.description.presence || competency_description_for(q_text) %>
-                  <% end %>
+                  <% desc_text = question.description.to_s.strip.presence %>
+                  <% tooltip_text = question.tooltip_text.to_s.strip.presence %>
+                  <% show_mha_tooltip = question.question_type == "multiple_choice" && section&.mha_competency? %>
+                  <% show_custom_tooltip = tooltip_text.present? && !show_mha_tooltip %>
+                  <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
                 <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <header class="flex items-start gap-3">
@@ -90,8 +116,14 @@
 
                       <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800">
                         <span><%= q_text %></span>
-                        <% if desc.present? %>
-                          <span class="inline-flex"><%= render 'shared/proficiency_icon' %></span>
+                        <% if show_mha_tooltip %>
+                          <% if tooltip_text.present? %>
+                            <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
+                          <% else %>
+                            <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
+                          <% end %>
+                        <% elsif show_custom_tooltip %>
+                          <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
                         <% end %>
                         <% if required && !dependent_by_text %>
                           <span class="text-red-600 font-semibold">*</span>
@@ -100,8 +132,8 @@
                     </div>
                   </header>
 
-                  <% if desc.present? %>
-                    <p class="ml-7 text-xs text-slate-600"><%= desc %></p>
+                    <% if formatted_desc.present? %>
+                    <p class="ml-7 text-xs text-slate-600"><%= formatted_desc %></p>
                   <% end %>
                   <% case question.question_type %>
                   <% when "short_answer" %>
@@ -119,26 +151,36 @@
                       <% end %>
                     </div>
                   <% when "scale" %>
-                    <%= select_tag nil,
-                                    options_for_select((1..5).map(&:to_s), answer_text&.to_s),
-                                    include_blank: true,
-                                    class: "w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none",
-                                    disabled: true %>
-                  <% when "evidence" %>
-                    <% excluded_categories = ["Semester", "Mentor Relationships (RMHA Only)", "Volunteering/Service"] %>
-                    <% if excluded_categories.exclude?(question.category&.name.to_s) %>
-                      <% link_value = answer_text %>
-                      <% rating_value = rating_val %>
-                      <div class="space-y-3">
-                        <div>
-                          <label class="mb-1 block text-xs font-medium text-slate-600">Evidence link</label>
-                          <%= text_field_tag nil, (link_value || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
-                          <% if link_value.present? %>
-                              <a class="mt-1 block truncate text-[#500000] underline hover:text-[#330000]" href="<%= link_value %>" target="_blank" rel="noopener noreferrer"><%= link_value %></a>
-                            <% end %>
-                        </div>
+                    <% scale_labels = scale_labels_for(question) %>
+                    <% selected_value = answer_text.to_s.presence %>
+                    <% display_label = scale_label_for_value(question, selected_value) if selected_value.present? %>
+                    <div class="space-y-1">
+                      <div class="text-sm font-medium text-slate-800">
+                        <% if selected_value.present? %>
+                          <%= display_label %>
+                          <span class="ml-1 text-xs text-slate-500">(Value <%= selected_value %> of <%= scale_labels.size %>)</span>
+                        <% else %>
+                          <span class="text-slate-500">Not answered</span>
+                        <% end %>
                       </div>
-                    <% end %>
+                      <div class="flex justify-between text-[0.7rem] text-slate-500">
+                        <% scale_labels.each do |label| %>
+                          <span><%= label %></span>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% when "evidence" %>
+                    <% link_value = answer_text %>
+                    <% rating_value = rating_val %>
+                    <div class="space-y-3">
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Evidence link</label>
+                        <%= text_field_tag nil, (link_value || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
+                        <% if link_value.present? %>
+                            <a class="mt-1 block truncate text-[#500000] underline hover:text-[#330000]" href="<%= link_value %>" target="_blank" rel="noopener noreferrer"><%= link_value %></a>
+                          <% end %>
+                      </div>
+                    </div>
                   <% else %>
                     <%= text_field_tag nil, (answer_text || ""), class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
                   <% end %>
@@ -221,7 +263,7 @@
     <section class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-6">
       <h3 class="text-lg font-semibold">Advisor feedback</h3>
       <div class="mt-4 space-y-3">
-        <% survey.categories.order(:id).each do |category| %>
+        <% categories.each do |category| %>
           <%# If current viewer is the student who owns this response, skip showing advisor feedback for Employment Information category %>
           <% if viewer_is_student_owner && category.name.to_s.strip.downcase == 'employment information' %>
             <% next %>

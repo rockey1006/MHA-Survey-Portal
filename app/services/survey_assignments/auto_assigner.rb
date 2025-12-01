@@ -45,7 +45,16 @@ module SurveyAssignments
     attr_reader :student, :track
 
     def surveys_for_track
+      current_semester = ProgramSemester.current_name.to_s.strip
+      if current_semester.blank?
+        fallback_semester = Survey.order(created_at: :desc).limit(1).pick(:semester)
+        current_semester = fallback_semester.to_s.strip
+      end
+
+      return Survey.none if current_semester.blank?
+
       Survey.active
+            .where("LOWER(surveys.semester) = ?", current_semester.downcase)
             .joins(:track_assignments)
             .where("LOWER(survey_track_assignments.track) = ?", track.downcase)
             .distinct
@@ -54,6 +63,7 @@ module SurveyAssignments
     def remove_managed_assignments!(allowed_ids: [])
       scope = assignment_scope.joins(survey: :track_assignments).distinct
       scope = scope.where.not(survey_id: allowed_ids) if allowed_ids.present?
+      scope = scope.where(completed_at: nil) # completed assignments double as an audit log
       scope.find_each(&:destroy!)
     end
 

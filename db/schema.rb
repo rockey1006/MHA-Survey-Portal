@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -43,7 +43,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "survey_id"
+    t.bigint "survey_section_id"
     t.index ["survey_id"], name: "index_categories_on_survey_id"
+    t.index ["survey_section_id"], name: "index_categories_on_survey_section_id"
   end
 
   create_table "feedback", force: :cascade do |t|
@@ -90,6 +92,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
   create_table "questions", force: :cascade do |t|
     t.string "question_text", null: false
     t.text "description"
+    t.text "tooltip_text"
     t.integer "question_order", null: false
     t.boolean "is_required", default: false, null: false
     t.string "question_type", null: false
@@ -153,6 +156,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
     t.index ["survey_id"], name: "index_survey_change_logs_on_survey_id"
   end
 
+  create_table "survey_sections", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["survey_id", "position"], name: "index_survey_sections_on_survey_id_and_position"
+    t.index ["survey_id"], name: "index_survey_sections_on_survey_id"
+  end
+
   create_table "survey_track_assignments", force: :cascade do |t|
     t.bigint "survey_id", null: false
     t.datetime "created_at", null: false
@@ -198,6 +212,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
   add_foreign_key "admin_activity_logs", "users", column: "admin_id", on_delete: :cascade
   add_foreign_key "admins", "users", column: "admin_id", on_delete: :cascade
   add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
+  add_foreign_key "categories", "survey_sections", on_delete: :nullify
   add_foreign_key "categories", "surveys"
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
@@ -216,6 +231,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_18_120000) do
   add_foreign_key "survey_assignments", "surveys", on_delete: :cascade
   add_foreign_key "survey_change_logs", "surveys", on_delete: :nullify
   add_foreign_key "survey_change_logs", "users", column: "admin_id"
+  add_foreign_key "survey_sections", "surveys", on_delete: :cascade
   add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
   add_foreign_key "surveys", "users", column: "created_by_id"
 end

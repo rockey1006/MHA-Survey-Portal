@@ -32,6 +32,34 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
     sr = SurveyResponse.new(student: student, survey: survey)
     assert_equal 1, sr.answered_count
     assert_equal survey.questions.count, sr.total_questions
+    progress = sr.progress_summary
+    assert_equal sr.answered_count, progress[:answered_total]
+    assert_equal sr.total_questions, progress[:total_questions]
+  end
+
+  test "progress summary separates required and optional counts" do
+    student = students(:student)
+    survey = surveys(:fall_2025)
+    StudentQuestion.where(student_id: student.student_id, question_id: survey.questions.select(:id)).delete_all
+
+    category = survey.categories.first || survey.categories.create!(name: "Test Category", description: "")
+    required_question = survey.questions.first || category.questions.create!(question_text: "Required", question_type: "short_answer", question_order: 1)
+    optional_question = survey.questions.second || category.questions.create!(question_text: "Optional", question_type: "short_answer", question_order: 2, is_required: false)
+    required_question.update!(is_required: true)
+    optional_question.update!(is_required: false)
+
+    StudentQuestion.create!(student_id: student.student_id, question: required_question, response_value: "Required answer")
+    StudentQuestion.create!(student_id: student.student_id, question: optional_question, response_value: "Optional answer")
+
+    sr = SurveyResponse.new(student: student, survey: survey)
+    summary = sr.progress_summary
+
+    assert_equal 2, summary[:answered_total]
+    assert_equal survey.questions.count, summary[:total_questions]
+    assert_equal 1, summary[:answered_required]
+    assert_equal 1, summary[:total_required]
+    assert_equal 1, summary[:answered_optional]
+    assert summary[:total_optional] >= 1
   end
 
   test "evidence_history_by_category groups evidence responses" do

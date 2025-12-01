@@ -21,12 +21,16 @@ class SurveyAssignment < ApplicationRecord
 
   # @return [User] the user record backing the student
   def recipient_user
-    student.user
+    student&.user
+  rescue ActiveRecord::RecordNotFound
+    nil
   end
 
   # @return [User, nil] the advisor's user record
   def advisor_user
     advisor&.user
+  rescue ActiveRecord::RecordNotFound
+    nil
   end
 
   # Marks the assignment as completed if not already done.
@@ -55,7 +59,7 @@ class SurveyAssignment < ApplicationRecord
   #
   # @return [void]
   def enqueue_assigned_notification
-    return unless student&.user
+    return unless recipient_user
 
     SurveyNotificationJob.perform_later(event: :assigned, survey_assignment_id: id)
   end

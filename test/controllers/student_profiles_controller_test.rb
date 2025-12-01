@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "securerandom"
 
 class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
@@ -237,8 +238,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     sign_in @student_user
     original_advisor_id = @student.advisor_id
     new_advisor = Advisor.where.not(advisor_id: original_advisor_id).first
-
-    skip "Need another advisor" unless new_advisor
+    new_advisor ||= create_additional_advisor
 
     patch student_profile_path, params: {
       student: valid_student_params(advisor_id: new_advisor.advisor_id)
@@ -344,14 +344,46 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   # Survey Auto-Assignment
-  test "update triggers survey auto-assignment on success" do
+  test "update auto-assigns when track changes" do
     sign_in @student_user
+    current_track_value = Student.tracks[@student.track] || @student.track
+    target_track = current_track_value == "Residential" ? "Executive" : "Residential"
+    auto_assign_called = false
 
-    patch student_profile_path, params: {
-      student: valid_student_params
-    }
+    SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
+      patch student_profile_path, params: {
+        student: valid_student_params(track: target_track)
+      }
+    end
 
-    assert_redirected_to student_dashboard_path
+    assert auto_assign_called, "Expected auto-assigner to run when track changes"
+  end
+
+  test "update auto-assigns when student has no assignments" do
+    sign_in @student_user
+    SurveyAssignment.where(student_id: @student.student_id).delete_all
+    auto_assign_called = false
+
+    SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
+      patch student_profile_path, params: {
+        student: valid_student_params
+      }
+    end
+
+    assert auto_assign_called, "Expected auto-assigner to run when no assignments exist"
+  end
+
+  test "update skips auto-assignment when track unchanged and assignments exist" do
+    sign_in @student_user
+    auto_assign_called = false
+
+    SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
+      patch student_profile_path, params: {
+        student: valid_student_params
+      }
+    end
+
+    refute auto_assign_called, "Expected auto-assigner to be skipped when unnecessary"
   end
 
   # Profile Completion Check Skip
@@ -394,7 +426,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   test "update only affects current student" do
     sign_in @student_user
     other_student = Student.where.not(student_id: @student.student_id).first
-    skip "Need another student" unless other_student
+    other_student ||= create_additional_student
 
     other_student_name = other_student.user.name
 
@@ -478,6 +510,46 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     get student_profile_path
 
     assert_equal "text/html; charset=utf-8", @response.content_type
+  end
+
+  private
+
+  def create_additional_advisor
+    user = User.create!(
+      email: unique_email("advisor"),
+      name: "Generated Advisor",
+      role: "advisor",
+      uid: "advisor-#{SecureRandom.hex(4)}"
+    )
+    Advisor.create!(advisor_id: user.id)
+  end
+
+  def create_additional_student
+    advisor = Advisor.first || create_additional_advisor
+    user = User.create!(
+      email: unique_email("student"),
+      name: "Generated Student",
+      role: "student",
+      uid: "student-#{SecureRandom.hex(4)}"
+    )
+    Student.create!(
+      student_id: user.id,
+      advisor: advisor,
+      uin: generate_unique_uin,
+      track: @student.track || "Residential",
+      major: @student.major || "Undeclared"
+    )
+  end
+
+  def unique_email(prefix)
+    "#{prefix}_#{SecureRandom.hex(4)}@example.com"
+  end
+
+  def generate_unique_uin
+    loop do
+      candidate = SecureRandom.random_number(10**9).to_s.rjust(9, "0")
+      return candidate unless Student.exists?(uin: candidate)
+    end
   end
 
   test "edit returns HTML response" do

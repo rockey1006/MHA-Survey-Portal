@@ -19,7 +19,7 @@ class RegressionEvidenceValidationTest < ActiveSupport::TestCase
     sq = StudentQuestion.new(student_id: student.student_id, question: evidence_question)
     sq.response_value = "https://example.com/not-drive"
     refute sq.valid?, "Expected evidence validation to reject non-drive links"
-    assert_includes sq.errors[:response_value], "must be a Google Drive file or folder link"
+    assert_includes sq.errors[:response_value], "must be a publicly shareable Google link"
 
     sq.response_value = "https://drive.google.com/file/d/abc/view"
     assert sq.valid?, "Expected evidence validation to accept drive links"

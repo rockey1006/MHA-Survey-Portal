@@ -1804,6 +1804,238 @@ body {
   color: inherit;
 }
 
+/* Advisor Surveys Page */
+.advisor-surveys-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+.advisor-surveys-summary {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  background: rgba(255, 255, 255, 0.9);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.advisor-surveys-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2xl);
+}
+
+.advisor-surveys-metric {
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.advisor-surveys-metric__label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-400);
+}
+
+.advisor-surveys-metric__value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+}
+
+.advisor-surveys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-2xl);
+}
+
+.advisor-survey-card {
+  border: 1px solid var(--gray-200);
+  border-radius: 24px;
+  padding: var(--spacing-2xl);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.advisor-survey-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.advisor-survey-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+}
+
+.advisor-survey-card__semester {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+  font-weight: var(--font-weight-semibold);
+}
+
+.advisor-survey-card__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+  margin-top: var(--spacing-xs);
+}
+
+.advisor-survey-status {
+  border-radius: 999px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.advisor-survey-status--active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.advisor-survey-status--archived {
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.advisor-survey-description {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--gray-600);
+}
+
+.advisor-survey-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  font-size: var(--font-size-xs);
+}
+
+.advisor-survey-metadata__item {
+  border-radius: 18px;
+  background: var(--gray-50);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.advisor-survey-metadata__label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+}
+
+.advisor-survey-metadata__value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+  margin-top: var(--spacing-xs);
+}
+
+.advisor-survey-tracks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.advisor-survey-track-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  background: rgba(80, 0, 0, 0.08);
+  color: var(--primary-color);
+}
+
+.advisor-survey-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+}
+
+.advisor-survey-id {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.advisor-survey-id__label {
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-700);
+  margin-right: var(--spacing-xs);
+}
+
+.advisor-survey-assign-btn {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: var(--white);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-sm) var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.advisor-survey-assign-btn:hover,
+.advisor-survey-assign-btn:focus-visible {
+  background: var(--tamu-maroon-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.advisor-survey-assign-btn:focus-visible {
+  outline: 3px solid rgba(80, 0, 0, 0.35);
+  outline-offset: 3px;
+}
+
+.advisor-back-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--gray-200);
+  color: var(--gray-700);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.advisor-back-link:hover {
+  background: var(--gray-300);
+}
+
+.advisor-back-row {
+  margin-top: var(--spacing-3xl);
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 768px) {
+  .advisor-surveys-summary {
+    padding: var(--spacing-xl);
+  }
+
+  .advisor-survey-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .advisor-survey-card__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* Role Management Styles */
 .role-summary-grid {
   display: grid;
@@ -3163,17 +3395,6 @@ body.high-contrast .logo-text {
   color: #ffffff;
 }
 
-body.high-contrast .nav-link {
-  color: #ffffff;
-}
-
-body.high-contrast .nav-link:hover,
-body.high-contrast .nav-link.active {
-  background-color: #ffff00; /* bright yellow */
-  color: #000000;
-  text-decoration: none;
-}
-
 /* Buttons */
 body.high-contrast .btn-primary,
 body.high-contrast .btn.btn-primary {
@@ -3262,10 +3483,11 @@ body.high-contrast .nav-link:visited {
 }
 
 body.high-contrast .nav-link:hover,
-body.high-contrast .nav-link:focus {
-  background-color: #ffffff !important;   /* white bg, black text */
+body.high-contrast .nav-link:focus,
+body.high-contrast .nav-link.active {
+  background-color: #ffff00 !important;   /* yellow bg, black text */
   color: #000000 !important;
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* Generic links (not styled as nav/buttons) */
@@ -3325,7 +3547,7 @@ body.high-contrast .role-badge {
    Survey "Open" button and all button-like links
    ========================================================= */
 
-/* Open button and all survey/feedback links - white text on black */
+/* Open button and all survey/feedback links - black text on white */
 body.high-contrast .survey-list-card .btn,
 body.high-contrast .survey-list-card .btn-primary,
 body.high-contrast .survey-list-card .btn-secondary,
@@ -3333,9 +3555,9 @@ body.high-contrast .survey-list-card button,
 body.high-contrast .survey-list-card a,
 body.high-contrast a[class*="button"],
 body.high-contrast a[class*="btn"] {
-  background-color: #000000 !important;  /* black background */
-  color: #ffffff !important;             /* white text */
-  border: 2px solid #ffffff !important;  /* white border */
+  background-color: #ffffff !important;  /* white background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
   text-decoration: none !important;
 }
 
@@ -3351,6 +3573,68 @@ body.high-contrast a[class*="btn"]:hover {
   color: #000000 !important;             /* black text */
   border: 2px solid #000000 !important;  /* black border */
   text-decoration: none !important;
+}
+
+body.high-contrast .tailwind-btn {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+}
+
+body.high-contrast .tailwind-btn:hover,
+body.high-contrast .tailwind-btn:focus-visible {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* Advisor surveys view: ensure high-contrast compliance */
+body.high-contrast .advisor-surveys-summary,
+body.high-contrast .advisor-survey-card {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast .advisor-survey-metadata__item {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+}
+
+body.high-contrast .advisor-surveys-metric__label,
+body.high-contrast .advisor-surveys-metric__value,
+body.high-contrast .advisor-survey-card__semester,
+body.high-contrast .advisor-survey-card__title,
+body.high-contrast .advisor-survey-description,
+body.high-contrast .advisor-survey-metadata__label,
+body.high-contrast .advisor-survey-metadata__value,
+body.high-contrast .advisor-survey-id,
+body.high-contrast .advisor-survey-id__label {
+  color: #000000 !important;
+}
+
+body.high-contrast .advisor-survey-status,
+body.high-contrast .advisor-survey-track-chip {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+body.high-contrast .advisor-survey-assign-btn,
+body.high-contrast .advisor-back-link {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast .advisor-survey-assign-btn:hover,
+body.high-contrast .advisor-survey-assign-btn:focus-visible,
+body.high-contrast .advisor-back-link:hover,
+body.high-contrast .advisor-back-link:focus-visible {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
 }
 
 /* --------------------------------------------------------

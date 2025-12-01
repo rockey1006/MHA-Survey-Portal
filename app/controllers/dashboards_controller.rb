@@ -65,9 +65,20 @@ class DashboardsController < ApplicationController
       required_ids = survey.questions.select { |question| required_question?(question) }.map(&:id)
       responses = responses_matrix[survey.id]
       answered_ids = responses.map { |entry| entry[:question_id] }.uniq
-      # Only count answered questions that are required
       answered_required_count = (answered_ids & required_ids).size
-      total_count = required_ids.present? ? required_ids.size : survey.questions.count
+      total_required_count = required_ids.size
+      total_questions = survey.questions.count
+      answered_total_count = answered_ids.size
+      answered_optional_count = [ answered_total_count - answered_required_count, 0 ].max
+      total_optional_count = [ total_questions - total_required_count, 0 ].max
+      progress_summary = {
+        answered_total: answered_total_count,
+        total_questions: total_questions,
+        answered_required: answered_required_count,
+        total_required: total_required_count,
+        answered_optional: answered_optional_count,
+        total_optional: total_optional_count
+      }
       # Only consider a survey "Completed" when it was submitted, not just answered
       assignment = assignments[survey.id]
       completed_at = assignment&.completed_at
@@ -75,8 +86,11 @@ class DashboardsController < ApplicationController
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
         survey: survey,
-        answered_count: answered_required_count,
-        total_count: total_count,
+        answered_count: answered_total_count,
+        total_count: total_questions,
+        progress: progress_summary,
+        required_answered_count: answered_required_count,
+        required_total_count: total_required_count,
         completed_at: completed_at,
         required: required_ids.present?,
         survey_response: survey_response,
@@ -479,13 +493,12 @@ class DashboardsController < ApplicationController
   end
 
   def surveys_for_student(student)
-    track_value = student&.track.to_s
-    return Survey.none if track_value.blank?
+    return Survey.none unless student&.student_id
 
     Survey
       .includes(:questions)
-      .joins(:track_assignments)
-      .where("LOWER(survey_track_assignments.track) = ?", track_value.downcase)
+      .joins(:survey_assignments)
+      .where(survey_assignments: { student_id: student.student_id })
       .distinct
       .ordered
   end

@@ -84,8 +84,14 @@ class SurveyResponse
 
   # @return [Symbol] :not_started, :in_progress, or :submitted
   def status
-    return :not_started if answered_count.zero?
-    answered_count == total_questions ? :submitted : :in_progress
+    if total_required_questions.positive?
+      return :not_started if answered_required_count.zero?
+      return :submitted if answered_required_count == total_required_questions
+      return :in_progress
+    end
+
+    return :not_started if answered_total_count.zero?
+    answered_total_count == total_questions ? :submitted : :in_progress
   end
 
   # @return [Time, nil] most recent update across responses
@@ -93,17 +99,58 @@ class SurveyResponse
     @completion_date ||= question_responses.maximum(:updated_at)
   end
 
-  # @return [Integer] number of answered questions
+  # @return [Integer] number of answered questions (required + optional)
   def answered_count
-    @answered_count ||= required_questions.count do |question|
-      response = question_responses.find { |r| r.question_id == question.id }
-      response && present_answer?(response.answer)
+    answered_total_count
+  end
+
+  # @return [Integer] number of answered required questions
+  def answered_required_count
+    @answered_required_count ||= required_questions.count do |question|
+      answer = answers[question.id]
+      present_answer?(answer)
     end
   end
 
-  # @return [Integer] total questions in the survey
+  # @return [Integer] answered optional question count
+  def answered_optional_count
+    [ answered_total_count - answered_required_count, 0 ].max
+  end
+
+  # @return [Integer] number of answered questions (required + optional)
+  def answered_total_count
+    @answered_total_count ||= question_responses.count do |response|
+      present_answer?(response.answer)
+    end
+  end
+
+  # @return [Integer] total questions in the survey (required + optional)
   def total_questions
-    @total_questions ||= required_questions.count
+    @total_questions ||= survey.questions.size
+  end
+
+  # @return [Integer] total required questions in the survey
+  def total_required_questions
+    @total_required_questions ||= required_questions.count
+  end
+
+  # @return [Integer] total optional questions in the survey
+  def total_optional_questions
+    @total_optional_questions ||= [ total_questions - total_required_questions, 0 ].max
+  end
+
+  # @return [Hash] precomputed counts for display
+  def progress_summary
+    @progress_summary ||= begin
+      {
+        answered_total: answered_total_count,
+        total_questions: total_questions,
+        answered_required: answered_required_count,
+        total_required: total_required_questions,
+        answered_optional: answered_optional_count,
+        total_optional: total_optional_questions
+      }
+    end
   end
 
   # @return [Array<Question>] questions that are considered required

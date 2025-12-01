@@ -11,6 +11,9 @@ class EvidenceControllerTest < ActionDispatch::IntegrationTest
     @student = users(:student)
     @valid_drive_url = "https://drive.google.com/file/d/1234567890/view"
     @valid_docs_url = "https://docs.google.com/document/d/1234567890/edit"
+    @valid_sites_url = "https://sites.google.com/view/sample-site/home"
+    stub_request(:head, @valid_sites_url).to_return(status: 200, body: "")
+    stub_request(:get, @valid_sites_url).to_return(status: 200, body: "")
   end
 
   # Authentication tests
@@ -58,7 +61,7 @@ class EvidenceControllerTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_url", json_response["reason"]
   end
 
-  test "check_access rejects non-google-drive url" do
+  test "check_access rejects non-google url" do
     sign_in @student
 
     get evidence_check_access_path(url: "https://dropbox.com/file/123"), as: :json
@@ -91,7 +94,7 @@ class EvidenceControllerTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_url", json_response["reason"]
   end
 
-  # Valid Google Drive URL formats
+  # Valid Google URL formats
   test "check_access validates drive.google.com file url format" do
     sign_in @student
     url = "https://drive.google.com/file/d/1234567890/view"
@@ -154,6 +157,16 @@ class EvidenceControllerTest < ActionDispatch::IntegrationTest
     url = "https://drive.google.com/open?id=1234567890"
 
     get evidence_check_access_path(url: url), as: :json
+
+    assert_response :success
+    json_response = JSON.parse(@response.body)
+    refute_equal "invalid_url", json_response["reason"]
+  end
+
+  test "check_access validates google sites url format" do
+    sign_in @student
+
+    get evidence_check_access_path(url: @valid_sites_url), as: :json
 
     assert_response :success
     json_response = JSON.parse(@response.body)
@@ -397,6 +410,47 @@ class EvidenceControllerTest < ActionDispatch::IntegrationTest
       json_response = JSON.parse(@response.body)
       refute_equal "invalid_url", json_response["reason"]
     end
+  end
+
+  test "accessible responses rely on fetch_with_redirects result" do
+    sign_in @student
+    stub_request(:head, @valid_drive_url).to_return(status: 200)
+
+    get evidence_check_access_path(url: @valid_drive_url), as: :json
+
+    json_response = JSON.parse(@response.body)
+    assert_equal true, json_response["accessible"]
+    assert_equal 200, json_response["status"]
+    assert_equal "ok", json_response["reason"]
+  end
+
+  test "network failure returns network_error reason" do
+    sign_in @student
+    stub_request(:head, @valid_drive_url).to_raise(StandardError.new("boom"))
+
+    get evidence_check_access_path(url: @valid_drive_url), as: :json
+
+    json_response = JSON.parse(@response.body)
+    assert_equal "network_error", json_response["reason"]
+  end
+
+  test "fetch_with_redirects follows redirects and falls back to GET" do
+    controller = EvidenceController.new
+    start_url = "https://drive.google.com/file/d/demo"
+    redirected = "https://docs.google.com/document/d/final"
+
+    stub_request(:head, start_url).to_return(status: 302, headers: { "Location" => redirected })
+    stub_request(:head, redirected).to_return(status: 405)
+    stub_request(:get, redirected).to_return(status: 200)
+
+    response = controller.send(:fetch_with_redirects, start_url)
+    assert_equal "200", response.code
+  end
+
+  test "reason_from_code maps expected reasons" do
+    controller = EvidenceController.new
+    assert_equal "forbidden", controller.send(:reason_from_code, 403)
+    assert_equal "unavailable", controller.send(:reason_from_code, 500)
   end
 
   # Unauthenticated requests

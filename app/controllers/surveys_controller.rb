@@ -39,7 +39,7 @@ class SurveysController < ApplicationController
   # @return [void]
   def show
   Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
-    @category_groups = @survey.categories.includes(:questions).order(:id)
+    @category_groups = @survey.categories.includes(:section, :questions).order(:id)
     @existing_answers = {}
     @computed_required = {}
     student = current_student
@@ -110,10 +110,32 @@ class SurveysController < ApplicationController
       return
     end
 
-    answers = params[:answers] || {}
+    raw_answers = params[:answers]
+    answers = case raw_answers
+    when ActionController::Parameters
+                raw_answers.to_unsafe_h
+    when Hash
+                raw_answers
+    else
+                {}
+    end
+    answers = answers.stringify_keys
+    @first_error_question_id = nil
+    @first_error_section_dom_id = nil
+    answers_present = answers.values.any? do |value|
+      case value
+      when Hash
+        value.values.any?(&:present?)
+      when Array
+        value.any?(&:present?)
+      else
+        value.present?
+      end
+    end
+    @scroll_to_form_top = !answers_present
 
     # Build a questions map for efficient lookups
-    questions_map = @survey.questions.includes(:category).index_by(&:id)
+    questions_map = @survey.questions.includes(category: :section).index_by(&:id)
     allowed_question_ids = questions_map.keys
 
     missing_required = []
@@ -139,11 +161,11 @@ class SurveysController < ApplicationController
       if submitted_value.present?
         Rails.logger.info "[EVIDENCE DEBUG] QID: #{question.id}, TYPE: #{question.question_type.inspect}, VALUE: #{submitted_value.inspect}"
       end
-      # Only validate evidence questions for Google Drive link
+      # Only validate evidence questions for Google-hosted links
       if question.question_type == "evidence" && submitted_value.present?
         value_str = submitted_value.is_a?(String) ? submitted_value : submitted_value.to_s
         # 1) basic format check
-        if value_str !~ StudentQuestion::DRIVE_URL_REGEX
+        if value_str !~ StudentQuestion::GOOGLE_URL_REGEX
           Rails.logger.info "[EVIDENCE DEBUG] INVALID evidence format for QID: #{question.id} VALUE: #{value_str.inspect}"
           invalid_links << question
         else
@@ -156,10 +178,30 @@ class SurveysController < ApplicationController
     end
 
     if missing_required.any? || invalid_links.any?
-      @category_groups = @survey.categories.includes(:questions).order(:id)
+      @category_groups = @survey.categories.includes(:section, :questions).order(:id)
       @existing_answers = answers
       @computed_required = {}
       @invalid_evidence = invalid_links.map(&:id)
+      error_candidates = (missing_required + invalid_links).map(&:id)
+      ordered_ids = question_ids_in_display_order(@category_groups)
+      ordered_ids = @survey.questions.order(:question_order).pluck(:id) if ordered_ids.blank?
+      @first_error_question_id = (ordered_ids & error_candidates).first || error_candidates.first
+      if @first_error_question_id
+        first_error_question = questions_map[@first_error_question_id]
+        first_error_category = first_error_question&.category
+        first_error_section = first_error_category&.section
+        @first_error_section_dom_id = if first_error_section.present?
+                                        "survey-section-#{first_error_section.id}"
+        elsif first_error_category.present?
+                                        "survey-category-#{first_error_category.id}"
+        end
+      end
+      alert_parts = [ "Unable to submit your responses." ]
+      alert_parts << "Please answer all required questions." if missing_required.any?
+      if invalid_links.any?
+        alert_parts << "Please fix the highlighted evidence links by setting sharing to 'Anyone with the link can view.'"
+      end
+      flash.now[:alert] = alert_parts.join(" ")
       @category_groups.each do |category|
         category.questions.each do |question|
           required = question.is_required?
@@ -229,14 +271,19 @@ class SurveysController < ApplicationController
 
       Rails.logger.info "[SUBMIT] Building survey response"
       survey_response = SurveyResponse.build(student: student, survey: @survey)
+      progress_summary = survey_response.progress_summary
       survey_response_id = survey_response.id
+      notice_message = build_progress_notice(
+        prefix: "Survey submitted successfully!",
+        progress: progress_summary
+      )
 
       Rails.logger.info "[SUBMIT] Redirecting to survey response path with ID: #{survey_response_id}"
       begin
-        redirect_to survey_response_path(survey_response_id), notice: "Survey submitted successfully!"
+        redirect_to survey_response_path(survey_response_id), notice: notice_message
       rescue ActionController::UrlGenerationError => url_error
         Rails.logger.error "[SUBMIT] URL generation failed: #{url_error.message}"
-        redirect_to student_dashboard_path, notice: "Survey submitted successfully!"
+        redirect_to student_dashboard_path, notice: notice_message
       end
     rescue StandardError => e
       Rails.logger.error "[SUBMIT ERROR] Failed to complete survey submission: #{e.class}: #{e.message}"
@@ -295,7 +342,15 @@ class SurveysController < ApplicationController
     end
 
     Rails.logger.info "[SAVE_PROGRESS DEBUG] Total saved: #{saved_count} answers"
-    redirect_to survey_path(@survey), notice: "Progress saved! You can continue later."
+
+    survey_response = SurveyResponse.build(student: student, survey: @survey)
+    progress_summary = survey_response.progress_summary
+    notice_message = build_progress_notice(
+      prefix: "Progress saved! You can continue later.",
+      progress: progress_summary
+    )
+
+    redirect_to survey_path(@survey), notice: notice_message
   end
 
   private
@@ -304,7 +359,21 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def set_survey
-    @survey = Survey.includes(categories: :questions).find(params[:id])
+    @survey = Survey.includes(categories: %i[section questions]).find(params[:id])
+  end
+
+  def question_ids_in_display_order(category_groups)
+    Array(category_groups).flat_map do |category|
+      next [] unless category
+
+      questions = category.questions
+      ordered_questions = if questions.respond_to?(:loaded?) && questions.loaded?
+                            questions.sort_by(&:question_order)
+      else
+                            questions.order(:question_order).to_a
+      end
+      ordered_questions.map(&:id)
+    end
   end
 
   # Prevents students from editing a survey that has already been submitted.
@@ -320,7 +389,7 @@ class SurveysController < ApplicationController
     redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and can only be viewed." and return
   end
 
-  # Checks if a Google Drive/Docs link is publicly accessible.
+  # Checks if a Google-hosted link (Drive/Docs/Sites) is publicly accessible.
   # Returns [Boolean accessible, Symbol reason]
   def evidence_accessible?(url)
     require "uri"
@@ -334,9 +403,14 @@ class SurveysController < ApplicationController
 
     return [ false, :invalid ] unless uri.is_a?(URI::HTTPS)
 
-  host = uri.host.to_s
-  allowlist = %w[drive.google.com docs.google.com googleusercontent.com]
-  return [ false, :invalid ] unless allowlist.any? { |h| host == h || host.end_with?("." + h) }
+  host = uri.host.to_s.downcase
+  allowlist_hosts = %w[drive.google.com docs.google.com sites.google.com]
+  allowlist_suffixes = %w[googleusercontent.com]
+  allowlisted_host = lambda do |candidate|
+    candidate_host = candidate.to_s.downcase
+    allowlist_hosts.include?(candidate_host) || allowlist_suffixes.any? { |suffix| candidate_host == suffix || candidate_host.end_with?("." + suffix) }
+  end
+  return [ false, :invalid ] unless allowlisted_host.call(host)
 
     max_redirects = 3
     redirects = 0
@@ -364,7 +438,7 @@ class SurveysController < ApplicationController
           location = resp["location"]
           if location
             new_host = (URI.parse(location).host.to_s)
-            unless allowlist.any? { |h| new_host == h || new_host.end_with?("." + h) }
+            unless allowlisted_host.call(new_host)
               # Don't hard-fail here; fall back to generic checks in case export is restricted but page is public
               Rails.logger.info "[EVIDENCE DEBUG] export redirect to non-allowlisted host: #{new_host}, will fall back to generic checks"
             end
@@ -429,9 +503,9 @@ class SurveysController < ApplicationController
             redirects += 1
             return [ false, :too_many_redirects ] if redirects > max_redirects
             current_uri = URI.parse(location)
-            # Block redirects to non-allowlisted hosts (e.g., accounts.google.com); allow googleusercontent.com
+            # Block redirects to hosts outside the Google family (e.g., third-party login walls)
             new_host = current_uri.host.to_s
-            unless allowlist.any? { |h| new_host == h || new_host.end_with?("." + h) }
+            unless allowlisted_host.call(new_host)
               return [ false, :forbidden ]
             end
             next
@@ -484,5 +558,19 @@ class SurveysController < ApplicationController
         return [ false, :error ]
       end
     end
+  end
+
+  def build_progress_notice(prefix:, progress: {})
+    total_questions = progress[:total_questions].to_i
+    answered_total = progress[:answered_total].to_i
+    return prefix if total_questions.zero?
+
+    description = [
+      "#{answered_total}/#{total_questions} questions answered",
+      progress[:total_required].to_i.positive? ? "(#{progress[:answered_required]}/#{progress[:total_required]} required)" : nil
+    ].compact.join(" ")
+
+    message = [ prefix.to_s.strip, description ].reject(&:blank?).join(" ").strip
+    message.ends_with?(".") ? message : "#{message}."
   end
 end

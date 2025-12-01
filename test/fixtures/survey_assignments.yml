@@ -17,3 +17,13 @@ overdue_assignment:
   completed_at:
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+completed_residential_assignment:
+  survey: fall_2025
+  student: other_student
+  advisor: other_advisor
+  assigned_at: <%= 10.days.ago %>
+  due_date: <%= 5.days.ago %>
+  completed_at: <%= 4.days.ago %>
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

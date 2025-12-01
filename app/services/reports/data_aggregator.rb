@@ -289,11 +289,13 @@ module Reports
       @dataset_rows ||= begin
         rows = []
         filtered_scope.select(DATASET_SELECT).find_each(batch_size: 1_000) do |record|
+          next unless assignment_completed?(record.student_primary_id, record.survey_id)
           next unless (row = build_dataset_row(record, is_advisor_entry: false))
 
           rows << row
         end
         filtered_feedback_scope.select(FEEDBACK_SELECT).find_each(batch_size: 1_000) do |record|
+          next unless assignment_completed?(record.student_primary_id, record.survey_id)
           next unless (row = build_dataset_row(record, is_advisor_entry: true))
 
           rows << row
@@ -313,6 +315,7 @@ module Reports
           .pluck("student_questions.student_id", "surveys.id")
           .each_with_object({}) do |(student_id, survey_id), memo|
             next unless student_id && survey_id
+            next unless assignment_completed?(student_id, survey_id)
 
             memo[[ student_id, survey_id ]] = true
           end
@@ -738,24 +741,12 @@ module Reports
                     .distinct
                     .to_a
 
-      assignment_pairs = assignments.each_with_object({}) do |assignment, memo|
-        key = assignment_pair_key(assignment.student_id, assignment.survey_id)
-        memo[key] = assignment if key
-      end
+      total = assignments.size
+      completed = assignments.count { |assignment| assignment.completed_at.present? }
 
-      response_pairs = student_survey_response_pairs
-      combined_keys = (assignment_pairs.keys + response_pairs.keys).uniq
-
-      if assignment_pairs.empty?
+      if total.zero?
         total = scoped_student_ids.size
-        completed = student_response_groups.keys.size
-      else
-        total = combined_keys.size
-        total = scoped_student_ids.size if total.zero?
-        completed = combined_keys.count do |key|
-          assignment = assignment_pairs[key]
-          assignment&.completed_at.present? || response_pairs[key]
-        end
+        completed = 0
       end
 
       rate = total.to_f.zero? ? nil : (completed.to_f / total.to_f * 100.0)
@@ -1140,6 +1131,24 @@ module Reports
       end
 
       scope
+    end
+
+    def completed_assignment_pairs
+      @completed_assignment_pairs ||= begin
+        scoped_assignment_scope
+          .where.not(completed_at: nil)
+          .pluck(:student_id, :survey_id)
+          .each_with_object({}) do |(student_id, survey_id), memo|
+            key = assignment_pair_key(student_id, survey_id)
+            memo[key] = true if key
+          end
+      end
+    end
+
+    def assignment_completed?(student_id, survey_id)
+      return false if student_id.blank? || survey_id.blank?
+
+      completed_assignment_pairs[assignment_pair_key(student_id, survey_id)] || false
     end
   end
 end

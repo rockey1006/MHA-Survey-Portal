@@ -1,5 +1,6 @@
 # Tracks program semesters (e.g., "Fall 2025") and identifies which one is current.
 class ProgramSemester < ApplicationRecord
+  DEFAULT_CURRENT_NAME = "Fall 2025".freeze
   before_validation :normalize_name
   after_commit :ensure_single_current!, if: -> { saved_change_to_current? && current? }
   after_destroy :assign_fallback_current!
@@ -10,7 +11,7 @@ class ProgramSemester < ApplicationRecord
 
   # @return [ProgramSemester, nil]
   def self.current
-    find_by(current: true) || ordered.last
+    find_by(current: true) || find_by_name_case_insensitive(DEFAULT_CURRENT_NAME) || ordered.last
   end
 
   # @return [String, nil]
@@ -45,5 +46,11 @@ class ProgramSemester < ApplicationRecord
 
     fallback = ProgramSemester.ordered.last
     fallback&.update_column(:current, true)
+  end
+
+  def self.find_by_name_case_insensitive(value)
+    return if value.blank?
+
+    where("LOWER(name) = ?", value.downcase).first
   end
 end

@@ -49,8 +49,10 @@
                 <%= qr_form.select :response_value, question.answer_options_list, { include_blank: true }, class: "w-full border rounded px-2 py-1" %>
               <% end %>
             <% when "scale" %>
+              <% scale_labels = scale_labels_for(question) %>
+              <% options = scale_labels.each_with_index.map { |label, idx| [ label, idx + 1 ] } %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.select :response_value, (1..5).to_a, { include_blank: true }, class: "w-full border rounded px-2 py-1" %>
+                <%= qr_form.select :response_value, options, { include_blank: true }, class: "w-full border rounded px-2 py-1" %>
               <% end %>
             <% when "evidence" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
@@ -61,7 +63,7 @@
               <% end %>
               <%# Evidence error message, same style as required %>
               <% if qr.errors[:response_value].any? %>
-                <div class="text-xs text-rose-600 mt-1">Invalid Google Drive link</div>
+                <div class="text-xs text-rose-600 mt-1">Invalid Google link</div>
               <% end %>
             <% else %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>

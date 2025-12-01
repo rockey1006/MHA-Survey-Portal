@@ -57,11 +57,8 @@ class StudentRecordsController < ApplicationController
 
     survey_ids = surveys.map(&:id)
 
-  feedback_lookup = load_feedback_lookup(student_ids, survey_ids)
-
-    required_ids_by_survey = surveys.index_with do |survey|
-      survey.questions.select { |question| required_question?(question) }.map(&:id)
-    end
+    feedback_lookup = load_feedback_lookup(student_ids, survey_ids)
+    assignments_lookup = load_assignment_lookup(student_ids, survey_ids)
 
     responses_matrix = Hash.new do |hash, student_id|
       hash[student_id] = Hash.new { |inner, survey_id| inner[survey_id] = [] }
@@ -86,29 +83,25 @@ class StudentRecordsController < ApplicationController
       {
         semester: semester.presence || "Unscheduled",
         surveys: grouped[semester].map do |survey|
-          required_ids = required_ids_by_survey[survey.id]
-
           {
             survey: survey,
             rows: students.map do |student|
               responses = responses_matrix[student.student_id][survey.id]
               answered_ids = responses.map { |entry| entry[:question_id] }.uniq
-              completed = if required_ids.present?
-                (required_ids - answered_ids).empty?
-              else
-                answered_ids.any?
-              end
-
               survey_response = SurveyResponse.build(student: student, survey: survey)
 
               feedbacks_for_pair = Array(feedback_lookup.dig(student.student_id, survey.id))
               feedback_last_updated = feedbacks_for_pair.filter_map(&:updated_at).max
 
+              assignment = assignments_lookup.dig(student.student_id, survey.id)
+              completed_at = assignment&.completed_at
+              status_text = completed_at.present? ? "Completed" : "Pending"
+
               {
                 student: student,
                 advisor: student.advisor,
-                status: completed ? "Completed" : "Pending",
-                completed_at: responses.map { |entry| entry[:updated_at] }.compact.max,
+                status: status_text,
+                completed_at: completed_at,
                 survey: survey,
                 survey_response: survey_response,
                 download_token: survey_response.signed_download_token,
@@ -183,6 +176,21 @@ class StudentRecordsController < ApplicationController
             end
           end
         end
+      end
+  end
+
+  # Preloads survey assignments for the provided student/survey pairs.
+  #
+  # @param student_ids [Array<Integer>]
+  # @param survey_ids [Array<Integer>]
+  # @return [Hash{Integer=>Hash{Integer=>SurveyAssignment}}]
+  def load_assignment_lookup(student_ids, survey_ids)
+    return {} if student_ids.blank? || survey_ids.blank?
+
+    SurveyAssignment
+      .where(student_id: student_ids, survey_id: survey_ids)
+      .each_with_object(Hash.new { |hash, sid| hash[sid] = {} }) do |assignment, memo|
+        memo[assignment.student_id][assignment.survey_id] = assignment
       end
   end
 end

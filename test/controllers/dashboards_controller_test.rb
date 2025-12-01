@@ -231,7 +231,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Welcome"
   end
 
-  test "student dashboard only shows surveys for student's track" do
+  test "student dashboard only shows surveys assigned to the student" do
     sign_in @student
 
     get student_dashboard_path
@@ -277,7 +277,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     reports_description = extract_feature_description(response.body, "Reports")
-    assert_equal "2 generated", reports_description
+    assert_equal "3 generated", reports_description
   end
 
   test "admin dashboard shows populated activity feed" do

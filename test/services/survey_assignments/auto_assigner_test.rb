@@ -28,6 +28,7 @@ module SurveyAssignments
       assert_not_nil assignment
       assert_equal @student.advisor_id, assignment.advisor_id
       assert_not_nil assignment.assigned_at
+      refute_includes @student.survey_assignments.pluck(:survey_id), surveys(:spring_2025).id
     end
 
     test "replaces assignments when the track changes" do
@@ -37,7 +38,40 @@ module SurveyAssignments
       @student.update_columns(track: "Executive")
       AutoAssigner.call(student: @student)
 
+      assert_equal [ surveys(:fall_2025_executive).id ], @student.survey_assignments.pluck(:survey_id)
+    end
+
+    test "keeps completed assignments when the track changes" do
+      @student.update_columns(track: "Residential")
+      AutoAssigner.call(student: @student)
+
+      assignment = @student.survey_assignments.find_by!(survey: surveys(:fall_2025))
+      completion_time = 2.days.ago.change(usec: 0)
+      assignment.update!(completed_at: completion_time)
+
+      @student.update_columns(track: "Executive")
+      AutoAssigner.call(student: @student)
+
+      assignment.reload
+      assert_equal completion_time, assignment.completed_at
+
+      survey_ids = @student.survey_assignments.pluck(:survey_id)
+      assert_includes survey_ids, surveys(:fall_2025).id
+      assert_includes survey_ids, surveys(:fall_2025_executive).id
+      refute_includes survey_ids, surveys(:spring_2025).id
+    end
+
+    test "uses the semester marked current when selecting surveys" do
+      ProgramSemester.find_or_create_by!(name: "Spring 2025").update!(current: true)
+      ProgramSemester.where.not(name: "Spring 2025").update_all(current: false)
+
+      @student.update_columns(track: "Executive")
+      AutoAssigner.call(student: @student)
+
       assert_equal [ surveys(:spring_2025).id ], @student.survey_assignments.pluck(:survey_id)
+    ensure
+      ProgramSemester.find_or_create_by!(name: "Fall 2025").update!(current: true)
+      ProgramSemester.where.not(name: "Fall 2025").update_all(current: false)
     end
   end
 end

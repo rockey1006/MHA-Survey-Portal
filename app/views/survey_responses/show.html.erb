@@ -1,6 +1,23 @@
 <div class="mx-auto flex max-w-5xl flex-col gap-6">
-  <% if notice.present? %>
-    <p class="text-sm font-medium text-emerald-700"><%= notice %></p>
+  <% success_notice = notice.presence || flash[:notice].presence %>
+  <% if success_notice.present? %>
+    <p class="text-sm font-medium text-emerald-700"><%= success_notice %></p>
+    <script>
+      (function() {
+        var ran = false;
+        function scrollToTop() {
+          if (ran) return;
+          ran = true;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        if (document.readyState === "complete" || document.readyState === "interactive") {
+          scrollToTop();
+        } else {
+          document.addEventListener("DOMContentLoaded", scrollToTop, { once: true });
+        }
+        document.addEventListener("turbo:load", scrollToTop, { once: true });
+      })();
+    </script>
   <% end %>
 
   <div class="flex flex-wrap items-center gap-3">

@@ -1,6 +1,7 @@
 # Dispatches notification events related to survey assignments and lifecycle changes.
 class SurveyNotificationJob < ApplicationJob
   queue_as :default
+  class_attribute :assignment_scope, default: SurveyAssignment
 
   rescue_from ActiveRecord::RecordNotFound do |error|
     Rails.logger.warn("SurveyNotificationJob skipped: #{error.message}")
@@ -44,7 +45,7 @@ class SurveyNotificationJob < ApplicationJob
   private
 
   def handle_assigned_notification(survey_assignment_id)
-    assignment = SurveyAssignment.includes(:survey, student: :user, advisor: :user).find(survey_assignment_id)
+    assignment = assignment_scope.includes(:survey, student: :user, advisor: :user).find(survey_assignment_id)
     advisor_name = assignment.advisor&.user&.display_name || "Your advisor"
 
     Notification.deliver!(
@@ -56,7 +57,7 @@ class SurveyNotificationJob < ApplicationJob
   end
 
   def handle_due_soon_notification(survey_assignment_id)
-    assignment = SurveyAssignment.includes(:survey, student: :user).find(survey_assignment_id)
+    assignment = assignment_scope.includes(:survey, student: :user).find(survey_assignment_id)
     return if assignment.completed_at?
     return unless assignment.due_date
 
@@ -71,7 +72,7 @@ class SurveyNotificationJob < ApplicationJob
   end
 
   def handle_past_due_notification(survey_assignment_id)
-    assignment = SurveyAssignment.includes(:survey, student: :user).find(survey_assignment_id)
+    assignment = assignment_scope.includes(:survey, student: :user).find(survey_assignment_id)
     return if assignment.completed_at?
     return unless assignment.due_date
 
@@ -84,7 +85,7 @@ class SurveyNotificationJob < ApplicationJob
   end
 
   def handle_completed_notification(survey_assignment_id)
-    assignment = SurveyAssignment.includes(:survey, advisor: :user, student: :user).find(survey_assignment_id)
+    assignment = assignment_scope.includes(:survey, advisor: :user, student: :user).find(survey_assignment_id)
     return unless (advisor_user = assignment.advisor_user)
 
     Notification.deliver!(
@@ -96,7 +97,7 @@ class SurveyNotificationJob < ApplicationJob
   end
 
   def handle_response_submitted_notification(survey_assignment_id)
-    assignment = SurveyAssignment.includes(:survey, student: :user).find(survey_assignment_id)
+    assignment = assignment_scope.includes(:survey, student: :user).find(survey_assignment_id)
     student_user = assignment.recipient_user
     return unless student_user
 
@@ -110,7 +111,7 @@ class SurveyNotificationJob < ApplicationJob
 
   def handle_survey_updated_notification(survey_id, metadata)
     survey = Survey.find(survey_id)
-    advisor_ids = SurveyAssignment.where(survey_id: survey_id).distinct.pluck(:advisor_id).compact
+    advisor_ids = assignment_scope.where(survey_id: survey_id).distinct.pluck(:advisor_id).compact
 
     User.where(id: advisor_ids).find_each do |advisor_user|
       Notification.deliver!(
@@ -124,7 +125,7 @@ class SurveyNotificationJob < ApplicationJob
 
   def handle_survey_archived_notification(survey_id)
     survey = Survey.find(survey_id)
-    student_ids = SurveyAssignment.where(survey_id: survey_id).distinct.pluck(:student_id)
+    student_ids = assignment_scope.where(survey_id: survey_id).distinct.pluck(:student_id)
 
     Student.includes(:user).where(student_id: student_ids).find_each do |student|
       Notification.deliver!(
@@ -164,7 +165,7 @@ class SurveyNotificationJob < ApplicationJob
   end
 
   def participant_users_for_survey(survey_id)
-    assignments = SurveyAssignment.includes(student: :user, advisor: :user).where(survey_id: survey_id)
+    assignments = assignment_scope.includes(student: :user, advisor: :user).where(survey_id: survey_id)
     unique_users = {}
 
     assignments.find_each do |assignment|

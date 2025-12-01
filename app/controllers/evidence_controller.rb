@@ -1,7 +1,7 @@
 require "net/http"
 require "uri"
 
-# Lightweight endpoint to verify public accessibility of Google Drive/Docs links.
+# Lightweight endpoint to verify public accessibility of Google-hosted links (Drive, Docs, Sites, etc.).
 # Performs a HEAD (with redirects) and falls back to a minimal GET when needed.
 class EvidenceController < ApplicationController
   before_action :authenticate_user!
@@ -11,7 +11,7 @@ class EvidenceController < ApplicationController
   def check_access
     url = params[:url].to_s
 
-    unless url =~ StudentQuestion::DRIVE_URL_REGEX
+    unless url =~ StudentQuestion::GOOGLE_URL_REGEX
       render json: { ok: false, accessible: false, status: nil, reason: "invalid_url" }
       return
     end

@@ -2,10 +2,12 @@
   <div class="w-full max-w-5xl space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-[#500000]">Student Records</h1>
-      <% intro_text = if current_user&.respond_to?(:role_advisor?) && current_user.role_advisor?
-        "Browse survey progress across all students. Surveys you do not advise remain read-only."
+      <% intro_text = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
+        "Browse survey progress across all students."
+      elsif current_user&.respond_to?(:role_advisor?) && current_user.role_advisor?
+        "Browse survey progress by semester for the students you advise."
       else
-        "Browse survey progress by semester for your assigned students."
+        "Browse survey progress by semester."
       end %>
       <p class="text-sm text-slate-600"><%= intro_text %></p>
     </header>
@@ -79,9 +81,14 @@
 
                       <tbody class="divide-y divide-slate-200 bg-white">
                         <% if filtered_rows.blank? %>
+                          <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
+                            "No students currently in this track."
+                          else
+                            "No students currently in this track are assigned to you."
+                          end %>
                           <tr>
                             <td colspan="7" class="px-4 py-6 text-center text-sm text-slate-500">
-                              No students currently in this track.
+                              <%= empty_track_message %>
                             </td>
                           </tr>
                         <% else %>
@@ -94,7 +101,8 @@
                             <% download_token          = row[:download_token] %>
                             <% feedback_entries        = Array(row[:feedbacks]) %>
                             <% has_feedback            = feedback_entries.any? %>
-                            <% survey_label            = status_text == "Completed" ? (has_feedback ? "Edit Feedback" : "Review") : "Open" %>
+                            <% has_completed          = status_text == "Completed" %>
+                            <% survey_label            = has_completed ? (has_feedback ? "Edit Feedback" : "Review") : nil %>
                             <% survey_link_params      = { survey_id: survey.id, student_id: student.student_id } %>
                             <% survey_link_params[:prefill] = true if has_feedback %>
                             <% survey_link             = new_feedback_path(survey_link_params) %>
@@ -151,25 +159,30 @@
                               </td>
 
                               <td class="px-4 py-3 text-right text-sm">
-                                <% can_open = (defined?(current_user) && current_user.respond_to?(:role_admin?) && current_user.role_admin?) || (defined?(current_advisor_profile) && student.advisor_id.present? && student.advisor_id == current_advisor_profile&.advisor_id) %>
+                                <% admin_can_open = current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
+                                <% advisor_can_open = current_advisor_profile&.advisor_id.present? && student.advisor_id.present? && current_advisor_profile.advisor_id == student.advisor_id %>
+                                <% can_open = admin_can_open || advisor_can_open %>
+                                <% show_actions = has_completed && can_open %>
                                 <div class="flex justify-end gap-2 whitespace-nowrap">
-                                  <% if can_open %>
+                                  <% if show_actions %>
                                     <%= link_to survey_label,
                                                 survey_link,
                                                 class: [tailwind_button_classes(:secondary), "whitespace-nowrap"].join(" ") %>
-                                    <% if status_text == "Completed" && survey_response.present? %>
+                                    <% if survey_response.present? %>
                                       <%= link_to "Download PDF",
                                                   download_survey_response_path(survey_response, token: download_token),
                                                   class: [tailwind_button_classes(:primary), "whitespace-nowrap"].join(" "),
                                                   target: "_blank", rel: "noopener noreferrer" %>
                                     <% end %>
-                                  <% else %>
+                                  <% elsif has_completed %>
                                     <span
                                       class="<%= [tailwind_button_classes(:secondary), 'opacity-50 cursor-not-allowed pointer-events-none'].join(' ') %>"
                                       aria-disabled="true"
-                                      title="Only the student's advisor can open this survey">
-                                      <%= survey_label %>
+                                      title="Only the student's advisor or an admin can open this survey">
+                                      <%= survey_label || "Review" %>
                                     </span>
+                                  <% else %>
+                                    <span class="text-xs text-slate-500">Awaiting student completion</span>
                                   <% end %>
                                 </div>
                               </td>

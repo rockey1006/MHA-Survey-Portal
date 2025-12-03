@@ -27,11 +27,12 @@ class StudentRecordsController < ApplicationController
   # @return [ActiveRecord::Relation<Student>]
   def load_students
     user = current_user
-    has_admin_privileges = user&.role_admin? || user&.admin_profile.present?
-    advisor_scope = user&.role_advisor? || user&.advisor_profile.present?
+    has_admin_privileges = user&.role_admin?
 
-    scope = if has_admin_privileges || advisor_scope
+    scope = if has_admin_privileges
       Student.all
+    elsif current_advisor_profile.present?
+      Student.where(advisor_id: current_advisor_profile.advisor_id)
     else
       Student.none
     end
@@ -50,7 +51,7 @@ class StudentRecordsController < ApplicationController
   def build_student_records(students)
     return [] if students.blank?
 
-  student_ids = students.map(&:student_id)
+    student_ids = students.map(&:student_id)
 
     surveys = Survey.includes(:questions).order(created_at: :desc)
     return [] if surveys.blank?

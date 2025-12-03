@@ -69,6 +69,7 @@ advisor_users = [
 advisors = advisor_users.map(&:advisor_profile)
 
 puts "• Creating sample students"
+# Set :pending to true for any student who should appear with an incomplete survey assignment
 students_seed = [
   { email: "avery.harrison25@tamu.edu", name: "Avery Harrison", track: "Residential", advisor: advisors.first },
   { email: "liam.daniels25@tamu.edu", name: "Liam Daniels", track: "Residential", advisor: advisors.first },
@@ -79,17 +80,23 @@ students_seed = [
   { email: "nova.mitchell25@tamu.edu", name: "Nova Mitchell", track: "Residential", advisor: advisors.first },
   { email: "emery.walsh24@tamu.edu", name: "Emery Walsh", track: "Residential", advisor: advisors.first },
   { email: "kiara.hughes25@tamu.edu", name: "Kiara Hughes", track: "Executive", advisor: advisors.last },
-  { email: "judah.nguyen24@tamu.edu", name: "Judah Nguyen", track: "Executive", advisor: advisors.last }
+  { email: "judah.nguyen24@tamu.edu", name: "Judah Nguyen", track: "Executive", advisor: advisors.last },
+  { email: "logan.ramsey25@tamu.edu", name: "Logan Ramsey", track: "Residential", advisor: advisors.first, pending: true },
+  { email: "isla.merritt25@tamu.edu", name: "Isla Merritt", track: "Executive", advisor: advisors.last, pending: true }
 ]
 
-students = students_seed.map do |attrs|
+students_with_metadata = students_seed.map do |attrs|
+  pending = attrs.delete(:pending) { false }
   user = seed_user.call(email: attrs[:email], name: attrs[:name], role: :student)
   profile = user.student_profile || Student.new(student_id: user.id)
   profile.assign_attributes(track: attrs[:track], advisor: attrs[:advisor])
   # Bypass validations for seed data; first-login flow will collect required fields
   profile.save!(validate: false)
-  profile
+  { profile: profile, pending: pending }
 end
+
+students = students_with_metadata.map { |entry| entry[:profile] }
+pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
 
 high_performer_emails = %w[
   nova.mitchell25@tamu.edu
@@ -316,95 +323,106 @@ students.each do |student|
   track_value = student.track.presence || student.read_attribute(:track)
   normalized_student_track = track_value.to_s.strip.downcase
   next if normalized_student_track.blank?
+  pending_student = pending_student_ids.include?(student.student_id)
 
   Array(surveys_by_track[normalized_student_track]).each do |survey|
     latest_response_timestamp = nil
 
-    survey.questions.order(:question_order).each do |question|
-      record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question.id)
+    unless pending_student
+      survey.questions.order(:question_order).each do |question|
+        record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question.id)
 
-      response_roll = response_rng.rand
-      advisor_profile = student.advisor
-      question_label = question.question_text.to_s.strip
-      is_competency_question = competency_title_lookup.include?(question_label)
-      high_performer = high_performer_ids.include?(student.student_id)
+        response_roll = response_rng.rand
+        advisor_profile = student.advisor
+        question_label = question.question_text.to_s.strip
+        is_competency_question = competency_title_lookup.include?(question_label)
+        high_performer = high_performer_ids.include?(student.student_id)
 
-      # Ensure competency metrics always capture a student self-rating entry
-      record.advisor_id = if is_competency_question
-                            nil
-                          else
-                            case response_roll
-                            when 0.0..0.20
-                              nil
-                            when 0.20..0.65
+        # Ensure competency metrics always capture a student self-rating entry
+        record.advisor_id = if is_competency_question
                               nil
                             else
-                              advisor_profile&.advisor_id
+                              case response_roll
+                              when 0.0..0.20
+                                nil
+                              when 0.20..0.65
+                                nil
+                              else
+                                advisor_profile&.advisor_id
+                              end
                             end
-                          end
 
-      response_value = case question.question_type
-                       when "evidence"
-                         high_performer ? drive_links.first : drive_links.sample(random: response_rng)
-                       when "multiple_choice"
-                         options = begin
-                           raw = question.answer_options.presence || "[]"
-                           parsed = JSON.parse(raw)
-                           Array.wrap(parsed)
-                         rescue JSON::ParserError
-                           []
-                         end
+        response_value = case question.question_type
+                         when "evidence"
+                           high_performer ? drive_links.first : drive_links.sample(random: response_rng)
+                         when "multiple_choice"
+                           options = begin
+                             raw = question.answer_options.presence || "[]"
+                             parsed = JSON.parse(raw)
+                             Array.wrap(parsed)
+                           rescue JSON::ParserError
+                             []
+                           end
 
-                         if is_competency_question
-                           rating_value = competency_rating_value.call(high_performer: high_performer)
-                           options.include?(rating_value) ? rating_value : (options.sample(random: response_rng).presence || rating_value || "3")
+                           if is_competency_question
+                             rating_value = competency_rating_value.call(high_performer: high_performer)
+                             options.include?(rating_value) ? rating_value : (options.sample(random: response_rng).presence || rating_value || "3")
+                           else
+                             preferred = high_performer ? "Yes" : nil
+                             selection = options.sample(random: response_rng).presence
+                             fallback = preferred && options.include?(preferred) ? preferred : selection
+                             fallback.presence || preferred || options.first || "Yes"
+                           end
+                         when "short_answer"
+                           if is_competency_question
+                             competency_rating_value.call(high_performer: high_performer)
+                           else
+                             high_performer ? "Delivered an exceptional outcome that exceeded expectations." : sample_text.call(question)
+                           end
                          else
-                           preferred = high_performer ? "Yes" : nil
-                           selection = options.sample(random: response_rng).presence
-                           fallback = preferred && options.include?(preferred) ? preferred : selection
-                           fallback.presence || preferred || options.first || "Yes"
+                           high_performer ? "Completed with distinction." : sample_text.call(question)
                          end
-                       when "short_answer"
-                         if is_competency_question
-                           competency_rating_value.call(high_performer: high_performer)
-                         else
-                           high_performer ? "Delivered an exceptional outcome that exceeded expectations." : sample_text.call(question)
-                         end
-                       else
-                         high_performer ? "Completed with distinction." : sample_text.call(question)
-                       end
 
-      record.advisor_id ||= advisor_profile&.advisor_id if high_performer && !is_competency_question
+        record.advisor_id ||= advisor_profile&.advisor_id if high_performer && !is_competency_question
 
-      # Introduce the occasional "not assessed" entry for advisors (skip top performers)
-      if !is_competency_question && record.advisor_id.present? && response_roll < 0.28 && !high_performer_ids.include?(student.student_id)
-        response_value = nil
+        # Introduce the occasional "not assessed" entry for advisors (skip top performers)
+        if !is_competency_question && record.advisor_id.present? && response_roll < 0.28 && !high_performer_ids.include?(student.student_id)
+          response_value = nil
+        end
+
+        # Spread timestamps so reports show multiple cohorts/timepoints
+        timestamp = sample_timestamp.call
+        record.created_at ||= timestamp
+        record.updated_at = timestamp
+        latest_response_timestamp = [ latest_response_timestamp, timestamp ].compact.max
+
+        record.response_value = response_value
+        record.save!
       end
 
-      # Spread timestamps so reports show multiple cohorts/timepoints
-      timestamp = sample_timestamp.call
-      record.created_at ||= timestamp
-      record.updated_at = timestamp
-      latest_response_timestamp = [ latest_response_timestamp, timestamp ].compact.max
-
-      record.response_value = response_value
-      record.save!
+      puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
+      puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
+      puts "     ↳ Track auto-assign will create survey tasks on next profile update"
+    else
+      puts "   • Assigned #{survey.title} to #{student.user.name} (#{track_value}) — awaiting completion"
     end
 
-    puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
-    puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
-    puts "     ↳ Track auto-assign will create survey tasks on next profile update"
-
-    completion_time = latest_response_timestamp || Time.zone.now
-    assigned_time = completion_time - 10.days
-    due_time = assigned_time + 14.days
+    completion_time = nil
+    if pending_student
+      assigned_time = Time.zone.now - response_rng.rand(3..10).days
+      due_time = assigned_time + 14.days
+    else
+      completion_time = latest_response_timestamp || Time.zone.now
+      assigned_time = completion_time - 10.days
+      due_time = assigned_time + 14.days
+    end
 
     assignment = SurveyAssignment.find_or_initialize_by(student_id: student.student_id, survey_id: survey.id)
     assignment.advisor_id ||= student.advisor_id
     assignment.assigned_at ||= assigned_time
     assignment.due_date ||= due_time
     assignment.save!
-    assignment.mark_completed!(completion_time)
+    assignment.mark_completed!(completion_time) if completion_time.present?
   end
 end
 

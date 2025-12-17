@@ -897,7 +897,7 @@ body {
 }
 
 .layout-shell {
-  max-width: 1120px;
+  max-width: none;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -905,6 +905,158 @@ body {
   flex-direction: column;
   gap: var(--spacing-2xl);
 }
+
+/* Survey show page: keep the survey + legend block centered with side padding */
+.survey-container {
+  max-width: 90rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Surveys#show polish */
+.survey-show {
+  padding-top: var(--spacing-2xl);
+  padding-bottom: var(--spacing-3xl);
+}
+
+.survey-show .survey-header {
+  border-top: 4px solid var(--tamu-maroon);
+  padding: var(--spacing-2xl);
+}
+
+.survey-show .survey-section-title {
+  color: var(--tamu-maroon);
+}
+
+.survey-show .survey-section-card {
+  padding: var(--spacing-2xl);
+}
+
+.survey-show .survey-category-card {
+  padding: var(--spacing-2xl);
+}
+
+.survey-show .question-block {
+  padding: var(--spacing-lg);
+  border-color: var(--gray-200);
+}
+
+/* Deterministic vertical spacing between cards (avoid relying on Tailwind space-y) */
+.survey-show .survey-block + .survey-block {
+  margin-top: var(--spacing-2xl);
+}
+
+.survey-show .survey-block > * + * {
+  margin-top: var(--spacing-lg);
+}
+
+.survey-show .question-block + .question-block {
+  margin-top: var(--spacing-lg);
+}
+
+.survey-show .survey-actions {
+  padding-top: var(--spacing-md);
+}
+
+@media (min-width: 1024px) {
+  .survey-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(24rem, 30rem);
+  }
+}
+
+/* Survey legend: float with viewport on desktop */
+@media (min-width: 1024px) {
+  .survey-legend {
+    position: sticky;
+    top: 6rem;
+    align-self: flex-start;
+  }
+}
+
+/* Survey legend visual styling (rating scale reference) */
+.survey-legend .survey-legend-header {
+  background: var(--tamu-maroon);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.survey-legend .survey-legend-header h2,
+.survey-legend .survey-legend-header p {
+  color: var(--white) !important;
+}
+
+
+
+.survey-legend .guidance-text {
+  padding-top: var(--spacing-sm);
+}
+
+.survey-legend .guidance-text .guidance-section {
+  padding: var(--spacing-2xl);
+  background: var(--gray-50);
+  border-left: 4px solid var(--tamu-maroon);
+  border-radius: var(--border-radius-lg);
+}
+
+.survey-legend .guidance-text .guidance-section + .guidance-section {
+  margin-top: var(--spacing-xl);
+}
+
+.survey-legend .guidance-text .guidance-section-title {
+  font-size: var(--font-size-base);
+  color: var(--gray-800);
+  margin: 0 0 var(--spacing-md);
+}
+
+.survey-legend .guidance-text .guidance-paragraph {
+  color: var(--gray-600);
+}
+
+.survey-legend .guidance-text .guidance-list {
+  padding-left: 1.1rem;
+}
+
+.survey-legend .guidance-text .guidance-list li {
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-sm);
+}
+
+.survey-legend .guidance-text .guidance-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* Shared guidance formatting (used by tooltips + legend) */
+.guidance-text .guidance-section + .guidance-section {
+  margin-top: var(--spacing-lg);
+}
+
+.guidance-text .guidance-section-title {
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-sm);
+  color: var(--gray-700);
+}
+
+.guidance-text .guidance-paragraph {
+  margin: 0 0 var(--spacing-sm);
+}
+
+.guidance-text .guidance-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.guidance-text .guidance-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+
+.guidance-text .guidance-list li {
+  margin: 0 0 0.35rem;
+}
+
+.guidance-text .guidance-list li:last-child {
+  margin-bottom: 0;
+}
+
 
 /* Dashboard Grid Layouts */
 .dashboard-grid {

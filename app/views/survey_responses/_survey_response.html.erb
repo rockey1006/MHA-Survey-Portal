@@ -58,6 +58,7 @@
   <% if categories.any? %>
     <div class="space-y-8">
       <% rendered_section_ids = [] %>
+      <% section_question_numbers = Hash.new(0) %>
       <% categories.each do |category| %>
         <% section = category.section %>
         <% if section.present? && !rendered_section_ids.include?(section.id) %>
@@ -81,7 +82,9 @@
 
           <% if category.questions.any? %>
             <div class="space-y-5">
-              <% category.questions.ordered.each_with_index do |question, index| %>
+              <% number_key = section&.id || category.id %>
+              <% category.questions.ordered.each do |question| %>
+                  <% question_number = (section_question_numbers[number_key] += 1) %>
                   <% raw_answer = existing_answers[question.id] %>
                   <%# Normalize stored shapes: prefer `text`/`answer`/`link` fields for display and `rating` for self-rating %>
                   <% answer_text = nil %>
@@ -97,18 +100,19 @@
                   <% q_text = question.question_text.to_s.strip %>
                   <% desc_text = question.description.to_s.strip.presence %>
                   <% tooltip_text = question.tooltip_text.to_s.strip.presence %>
-                  <% show_mha_tooltip = question.question_type == "multiple_choice" && section&.mha_competency? %>
+                  <% show_mha_tooltip = %w[multiple_choice dropdown].include?(question.question_type) && section&.mha_competency? %>
                   <% show_custom_tooltip = tooltip_text.present? && !show_mha_tooltip %>
                   <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
                 <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <header class="flex items-start gap-3">
-                    <span class="text-sm font-semibold text-[#500000]">Q<%= index + 1 %></span>
+                    <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
+                    <span class="text-sm font-semibold text-[#500000]"><%= question_prefix %><%= question_number %></span>
                     <div class="space-y-1">
                       <% # Compute if this question is required using the same logic as the controller %>
                       <% required = question.is_required? %>
-                      <% if !required && question.question_type_multiple_choice? %>
-                        <% options = question.answer_options_list.map(&:strip).map(&:downcase) %>
+                      <% if !required && question.choice_question? %>
+                        <% options = question.answer_option_values.map(&:strip).map(&:downcase) %>
                         <% is_flexibility_scale = (options == %w[1 2 3 4 5]) && question.question_text.to_s.downcase.include?("flexible") %>
                         <% required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale) %>
                       <% end %>
@@ -116,6 +120,10 @@
 
                       <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800">
                         <span><%= q_text %></span>
+                        <% if section&.mha_competency? %>
+                          <% target_level = question.program_target_level.presence || 3 %>
+                          <span class="text-xs font-semibold text-slate-600">Target Level: <%= target_level %>/5</span>
+                        <% end %>
                         <% if show_mha_tooltip %>
                           <% if tooltip_text.present? %>
                             <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
@@ -148,6 +156,20 @@
                           <span class="text-lg"><%= checked ? '◉' : '○' %></span>
                           <span><%= opt %></span>
                         </span>
+                      <% end %>
+                    </div>
+                  <% when "dropdown" %>
+                    <% selected_value = answer_text.to_s.presence %>
+                    <% selected_label = nil %>
+                    <% if selected_value.present? %>
+                      <% selected_label = question.answer_option_pairs.find { |(_label, value)| value.to_s == selected_value }&.first %>
+                    <% end %>
+                    <div class="text-sm font-medium text-slate-800">
+                      <% if selected_value.present? %>
+                        <%= selected_label.presence || selected_value %>
+                        <span class="ml-1 text-xs text-slate-500">(Value <%= selected_value %>)</span>
+                      <% else %>
+                        <span class="text-slate-500">Not answered</span>
                       <% end %>
                     </div>
                   <% when "scale" %>
@@ -189,10 +211,10 @@
                 <%# Don't render advisor feedback prompts for Employment Information category %>
         <%# Only render advisor feedback prompts when include_feedback_form is set,
           the category is not Employment Information, and the question number is even (Q2, Q4, ...). %>
-        <% if include_feedback_form && (category.name.to_s.strip.downcase != 'employment information') && ((index + 1).even?) %>
+        <% if include_feedback_form && (category.name.to_s.strip.downcase != 'employment information') && (question_number.even?) %>
                   <% existing_q = passed_existing_feedbacks && passed_existing_feedbacks[question.id] %>
                   <section class="mt-3 p-3 border rounded bg-white">
-                    <h5 class="font-semibold">Advisor feedback — Q<%= index + 1 %></h5>
+                    <h5 class="font-semibold">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
                     <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
                       <div>
                         <label for="ratings_<%= question.id %>_average_score">Score (0-5)</label>

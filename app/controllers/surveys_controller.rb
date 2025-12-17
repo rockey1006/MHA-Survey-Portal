@@ -362,7 +362,7 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def set_survey
-    @survey = Survey.includes(categories: %i[section questions]).find(params[:id])
+    @survey = Survey.includes(:legend, categories: %i[section questions]).find(params[:id])
   end
 
   def question_ids_in_display_order(category_groups)

@@ -165,6 +165,9 @@ end
 created_surveys = []
 surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
 
+legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
+question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
+
 survey_templates.each do |definition|
   title = definition.fetch("title")
   semester = definition.fetch("semester")
@@ -175,6 +178,17 @@ survey_templates.each do |definition|
     survey.creator ||= admin_users.first
     survey.description = definition["description"]
     survey.is_active = definition.fetch("is_active", true)
+
+    if legend_supported
+      legend_definition = definition["legend"].presence
+      if legend_definition.present?
+        legend_record = survey.legend || survey.build_legend
+        legend_record.title = legend_definition["title"].to_s.strip.presence
+        legend_record.body = legend_definition.fetch("body", "").to_s
+      else
+        survey.legend&.mark_for_destruction
+      end
+    end
 
     if survey.persisted?
       stale_category_ids = survey.categories.ids
@@ -227,7 +241,7 @@ survey_templates.each do |definition|
           tooltip_value = question_definition["description"].to_s.strip
         end
 
-        category.questions.build(
+        build_attrs = {
           question_text: question_definition.fetch("text"),
           description: question_definition["description"],
           tooltip_text: tooltip_value.presence,
@@ -236,7 +250,14 @@ survey_templates.each do |definition|
           is_required: question_definition.fetch("required", false),
           has_evidence_field: question_definition.fetch("has_evidence_field", false),
           answer_options: answer_options_for.call(question_definition["options"])
-        )
+        }
+
+        if question_target_level_supported && is_mha_competency_section && %w[multiple_choice dropdown].include?(question_definition["type"].to_s)
+          raw_target_level = question_definition["target_level"].presence || question_definition["program_target_level"].presence || 3
+          build_attrs[:program_target_level] = raw_target_level.to_i
+        end
+
+        category.questions.build(build_attrs)
       end
     end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_17_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -102,6 +102,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
     t.bigint "category_id"
     t.boolean "has_evidence_field", default: false, null: false
     t.jsonb "configuration", default: {}, null: false
+    t.integer "program_target_level"
     t.index ["category_id", "question_order"], name: "index_questions_on_category_id_and_question_order"
     t.index ["category_id"], name: "index_questions_on_category_id"
     t.index ["question_order"], name: "index_questions_on_question_order"
@@ -154,6 +155,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
     t.datetime "updated_at", null: false
     t.index ["admin_id"], name: "index_survey_change_logs_on_admin_id"
     t.index ["survey_id"], name: "index_survey_change_logs_on_survey_id"
+  end
+
+  create_table "survey_legends", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.string "title"
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["survey_id"], name: "index_survey_legends_on_survey_id", unique: true
   end
 
   create_table "survey_sections", force: :cascade do |t|
@@ -231,6 +241,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
   add_foreign_key "survey_assignments", "surveys", on_delete: :cascade
   add_foreign_key "survey_change_logs", "surveys", on_delete: :nullify
   add_foreign_key "survey_change_logs", "users", column: "admin_id"
+  add_foreign_key "survey_legends", "surveys"
   add_foreign_key "survey_sections", "surveys", on_delete: :cascade
   add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
   add_foreign_key "surveys", "users", column: "created_by_id"

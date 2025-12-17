@@ -37,11 +37,21 @@ mha_competency_tooltip: &mha_competency_tooltip |
   ---------------------
   - Advisor only option for cases where a rating cannot be provided.
 
+mha_competency_dropdown_options: &mha_competency_dropdown_options
+  - ["Mastery (5)", "5"]
+  - ["Experienced (4)", "4"]
+  - ["Capable (3)", "3"]
+  - ["Emerging (2)", "2"]
+  - ["Beginner (1)", "1"]
+
 surveys:
   - &executive_survey_base
     title: "Executive Survey"
     semester: "Fall 2025"
     description: "Executive cohort semester activity and competency tracking."
+    legend:
+      title: "Rating Scale Reference"
+      body: *mha_competency_tooltip
     is_active: true
     seed_auto_assign_students: true
     tracks:
@@ -105,8 +115,8 @@ surveys:
         questions:
           - order: 1
             text: "Public and Population Health Assessment"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
@@ -116,8 +126,8 @@ surveys:
             required: false
           - order: 3
             text: "Delivery, Organization, and Financing of Health Services and Health Systems"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
@@ -127,8 +137,8 @@ surveys:
             required: false
           - order: 5
             text: "Policy Analysis"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
             required: true
@@ -138,8 +148,8 @@ surveys:
             required: false
           - order: 7
             text: "Legal & Ethical Bases for Health Services and Health Systems"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
             required: true
@@ -159,8 +169,8 @@ surveys:
         questions:
           - order: 1
             text: "Ethics, Accountability, and Self-Assessment"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
@@ -170,8 +180,8 @@ surveys:
             required: false
           - order: 3
             text: "Organizational Dynamics"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
@@ -181,8 +191,8 @@ surveys:
             required: false
           - order: 5
             text: "Problem Solving, Decision Making, and Critical Thinking"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Data, analytic methods, and judgment used in support of leadership decisions"
             required: true
@@ -192,8 +202,8 @@ surveys:
             required: false
           - order: 7
             text: "Team Building and Collaboration"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
             required: true
@@ -213,8 +223,8 @@ surveys:
         questions:
           - order: 1
             text: "Strategic Planning"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
@@ -224,8 +234,8 @@ surveys:
             required: false
           - order: 3
             text: "Business Planning"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
@@ -235,8 +245,8 @@ surveys:
             required: false
           - order: 5
             text: "Communication"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
@@ -246,8 +256,8 @@ surveys:
             required: false
           - order: 7
             text: "Financial Management"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Read, understand, and analyze financial statements and audited financial reports"
             required: true
@@ -257,8 +267,8 @@ surveys:
             required: false
           - order: 9
             text: "Performance Improvement"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
             required: true
@@ -268,8 +278,8 @@ surveys:
             required: false
           - order: 11
             text: "Project Management"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
             required: true
@@ -289,8 +299,8 @@ surveys:
         questions:
           - order: 1
             text: "Systems Thinking"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Interrelationships between and among constituent parts of an organization"
             required: true
@@ -300,8 +310,8 @@ surveys:
             required: false
           - order: 3
             text: "Data Analysis and Information Management"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
@@ -311,8 +321,8 @@ surveys:
             required: false
           - order: 5
             text: "Quantitative Methods for Health Services Delivery"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
             required: true
@@ -329,6 +339,9 @@ surveys:
     title: "Residential Survey"
     semester: "Fall 2025"
     description: "Residential cohort competency and experience tracking."
+    legend:
+      title: "Rating Scale Reference"
+      body: *mha_competency_tooltip
     is_active: true
     seed_auto_assign_students: true
     tracks:
@@ -391,8 +404,8 @@ surveys:
         questions:
           - order: 1
             text: "Public and Population Health Assessment"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
@@ -402,8 +415,8 @@ surveys:
             required: false
           - order: 3
             text: "Delivery, Organization, and Financing of Health Services and Health Systems"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
@@ -413,8 +426,8 @@ surveys:
             required: false
           - order: 5
             text: "Policy Analysis"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
             required: true
@@ -424,8 +437,8 @@ surveys:
             required: false
           - order: 7
             text: "Legal & Ethical Bases for Health Services and Health Systems"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
             required: true
@@ -445,8 +458,8 @@ surveys:
         questions:
           - order: 1
             text: "Ethics, Accountability, and Self-Assessment"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
@@ -456,8 +469,8 @@ surveys:
             required: false
           - order: 3
             text: "Organizational Dynamics"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
@@ -467,8 +480,8 @@ surveys:
             required: false
           - order: 5
             text: "Problem Solving, Decision Making, and Critical Thinking"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Data, analytic methods, and judgment used in support of leadership decisions"
             required: true
@@ -478,8 +491,8 @@ surveys:
             required: false
           - order: 7
             text: "Team Building and Collaboration"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
             required: true
@@ -499,8 +512,8 @@ surveys:
         questions:
           - order: 1
             text: "Strategic Planning"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
@@ -510,8 +523,8 @@ surveys:
             required: false
           - order: 3
             text: "Business Planning"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
@@ -521,8 +534,8 @@ surveys:
             required: false
           - order: 5
             text: "Communication"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
@@ -532,8 +545,8 @@ surveys:
             required: false
           - order: 7
             text: "Financial Management"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Read, understand, and analyze financial statements and audited financial reports"
             required: true
@@ -543,8 +556,8 @@ surveys:
             required: false
           - order: 9
             text: "Performance Improvement"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
             required: true
@@ -554,8 +567,8 @@ surveys:
             required: false
           - order: 11
             text: "Project Management"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
             required: true
@@ -575,8 +588,8 @@ surveys:
         questions:
           - order: 1
             text: "Systems Thinking"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Interrelationships between and among constituent parts of an organization"
             required: true
@@ -586,8 +599,8 @@ surveys:
             required: false
           - order: 3
             text: "Data Analysis and Information Management"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
@@ -597,8 +610,8 @@ surveys:
             required: false
           - order: 5
             text: "Quantitative Methods for Health Services Delivery"
-            type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5"]
+            type: "dropdown"
+            options: *mha_competency_dropdown_options
             tooltip: *mha_competency_tooltip
             description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
             required: true

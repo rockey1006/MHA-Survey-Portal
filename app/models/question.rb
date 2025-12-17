@@ -21,6 +21,13 @@ class Question < ApplicationRecord
   validates :question_text, presence: true
   validates :question_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :question_type, presence: true, inclusion: { in: question_types.values }
+  validates :program_target_level,
+            numericality: {
+              only_integer: true,
+              greater_than_or_equal_to: 1,
+              less_than_or_equal_to: 5
+            },
+            allow_nil: true
 
   # @return [ActiveRecord::Relation<Question>] questions ordered for display
   scope :ordered, -> { order(:question_order) }

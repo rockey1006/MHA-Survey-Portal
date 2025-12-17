@@ -81,8 +81,9 @@ class SurveysController < ApplicationController
       category.questions.each do |question|
         required = question.is_required?
 
-        if !required && question.question_type_multiple_choice?
-          options = question.answer_options_list.map(&:strip).map(&:downcase)
+        if !required && question.choice_question?
+          option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+          options = option_values.map(&:strip).map(&:downcase)
           # Exception: flexibility scale questions (1-5) should remain optional
           is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                  question.question_text.to_s.downcase.include?("flexible")
@@ -146,8 +147,9 @@ class SurveysController < ApplicationController
 
       # Apply the same required logic as in show action
       required = question.is_required?
-      if !required && question.question_type_multiple_choice?
-        options = question.answer_options_list.map(&:strip).map(&:downcase)
+      if !required && question.choice_question?
+        option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+        options = option_values.map(&:strip).map(&:downcase)
         is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                question.question_text.to_s.downcase.include?("flexible")
         required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
@@ -205,8 +207,9 @@ class SurveysController < ApplicationController
       @category_groups.each do |category|
         category.questions.each do |question|
           required = question.is_required?
-          if !required && question.question_type_multiple_choice?
-            options = question.answer_options_list.map(&:strip).map(&:downcase)
+          if !required && question.choice_question?
+            option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+            options = option_values.map(&:strip).map(&:downcase)
             is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                    question.question_text.to_s.downcase.include?("flexible")
             required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)

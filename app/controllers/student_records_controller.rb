@@ -144,9 +144,10 @@ class StudentRecordsController < ApplicationController
 
     return true if question.required?
 
-    return false unless question.question_type_multiple_choice?
+     return false unless question.choice_question?
 
-    options = question.answer_options_list.map(&:strip).map(&:downcase)
+     option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+     options = option_values.map(&:strip).map(&:downcase)
     !(options == %w[yes no] || options == %w[no yes])
   end
 

@@ -136,7 +136,30 @@ end
 answer_options_for = lambda do |options|
   return nil if options.blank?
 
-  Array(options).map(&:to_s).reject(&:blank?).to_json
+  normalized = Array(options).filter_map do |entry|
+    case entry
+    when String
+      entry.to_s.strip.presence
+    when Array
+      next if entry.empty?
+
+      label = entry[0].to_s.strip
+      value = entry[1].to_s.strip
+      next if label.blank? || value.blank?
+
+      [label, value]
+    when Hash
+      label = (entry["label"] || entry[:label]).to_s.strip
+      value = (entry["value"] || entry[:value] || label).to_s.strip
+      next if label.blank? || value.blank?
+
+      { "label" => label, "value" => value }
+    else
+      entry.to_s.strip.presence
+    end
+  end
+
+  normalized.to_json
 end
 
 created_surveys = []

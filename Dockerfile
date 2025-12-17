@@ -59,6 +59,12 @@ RUN apt-get update -qq && \
 
 FROM base AS dev
 
+# The `base` stage is configured for production (RAILS_ENV=production, BUNDLE_WITHOUT=development).
+# Override for the dev image so the bundle includes development gems (e.g., web-console, bindex).
+ENV RAILS_ENV="development" \
+    BUNDLE_DEPLOYMENT="0" \
+    BUNDLE_WITHOUT=""
+
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives

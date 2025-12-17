@@ -216,8 +216,8 @@ class Admin::SurveysController < Admin::BaseController
       category.questions.each do |question|
         required = question.is_required?
 
-        if !required && question.question_type_multiple_choice?
-          options = question.answer_options_list.map(&:strip).map(&:downcase)
+        if !required && question.choice_question?
+          options = question.answer_option_values.map(&:strip).map(&:downcase)
           is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                  question.question_text.to_s.downcase.include?("flexible")
           required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)

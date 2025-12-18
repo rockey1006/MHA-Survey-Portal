@@ -1,14 +1,113 @@
-<h2>Feedback for <%= @student.user.name %> – <%= @survey.title %></h2>
+<div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
+  <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
+    <div class="space-y-8 lg:min-w-0">
+      <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true, class: "space-y-8 survey-form" do |f| %>
+        <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question, prefill: params[:prefill].present? } %>
 
-<h3>Advisor Feedback (per-category)</h3>
-<%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true do |f| %>
-  <div class="space-y-4">
-    <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question, prefill: params[:prefill].present? } %>
-  </div>
+        <section class="advisor-summary" data-advisor-feedback-summary>
+          <div class="advisor-summary__header">
+            <h3 class="advisor-summary__title">Summary Statistics</h3>
+            <p class="advisor-summary__hint">Updates as you edit scores</p>
+          </div>
 
-  <div class="mt-4">
-    <%= f.submit "Save all categories", class: "btn btn-primary" %>
+          <div class="advisor-summary__grid">
+            <div class="advisor-summary__card advisor-summary__card--above">
+              <div class="advisor-summary__cardRow">
+                <div class="advisor-summary__meta">
+                  <div class="advisor-summary__label">At or Above Target</div>
+                  <div class="advisor-summary__percent" data-at-or-above-percent>(0.0%)</div>
+                </div>
+                <div class="advisor-summary__value">
+                  <div class="advisor-summary__count advisor-summary__count--above" data-at-or-above-count>0</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="advisor-summary__card advisor-summary__card--below">
+              <div class="advisor-summary__cardRow">
+                <div class="advisor-summary__meta">
+                  <div class="advisor-summary__label">Below Target</div>
+                  <div class="advisor-summary__percent" data-below-percent>(0.0%)</div>
+                </div>
+                <div class="advisor-summary__value">
+                  <div class="advisor-summary__count advisor-summary__count--below" data-below-count>0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="advisor-summary__footer">
+            <p class="advisor-summary__note">
+              Based on advisor scores (0–5) compared to each question’s program target level.
+            </p>
+          </div>
+        </section>
+
+        <div class="survey-actions flex items-center justify-end gap-3">
+          <%= f.submit "Save feedback", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+
+    <%= render ::SurveyLegendComponent.new(legend: @survey.legend) %>
   </div>
-<% end %>
+</div>
+
+<script>
+  (function() {
+    function toNumber(value) {
+      var n = parseFloat(value);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function formatPercent(numerator, denominator) {
+      if (!denominator || denominator <= 0) return "0.0%";
+      return ((numerator / denominator) * 100).toFixed(1) + "%";
+    }
+
+    function updateAdvisorFeedbackSummary() {
+      var summary = document.querySelector('[data-advisor-feedback-summary]');
+      if (!summary) return;
+
+      var inputs = document.querySelectorAll('input[data-advisor-feedback-score="true"]');
+
+      var total = 0;
+      var atOrAbove = 0;
+      var below = 0;
+
+      inputs.forEach(function(input) {
+        var score = toNumber(input.value);
+        var target = toNumber(input.getAttribute('data-program-target-level'));
+        if (score === null || target === null) return;
+        total += 1;
+        if (score >= target) atOrAbove += 1;
+        else below += 1;
+      });
+
+      var atCountEl = summary.querySelector('[data-at-or-above-count]');
+      var atPctEl = summary.querySelector('[data-at-or-above-percent]');
+      var belowCountEl = summary.querySelector('[data-below-count]');
+      var belowPctEl = summary.querySelector('[data-below-percent]');
+
+      if (atCountEl) atCountEl.textContent = String(atOrAbove);
+      if (belowCountEl) belowCountEl.textContent = String(below);
+      if (atPctEl) atPctEl.textContent = "(" + formatPercent(atOrAbove, total) + ")";
+      if (belowPctEl) belowPctEl.textContent = "(" + formatPercent(below, total) + ")";
+    }
+
+    function bind() {
+      updateAdvisorFeedbackSummary();
+      document.addEventListener('input', function(e) {
+        var target = e.target;
+        if (target && target.matches && target.matches('input[data-advisor-feedback-score="true"]')) {
+          updateAdvisorFeedbackSummary();
+        }
+      });
+    }
+
+    document.addEventListener('turbo:load', bind);
+    document.addEventListener('DOMContentLoaded', bind);
+  })();
+</script>
 
 

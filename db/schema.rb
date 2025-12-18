@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_17_200000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,8 +103,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_200000) do
     t.boolean "has_evidence_field", default: false, null: false
     t.jsonb "configuration", default: {}, null: false
     t.integer "program_target_level"
+    t.bigint "parent_question_id"
+    t.integer "sub_question_order", default: 0, null: false
     t.index ["category_id", "question_order"], name: "index_questions_on_category_id_and_question_order"
     t.index ["category_id"], name: "index_questions_on_category_id"
+    t.index ["parent_question_id", "sub_question_order"], name: "index_questions_on_parent_and_sub_order"
+    t.index ["parent_question_id"], name: "index_questions_on_parent_question_id"
     t.index ["question_order"], name: "index_questions_on_question_order"
   end
 
@@ -231,6 +235,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_200000) do
   add_foreign_key "feedback", "surveys", on_delete: :cascade
   add_foreign_key "notifications", "users", on_delete: :cascade
   add_foreign_key "questions", "categories"
+  add_foreign_key "questions", "questions", column: "parent_question_id"
   add_foreign_key "student_questions", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "student_questions", "questions", on_delete: :cascade
   add_foreign_key "student_questions", "students", primary_key: "student_id", on_delete: :cascade

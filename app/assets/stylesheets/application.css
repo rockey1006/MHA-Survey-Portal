@@ -729,12 +729,6 @@ body {
   height: 40px;
   border-radius: var(--border-radius-full);
 
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -748,6 +742,13 @@ body {
   overflow: hidden;
   cursor: pointer;
   transition: all var(--transition-normal);
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .user-avatar:hover {
@@ -972,6 +973,119 @@ body {
   padding-top: var(--spacing-md);
 }
 
+/* Advisor feedback summary (feedbacks/new) */
+.advisor-summary {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-md);
+}
+
+.advisor-summary__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.advisor-summary__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--gray-800);
+}
+
+.advisor-summary__hint {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.advisor-summary__grid {
+  margin-top: var(--spacing-xl);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl);
+}
+
+@media (min-width: 768px) {
+  .advisor-summary__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.advisor-summary__card {
+  background-color: rgba(250, 250, 250, 0.7);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+  border-left-width: 4px;
+}
+
+.advisor-summary__card--above {
+  border-left-color: var(--success-color);
+}
+
+.advisor-summary__card--below {
+  border-left-color: var(--error-color);
+}
+
+.advisor-summary__cardRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+}
+
+.advisor-summary__meta {
+  min-width: 0;
+}
+
+.advisor-summary__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-600);
+}
+
+.advisor-summary__percent {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.advisor-summary__value {
+  text-align: right;
+}
+
+.advisor-summary__count {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.advisor-summary__count--above {
+  color: var(--success-color);
+}
+
+.advisor-summary__count--below {
+  color: var(--error-color);
+}
+
+.advisor-summary__footer {
+  margin-top: var(--spacing-xl);
+  border-top: 1px solid var(--gray-200);
+  padding-top: var(--spacing-md);
+}
+
+.advisor-summary__note {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
 @media (min-width: 1024px) {
   .survey-grid {
     grid-template-columns: minmax(0, 1fr) minmax(24rem, 30rem);
@@ -979,40 +1093,50 @@ body {
 }
 
 /* Survey legend: float with viewport on desktop */
+.survey-legend {
+  margin-top: var(--spacing-md);
+}
+
 @media (min-width: 1024px) {
   .survey-legend {
     position: sticky;
     top: 6rem;
     align-self: flex-start;
+    margin-top: 0;
   }
 }
 
 /* Survey legend visual styling (rating scale reference) */
 .survey-legend .survey-legend-header {
-  background: var(--tamu-maroon);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  border-bottom: 0;
+  margin: 0;
+  border-radius: 0;
 }
 
-.survey-legend .survey-legend-header h2,
-.survey-legend .survey-legend-header p {
-  color: var(--white) !important;
+.survey-legend .survey-legend-title {
+  margin-top: 0;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--tamu-maroon);
+  color: var(--gray-800);
 }
-
-
 
 .survey-legend .guidance-text {
-  padding-top: var(--spacing-sm);
+  padding: var(--spacing-md);
 }
 
 .survey-legend .guidance-text .guidance-section {
-  padding: var(--spacing-2xl);
-  background: var(--gray-50);
+  margin: 0;
+  padding: var(--spacing-lg);
+  background: var(--white);
+  border: 1px solid var(--gray-200);
   border-left: 4px solid var(--tamu-maroon);
   border-radius: var(--border-radius-lg);
 }
 
 .survey-legend .guidance-text .guidance-section + .guidance-section {
-  margin-top: var(--spacing-xl);
+  margin-top: var(--spacing-md);
 }
 
 .survey-legend .guidance-text .guidance-section-title {

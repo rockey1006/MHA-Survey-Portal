@@ -13,10 +13,11 @@ class Question < ApplicationRecord
   belongs_to :category
 
   def self.sub_question_columns_supported?
-    return false unless connection_pool&.active_connection?
-    return false unless connection.schema_cache.data_source_exists?(table_name)
+    conn = connection
+    return false unless conn.data_source_exists?(table_name)
 
-    column_names.include?("parent_question_id") && column_names.include?("sub_question_order")
+    conn.column_exists?(table_name, :parent_question_id) &&
+      conn.column_exists?(table_name, :sub_question_order)
   rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError
     false
   end

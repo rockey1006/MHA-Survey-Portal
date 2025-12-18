@@ -27,7 +27,7 @@ class SurveyResponsesController < ApplicationController
     begin
       generator = CompositeReportGenerator.new(survey_response: @survey_response, cache: false)
       result = generator.render
-      filename = "survey_response_#{@survey_response.id}.pdf"
+      filename = survey_pdf_filename(@survey_response)
       stream_pdf_result(result, filename, unavailable_message: unavailable_message)
     rescue CompositeReportGenerator::MissingDependency
       render plain: "Server-side PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
@@ -207,5 +207,28 @@ class SurveyResponsesController < ApplicationController
     else
       head :internal_server_error
     end
+  end
+
+  def survey_pdf_filename(survey_response)
+    student_part = safe_filename_part(
+      survey_response&.student&.user&.display_name,
+      fallback: "student_#{survey_response&.student_id}"
+    )
+
+    survey_part = safe_filename_part(
+      survey_response&.survey&.title,
+      fallback: "survey_#{survey_response&.survey_id}"
+    )
+
+    "#{student_part}_#{survey_part}.pdf"
+  end
+
+  def safe_filename_part(value, fallback: "file")
+    raw = value.to_s.strip
+    raw = fallback.to_s.strip if raw.blank?
+
+    sanitized = raw.parameterize(separator: "_")
+    sanitized = fallback.to_s.parameterize(separator: "_") if sanitized.blank?
+    sanitized
   end
 end

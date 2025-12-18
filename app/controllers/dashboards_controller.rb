@@ -276,6 +276,11 @@ class DashboardsController < ApplicationController
     begin
       current_user.update!(role: new_role)
       flash[:notice] = "Role switched to #{new_role.titleize} for testing."
+
+      if new_role == "student"
+        student = current_user.student_profile
+        SurveyAssignments::AutoAssigner.call(student: student) if student
+      end
     rescue StandardError => e
       Rails.logger.error "Role switch failed for user #{current_user.id}: #{e.message}"
       redirect_back fallback_location: dashboard_path, alert: "Unable to switch roles: #{e.message}" and return
@@ -496,12 +501,20 @@ class DashboardsController < ApplicationController
   def surveys_for_student(student)
     return Survey.none unless student&.student_id
 
+    # Keep dashboard listings consistent even if the sign-in callback didn't run
+    # (e.g., direct session restore). This will add missing assignments for the
+    # student's track/current semester and remove outdated managed assignments.
+    SurveyAssignments::AutoAssigner.call(student: student)
+
     Survey
       .includes(:questions)
       .joins(:survey_assignments)
       .where(survey_assignments: { student_id: student.student_id })
       .distinct
       .ordered
+  rescue StandardError => e
+    Rails.logger.error("Dashboard auto-assign failed for student #{student&.student_id}: #{e.class}: #{e.message}")
+    Survey.none
   end
 
 

@@ -11,6 +11,35 @@ class Question < ApplicationRecord
   }, prefix: true
 
   belongs_to :category
+
+  def self.sub_question_columns_supported?
+    return false unless connection_pool&.active_connection?
+    return false unless connection.schema_cache.data_source_exists?(table_name)
+
+    column_names.include?("parent_question_id") && column_names.include?("sub_question_order")
+  rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError
+    false
+  end
+
+  if sub_question_columns_supported?
+    belongs_to :parent_question,
+               class_name: "Question",
+               optional: true,
+               inverse_of: :sub_questions
+    has_many :sub_questions,
+             class_name: "Question",
+             foreign_key: :parent_question_id,
+             inverse_of: :parent_question,
+             dependent: :destroy
+  else
+    def parent_question
+      nil
+    end
+
+    def sub_questions
+      Question.none
+    end
+  end
   has_many :student_questions, dependent: :destroy
   has_many :students, through: :student_questions
 
@@ -21,6 +50,10 @@ class Question < ApplicationRecord
   validates :question_text, presence: true
   validates :question_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :question_type, presence: true, inclusion: { in: question_types.values }
+  validates :sub_question_order,
+            numericality: { greater_than_or_equal_to: 0, only_integer: true },
+            allow_nil: true,
+            if: ->(record) { record.has_attribute?(:sub_question_order) }
   validates :program_target_level,
             numericality: {
               only_integer: true,
@@ -30,9 +63,26 @@ class Question < ApplicationRecord
             allow_nil: true
 
   # @return [ActiveRecord::Relation<Question>] questions ordered for display
-  scope :ordered, -> { order(:question_order) }
+  scope :ordered, lambda {
+    relation = order(:question_order)
+    if column_names.include?("parent_question_id") && column_names.include?("sub_question_order")
+      relation
+        .order(Arel.sql("COALESCE(parent_question_id, id)"))
+        .order(Arel.sql("CASE WHEN parent_question_id IS NULL THEN 0 ELSE 1 END"))
+        .order(:sub_question_order, :id)
+    else
+      relation.order(:id)
+    end
+  }
+  scope :parent_questions, lambda {
+    column_names.include?("parent_question_id") ? where(parent_question_id: nil) : all
+  }
+  scope :sub_questions_only, lambda {
+    column_names.include?("parent_question_id") ? where.not(parent_question_id: nil) : none
+  }
 
   before_validation :ensure_question_order
+  before_validation :ensure_sub_question_order
 
   # @return [Boolean] whether the question is required
   def required?
@@ -112,11 +162,37 @@ class Question < ApplicationRecord
     question_type_multiple_choice? || question_type_dropdown?
   end
 
+  # @return [Boolean] whether this question is a sub-question
+  def sub_question?
+    return false unless has_attribute?(:parent_question_id)
+
+    parent_question_id.present?
+  end
+
   private
 
   def ensure_question_order
+    if has_attribute?(:parent_question_id) && parent_question.present?
+      self.question_order = parent_question.question_order
+      return
+    end
+
     return if question_order.present?
 
     self.question_order = (category&.questions&.maximum(:question_order) || 0) + 1
+  end
+
+  def ensure_sub_question_order
+    return unless has_attribute?(:parent_question_id)
+    return unless has_attribute?(:sub_question_order)
+    return unless parent_question.present?
+    return if sub_question_order.present?
+
+    # Prefer in-memory siblings when building nested records during seeding.
+    in_memory_siblings = parent_question.sub_questions.to_a
+    in_memory_max = in_memory_siblings.filter_map { |question| question.has_attribute?(:sub_question_order) ? question.sub_question_order : nil }.max
+    db_max = parent_question.persisted? ? parent_question.sub_questions.maximum(:sub_question_order) : nil
+
+    self.sub_question_order = [in_memory_max, db_max, 0].compact.max + 1
   end
 end

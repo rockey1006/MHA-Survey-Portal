@@ -371,9 +371,17 @@ class SurveysController < ApplicationController
 
       questions = category.questions
       ordered_questions = if questions.respond_to?(:loaded?) && questions.loaded?
-                            questions.sort_by(&:question_order)
+                            questions.sort_by do |q|
+                              group_key = (q.parent_question_id || q.id).to_i
+                              [q.question_order.to_i, group_key, q.parent_question_id ? 1 : 0, q.sub_question_order.to_i, q.id.to_i]
+                            end
       else
-                            questions.order(:question_order).to_a
+                            questions
+                              .order(:question_order)
+                              .order(Arel.sql("COALESCE(parent_question_id, id)"))
+                              .order(Arel.sql("CASE WHEN parent_question_id IS NULL THEN 0 ELSE 1 END"))
+                              .order(:sub_question_order, :id)
+                              .to_a
       end
       ordered_questions.map(&:id)
     end

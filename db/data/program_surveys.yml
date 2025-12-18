@@ -409,10 +409,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Historic, current, and anticipated future characteristics and requirements for health care at local, state, regional, and national markets."
             required: true
-          - order: 2
-            text: "Public and Population Health Assessment Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Public and Population Health Assessment Reflection"
+                type: "short_answer"
+                required: false
           - order: 3
             text: "Delivery, Organization, and Financing of Health Services and Health Systems"
             type: "dropdown"
@@ -420,10 +421,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Resources, structure, process, and outcomes associated with providing health care informed by theory, data, and analytic methods."
             required: true
-          - order: 4
-            text: "Delivery, Organization, and Financing of Health Services and Health Systems Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Delivery, Organization, and Financing of Health Services and Health Systems Reflection"
+                type: "short_answer"
+                required: false
           - order: 5
             text: "Policy Analysis"
             type: "dropdown"
@@ -431,10 +433,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Creation, analysis, and implications for the rules governing health care structures and delivery systems"
             required: true
-          - order: 6
-            text: "Policy Analysis Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Policy Analysis Reflection"
+                type: "short_answer"
+                required: false
           - order: 7
             text: "Legal & Ethical Bases for Health Services and Health Systems"
             type: "dropdown"
@@ -442,14 +445,15 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Laws, regulations, and social or other norms that formally or informally provide guidance for health care delivery"
             required: true
-          - order: 8
-            text: "Legal & Ethical Bases for Health Services and Health Systems Reflection"
-            type: "short_answer"
-            required: false
-          - order: 9
-            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
-            type: "evidence"
-            required: true
+            sub_questions:
+              - order: 1
+                text: "Legal & Ethical Bases for Health Services and Health Systems Reflection"
+                type: "short_answer"
+                required: false
+              - order: 2
+                text: "Please provide a Google Drive or Google Sites link as evidence for this section."
+                type: "evidence"
+                required: true
       - name: "Leadership Skills"
         description: "Motivation and empowerment of organizational resources"
         section:
@@ -463,10 +467,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Professional and personal values and responsibilities that result in ongoing self-reflection, professional awareness, learning, and development."
             required: true
-          - order: 2
-            text: "Ethics, Accountability, and Self-Assessment Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Ethics, Accountability, and Self-Assessment Reflection"
+                type: "short_answer"
+                required: false
           - order: 3
             text: "Organizational Dynamics"
             type: "dropdown"
@@ -474,10 +479,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Organizational behavior methods and human resource strategies to maximize individual and team development while ensuring cultural awareness and inclusiveness."
             required: true
-          - order: 4
-            text: "Organizational Dynamics Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Organizational Dynamics Reflection"
+                type: "short_answer"
+                required: false
           - order: 5
             text: "Problem Solving, Decision Making, and Critical Thinking"
             type: "dropdown"
@@ -485,10 +491,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Data, analytic methods, and judgment used in support of leadership decisions"
             required: true
-          - order: 6
-            text: "Problem Solving, Decision Making, and Critical Thinking Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Problem Solving, Decision Making, and Critical Thinking Reflection"
+                type: "short_answer"
+                required: false
           - order: 7
             text: "Team Building and Collaboration"
             type: "dropdown"
@@ -496,14 +503,15 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Partnerships that result in functional, motivated, skill-based groups formed to accomplish identifiable goals"
             required: true
-          - order: 8
-            text: "Team Building and Collaboration Reflection"
-            type: "short_answer"
-            required: false
-          - order: 9
-            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
-            type: "evidence"
-            required: true
+            sub_questions:
+              - order: 1
+                text: "Team Building and Collaboration Reflection"
+                type: "short_answer"
+                required: false
+              - order: 2
+                text: "Please provide a Google Drive or Google Sites link as evidence for this section."
+                type: "evidence"
+                required: true
       - name: "Management Skills"
         description: "Control and organization of health services delivery"
         section:
@@ -517,10 +525,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Market and community needs served by defined alternatives, goals, and programs which are supported by appropriate implementation methods."
             required: true
-          - order: 2
-            text: "Strategic Planning Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Strategic Planning Reflection"
+                type: "short_answer"
+                required: false
           - order: 3
             text: "Business Planning"
             type: "dropdown"
@@ -528,10 +537,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Develop and manage budgets, conduct financial analysis; identify opportunities and threats to organizations using relevant information."
             required: true
-          - order: 4
-            text: "Business Planning Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Business Planning Reflection"
+                type: "short_answer"
+                required: false
           - order: 5
             text: "Communication"
             type: "dropdown"
@@ -539,10 +549,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Verbal and non-verbal communication to effectively convey pertinent information"
             required: true
-          - order: 6
-            text: "Communication Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Communication Reflection"
+                type: "short_answer"
+                required: false
           - order: 7
             text: "Financial Management"
             type: "dropdown"
@@ -550,10 +561,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Read, understand, and analyze financial statements and audited financial reports"
             required: true
-          - order: 8
-            text: "Financial Management Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Financial Management Reflection"
+                type: "short_answer"
+                required: false
           - order: 9
             text: "Performance Improvement"
             type: "dropdown"
@@ -561,10 +573,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Data, information, analytic tools, and judgment used to guide goal setting for individuals, teams, and organizations"
             required: true
-          - order: 10
-            text: "Performance Improvement Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Performance Improvement Reflection"
+                type: "short_answer"
+                required: false
           - order: 11
             text: "Project Management"
             type: "dropdown"
@@ -572,14 +585,15 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Design, plan, execute, and assess tasks and develop appropriate timelines related to performance, structure, and outcomes in the pursuit of stated goals"
             required: true
-          - order: 12
-            text: "Project Management Reflection"
-            type: "short_answer"
-            required: false
-          - order: 13
-            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
-            type: "evidence"
-            required: true
+            sub_questions:
+              - order: 1
+                text: "Project Management Reflection"
+                type: "short_answer"
+                required: false
+              - order: 2
+                text: "Please provide a Google Drive or Google Sites link as evidence for this section."
+                type: "evidence"
+                required: true
       - name: "Analytic and Technical Skills"
         description: "Successful accomplishment of tasks in health services delivery"
         section:
@@ -593,10 +607,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Interrelationships between and among constituent parts of an organization"
             required: true
-          - order: 2
-            text: "Systems Thinking Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Systems Thinking Reflection"
+                type: "short_answer"
+                required: false
           - order: 3
             text: "Data Analysis and Information Management"
             type: "dropdown"
@@ -604,10 +619,11 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Data, information, technology, and supporting structures used in completing assigned tasks"
             required: true
-          - order: 4
-            text: "Data Analysis and Information Management Reflection"
-            type: "short_answer"
-            required: false
+            sub_questions:
+              - order: 1
+                text: "Data Analysis and Information Management Reflection"
+                type: "short_answer"
+                required: false
           - order: 5
             text: "Quantitative Methods for Health Services Delivery"
             type: "dropdown"
@@ -615,14 +631,15 @@ surveys:
             tooltip: *mha_competency_tooltip
             description: "Economic, financial, statistical, and other discipline-specific techniques needed to understand, model, assess, and inform health care decision making and address health care questions"
             required: true
-          - order: 6
-            text: "Quantitative Methods for Health Services Delivery Reflection"
-            type: "short_answer"
-            required: false
-          - order: 7
-            text: "Please provide a Google Drive or Google Sites link as evidence for this section."
-            type: "evidence"
-            required: true
+            sub_questions:
+              - order: 1
+                text: "Quantitative Methods for Health Services Delivery Reflection"
+                type: "short_answer"
+                required: false
+              - order: 2
+                text: "Please provide a Google Drive or Google Sites link as evidence for this section."
+                type: "evidence"
+                required: true
   - <<: *executive_survey_base
     semester: "Spring 2025"
     seed_auto_assign_students: false

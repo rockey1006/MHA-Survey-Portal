@@ -12,8 +12,8 @@ def ensure_schema_loaded!
 
   return if connection.data_source_exists?("users")
 
-  puts "• Database schema missing — running schema load before seeding"
-  ActiveRecord::Tasks::DatabaseTasks.load_schema_current
+  puts "• Database schema missing — running migrations before seeding"
+  ActiveRecord::Tasks::DatabaseTasks.migrate
   ActiveRecord::Base.connection_pool.disconnect!
   ActiveRecord::Base.establish_connection
 rescue StandardError => e
@@ -167,6 +167,8 @@ surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
 
 legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
 question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
+sub_questions_supported = ActiveRecord::Base.connection.column_exists?(:questions, :parent_question_id) &&
+                          ActiveRecord::Base.connection.column_exists?(:questions, :sub_question_order)
 
 survey_templates.each do |definition|
   title = definition.fetch("title")
@@ -257,11 +259,57 @@ survey_templates.each do |definition|
           build_attrs[:program_target_level] = raw_target_level.to_i
         end
 
-        category.questions.build(build_attrs)
+        parent_question = category.questions.build(build_attrs)
+
+        if sub_questions_supported
+          Array(question_definition["sub_questions"]).each do |sub_definition|
+          sub_tooltip_value = sub_definition["tooltip"].to_s.strip
+          if sub_tooltip_value.blank? && is_mha_competency_section && sub_definition["type"].to_s == "multiple_choice"
+            sub_tooltip_value = sub_definition["description"].to_s.strip
+          end
+
+          sub_attrs = {
+            question_text: sub_definition.fetch("text"),
+            description: sub_definition["description"],
+            tooltip_text: sub_tooltip_value.presence,
+            question_order: parent_question.question_order,
+            sub_question_order: sub_definition.fetch("order", 0),
+            question_type: sub_definition.fetch("type"),
+            is_required: sub_definition.fetch("required", false),
+            has_evidence_field: sub_definition.fetch("has_evidence_field", false),
+            answer_options: answer_options_for.call(sub_definition["options"]),
+            parent_question: parent_question
+          }
+
+          if question_target_level_supported && is_mha_competency_section && %w[multiple_choice dropdown].include?(sub_definition["type"].to_s)
+            raw_target_level = sub_definition["target_level"].presence || sub_definition["program_target_level"].presence || 3
+            sub_attrs[:program_target_level] = raw_target_level.to_i
+          end
+
+          category.questions.build(sub_attrs)
+          end
+        end
       end
     end
 
     survey.save!
+
+    if sub_questions_supported
+      # When building nested questions in-memory, sub-questions may be saved before the
+      # parent question has an ID, leaving parent_question_id unset. Repair those links
+      # after the survey save so sub-questions are correctly attached.
+      survey.categories.each do |category|
+        category.questions.each do |question|
+          parent = question.parent_question
+          next unless parent
+          next if question.parent_question_id.present?
+          next unless parent.id
+
+          question.update!(parent_question_id: parent.id)
+        end
+      end
+    end
+
     if sections_supported && section_assignments.present?
       section_records = {}
       ordered_keys = []

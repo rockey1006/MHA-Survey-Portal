@@ -92,7 +92,9 @@
   --container-max-width: 1400px;
   --header-height: 60px;
   --sidebar-width: 250px;
-}/* Mixins and utility classes for DRY CSS */
+}
+
+/* Mixins and utility classes for DRY CSS */
 
 /* Reset mixin */
 .reset {
@@ -102,13 +104,34 @@
 }
 
 /* Button mixins */
-/* Card mixins */
-.card-base {
+
+/* Surface mixins (cards/panels/dropdowns) */
+.surface-base,
+.card-base,
+.reports-panel,
+.reports-summary__card,
+.profile-dropdown,
+.sign-in-launcher__panel,
+.advisor-summary,
+.role-summary-card,
+.form-card,
+.survey-filter-form,
+.survey-list-card,
+.survey-table,
+.survey-card {
   background-color: var(--white);
+  border: 1px solid var(--gray-200);
   border-radius: var(--border-radius-lg);
+}
+
+/* Card mixins */
+.card-base,
+.dashboard-section,
+.dashboard-card,
+.advisor-summary,
+.survey-list-card {
   padding: var(--spacing-2xl);
   box-shadow: var(--shadow-md);
-  border: 1px solid var(--gray-200);
 }
 
 .card-interactive {
@@ -313,9 +336,6 @@ body {
 }
 
 .reports-panel {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
   padding: var(--spacing-3xl);
   box-shadow: var(--shadow-sm);
 }
@@ -415,8 +435,6 @@ body {
 }
 
 .reports-summary__card {
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--gray-200);
   padding: var(--spacing-xl);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.02), var(--white));
   box-shadow: var(--shadow-sm);
@@ -654,9 +672,6 @@ body {
   right: 0;
   top: calc(100% + var(--spacing-sm));
   min-width: 260px;
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--gray-200);
-  background-color: var(--white);
   box-shadow: var(--shadow-lg);
   padding: var(--spacing-lg);
   display: flex;
@@ -760,9 +775,6 @@ body {
   position: absolute;
   top: calc(100% + var(--spacing-sm));
   right: 0;
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-lg);
   z-index: 1000;
   min-width: 280px;
@@ -974,13 +986,6 @@ body {
 }
 
 /* Advisor feedback summary (feedbacks/new) */
-.advisor-summary {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-md);
-}
 
 .advisor-summary__header {
   display: flex;
@@ -1222,13 +1227,6 @@ body {
 }
 
 /* Section Styles */
-.dashboard-section {
-  background-color: var(--white);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--gray-200);
-}
 
 /* Extra spacing between categories in survey views to improve readability */
 .category-section {
@@ -1800,11 +1798,6 @@ body {
 
 /* Dashboard Cards */
 .dashboard-card {
-  background-color: var(--white);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--gray-200);
   transition: all var(--transition-normal);
   height: fit-content;
 }
@@ -2335,9 +2328,6 @@ body {
 }
 
 .role-summary-card {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
   display: flex;
   align-items: center;
@@ -2628,9 +2618,6 @@ body {
 }
 
 .form-card {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
   padding: var(--spacing-2xl);
   box-shadow: var(--shadow-sm);
 }
@@ -2901,9 +2888,6 @@ body {
 }
 
 .survey-filter-form {
-  background-color: var(--white);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--gray-200);
   padding: var(--spacing-2xl);
   box-shadow: var(--shadow-sm);
 }
@@ -2953,11 +2937,6 @@ body {
 }
 
 .survey-list-card {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2xl);
@@ -3006,9 +2985,6 @@ body {
   min-width: 960px;
   border-collapse: separate;
   border-spacing: 0;
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
 
@@ -3223,9 +3199,6 @@ body {
 }
 
 .survey-card {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
   padding: var(--spacing-3xl);
   box-shadow: var(--shadow-md);
   display: flex;

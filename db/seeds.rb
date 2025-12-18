@@ -116,7 +116,9 @@ template_data = YAML.safe_load_file(survey_template_path, aliases: true)
 survey_templates = Array(template_data.fetch("surveys"))
 
 preferred_seed_current_semester = "Fall 2025"
-semester_names = survey_templates.map { |definition| definition["semester"].to_s.strip.presence }.compact.uniq
+semester_names = survey_templates.map do |definition|
+  definition.fetch("program_semester").to_s.strip.presence
+end.compact.uniq
 if semester_names.blank?
   semester_names = [Time.zone.now.strftime("%B %Y")]
 end
@@ -182,7 +184,7 @@ sub_questions_supported = ActiveRecord::Base.connection.column_exists?(:question
 
 survey_templates.each do |definition|
   title = definition.fetch("title")
-  semester = definition.fetch("semester")
+  semester = definition.fetch("program_semester").to_s.strip
   puts "   • Ensuring survey: #{title} (#{semester})"
 
   program_semester = ProgramSemester.find_or_create_by!(name: semester)

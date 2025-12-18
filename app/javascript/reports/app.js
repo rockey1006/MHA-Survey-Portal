@@ -5,8 +5,6 @@ const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
 const TARGET_SCORE = 4
 const EXCEEDS_THRESHOLD = 4.5
-const GOAL_THRESHOLD = 0.85
-const PROGRAM_GOAL_PERCENT = 80
 
 const COLORS = {
   student: "#500000",

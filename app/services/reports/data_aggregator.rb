@@ -6,36 +6,37 @@ module Reports
   # and any active filters passed from the client.
   class DataAggregator
     NUMERIC_PATTERN = /\A-?\d+(?:\.\d+)?\z/.freeze
-  SCALE_MAX = 5.0
-  TARGET_SCORE = 4.0
-  PROGRAM_GOAL_PERCENT = 80.0
-  GOAL_THRESHOLD = 0.85
-  TIMELINE_MONTHS = 3
-  COMPETENCY_TITLES = [
-    "Public and Population Health Assessment",
-    "Delivery, Organization, and Financing of Health Services and Health Systems",
-    "Policy Analysis",
-    "Legal & Ethical Bases for Health Services and Health Systems",
-    "Ethics, Accountability, and Self-Assessment",
-    "Organizational Dynamics",
-    "Problem Solving, Decision Making, and Critical Thinking",
-    "Team Building and Collaboration",
-    "Strategic Planning",
-    "Business Planning",
-    "Communication",
-    "Financial Management",
-    "Performance Improvement",
-    "Project Management",
-    "Systems Thinking",
-    "Data Analysis and Information Management",
-    "Quantitative Methods for Health Services Delivery"
-  ].freeze
-  REPORT_DOMAINS = [
-    "Health Care Environment and Community",
-    "Leadership Skills",
-    "Management Skills",
-    "Analytic and Technical Skills"
-  ].freeze
+
+    SCALE_MIN = 1.0
+    SCALE_MAX = 5.0
+    TIMELINE_MONTHS = 3
+
+    COMPETENCY_TITLES = [
+      "Public and Population Health Assessment",
+      "Delivery, Organization, and Financing of Health Services and Health Systems",
+      "Policy Analysis",
+      "Legal & Ethical Bases for Health Services and Health Systems",
+      "Ethics, Accountability, and Self-Assessment",
+      "Organizational Dynamics",
+      "Problem Solving, Decision Making, and Critical Thinking",
+      "Team Building and Collaboration",
+      "Strategic Planning",
+      "Business Planning",
+      "Communication",
+      "Financial Management",
+      "Performance Improvement",
+      "Project Management",
+      "Systems Thinking",
+      "Data Analysis and Information Management",
+      "Quantitative Methods for Health Services Delivery"
+    ].freeze
+
+    REPORT_DOMAINS = [
+      "Health Care Environment and Community",
+      "Leadership Skills",
+      "Management Skills",
+      "Analytic and Technical Skills"
+    ].freeze
     RECENT_WINDOW = 90.days
     DATASET_SELECT = [
       "student_questions.id",
@@ -355,8 +356,11 @@ module Reports
       return nil if student_avg.nil? || advisor_avg.nil?
 
       gap = (student_avg - advisor_avg).abs
-      normalized = [ SCALE_MAX - [ gap, SCALE_MAX ].min, 0 ].max
-      (normalized / SCALE_MAX) * 100.0
+      max_gap = (SCALE_MAX - SCALE_MIN)
+      return nil if max_gap <= 0
+
+      clamped_gap = [ gap, max_gap ].min
+      ((max_gap - clamped_gap) / max_gap) * 100.0
     end
 
     def build_benchmark_payload
@@ -384,6 +388,17 @@ module Reports
       )
 
       cards << build_card(
+        key: "overall_advisor_average",
+        title: "Overall Advisor Average",
+        value: advisor_avg,
+        unit: "score",
+        precision: 1,
+        change: percent_change_for(:advisor),
+        description: "Mean advisor competency score on a five-point scale.",
+        sample_size: advisor_scores.size
+      )
+
+      cards << build_card(
         key: "advisor_alignment",
         title: "Student & Advisor Alignment",
         value: alignment_pct,
@@ -405,27 +420,6 @@ module Reports
         description: "Percent of assigned surveys submitted.",
         sample_size: completion_stats[:total_assignments]
       )
-
-      goal_metric = competency_goal_metric
-      Rails.logger.debug "Competency Goal Metric: #{goal_metric.inspect}"
-
-      if (goal_metric = competency_goal_metric)
-        cards << build_card(
-          key: "competency_goal_attainment",
-          title: "Students Meeting Competency Goal",
-          value: goal_metric[:percent],
-          unit: "percent",
-          precision: 0,
-          change: goal_metric[:percent] && goal_metric[:goal_percent] ? (goal_metric[:percent] - goal_metric[:goal_percent]) : nil,
-          description: "Percent of students achieving ≥85% of competencies. Program goal: #{goal_metric[:goal_percent]}%.",
-          sample_size: goal_metric[:total_students],
-          meta: {
-            goal_percent: goal_metric[:goal_percent],
-            goal_threshold: goal_metric[:goal_threshold],
-            students_met_goal: goal_metric[:students_meeting_goal]
-          }
-        )
-      end
 
       competency_summary_data = competency_summary
       Rails.logger.debug "Competency Summary (for Leading Competency card): #{competency_summary_data.first.inspect}"
@@ -537,11 +531,9 @@ module Reports
         entries = by_student[student_id] || []
         next if entries.blank?
 
-        # Compare a student's average score against the average of the per-question
-        # program targets within this grouping. If a question lacks a target level,
-        # fall back to the global TARGET_SCORE.
         score_avg = average(entries.map { |row| row[:score] })
-        target_avg = average(entries.map { |row| (row[:program_target_level].presence || TARGET_SCORE).to_f })
+        target_levels = entries.map { |row| row[:program_target_level] }.compact.map(&:to_f)
+        target_avg = average(target_levels)
         next if score_avg.nil? || target_avg.nil?
 
         met += 1 if score_avg >= target_avg
@@ -604,7 +596,7 @@ module Reports
           advisor_average: advisor_avg,
           gap: advisor_avg && student_avg ? (advisor_avg - student_avg) : nil,
           change: percent_change_for_category(rows),
-          status: student_avg && student_avg >= TARGET_SCORE ? "on_track" : "watch",
+          status: student_avg && target_level && student_avg >= target_level ? "on_track" : "watch",
           student_sample: student_rows.size,
           advisor_sample: advisor_rows.size,
           achieved_count: attainment_counts[:achieved_count],
@@ -1082,10 +1074,14 @@ module Reports
       not_met = 0
 
       student_rows_group.each_value do |entries|
-        avg = average(entries.map { |row| row[:score] })
-        next if avg.nil?
+        score_avg = average(entries.map { |row| row[:score] })
+        next if score_avg.nil?
 
-        if avg >= TARGET_SCORE
+        target_levels = entries.map { |row| row[:program_target_level] }.compact.map(&:to_f)
+        target_avg = average(target_levels)
+        next if target_avg.nil?
+
+        if score_avg >= target_avg
           achieved += 1
         else
           not_met += 1
@@ -1115,43 +1111,6 @@ module Reports
       }
     end
 
-    def competency_goal_metric
-      Rails.logger.debug "--- Calculating competency_goal_metric ---"
-      student_ids = scoped_student_ids
-      Rails.logger.debug "Scoped student IDs for goal metric: #{student_ids.inspect}"
-      return nil if student_ids.blank?
-
-      averages = student_competency_averages
-      Rails.logger.debug "Student competency averages for goal: #{averages.inspect}"
-      competency_slugs = competency_ids_for_goal(averages)
-      Rails.logger.debug "Competency slugs for goal: #{competency_slugs.inspect}"
-      total_competencies = competency_slugs.size
-      return nil if total_competencies.zero?
-
-      students_meeting_goal = student_ids.count do |student_id|
-        competency_avgs = averages[student_id] || {}
-        achieved = competency_slugs.count do |slug|
-          avg = competency_avgs[slug]
-          avg && avg >= TARGET_SCORE
-        end
-        ratio = achieved.to_f / total_competencies
-        Rails.logger.debug "Student #{student_id} achieved ratio: #{ratio}"
-        ratio >= GOAL_THRESHOLD
-      end
-
-      percent = safe_percent(students_meeting_goal, student_ids.size)
-
-      result = {
-        percent: percent,
-        goal_percent: PROGRAM_GOAL_PERCENT,
-        goal_threshold: GOAL_THRESHOLD,
-        total_students: student_ids.size,
-        students_meeting_goal: students_meeting_goal
-      }
-      Rails.logger.debug "Final competency_goal_metric result: #{result.inspect}"
-      result
-    end
-
     def student_competency_averages
       @student_competency_averages ||= begin
         per_student = Hash.new { |hash, key| hash[key] = Hash.new { |inner, slug| inner[slug] = [] } }
@@ -1168,14 +1127,6 @@ module Reports
           competencies.transform_values { |scores| average(scores) }
         end
       end
-    end
-
-    def competency_ids_for_goal(averages = nil)
-      return [ filters[:competency] ] if filters[:competency]
-
-      averages ||= student_competency_averages
-      present_slugs = averages.values.flat_map(&:keys).uniq.compact
-      present_slugs.presence || competency_lookup.keys
     end
 
     def scoped_assignment_scope

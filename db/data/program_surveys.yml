@@ -252,7 +252,7 @@ common_categories: &common_categories
         order: 1
 
 survey_base: &survey_base
-  semester: "Fall 2025"
+  program_semester: "Fall 2025"
   legend:
     title: "Rating Scale Reference"
     body: *mha_competency_tooltip
@@ -276,9 +276,9 @@ surveys:
       - "Residential"
 
   - <<: *executive_survey_base
-    semester: "Spring 2025"
+    program_semester: "Spring 2025"
     seed_auto_assign_students: false
 
   - <<: *residential_survey_base
-    semester: "Spring 2025"
+    program_semester: "Spring 2025"
     seed_auto_assign_students: false

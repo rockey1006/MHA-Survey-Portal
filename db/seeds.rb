@@ -133,6 +133,16 @@ unless semester_names.include?(target_current_semester)
   semester_names.uniq!
 end
 
+puts "• Syncing program semesters"
+ProgramSemester.transaction do
+  semester_names.each do |name|
+    ProgramSemester.find_or_create_by!(name: name)
+  end
+
+  ProgramSemester.where.not(name: target_current_semester).update_all(current: false)
+  ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
+end
+
 answer_options_for = lambda do |options|
   return nil if options.blank?
 
@@ -175,8 +185,10 @@ survey_templates.each do |definition|
   semester = definition.fetch("semester")
   puts "   • Ensuring survey: #{title} (#{semester})"
 
+  program_semester = ProgramSemester.find_or_create_by!(name: semester)
+
   Survey.transaction do
-    survey = Survey.find_or_initialize_by(title:, semester:)
+    survey = Survey.find_or_initialize_by(title: title, program_semester: program_semester)
     survey.creator ||= admin_users.first
     survey.description = definition["description"]
     survey.is_active = definition.fetch("is_active", true)
@@ -356,16 +368,6 @@ survey_templates.each do |definition|
   end
 end
 
-puts "• Syncing program semesters"
-ProgramSemester.transaction do
-  semester_names.each do |name|
-    ProgramSemester.find_or_create_by!(name: name)
-  end
-
-  ProgramSemester.where.not(name: target_current_semester).update_all(current: false)
-  ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
-end
-
 puts "• Assigning surveys to each student"
 response_rng = Random.new(20_251_110)
 
@@ -398,6 +400,27 @@ drive_links = %w[
   https://drive.google.com/drive/folders/1ExampleFolderId?usp=drive_link
   https://docs.google.com/document/d/1SampleDocumentId/edit?usp=drive_link
 ]
+
+choice_values_for = lambda do |question|
+  raw = question.answer_options.presence || "[]"
+  parsed = JSON.parse(raw)
+  Array(parsed).filter_map do |entry|
+    case entry
+    when String
+      entry.to_s.strip.presence
+    when Hash
+      (entry["value"] || entry[:value] || entry["label"] || entry[:label]).to_s.strip.presence
+    when Array
+      next if entry.empty?
+
+      (entry[1] || entry[0]).to_s.strip.presence
+    else
+      entry.to_s.strip.presence
+    end
+  end.uniq
+rescue JSON::ParserError
+  []
+end
 
 competency_titles = Reports::DataAggregator::COMPETENCY_TITLES
 competency_title_lookup = competency_titles.map { |title| title.to_s.strip }.to_set
@@ -448,13 +471,7 @@ students.each do |student|
                          when "evidence"
                            high_performer ? drive_links.first : drive_links.sample(random: response_rng)
                          when "multiple_choice"
-                           options = begin
-                             raw = question.answer_options.presence || "[]"
-                             parsed = JSON.parse(raw)
-                             Array.wrap(parsed)
-                           rescue JSON::ParserError
-                             []
-                           end
+                           options = choice_values_for.call(question)
 
                            if is_competency_question
                              rating_value = competency_rating_value.call(high_performer: high_performer)
@@ -464,6 +481,15 @@ students.each do |student|
                              selection = options.sample(random: response_rng).presence
                              fallback = preferred && options.include?(preferred) ? preferred : selection
                              fallback.presence || preferred || options.first || "Yes"
+                           end
+                         when "dropdown"
+                           options = choice_values_for.call(question)
+
+                           if is_competency_question
+                             rating_value = competency_rating_value.call(high_performer: high_performer)
+                             options.include?(rating_value) ? rating_value : (options.sample(random: response_rng).presence || rating_value || "3")
+                           else
+                             options.sample(random: response_rng).presence || options.first
                            end
                          when "short_answer"
                            if is_competency_question

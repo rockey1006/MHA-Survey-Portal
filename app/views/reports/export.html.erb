@@ -16,7 +16,9 @@
 <% show_track = selected_section.blank? || track_sections.include?(selected_section) %>
 
 <% filters_text = payload.fetch(:filters, {}).map { |label, value| "#{label.to_s.titleize}: #{value.presence || 'All'}" }.join(", ") %>
-<% score_scale = Reports::DataAggregator::SCALE_MAX.to_f %>
+<% axis_mode = (defined?(y_axis_mode) ? y_axis_mode : "score").to_s %>
+<% percent_mode = axis_mode == "percent" %>
+<% score_scale = percent_mode ? 100.0 : Reports::DataAggregator::SCALE_MAX.to_f %>
 <% status_colors = { achieved: "#16a34a", not_met: "#dc2626", not_assessed: "#94a3b8" } %>
 <% competencies = Array(payload[:competency_summary]) %>
 <% competency_detail = payload[:competency_detail] || {} %>
@@ -82,23 +84,23 @@
       <h2>Competency Summary</h2>
       <% if competencies.any? %>
         <div class="chart-block">
-          <h3>Average Score by Domain</h3>
+          <h3><%= percent_mode ? "% Meeting Program Target by Domain" : "Average Score by Domain" %></h3>
           <div class="chart-legend">
             <span class="chart-legend__item">
               <span class="chart-legend__swatch" style="background-color: #500000"></span>
-              Student Avg
+              <%= percent_mode ? "Student %" : "Student Avg" %>
             </span>
             <span class="chart-legend__item">
               <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
-              Advisor Avg
+              <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
             </span>
           </div>
           <div class="space-y-3">
             <% competencies.each do |entry| %>
-              <% student_avg = entry[:student_average].to_f %>
-              <% advisor_avg = entry[:advisor_average].to_f %>
-              <% student_width = score_scale.positive? ? (student_avg / score_scale * 100.0) : 0.0 %>
-              <% advisor_width = score_scale.positive? ? (advisor_avg / score_scale * 100.0) : 0.0 %>
+              <% student_value = percent_mode ? entry[:student_target_percent].to_f : entry[:student_average].to_f %>
+              <% advisor_value = percent_mode ? entry[:advisor_target_percent].to_f : entry[:advisor_average].to_f %>
+              <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
+              <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
               <% student_width = [[student_width, 0.0].max, 100.0].min %>
               <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
 
@@ -108,18 +110,18 @@
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.35rem;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;">Student Avg</span>
+                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Student %" : "Student Avg" %></span>
                     <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
                       <div style="background-color: #500000; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', student_width) %>%; min-width: 2rem;">
-                        <%= number_with_precision(student_avg, precision: 2) %>
+                        <%= percent_mode ? number_to_percentage(student_value, precision: 1) : number_with_precision(student_value, precision: 2) %>
                       </div>
                     </div>
                   </div>
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;">Advisor Avg</span>
+                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Advisor %" : "Advisor Avg" %></span>
                     <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
                       <div style="background-color: #2563eb; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', advisor_width) %>%; min-width: 2rem;">
-                        <%= number_with_precision(advisor_avg, precision: 2) %>
+                        <%= percent_mode ? number_to_percentage(advisor_value, precision: 1) : number_with_precision(advisor_value, precision: 2) %>
                       </div>
                     </div>
                   </div>
@@ -182,23 +184,23 @@
     <section class="report-export__section">
       <h2>Competency Detail</h2>
       <div class="chart-block">
-        <h3>Average Score by Competency</h3>
+        <h3><%= percent_mode ? "% Meeting Program Target by Competency" : "Average Score by Competency" %></h3>
         <div class="chart-legend">
           <span class="chart-legend__item">
             <span class="chart-legend__swatch" style="background-color: #500000"></span>
-            Student Avg
+            <%= percent_mode ? "Student %" : "Student Avg" %>
           </span>
           <span class="chart-legend__item">
             <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
-            Advisor Avg
+            <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
           </span>
         </div>
         <div class="space-y-3">
           <% competency_items.each do |item| %>
-            <% student_avg = item[:student_average].to_f %>
-            <% advisor_avg = item[:advisor_average].to_f %>
-            <% student_width = score_scale.positive? ? (student_avg / score_scale * 100.0) : 0.0 %>
-            <% advisor_width = score_scale.positive? ? (advisor_avg / score_scale * 100.0) : 0.0 %>
+            <% student_value = percent_mode ? item[:student_target_percent].to_f : item[:student_average].to_f %>
+            <% advisor_value = percent_mode ? item[:advisor_target_percent].to_f : item[:advisor_average].to_f %>
+            <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
+            <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
             <% student_width = [[student_width, 0.0].max, 100.0].min %>
             <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
 
@@ -208,18 +210,18 @@
               </div>
               <div style="display: flex; flex-direction: column; gap: 0.35rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;">Student Avg</span>
+                  <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Student %" : "Student Avg" %></span>
                   <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
                     <div style="background-color: #500000; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', student_width) %>%; min-width: 2rem;">
-                      <%= number_with_precision(student_avg, precision: 2) %>
+                      <%= percent_mode ? number_to_percentage(student_value, precision: 1) : number_with_precision(student_value, precision: 2) %>
                     </div>
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;">Advisor Avg</span>
+                  <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Advisor %" : "Advisor Avg" %></span>
                   <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
                     <div style="background-color: #2563eb; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', advisor_width) %>%; min-width: 2rem;">
-                      <%= number_with_precision(advisor_avg, precision: 2) %>
+                      <%= percent_mode ? number_to_percentage(advisor_value, precision: 1) : number_with_precision(advisor_value, precision: 2) %>
                     </div>
                   </div>
                 </div>
@@ -413,22 +415,85 @@
   <% if show_trend %>
     <section class="report-export__section">
       <h2>Monthly Trend</h2>
+
+      <% timeline_points = Array(payload.dig(:benchmark, :timeline)) %>
+      <% if timeline_points.any? %>
+        <div class="chart-block" style="margin-bottom: 1.25rem;">
+          <h3><%= percent_mode ? "% Meeting Program Target Over Time" : "Average Score Over Time" %></h3>
+          <div class="chart-legend">
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch" style="background-color: #500000"></span>
+              <%= percent_mode ? "Student %" : "Student Avg" %>
+            </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
+              <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
+            </span>
+          </div>
+
+          <div class="space-y-3">
+            <% timeline_points.each do |point| %>
+              <% student_value = percent_mode ? point[:student_target_percent].to_f : point[:student].to_f %>
+              <% advisor_value = percent_mode ? point[:advisor_target_percent].to_f : point[:advisor].to_f %>
+              <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
+              <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
+              <% student_width = [[student_width, 0.0].max, 100.0].min %>
+              <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
+
+              <div style="border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem;">
+                <div style="font-weight: 600; margin-bottom: 0.35rem; color: #0f172a;">
+                  <%= point[:label] %>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Student %" : "Student Avg" %></span>
+                    <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                      <div style="background-color: #500000; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', student_width) %>%; min-width: 2rem;">
+                        <%= percent_mode ? number_to_percentage(student_value, precision: 1) : number_with_precision(student_value, precision: 2) %>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Advisor %" : "Advisor Avg" %></span>
+                    <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                      <div style="background-color: #2563eb; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', advisor_width) %>%; min-width: 2rem;">
+                        <%= percent_mode ? number_to_percentage(advisor_value, precision: 1) : number_with_precision(advisor_value, precision: 2) %>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
       <table class="report-export__table">
         <thead>
           <tr>
             <th>Month</th>
-            <th>Student Average</th>
-            <th>Advisor Average</th>
-            <th>Alignment %</th>
+            <% if percent_mode %>
+              <th>Student % Meeting Target</th>
+              <th>Advisor % Meeting Target</th>
+            <% else %>
+              <th>Student Average</th>
+              <th>Advisor Average</th>
+              <th>Alignment %</th>
+            <% end %>
           </tr>
         </thead>
         <tbody>
-          <% Array(payload.dig(:benchmark, :timeline)).each do |point| %>
+          <% timeline_points.each do |point| %>
             <tr>
               <td><%= point[:label] %></td>
-              <td><%= number_with_precision(point[:student], precision: 2) %></td>
-              <td><%= number_with_precision(point[:advisor], precision: 2) %></td>
-              <td><%= point[:alignment].present? ? number_with_precision(point[:alignment], precision: 1) : "—" %></td>
+              <% if percent_mode %>
+                <td><%= point[:student_target_percent].present? ? number_to_percentage(point[:student_target_percent], precision: 1) : "—" %></td>
+                <td><%= point[:advisor_target_percent].present? ? number_to_percentage(point[:advisor_target_percent], precision: 1) : "—" %></td>
+              <% else %>
+                <td><%= number_with_precision(point[:student], precision: 2) %></td>
+                <td><%= number_with_precision(point[:advisor], precision: 2) %></td>
+                <td><%= point[:alignment].present? ? number_with_precision(point[:alignment], precision: 1) : "—" %></td>
+              <% end %>
             </tr>
           <% end %>
         </tbody>

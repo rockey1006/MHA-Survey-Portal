@@ -24,8 +24,8 @@
   </div>
 
   <div>
-    <%= form.label :average_score, "Score (1-5)", style: "display: block" %>
-    <%= form.number_field :average_score, step: 1, min: 1, max: 5 %>
+    <%= form.label :average_score, "Score (0–5)", style: "display: block" %>
+    <%= form.number_field :average_score, step: 0.1, min: 0, max: 5 %>
   </div>
 
   <div>

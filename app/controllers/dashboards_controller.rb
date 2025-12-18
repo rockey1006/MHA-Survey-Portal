@@ -62,12 +62,16 @@ class DashboardsController < ApplicationController
     @pending_surveys = []
 
     surveys.each do |survey|
-      required_ids = survey.questions.select { |question| required_question?(question) }.map(&:id)
+      parent_questions = survey.questions
+      parent_questions = parent_questions.parent_questions if parent_questions.respond_to?(:parent_questions)
+      parent_question_ids = parent_questions.map(&:id)
+
+      required_ids = parent_questions.select { |question| required_question?(question) }.map(&:id)
       responses = responses_matrix[survey.id]
-      answered_ids = responses.map { |entry| entry[:question_id] }.uniq
+      answered_ids = responses.map { |entry| entry[:question_id] }.uniq & parent_question_ids
       answered_required_count = (answered_ids & required_ids).size
       total_required_count = required_ids.size
-      total_questions = survey.questions.count
+      total_questions = parent_question_ids.size
       answered_total_count = answered_ids.size
       answered_optional_count = [ answered_total_count - answered_required_count, 0 ].max
       total_optional_count = [ total_questions - total_required_count, 0 ].max

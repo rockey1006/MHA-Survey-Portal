@@ -10,7 +10,12 @@ class Feedback < ApplicationRecord
   belongs_to :question, optional: true
   belongs_to :survey
 
-  validates :average_score, numericality: true, allow_nil: true
+  validates :average_score,
+            numericality: {
+              greater_than_or_equal_to: 0,
+              less_than_or_equal_to: 5
+            },
+            allow_nil: true
      # NOTE: previously we enforced uniqueness on survey_id which prevented
      # storing multiple per-category feedback rows for the same survey. That
      # constraint is enforced at a composite level in the DB and/or via

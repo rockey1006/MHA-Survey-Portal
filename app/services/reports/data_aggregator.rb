@@ -46,9 +46,10 @@ module Reports
       "categories.id AS category_id",
       "categories.name AS category_name",
       "questions.question_text AS question_text",
+      "questions.program_target_level AS program_target_level",
       "surveys.id AS survey_id",
       "surveys.title AS survey_title",
-      "surveys.semester AS survey_semester",
+      "program_semesters.name AS survey_semester",
       "students.track AS student_track",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -63,9 +64,10 @@ module Reports
       "categories.id AS category_id",
       "categories.name AS category_name",
       "questions.question_text AS question_text",
+      "questions.program_target_level AS program_target_level",
       "surveys.id AS survey_id",
       "surveys.title AS survey_title",
-      "surveys.semester AS survey_semester",
+      "program_semesters.name AS survey_semester",
       "students.track AS student_track",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -216,7 +218,7 @@ module Reports
       StudentQuestion
         .joins(:student)
         .merge(accessible_student_relation)
-        .joins(question: { category: :survey })
+        .joins(question: { category: { survey: :program_semester } })
         .where.not(response_value: [ nil, "" ])
     end
 
@@ -226,7 +228,7 @@ module Reports
         scope = scope.where(students: { track: filters[:track] })
       end
       if filters[:semester]
-        scope = scope.where("LOWER(surveys.semester) = ?", filters[:semester].downcase)
+        scope = scope.where("LOWER(program_semesters.name) = ?", filters[:semester].downcase)
       end
       if filters[:survey_id]
         scope = scope.where(surveys: { id: filters[:survey_id] })
@@ -253,7 +255,7 @@ module Reports
         .joins(:student)
         .merge(accessible_student_relation)
         .joins(:question)
-        .joins(question: { category: :survey })
+        .joins(question: { category: { survey: :program_semester } })
         .where.not(average_score: nil)
     end
 
@@ -263,7 +265,7 @@ module Reports
         scope = scope.where(students: { track: filters[:track] })
       end
       if filters[:semester]
-        scope = scope.where("LOWER(surveys.semester) = ?", filters[:semester].downcase)
+        scope = scope.where("LOWER(program_semesters.name) = ?", filters[:semester].downcase)
       end
       if filters[:survey_id]
         scope = scope.where(surveys: { id: filters[:survey_id] })
@@ -493,28 +495,59 @@ module Reports
     def build_timeline
       return [] if dataset_rows.empty?
 
-      buckets = Hash.new { |hash, key| hash[key] = { student: [], advisor: [] } }
+      buckets = Hash.new { |hash, key| hash[key] = { student_rows: [], advisor_rows: [] } }
 
       dataset_rows.each do |row|
         month = row[:updated_at].in_time_zone.beginning_of_month
         bucket = buckets[month]
         if row[:advisor_entry]
-          bucket[:advisor] << row[:score]
+          bucket[:advisor_rows] << row
         else
-          bucket[:student] << row[:score]
+          bucket[:student_rows] << row
         end
       end
 
       buckets.keys.sort.last(TIMELINE_MONTHS).map do |month|
-        student_avg = average(buckets[month][:student])
-        advisor_avg = average(buckets[month][:advisor])
+        student_rows = buckets[month][:student_rows]
+        advisor_rows = buckets[month][:advisor_rows]
+        student_avg = average(student_rows.map { |row| row[:score] })
+        advisor_avg = average(advisor_rows.map { |row| row[:score] })
+
+        student_target_percent = target_percent_for_rows(student_rows)
+        advisor_target_percent = target_percent_for_rows(advisor_rows)
         {
           label: month.strftime("%b %Y"),
           student: student_avg,
           advisor: advisor_avg,
+          student_target_percent: student_target_percent,
+          advisor_target_percent: advisor_target_percent,
           alignment: alignment_percent(student_avg, advisor_avg)
         }
       end
+    end
+
+    def target_percent_for_rows(rows)
+      total_students = scoped_student_ids.size
+      return nil if total_students.zero?
+
+      by_student = group_student_rows(rows)
+      met = 0
+
+      scoped_student_ids.each do |student_id|
+        entries = by_student[student_id] || []
+        next if entries.blank?
+
+        # Compare a student's average score against the average of the per-question
+        # program targets within this grouping. If a question lacks a target level,
+        # fall back to the global TARGET_SCORE.
+        score_avg = average(entries.map { |row| row[:score] })
+        target_avg = average(entries.map { |row| (row[:program_target_level].presence || TARGET_SCORE).to_f })
+        next if score_avg.nil? || target_avg.nil?
+
+        met += 1 if score_avg >= target_avg
+      end
+
+      safe_percent(met, total_students)
     end
 
     def alignment_trend_change
@@ -530,6 +563,7 @@ module Reports
 
     def build_competency_summary
       Rails.logger.debug "--- Building Competency Summary ---"
+      assigned_total_students = assigned_student_ids_in_scope.size
       grouped = Hash.new { |hash, key| hash[key] = { rows: [], category_ids: [] } }
 
       dataset_rows.each do |row|
@@ -550,9 +584,17 @@ module Reports
         advisor_avg = average(advisor_rows.map { |row| row[:score] })
 
         student_group = group_student_rows(student_rows)
-        attainment_counts = attainment_counts_for_group(student_group)
+        attainment_counts = attainment_counts_for_group(student_group, total_students: assigned_total_students)
         attainment_percentages = attainment_percentages(attainment_counts)
+
+        advisor_group = group_student_rows(advisor_rows)
+        advisor_attainment_counts = attainment_counts_for_group(advisor_group, total_students: assigned_total_students)
+        advisor_attainment_percentages = attainment_percentages(advisor_attainment_counts)
         course_breakdown = build_competency_course_breakdown(rows)
+
+        student_target_percent = target_percent_for_rows(student_rows)
+        advisor_target_percent = target_percent_for_rows(advisor_rows)
+        target_level = average(rows.map { |row| row[:program_target_level] }.compact.map(&:to_f))
 
         {
           id: slug,
@@ -571,6 +613,9 @@ module Reports
           achieved_percent: attainment_percentages[:achieved_percent],
           not_met_percent: attainment_percentages[:not_met_percent],
           not_assessed_percent: attainment_percentages[:not_assessed_percent],
+          student_target_percent: student_target_percent,
+          advisor_target_percent: advisor_target_percent,
+          program_target_level: target_level,
           total_students: attainment_counts[:total_students],
           courses: course_breakdown
         }
@@ -598,6 +643,7 @@ module Reports
 
     def build_competency_detail
       Rails.logger.debug "--- Building Competency Detail ---"
+      assigned_total_students = assigned_student_ids_in_scope.size
       buckets = Hash.new do |hash, key|
         hash[key] = {
           student_rows: [],
@@ -631,8 +677,16 @@ module Reports
         advisor_avg = average(advisor_rows.map { |row| row[:score] })
 
         student_group = group_student_rows(student_rows)
-        attainment_counts = attainment_counts_for_group(student_group)
+        attainment_counts = attainment_counts_for_group(student_group, total_students: assigned_total_students)
         attainment_percentages = attainment_percentages(attainment_counts)
+
+        advisor_group = group_student_rows(advisor_rows)
+        advisor_attainment_counts = attainment_counts_for_group(advisor_group, total_students: assigned_total_students)
+        advisor_attainment_percentages = attainment_percentages(advisor_attainment_counts)
+
+        student_target_percent = target_percent_for_rows(student_rows)
+        advisor_target_percent = target_percent_for_rows(advisor_rows)
+        target_level = average((student_rows + advisor_rows).map { |row| row[:program_target_level] }.compact.map(&:to_f))
 
         {
           id: slug,
@@ -648,6 +702,9 @@ module Reports
           achieved_percent: attainment_percentages[:achieved_percent],
           not_met_percent: attainment_percentages[:not_met_percent],
           not_assessed_percent: attainment_percentages[:not_assessed_percent],
+          student_target_percent: student_target_percent,
+          advisor_target_percent: advisor_target_percent,
+          program_target_level: target_level,
           total_students: attainment_counts[:total_students]
         }
       end
@@ -665,6 +722,7 @@ module Reports
 
       surveys.map do |_survey_id, rows|
         survey_meta = rows.first
+        course_total_students = assigned_student_count_for_survey(survey_meta[:survey_id])
         student_rows = rows.reject { |row| row[:advisor_entry] }
         advisor_rows = rows.select { |row| row[:advisor_entry] }
 
@@ -672,7 +730,7 @@ module Reports
         advisor_avg = average(advisor_rows.map { |row| row[:score] })
 
         student_by_person = group_student_rows(student_rows)
-        attainment_counts = attainment_counts_for_group(student_by_person)
+        attainment_counts = attainment_counts_for_group(student_by_person, total_students: course_total_students)
         attainment_percentages = attainment_percentages(attainment_counts)
         competency_breakdown = build_course_competency_breakdown(rows)
 
@@ -704,6 +762,8 @@ module Reports
       tracks.map do |track_name, rows|
         next if rows.blank?
 
+        track_total_students = assigned_student_count_for_track(track_name)
+
         student_rows = rows.reject { |row| row[:advisor_entry] }
         advisor_rows = rows.select { |row| row[:advisor_entry] }
 
@@ -711,7 +771,7 @@ module Reports
         advisor_avg = average(advisor_rows.map { |row| row[:score] })
 
         student_by_person = group_student_rows(student_rows)
-        attainment_counts = attainment_counts_for_group(student_by_person)
+        attainment_counts = attainment_counts_for_group(student_by_person, total_students: track_total_students)
         attainment_percentages = attainment_percentages(attainment_counts)
 
         {
@@ -772,7 +832,7 @@ module Reports
     end
 
     def available_semesters
-      base_scope.distinct.pluck("surveys.semester").compact.sort
+      base_scope.distinct.pluck("program_semesters.name").compact.sort
     end
 
     def available_categories
@@ -786,7 +846,7 @@ module Reports
     def available_surveys
       base_scope
         .distinct
-        .pluck("surveys.id", "surveys.title", "surveys.semester")
+        .pluck("surveys.id", "surveys.title", "program_semesters.name")
         .map { |id, title, semester| { id: id, title: title, semester: semester } }
         .sort_by { |entry| entry[:title].to_s.downcase }
     end
@@ -990,6 +1050,7 @@ module Reports
         category_id: record.category_id,
         category_name: record.category_name,
         question_text: record.question_text,
+        program_target_level: record.respond_to?(:program_target_level) ? record.program_target_level : nil,
         survey_id: record.survey_id,
         survey_title: record.survey_title,
         survey_semester: record.survey_semester,
@@ -1016,7 +1077,7 @@ module Reports
           .group_by { |row| row[:student_id] }
     end
 
-    def attainment_counts_for_group(student_rows_group)
+    def attainment_counts_for_group(student_rows_group, total_students: nil)
       achieved = 0
       not_met = 0
 
@@ -1032,7 +1093,7 @@ module Reports
       end
 
       assessed = achieved + not_met
-      total_students = scoped_student_ids.size
+      total_students ||= scoped_student_ids.size
       not_assessed = [ total_students - assessed, 0 ].max
 
       {
@@ -1127,7 +1188,8 @@ module Reports
       scope = scope.where(student_id: filters[:student_id]) if filters[:student_id]
       scope = scope.where(surveys: { id: filters[:survey_id] }) if filters[:survey_id]
       if filters[:semester]
-        scope = scope.where("LOWER(surveys.semester) = ?", filters[:semester].downcase)
+        scope = scope.joins(survey: :program_semester)
+        scope = scope.where("LOWER(program_semesters.name) = ?", filters[:semester].downcase)
       end
 
       scope
@@ -1149,6 +1211,30 @@ module Reports
       return false if student_id.blank? || survey_id.blank?
 
       completed_assignment_pairs[assignment_pair_key(student_id, survey_id)] || false
+    end
+
+    def assigned_student_ids_in_scope
+      @assigned_student_ids_in_scope ||= scoped_assignment_scope
+                                         .distinct
+                                         .pluck(:student_id)
+                                         .compact
+                                         .uniq
+    end
+
+    def assigned_student_count_for_survey(survey_id)
+      return 0 if survey_id.blank?
+
+      scoped_assignment_scope
+        .where(survey_id: survey_id)
+        .distinct
+        .count(:student_id)
+    end
+
+    def assigned_student_count_for_track(track_name)
+      scoped_assignment_scope
+        .where(students: { track: track_name })
+        .distinct
+        .count(:student_id)
     end
   end
 end

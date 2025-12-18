@@ -21,7 +21,7 @@ class Admin::SurveysController < Admin::BaseController
 
     allowed_sort_columns = {
       "title" => "surveys.title",
-      "semester" => "surveys.semester",
+      "semester" => "program_semesters.name",
       "updated_at" => "surveys.updated_at",
       "question_count" => "question_count",
       "category_count" => "category_count"
@@ -30,7 +30,7 @@ class Admin::SurveysController < Admin::BaseController
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
     @sort_direction = params[:direction] == "asc" ? "asc" : "desc"
 
-    active_scope = Survey.active.left_joins(:track_assignments)
+    active_scope = Survey.active.left_joins(:track_assignments, :program_semester)
 
     if @selected_track.present?
       if @selected_track == unassigned_track_token
@@ -43,7 +43,7 @@ class Admin::SurveysController < Admin::BaseController
     if @search_query.present?
       term = "%#{@search_query.downcase}%"
       active_scope = active_scope.where(
-        "LOWER(surveys.title) LIKE :term OR LOWER(surveys.semester) LIKE :term OR LOWER(COALESCE(surveys.description, '')) LIKE :term",
+        "LOWER(surveys.title) LIKE :term OR LOWER(program_semesters.name) LIKE :term OR LOWER(COALESCE(surveys.description, '')) LIKE :term",
         term: term
       )
     end
@@ -57,7 +57,7 @@ class Admin::SurveysController < Admin::BaseController
         "COUNT(DISTINCT categories.id) AS category_count, " \
         "COUNT(DISTINCT questions.id) AS question_count"
       )
-      .group("surveys.id")
+      .group("surveys.id", "program_semesters.name")
 
     order_expression = allowed_sort_columns[@sort_column]
     active_scope = active_scope.order(Arel.sql("#{order_expression} #{@sort_direction}"))

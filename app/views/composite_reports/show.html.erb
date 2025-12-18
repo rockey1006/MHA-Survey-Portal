@@ -86,12 +86,15 @@
       </div>
 
       <% ordered_questions = category.questions.ordered.to_a %>
+      <% feedback_entries = feedbacks_by_category[category.id] || [] %>
+      <% feedback_by_question_id = feedback_entries.group_by(&:question_id) %>
+      <% show_inline_feedback = category.section&.title.to_s == "MHA Competency Self-Assessment" %>
       <% if ordered_questions.any? %>
         <% number_key = section&.id || category.id %>
         <% question_number = section_question_numbers[number_key] %>
         <% questions_by_id = ordered_questions.index_by(&:id) %>
 
-        <% ordered_questions.each do |question| %>
+        <% ordered_questions.each_with_index do |question, index| %>
           <%# Hide conditional subquestions (e.g. Employment follow-ups) unless parent is answered "Yes" %>
           <% if question.sub_question? %>
             <% parent = questions_by_id[question.parent_question_id] %>
@@ -230,7 +233,36 @@
                 <span class="badge badge-warning">Missing</span>
               <% end %>
             </div>
+
+            <% next_question = ordered_questions[index + 1] %>
+            <% group_parent_id = question.sub_question? ? question.parent_question_id : question.id %>
+            <% end_of_parent_group = next_question.nil? || !next_question.sub_question? || next_question.parent_question_id != group_parent_id %>
+            <% feedback_for_parent = (feedback_by_question_id[group_parent_id] || []).first %>
           </div>
+
+          <% if show_inline_feedback && end_of_parent_group && feedback_for_parent.present? %>
+            <% timestamp = feedback_for_parent.updated_at || feedback_for_parent.created_at %>
+            <div class="feedback-block">
+              <div class="feedback-header">
+                <div><strong>Advisor feedback</strong> <span class="muted">(<%= feedback_for_parent.advisor&.display_name || "—" %>)</span></div>
+                <div class="feedback-score">
+                  Score: <%= feedback_for_parent.average_score.present? ? format('%.2f', feedback_for_parent.average_score.to_f) : "—" %>
+                </div>
+              </div>
+              <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback_for_parent.comments) %>
+              <div class="feedback-comments">
+                <% if comments_text.present? %>
+                  <%= simple_format(comments_text) %>
+                  <% if comments_truncated %>
+                    <div class="truncation-note">Full comments available in the Health application.</div>
+                  <% end %>
+                <% else %>
+                  <div class="feedback-empty">No comments provided</div>
+                <% end %>
+              </div>
+              <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
+            </div>
+          <% end %>
         <% end %>
       <% else %>
         <div class="empty-state">No questions recorded for this category.</div>
@@ -239,16 +271,19 @@
   <% end %>
 </section>
 
-<section class="pdf-section">
-  <h2 class="section-title">Advisor Feedback</h2>
-  <% categories.each do |category| %>
-    <% feedback_entries = feedbacks_by_category[category.id] || [] %>
-    <div class="feedback-category">
-      <div class="category-header">
-        <h3 class="category-title"><%= category.name %></h3>
-      </div>
+<% legacy_feedback_by_category = feedbacks_by_category.transform_values { |entries| Array(entries).select { |entry| entry.question_id.blank? } } %>
+<% if legacy_feedback_by_category.values.any?(&:any?) %>
+  <section class="pdf-section">
+    <h2 class="section-title">Advisor Feedback</h2>
+    <% categories.each do |category| %>
+      <% feedback_entries = legacy_feedback_by_category[category.id] || [] %>
+      <% next unless feedback_entries.any? %>
 
-      <% if feedback_entries.any? %>
+      <div class="feedback-category">
+        <div class="category-header">
+          <h3 class="category-title"><%= category.name %></h3>
+        </div>
+
         <% feedback_entries.each do |feedback| %>
           <% timestamp = feedback.updated_at || feedback.created_at %>
           <div class="feedback-block">
@@ -272,9 +307,7 @@
             <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
           </div>
         <% end %>
-      <% else %>
-        <div class="feedback-empty">No advisor feedback recorded for this category.</div>
-      <% end %>
-    </div>
-  <% end %>
-</section>
+      </div>
+    <% end %>
+  </section>
+<% end %>

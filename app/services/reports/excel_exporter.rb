@@ -70,13 +70,15 @@ module Reports
 
         sheet.add_row []
         sheet.add_row [ "Timeline" ]
-        sheet.add_row [ "Month", "Student Average", "Advisor Average", "Alignment %" ]
+        sheet.add_row [ "Month", "Student Average", "Advisor Average", "Alignment %", "Student % Meeting Target", "Advisor % Meeting Target" ]
         timeline.each do |point|
           sheet.add_row [
             point[:label],
             format_number(point[:student], 2),
             format_number(point[:advisor], 2),
-            format_number(point[:alignment], 1)
+            format_number(point[:alignment], 1),
+            format_number(point[:student_target_percent], 1, suffix: "%"),
+            format_number(point[:advisor_target_percent], 1, suffix: "%")
           ]
         end
       end
@@ -91,6 +93,9 @@ module Reports
           "Competency",
           "Student Avg",
           "Advisor Avg",
+          "Program Target Level",
+          "Student % Meeting Target",
+          "Advisor % Meeting Target",
           "Gap",
           "Trend %",
           "Status",
@@ -109,6 +114,9 @@ module Reports
             entry[:name],
             format_number(entry[:student_average], 2),
             format_number(entry[:advisor_average], 2),
+            format_number(entry[:program_target_level], 2),
+            format_number(entry[:student_target_percent], 1, suffix: "%"),
+            format_number(entry[:advisor_target_percent], 1, suffix: "%"),
             format_number(entry[:gap], 2),
             formatted_change(entry[:change], "percent"),
             entry[:status].to_s.titleize,
@@ -133,6 +141,9 @@ module Reports
         sheet.add_row [
           "Competency",
           "Domain",
+          "Program Target Level",
+          "Student % Meeting Target",
+          "Advisor % Meeting Target",
           "Student Avg",
           "Advisor Avg",
           "Gap",
@@ -148,6 +159,9 @@ module Reports
           sheet.add_row [
             item[:name],
             item[:domain_name],
+            format_number(item[:program_target_level], 2),
+            format_number(item[:student_target_percent], 1, suffix: "%"),
+            format_number(item[:advisor_target_percent], 1, suffix: "%"),
             format_number(item[:student_average], 2),
             format_number(item[:advisor_average], 2),
             format_number(item[:gap], 2),

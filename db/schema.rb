@@ -192,16 +192,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
 
   create_table "surveys", force: :cascade do |t|
     t.string "title", null: false
-    t.string "semester", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "track"
     t.text "description"
     t.boolean "is_active", default: true, null: false
     t.bigint "created_by_id"
-    t.index "lower((title)::text), lower((semester)::text)", name: "index_surveys_on_lower_title_and_semester", unique: true
+    t.bigint "program_semester_id", null: false
+    t.index "lower((title)::text), program_semester_id", name: "index_surveys_on_lower_title_and_program_semester", unique: true
     t.index ["created_by_id"], name: "index_surveys_on_created_by_id"
     t.index ["is_active"], name: "index_surveys_on_is_active"
+    t.index ["program_semester_id"], name: "index_surveys_on_program_semester_id"
     t.index ["track"], name: "index_surveys_on_track"
   end
 
@@ -250,4 +251,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   add_foreign_key "survey_sections", "surveys", on_delete: :cascade
   add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
   add_foreign_key "surveys", "users", column: "created_by_id"
+  add_foreign_key "surveys", "program_semesters"
 end

@@ -114,7 +114,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to survey_response_path(survey_response)
   end
 
-  test "index shows only surveys for the student's track" do
+  test "index shows only surveys assigned to the student" do
     sign_in @student_user
 
     get surveys_path
@@ -122,6 +122,17 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Fall 2025 Health Assessment"
     refute_includes response.body, "Spring 2025 Health Assessment"
+  end
+
+  test "index hides unassigned surveys even when track matches" do
+    sign_in users(:other_student)
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "Spring 2025 Health Assessment"
+    refute_includes response.body, "Fall 2025 Executive Assessment"
+    refute_includes response.body, "Fall 2025 Health Assessment"
   end
 
   test "index prompts profile completion when track missing" do

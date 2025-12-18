@@ -404,11 +404,14 @@ const SummaryCards = ({ cards }) =>
     })
   )
 
-const TrendChart = ({ timeline }) => {
+const TrendChart = ({ timeline, yAxisMode }) => {
   const canvasRef = useRef(null)
 
   useEffect(() => {
     if (!canvasRef.current || !Array.isArray(timeline) || timeline.length === 0) return undefined
+
+    const percentMode = yAxisMode === "percent"
+    const metricUnit = percentMode ? "percent" : "score"
 
     const ctx = canvasRef.current.getContext("2d")
     const chart = new Chart(ctx, {
@@ -418,7 +421,7 @@ const TrendChart = ({ timeline }) => {
         datasets: [
           {
             label: "Student",
-            data: timeline.map((point) => point.student),
+            data: timeline.map((point) => percentMode ? point.student_target_percent : point.student),
             borderColor: COLORS.student,
             backgroundColor: "rgba(80, 0, 0, 0.15)",
             tension: 0.3,
@@ -428,7 +431,7 @@ const TrendChart = ({ timeline }) => {
           },
           {
             label: "Advisor",
-            data: timeline.map((point) => point.advisor),
+            data: timeline.map((point) => percentMode ? point.advisor_target_percent : point.advisor),
             borderColor: COLORS.advisor,
             backgroundColor: "rgba(37, 99, 235, 0.15)",
             tension: 0.3,
@@ -447,7 +450,7 @@ const TrendChart = ({ timeline }) => {
             callbacks: {
               label(context) {
                 const value = context.raw
-                return `${context.dataset.label}: ${formatMetricValue(value, "score", 2)}`
+                return `${context.dataset.label}: ${formatMetricValue(value, metricUnit, percentMode ? 1 : 2)}`
               }
             }
           }
@@ -455,10 +458,10 @@ const TrendChart = ({ timeline }) => {
         scales: {
           y: {
             suggestedMin: 0,
-            suggestedMax: 5,
+            suggestedMax: percentMode ? 100 : 5,
             ticks: {
               callback(value) {
-                return Number(value).toFixed(1)
+                return percentMode ? `${Number(value).toFixed(0)}%` : Number(value).toFixed(1)
               }
             }
           }
@@ -467,20 +470,25 @@ const TrendChart = ({ timeline }) => {
     })
 
     return () => chart.destroy()
-  }, [ timeline ])
+  }, [ timeline, yAxisMode ])
 
-  return h("div", { className: "reports-chart", role: "img", "aria-label": "Monthly average scores" },
+  const ariaLabel = yAxisMode === "percent" ? "% meeting target over time" : "Monthly average scores"
+
+  return h("div", { className: "reports-chart", role: "img", "aria-label": ariaLabel },
     h("canvas", { ref: canvasRef })
   )
 }
 
 
 
-const CompetencyAchievementChart = ({ items }) => {
+const CompetencyAchievementChart = ({ items, yAxisMode }) => {
   const canvasRef = useRef(null)
 
   useEffect(() => {
     if (!canvasRef.current || !Array.isArray(items) || items.length === 0) return undefined
+
+    const percentMode = yAxisMode === "percent"
+    const metricUnit = percentMode ? "percent" : "score"
 
     const labels = items.map((item) => item.name)
     const chart = new Chart(canvasRef.current.getContext("2d"), {
@@ -489,14 +497,20 @@ const CompetencyAchievementChart = ({ items }) => {
         labels,
         datasets: [
           {
-            label: "Student Avg",
-            data: items.map((item) => item.student_average || 0),
+            label: percentMode ? "Student %" : "Student Avg",
+            data: items.map((item) => {
+              if (percentMode) return safeNumber(item.student_target_percent) ?? 0
+              return item.student_average || 0
+            }),
             backgroundColor: COLORS.student,
             borderRadius: 6
           },
           {
-            label: "Advisor Avg",
-            data: items.map((item) => item.advisor_average || 0),
+            label: percentMode ? "Advisor %" : "Advisor Avg",
+            data: items.map((item) => {
+              if (percentMode) return safeNumber(item.advisor_target_percent) ?? 0
+              return item.advisor_average || 0
+            }),
             backgroundColor: COLORS.advisor,
             borderRadius: 6
           }
@@ -512,7 +526,7 @@ const CompetencyAchievementChart = ({ items }) => {
               label(context) {
                 const label = context.dataset.label
                 const value = context.raw
-                return `${label}: ${formatMetricValue(value, "score", 2)}`
+                return `${label}: ${formatMetricValue(value, metricUnit, percentMode ? 1 : 2)}`
               }
             }
           }
@@ -526,9 +540,11 @@ const CompetencyAchievementChart = ({ items }) => {
           },
           y: {
             beginAtZero: true,
-            suggestedMax: 5,
+            suggestedMax: percentMode ? 100 : 5,
             ticks: {
-              precision: 1
+              callback(value) {
+                return percentMode ? `${Number(value).toFixed(0)}%` : Number(value).toFixed(1)
+              }
             }
           }
         }
@@ -536,7 +552,7 @@ const CompetencyAchievementChart = ({ items }) => {
     })
 
     return () => chart.destroy()
-  }, [ items ])
+  }, [ items, yAxisMode ])
 
   if (!Array.isArray(items) || items.length === 0) {
     return h("p", { className: "reports-placeholder" }, "No competency data available for the selected filters.")
@@ -547,11 +563,14 @@ const CompetencyAchievementChart = ({ items }) => {
   )
 }
 
-const DomainAverageChart = ({ items }) => {
+const DomainAverageChart = ({ items, yAxisMode }) => {
   const canvasRef = useRef(null)
 
   useEffect(() => {
     if (!canvasRef.current || !Array.isArray(items) || items.length === 0) return undefined
+
+    const percentMode = yAxisMode === "percent"
+    const metricUnit = percentMode ? "percent" : "score"
 
     const labels = items.map((item) => item.name)
     const chart = new Chart(canvasRef.current.getContext("2d"), {
@@ -560,14 +579,20 @@ const DomainAverageChart = ({ items }) => {
         labels,
         datasets: [
           {
-            label: "Student Avg",
-            data: items.map((item) => item.student_average || 0),
+            label: percentMode ? "Student %" : "Student Avg",
+            data: items.map((item) => {
+              if (percentMode) return safeNumber(item.student_target_percent) ?? 0
+              return item.student_average || 0
+            }),
             backgroundColor: COLORS.student,
             borderRadius: 6
           },
           {
-            label: "Advisor Avg",
-            data: items.map((item) => item.advisor_average || 0),
+            label: percentMode ? "Advisor %" : "Advisor Avg",
+            data: items.map((item) => {
+              if (percentMode) return safeNumber(item.advisor_target_percent) ?? 0
+              return item.advisor_average || 0
+            }),
             backgroundColor: COLORS.advisor,
             borderRadius: 6
           }
@@ -583,7 +608,7 @@ const DomainAverageChart = ({ items }) => {
               label(context) {
                 const label = context.dataset.label
                 const value = context.raw
-                return `${label}: ${formatMetricValue(value, "score", 2)}`
+                return `${label}: ${formatMetricValue(value, metricUnit, percentMode ? 1 : 2)}`
               }
             }
           }
@@ -597,9 +622,11 @@ const DomainAverageChart = ({ items }) => {
           },
           y: {
             beginAtZero: true,
-            suggestedMax: 5,
+            suggestedMax: percentMode ? 100 : 5,
             ticks: {
-              precision: 1
+              callback(value) {
+                return percentMode ? `${Number(value).toFixed(0)}%` : Number(value).toFixed(1)
+              }
             }
           }
         }
@@ -607,7 +634,7 @@ const DomainAverageChart = ({ items }) => {
     })
 
     return () => chart.destroy()
-  }, [ items ])
+  }, [ items, yAxisMode ])
 
   if (!Array.isArray(items) || items.length === 0) {
     return h("p", { className: "reports-placeholder" }, "No competency data available for the selected filters.")
@@ -838,6 +865,28 @@ const SectionExportButtons = ({ onExport, section }) => {
 
 const VIEW_TOGGLE_BASE = "inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
 
+const YAxisToggle = ({ mode, onChange }) => {
+  const scoreActive = mode !== "percent"
+  const percentActive = mode === "percent"
+  const buttonClass = (active) => `${VIEW_TOGGLE_BASE} ${active ? "border-amber-500 bg-amber-100 text-amber-900" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`
+
+  return h("div", { className: "flex flex-wrap items-center gap-2" }, [
+    h("span", { className: "text-xs font-medium text-slate-600" }, "Y-axis:"),
+    h("button", {
+      type: "button",
+      className: buttonClass(scoreActive),
+      onClick: () => onChange("score"),
+      "aria-pressed": scoreActive
+    }, "Average score"),
+    h("button", {
+      type: "button",
+      className: buttonClass(percentActive),
+      onClick: () => onChange("percent"),
+      "aria-pressed": percentActive
+    }, "% meeting target")
+  ])
+}
+
 const ViewToggle = ({ mode, onChange, singleStudentDisabled }) => {
   const cohortActive = mode === "cohort"
   const studentActive = mode === "student"
@@ -910,6 +959,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
   const [ error, setError ] = useState(null)
   const [ viewMode, setViewMode ] = useState("cohort")
   const [ activeTab, setActiveTab ] = useState("trend")
+  const [ yAxisMode, setYAxisMode ] = useState("score")
   const [ competencyDetailDomain, setCompetencyDetailDomain ] = useState("all")
   const [ competencyDetailSort, setCompetencyDetailSort ] = useState("student")
   const filtersRef = useRef(DEFAULT_FILTERS)
@@ -986,7 +1036,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       if (!base) return
 
       const targetPath = replacePdfSection(base, sectionKey)
-      const query = buildQueryString(filters)
+      const query = buildQueryString({ ...filters, y_axis: yAxisMode })
       window.location.href = `${targetPath}${query}`
       return
     }
@@ -994,14 +1044,9 @@ const ReportsApp = ({ exportUrls = {} }) => {
     const base = resolvedExportUrls.excel
     if (!base) return
 
-    const queryFilters = { ...filters }
-    if (sectionKey) {
-      queryFilters.section = sectionKey
-    }
-
-    const query = buildQueryString(queryFilters)
+    const query = buildQueryString(filters)
     window.location.href = `${base}${query}`
-  }, [ filters, resolvedExportUrls ])
+  }, [ filters, resolvedExportUrls, yAxisMode ])
 
   const handleViewModeChange = useCallback((nextMode) => {
     if (nextMode === viewMode) return
@@ -1061,9 +1106,10 @@ const ReportsApp = ({ exportUrls = {} }) => {
       label: "Trend",
       title: "Progress Over Time",
       description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
+      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
       toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
       content: timeline.length > 0
-        ? h(TrendChart, { timeline })
+        ? h(TrendChart, { timeline, yAxisMode })
         : h("p", { className: "reports-placeholder" }, "No trend data available."),
       footnote: h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
     })
@@ -1073,8 +1119,9 @@ const ReportsApp = ({ exportUrls = {} }) => {
       label: "Domain",
       title: "Num Achieved by Domain",
       description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per domain.",
+      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
       toolbar: h(SectionExportButtons, { onExport: handleExport, section: "domain" }),
-      content: h(DomainAverageChart, { items: competencies }),
+      content: h(DomainAverageChart, { items: competencies, yAxisMode }),
       footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
         "Averages are calculated based on all responses within each domain.",
         filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
@@ -1086,8 +1133,9 @@ const ReportsApp = ({ exportUrls = {} }) => {
       label: "Competency",
       title: "Num Achieved by Competency",
       description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per competency.",
+      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
       toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
-      content: h(CompetencyAchievementChart, { items: competencyAchievementItems }),
+      content: h(CompetencyAchievementChart, { items: competencyAchievementItems, yAxisMode }),
       footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
         "Averages are calculated based on all responses within each competency.",
         filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
@@ -1110,7 +1158,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
     })
 
     return tabs
-  }, [ competencies, competencyAchievementItems, filtersDescription, handleExport, handleViewModeChange, singleStudentDisabled, studentSelectionRequired, timeline, tracks, viewMode ])
+  }, [ competencies, competencyAchievementItems, filtersDescription, handleExport, handleViewModeChange, singleStudentDisabled, studentSelectionRequired, timeline, tracks, viewMode, yAxisMode ])
 
   useEffect(() => {
     if (!Array.isArray(chartTabs) || chartTabs.length === 0) return
@@ -1146,10 +1194,13 @@ const ReportsApp = ({ exportUrls = {} }) => {
         activeTabConfig
           ? h("div", { className: "reports-tab__body space-y-4" }, [
               h("header", { className: "reports-panel__header flex flex-wrap items-start justify-between gap-4" }, [
-                h("div", { className: "space-y-1" }, [
-                  h("h2", null, activeTabConfig.title),
-                  h("p", null, activeTabConfig.description)
-                ]),
+                h("div", { className: "space-y-2" }, [
+                  h("div", { className: "space-y-1" }, [
+                    h("h2", null, activeTabConfig.title),
+                    h("p", null, activeTabConfig.description)
+                  ]),
+                  activeTabConfig.axisToggle
+                ].filter(Boolean)),
                 activeTabConfig.toolbar
               ]),
               activeTabConfig.content,

@@ -3,7 +3,7 @@
 <% full_name = @student.full_name.presence || @student.user&.name || "Student" %>
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
-<% track = @student.track.presence || "Not assigned" %>
+<% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>

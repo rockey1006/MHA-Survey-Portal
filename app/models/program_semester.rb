@@ -19,6 +19,12 @@ class ProgramSemester < ApplicationRecord
     current&.name
   end
 
+  def self.find_by_name_case_insensitive(value)
+    return if value.blank?
+
+    where("LOWER(name) = ?", value.to_s.downcase).first
+  end
+
   private
 
   def normalize_name
@@ -48,9 +54,4 @@ class ProgramSemester < ApplicationRecord
     fallback&.update_column(:current, true)
   end
 
-  def self.find_by_name_case_insensitive(value)
-    return if value.blank?
-
-    where("LOWER(name) = ?", value.downcase).first
-  end
 end

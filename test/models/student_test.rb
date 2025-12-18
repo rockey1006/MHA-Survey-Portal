@@ -11,4 +11,28 @@ class StudentTest < ActiveSupport::TestCase
     assert_not duplicate.valid?
     assert_includes duplicate.errors[:uin], "has already been taken"
   end
+
+    test "uin must be exactly 9 digits" do
+      student = students(:student)
+      student.major = "Public Health"
+      student.track = "Clinical"
+
+      student.uin = "123"
+      assert_not student.valid?(:profile_completion)
+      assert_includes student.errors[:uin], "must be exactly 9 digits"
+
+      student.uin = "1234567890"
+      assert_not student.valid?(:profile_completion)
+      assert_includes student.errors[:uin], "must be exactly 9 digits"
+    end
+
+    test "uin normalizes to digits" do
+      student = students(:student)
+      student.major = "Public Health"
+      student.track = "Clinical"
+
+      student.uin = "123-456-789"
+      assert student.valid?(:profile_completion)
+      assert_equal "123456789", student.uin
+    end
 end

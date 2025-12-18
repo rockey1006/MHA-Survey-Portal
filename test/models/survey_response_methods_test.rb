@@ -62,6 +62,44 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
     assert summary[:total_optional] >= 1
   end
 
+  test "progress summary counts only parent questions" do
+    skip "Sub-questions not supported" unless Question.sub_question_columns_supported?
+
+    student = students(:student)
+    survey = surveys(:fall_2025)
+    StudentQuestion.where(student_id: student.student_id, question_id: survey.questions.select(:id)).delete_all
+
+    category = survey.categories.first || survey.categories.create!(name: "Test Category", description: "")
+
+    parent_question = category.questions.create!(
+      question_text: "Parent question",
+      question_order: 100,
+      question_type: "short_answer",
+      is_required: true
+    )
+    sub_question = category.questions.create!(
+      question_text: "Sub question",
+      question_order: parent_question.question_order,
+      question_type: "short_answer",
+      is_required: true,
+      parent_question: parent_question,
+      sub_question_order: 0
+    )
+
+    # Answering only a sub-question should not count toward progress.
+    StudentQuestion.create!(student_id: student.student_id, question: sub_question, response_value: "Sub answer")
+    sr = SurveyResponse.new(student: student, survey: survey)
+    summary = sr.progress_summary
+    assert_equal 0, summary[:answered_total]
+
+    # Answering the parent question should count.
+    StudentQuestion.create!(student_id: student.student_id, question: parent_question, response_value: "Parent answer")
+    sr2 = SurveyResponse.new(student: student, survey: survey)
+    summary2 = sr2.progress_summary
+    assert_equal 1, summary2[:answered_total]
+    assert_equal 1, summary2[:answered_required]
+  end
+
   test "evidence_history_by_category groups evidence responses" do
     student = students(:student)
     survey = surveys(:fall_2025)

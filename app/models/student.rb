@@ -3,6 +3,8 @@
 class Student < ApplicationRecord
   self.primary_key = :student_id
 
+  UIN_FORMAT = /\A\d{9}\z/.freeze
+
   enum :track, { residential: "Residential", executive: "Executive" }, prefix: true
 
   belongs_to :user, foreign_key: :student_id, primary_key: :id, inverse_of: :student_profile
@@ -14,8 +16,11 @@ class Student < ApplicationRecord
 
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 
+  before_validation :normalize_uin
+
   validates :uin, uniqueness: true, allow_nil: true
   validates :uin, presence: true, on: :profile_completion
+  validates :uin, format: { with: UIN_FORMAT, message: "must be exactly 9 digits" }, allow_nil: true
   validates :major, presence: true, on: :profile_completion
   validates :track, presence: true, on: :profile_completion
 
@@ -50,6 +55,11 @@ class Student < ApplicationRecord
   end
 
   private
+
+  def normalize_uin
+    digits = uin.to_s.gsub(/\D+/, "")
+    self.uin = digits.presence
+  end
 
   def auto_assign_track_survey
     SurveyAssignments::AutoAssigner.call(student: self)

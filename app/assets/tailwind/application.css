@@ -1,0 +1,9 @@
+/*
+ * Tailwind entrypoint.
+ *
+ * This file is required by the `tailwindcss-ruby` build task.
+ * Even if most app styling lives in split files under `app/assets/stylesheets/`,
+ * the build expects this input to exist so it can produce `app/assets/builds/tailwind.css`.
+ */
+
+@import "tailwindcss";

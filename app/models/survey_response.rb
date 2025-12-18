@@ -107,8 +107,7 @@ class SurveyResponse
   # @return [Integer] number of answered required questions
   def answered_required_count
     @answered_required_count ||= required_questions.count do |question|
-      answer = answers[question.id]
-      present_answer?(answer)
+      present_answer?(answers[question.id])
     end
   end
 
@@ -119,14 +118,14 @@ class SurveyResponse
 
   # @return [Integer] number of answered questions (required + optional)
   def answered_total_count
-    @answered_total_count ||= question_responses.count do |response|
-      present_answer?(response.answer)
+    @answered_total_count ||= progress_questions.count do |question|
+      present_answer?(answers[question.id])
     end
   end
 
   # @return [Integer] total questions in the survey (required + optional)
   def total_questions
-    @total_questions ||= survey.questions.size
+    @total_questions ||= progress_questions.size
   end
 
   # @return [Integer] total required questions in the survey
@@ -155,19 +154,7 @@ class SurveyResponse
 
   # @return [Array<Question>] questions that are considered required
   def required_questions
-    @required_questions ||= survey.questions.select do |question|
-      required = question.is_required?
-
-      if !required && question.choice_question?
-        option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
-        options = option_values.map(&:strip).map(&:downcase)
-        is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
-                               question.question_text.to_s.downcase.include?("flexible")
-        required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
-      end
-
-      required
-    end
+    @required_questions ||= progress_questions.select { |question| required_for_completion?(question) }
   end
 
   # @return [String] signed token for secure downloads
@@ -211,6 +198,33 @@ class SurveyResponse
   end
 
   private
+
+  # Only count parent questions in progress statistics so sub-questions don't
+  # inflate completion percentages or required counts.
+  #
+  # @return [Array<Question>]
+  def progress_questions
+    @progress_questions ||= begin
+      relation = survey.questions
+      relation = relation.parent_questions if relation.respond_to?(:parent_questions)
+      relation.to_a
+    end
+  end
+
+  # Mirrors the controllers' required-question logic used for validation and dashboards.
+  #
+  # @param question [Question]
+  # @return [Boolean]
+  def required_for_completion?(question)
+    return true if question.required?
+    return false unless question.choice_question?
+
+    option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+    options = option_values.map(&:strip).map(&:downcase)
+    is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
+                           question.question_text.to_s.downcase.include?("flexible")
+    !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
+  end
 
   # Determines whether a stored answer should count as present for statistics.
   #

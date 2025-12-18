@@ -100,17 +100,16 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
   # Entity table: survey definitions.
   create_table :surveys do |t|
       t.string :title, null: false
-      t.string :semester, null: false
+      t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
       t.text :description
       t.boolean :is_active, null: false, default: true
       t.references :created_by, foreign_key: { to_table: :users }
       t.timestamps
     end
-    add_index :surveys, :semester
     add_index :surveys, :is_active
     execute <<~SQL
-      CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_semester
-      ON surveys (LOWER(title), LOWER(semester));
+      CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_program_semester
+      ON surveys (LOWER(title), program_semester_id);
     SQL
 
   # Entity table: survey legend content for the student-facing sidebar.

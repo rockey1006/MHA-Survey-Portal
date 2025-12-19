@@ -43,6 +43,6 @@ class CompositeReportsHelperTest < ActionView::TestCase
   test "composite_display_answer prefers structured text" do
     assert_equal "Some details", composite_display_answer({ "answer" => "Other", "text" => "Some details" })
     assert_equal "Yes", composite_display_answer("Yes")
-    assert_equal "A, B", composite_display_answer(["A", "B"])
+    assert_equal "A, B", composite_display_answer([ "A", "B" ])
   end
 end

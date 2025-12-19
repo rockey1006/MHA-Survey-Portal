@@ -165,6 +165,5 @@ module Reports
 
       survey.questions.first
     end
-
   end
 end

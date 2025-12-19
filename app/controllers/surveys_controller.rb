@@ -13,9 +13,9 @@ class SurveysController < ApplicationController
                     SurveyAssignment
                       .where(student_id: @student.student_id)
                       .select(:id, :survey_id, :assigned_at, :due_date, :completed_at)
-                  else
+    else
                     SurveyAssignment.none
-                  end
+    end
 
     assigned_survey_ids = assignments.map(&:survey_id)
 
@@ -24,9 +24,9 @@ class SurveysController < ApplicationController
                        .includes(:questions, :track_assignments)
                        .where(id: assigned_survey_ids)
                        .ordered
-               else
+    else
                  Survey.none
-               end
+    end
 
     @assignment_lookup = assignments.index_by(&:survey_id)
 
@@ -62,7 +62,10 @@ class SurveysController < ApplicationController
             @existing_answers[response.question_id.to_s] = ans["link"]
           elsif response.question.choice_question? && ans["answer"].present?
             @existing_answers[response.question_id.to_s] = ans["answer"]
-            if ans["answer"].to_s == "Other"
+            option_pairs = response.question.answer_option_pairs
+            other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+            other_value = other_pair ? other_pair[1].to_s : "Other"
+            if ans["answer"].to_s == other_value || ans["answer"].to_s == "Other"
               @other_answers[response.question_id.to_s] = ans["text"].to_s
             end
           else
@@ -87,7 +90,7 @@ class SurveysController < ApplicationController
         required = question.is_required?
 
         if !required && question.choice_question?
-          option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+          option_values = question.answer_option_values
           options = option_values.map(&:strip).map(&:downcase)
           # Exception: flexibility scale questions (1-5) should remain optional
           numeric_scale = %w[1 2 3 4 5]
@@ -162,7 +165,18 @@ class SurveysController < ApplicationController
     questions_map.each_value do |question|
       submitted_value = answers[question.id.to_s]
 
-      if submitted_value.to_s == "Other"
+      if question.question_type == "multiple_choice"
+        option_pairs = question.answer_option_pairs
+        other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+        other_value = other_pair ? other_pair[1].to_s : "Other"
+
+        if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+          submitted_value = {
+            "answer" => other_value,
+            "text" => other_answers[question.id.to_s].to_s
+          }
+        end
+      elsif submitted_value.to_s == "Other"
         submitted_value = {
           "answer" => "Other",
           "text" => other_answers[question.id.to_s].to_s
@@ -172,7 +186,7 @@ class SurveysController < ApplicationController
       # Apply the same required logic as in show action
       required = question.is_required?
       if !required && question.choice_question?
-        option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+        option_values = question.answer_option_values
         options = option_values.map(&:strip).map(&:downcase)
         numeric_scale = %w[1 2 3 4 5]
         has_numeric_scale = (numeric_scale - options).empty?
@@ -234,7 +248,7 @@ class SurveysController < ApplicationController
         category.questions.each do |question|
           required = question.is_required?
           if !required && question.choice_question?
-            option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+            option_values = question.answer_option_values
             options = option_values.map(&:strip).map(&:downcase)
             numeric_scale = %w[1 2 3 4 5]
             has_numeric_scale = (numeric_scale - options).empty?
@@ -249,13 +263,23 @@ class SurveysController < ApplicationController
       ActiveRecord::Base.transaction do
         allowed_question_ids.each do |question_id|
           submitted_value = answers[question_id.to_s]
-          if submitted_value.to_s == "Other"
+
+          question = questions_map[question_id]
+          if question&.question_type == "multiple_choice"
+            option_pairs = question.answer_option_pairs
+            other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+            other_value = other_pair ? other_pair[1].to_s : "Other"
+
+            if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+              submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+            end
+          elsif submitted_value.to_s == "Other"
             submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
           end
+
           record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
           record.advisor_id ||= student.advisor_id
 
-          question = questions_map[question_id]
           if submitted_value.present?
             record.answer = submitted_value
             record.save(validate: false)
@@ -270,13 +294,23 @@ class SurveysController < ApplicationController
     ActiveRecord::Base.transaction do
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
-        if submitted_value.to_s == "Other"
+
+        question = questions_map[question_id]
+        if question&.question_type == "multiple_choice"
+          option_pairs = question.answer_option_pairs
+          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+          other_value = other_pair ? other_pair[1].to_s : "Other"
+
+          if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+            submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+          end
+        elsif submitted_value.to_s == "Other"
           submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
         end
+
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        question = questions_map[question_id]
         if submitted_value.present?
           record.answer = submitted_value
           record.save!
@@ -433,7 +467,7 @@ class SurveysController < ApplicationController
                               group_key = (parent_id || q.id).to_i
                               sub_flag = q.respond_to?(:sub_question?) ? (q.sub_question? ? 1 : 0) : (parent_id ? 1 : 0)
                               sub_order = q.respond_to?(:sub_question_order) ? q.sub_question_order.to_i : 0
-                              [q.question_order.to_i, group_key, sub_flag, sub_order, q.id.to_i]
+                              [ q.question_order.to_i, group_key, sub_flag, sub_order, q.id.to_i ]
                             end
       else
                             relation = questions.order(:question_order)

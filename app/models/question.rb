@@ -104,6 +104,10 @@ class Question < ApplicationRecord
         case entry
         when String
           entry
+        when Array
+          entry[0].to_s
+        when Hash
+          (entry["label"] || entry[:label] || entry["value"] || entry[:value]).to_s
         else
           entry.to_s
         end
@@ -137,18 +141,18 @@ class Question < ApplicationRecord
         value = entry[1].to_s.strip
         next if label.blank? || value.blank?
 
-        [label, value]
+        [ label, value ]
       when Hash
         label = (entry["label"] || entry[:label]).to_s.strip
         value = (entry["value"] || entry[:value] || label).to_s.strip
         next if label.blank? || value.blank?
 
-        [label, value]
+        [ label, value ]
       else
         str = entry.to_s.strip
         next if str.blank?
 
-        [str, str]
+        [ str, str ]
       end
     end
   end
@@ -194,6 +198,6 @@ class Question < ApplicationRecord
     in_memory_max = in_memory_siblings.filter_map { |question| question.has_attribute?(:sub_question_order) ? question.sub_question_order : nil }.max
     db_max = parent_question.persisted? ? parent_question.sub_questions.maximum(:sub_question_order) : nil
 
-    self.sub_question_order = [in_memory_max, db_max, 0].compact.max + 1
+    self.sub_question_order = [ in_memory_max, db_max, 0 ].compact.max + 1
   end
 end

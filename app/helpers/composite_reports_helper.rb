@@ -5,13 +5,13 @@ module CompositeReportsHelper
   TRUNCATION_SUFFIX = "... (truncated for PDF, view full response in the app)"
 
   DEFAULT_PROFICIENCY_OPTION_PAIRS = [
-    ["Mastery (5)", "5"],
-    ["Experienced (4)", "4"],
-    ["Capable (3)", "3"],
-    ["Emerging (2)", "2"],
-    ["Beginner (1)", "1"]
+    [ "Mastery (5)", "5" ],
+    [ "Experienced (4)", "4" ],
+    [ "Capable (3)", "3" ],
+    [ "Emerging (2)", "2" ],
+    [ "Beginner (1)", "1" ]
   ].freeze
-  ADVISOR_ONLY_PROFICIENCY_OPTION = ["Not able to assess (0)", "0"].freeze
+  ADVISOR_ONLY_PROFICIENCY_OPTION = [ "Not able to assess (0)", "0" ].freeze
 
   # Truncates long text responses to keep PDF generation manageable on low-memory dynos.
   #
@@ -77,7 +77,7 @@ module CompositeReportsHelper
 
     base = DEFAULT_PROFICIENCY_OPTION_PAIRS if base.blank?
     values = base.map { |(_label, value)| value.to_s }
-    base + (values.include?("0") ? [] : [ADVISOR_ONLY_PROFICIENCY_OPTION])
+    base + (values.include?("0") ? [] : [ ADVISOR_ONLY_PROFICIENCY_OPTION ])
   end
 
   # Normalizes stored feedback scores into a dropdown value string.

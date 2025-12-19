@@ -101,15 +101,15 @@
               <% when "short_answer" %>
                 <textarea rows="3" disabled class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">Student response will appear here</textarea>
               <% when "multiple_choice" %>
-                <% options = question.answer_options_list.presence || [] %>
+                <% option_pairs = question.answer_option_pairs.presence || [] %>
                 <div class="flex flex-col gap-2" role="radiogroup">
-                  <% options.each do |option| %>
+                  <% option_pairs.each do |label, _value| %>
                     <label class="flex items-center gap-2 text-sm text-slate-800 opacity-75">
                       <input type="radio" disabled class="h-4 w-4 text-blue-600" />
-                      <span><%= option %></span>
+                      <span><%= label %></span>
                     </label>
                   <% end %>
-                  <% if options.empty? %>
+                  <% if option_pairs.empty? %>
                     <p class="text-xs text-slate-500">(No options configured)</p>
                   <% end %>
                 </div>

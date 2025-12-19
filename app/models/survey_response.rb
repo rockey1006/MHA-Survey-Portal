@@ -219,9 +219,11 @@ class SurveyResponse
     return true if question.required?
     return false unless question.choice_question?
 
-    option_values = question.question_type_dropdown? ? question.answer_option_values : question.answer_options_list
+    option_values = question.answer_option_values
     options = option_values.map(&:strip).map(&:downcase)
-    is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
+    numeric_scale = %w[1 2 3 4 5]
+    has_numeric_scale = (numeric_scale - options).empty?
+    is_flexibility_scale = has_numeric_scale &&
                            question.question_text.to_s.downcase.include?("flexible")
     !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
   end

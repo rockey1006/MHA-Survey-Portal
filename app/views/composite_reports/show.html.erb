@@ -138,17 +138,21 @@
               <% case question.question_type %>
               <% when "multiple_choice" %>
                 <% selected_values = Array(answer_value).map(&:to_s) %>
+                <% option_pairs = question.answer_option_pairs.presence || [] %>
+                <% other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") } %>
+                <% other_value = other_pair ? other_pair[1].to_s : "Other" %>
+
                 <ul class="choice-list">
-                  <% question.answer_options_list.each do |option| %>
-                    <% normalized = option.to_s %>
-                    <% chosen = selected_values.any? { |val| val.casecmp?(normalized) } %>
+                  <% option_pairs.each do |label, value| %>
+                    <% chosen = selected_values.any? { |val| val.to_s == value.to_s || val.casecmp?(label.to_s) } %>
                     <li class="choice-item <%= chosen ? 'selected' : '' %>">
                       <span class="choice-marker"><%= chosen ? '●' : '○' %></span>
-                      <span><%= option %></span>
+                      <span><%= label %></span>
                     </li>
                   <% end %>
                 </ul>
-                <% if selected_values.any? { |val| val.casecmp?("Other") } && parts[:text].present? %>
+
+                <% if selected_values.any? { |val| val.to_s == other_value || val.casecmp?("Other") } && parts[:text].present? %>
                   <div class="answer-text" style="margin-top: 6px;">
                     <strong>Other:</strong> <%= parts[:text] %>
                   </div>
@@ -320,5 +324,74 @@
         <% end %>
       </div>
     <% end %>
+  </section>
+<% end %>
+
+<%# Advisor feedback summary (PDF only). Render only when we have 2+ scored feedback entries with target levels. %>
+<%
+  questions_by_id_for_summary = categories.flat_map(&:questions).index_by(&:id)
+  feedback_rows_for_summary = feedbacks_by_category.values.flatten.select { |entry| entry.question_id.present? && entry.average_score.present? }
+  scored_feedback_count = feedback_rows_for_summary.size
+
+  summary_total = 0
+  summary_at_or_above = 0
+  summary_below = 0
+
+  feedback_rows_for_summary.each do |entry|
+    question = questions_by_id_for_summary[entry.question_id]
+    target = question&.program_target_level
+    next if target.blank?
+
+    score = entry.average_score.to_f
+    summary_total += 1
+    if score >= target.to_f
+      summary_at_or_above += 1
+    else
+      summary_below += 1
+    end
+  end
+
+  summary_at_pct = summary_total.positive? ? ((summary_at_or_above.to_f / summary_total) * 100).round(1) : 0.0
+  summary_below_pct = summary_total.positive? ? ((summary_below.to_f / summary_total) * 100).round(1) : 0.0
+%>
+
+<% if scored_feedback_count > 1 %>
+  <section class="advisor-summary" data-advisor-feedback-summary>
+    <div class="advisor-summary__header">
+      <h3 class="advisor-summary__title">Summary Statistics</h3>
+      <p class="advisor-summary__hint">Based on saved advisor scores</p>
+    </div>
+
+    <div class="advisor-summary__grid">
+      <div class="advisor-summary__card advisor-summary__card--above">
+        <div class="advisor-summary__cardRow">
+          <div class="advisor-summary__meta">
+            <div class="advisor-summary__label">At or Above Target</div>
+            <div class="advisor-summary__percent">(<%= summary_at_pct %>%)</div>
+          </div>
+          <div class="advisor-summary__value">
+            <div class="advisor-summary__count advisor-summary__count--above"><%= summary_at_or_above %></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="advisor-summary__card advisor-summary__card--below">
+        <div class="advisor-summary__cardRow">
+          <div class="advisor-summary__meta">
+            <div class="advisor-summary__label">Below Target</div>
+            <div class="advisor-summary__percent">(<%= summary_below_pct %>%)</div>
+          </div>
+          <div class="advisor-summary__value">
+            <div class="advisor-summary__count advisor-summary__count--below"><%= summary_below %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="advisor-summary__footer">
+      <p class="advisor-summary__note">
+        Based on advisor scores (0–5) compared to each question’s program target level.
+      </p>
+    </div>
   </section>
 <% end %>

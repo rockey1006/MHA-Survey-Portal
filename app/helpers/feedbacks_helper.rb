@@ -1,13 +1,13 @@
 # View helpers supporting feedback pages.
 module FeedbacksHelper
      DEFAULT_PROFICIENCY_PAIRS = [
-          ["Beginner (1)", "1"],
-          ["Emerging (2)", "2"],
-          ["Capable (3)", "3"],
-          ["Experienced (4)", "4"],
-          ["Mastery (5)", "5"]
+          [ "Beginner (1)", "1" ],
+          [ "Emerging (2)", "2" ],
+          [ "Capable (3)", "3" ],
+          [ "Experienced (4)", "4" ],
+          [ "Mastery (5)", "5" ]
      ].freeze
-     ADVISOR_ONLY_OPTION = ["Not able to assess (0)", "0"].freeze
+     ADVISOR_ONLY_OPTION = [ "Not able to assess (0)", "0" ].freeze
 
      # Normalizes stored scores (Integer/Float/String) into a dropdown value string.
      # Ensures values like 3.0 map to "3" so selects and labels match option values.
@@ -46,7 +46,7 @@ module FeedbacksHelper
           base = DEFAULT_PROFICIENCY_PAIRS if base.blank?
 
           values = base.map { |(_label, value)| value.to_s }
-          base + (values.include?("0") ? [] : [ADVISOR_ONLY_OPTION])
+          base + (values.include?("0") ? [] : [ ADVISOR_ONLY_OPTION ])
      end
 
      # Maps a stored score into a label for display.

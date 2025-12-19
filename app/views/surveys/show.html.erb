@@ -164,17 +164,22 @@
               <%= text_area_tag field_name, current_value, rows: 3, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
               
             <% when "multiple_choice" %>
-              <% options = question.answer_options_list.presence || [] %>
+              <% option_pairs = question.answer_option_pairs.presence || [] %>
               <div class="flex flex-col gap-2" role="radiogroup">
-                <% options.each do |option| %>
+                <% option_pairs.each do |label, value| %>
                   <label class="flex items-center gap-2 text-sm text-slate-800">
-                    <%= radio_button_tag field_name, option, current_value.to_s == option.to_s, id: "question-#{question.id}-#{option.parameterize}", class: "h-4 w-4 text-blue-600" %>
-                    <span><%= option %></span>
+                    <%= radio_button_tag field_name,
+                                         value,
+                                         (current_value.is_a?(Hash) ? current_value["answer"].to_s : current_value.to_s) == value.to_s,
+                                         id: "question-#{question.id}-#{label.parameterize}",
+                                         class: "h-4 w-4 text-blue-600" %>
+                    <span><%= label %></span>
                   </label>
 
-                  <% if option.to_s == "Other" %>
+                  <% is_other_option = label.to_s.strip.downcase.start_with?("other") %>
+                  <% if is_other_option %>
                     <% other_value = (@other_answers || {})[question.id.to_s] %>
-                    <div class="ml-6" data-other-input-wrapper data-other-for-question-id="<%= question.id %>">
+                    <div class="ml-6" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>">
                       <%= text_field_tag "other_answers[#{question.id}]",
                                          other_value,
                                          id: "question-#{question.id}-other",

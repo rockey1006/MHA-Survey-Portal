@@ -203,10 +203,12 @@ function initOtherChoiceInputs() {
     const sync = (questionId) => {
       const inputName = `answers[${questionId}]`
       const selected = form.querySelector(`input[name="${inputName}"]:checked`)
-      const isOther = selected && selected.value === "Other"
 
       const wrapper = form.querySelector(`[data-other-input-wrapper][data-other-for-question-id="${questionId}"]`)
       if (!wrapper) return
+
+      const otherChoiceValue = (wrapper.dataset.otherChoiceValue || "Other").trim()
+      const isOther = selected && selected.value === otherChoiceValue
 
       wrapper.classList.toggle("hidden", !isOther)
       wrapper.setAttribute("aria-hidden", isOther ? "false" : "true")

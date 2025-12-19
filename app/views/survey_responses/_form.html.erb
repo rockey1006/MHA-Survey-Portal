@@ -46,7 +46,10 @@
               <% end %>
             <% when "multiple_choice" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.select :response_value, question.answer_options_list, { include_blank: true }, class: "w-full border rounded px-2 py-1" %>
+                <%= qr_form.select :response_value,
+                                  options_for_select(question.answer_option_pairs, qr.response_value.to_s),
+                                  { include_blank: true },
+                                  class: "w-full border rounded px-2 py-1" %>
               <% end %>
             <% when "scale" %>
               <% scale_labels = scale_labels_for(question) %>

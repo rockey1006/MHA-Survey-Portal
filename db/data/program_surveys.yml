@@ -97,14 +97,13 @@ common_categories: &common_categories
           - order: 4
             text: "How flexible are your work hours?"
             type: "multiple_choice"
-            options: ["1", "2", "3", "4", "5", "Other"]
-            description: |
-              1 — No flexibility: days per week and hours per day are fixed.
-              2 — Limited flexibility: limited ability to adjust days per week or hours per day; you must work the total hours per week.
-              3 — Some flexibility: some ability to adjust days per week or hours per day; you must work the total hours per week.
-              4 — Flexible schedule: flexibility in days worked or hours worked per week, with limited variation in total hours per week.
-              5 — Very flexible schedule: flexibility in days or hours worked each day, including total hours worked per week.
-              Other — Please describe the flexibility of your work schedule.
+            options:
+              - ["1 — No flexibility: days per week and hours per day are fixed.", "1"]
+              - ["2 — Limited flexibility: limited ability to adjust days per week or hours per day; you must work the total hours per week.", "2"]
+              - ["3 — Some flexibility: some ability to adjust days per week or hours per day; you must work the total hours per week.", "3"]
+              - ["4 — Flexible schedule: flexibility in days worked or hours worked per week, with limited variation in total hours per week.", "4"]
+              - ["5 — Very flexible schedule: flexibility in days or hours worked each day, including total hours worked per week.", "5"]
+              - ["Other — Please describe the flexibility of your work schedule.", "0"]
 
   - name: "Health Care Environment and Community"
     description: "Relation between health care operations and community organizations and policies"

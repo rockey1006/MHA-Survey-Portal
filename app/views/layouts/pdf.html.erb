@@ -28,6 +28,21 @@
     .metric-label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
     .metric-value { font-size: 14px; font-weight: 600; color: #102a43; }
 
+    /* Advisor summary (PDF) */
+    .advisor-summary { border: 1px solid #e2e8f0; background: #ffffff; border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; }
+    .advisor-summary__header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+    .advisor-summary__title { font-size: 14px; margin: 0; color: #0f172a; }
+    .advisor-summary__hint { margin: 0; font-size: 11px; color: #6b7785; }
+    /* Use table layout for wkhtmltopdf reliability (flex can stack). */
+    .advisor-summary__grid { display: table; width: 100%; border-collapse: separate; border-spacing: 10px 0; }
+    .advisor-summary__card { display: table-cell; width: 50%; vertical-align: top; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
+    .advisor-summary__cardRow { display: flex; justify-content: space-between; gap: 10px; }
+    .advisor-summary__label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .advisor-summary__percent { font-size: 11px; color: #6b7785; }
+    .advisor-summary__count { font-size: 18px; font-weight: 800; color: #500000; }
+    .advisor-summary__footer { margin-top: 10px; }
+    .advisor-summary__note { margin: 0; font-size: 11px; color: #6b7785; }
+
     .pdf-section { margin-bottom: 18px; }
     .section-card { border: 1px solid #fcd34d; border-radius: 12px; padding: 12px 14px; margin: 12px 0; background: rgba(251, 191, 36, 0.12); }
     .section-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #92400e; margin-bottom: 4px; }

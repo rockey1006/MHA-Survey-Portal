@@ -168,23 +168,24 @@
                                       class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
                                       disabled: true %>
                   <% when "multiple_choice" %>
-                    <% options = question.answer_options_list.presence || [] %>
+                    <% option_pairs = question.answer_option_pairs.presence || [] %>
                     <% selected = answer_value.to_s %>
                     <div class="flex flex-col gap-2" role="radiogroup">
-                      <% options.each do |option| %>
+                      <% option_pairs.each do |label, value| %>
                         <label class="flex items-center gap-2 text-sm text-slate-800">
                           <%= radio_button_tag "readonly_answers[#{question.id}]",
-                                               option,
-                                               selected.casecmp?(option.to_s),
-                                               id: "question-#{question.id}-#{option.parameterize}",
+                                               value,
+                                               (selected == value.to_s || selected.casecmp?(label.to_s)),
+                                               id: "question-#{question.id}-#{label.parameterize}",
                                                class: "h-4 w-4 text-blue-600",
                                                disabled: true %>
-                          <span><%= option %></span>
+                          <span><%= label %></span>
                         </label>
 
-                        <% if option.to_s == "Other" %>
+                        <% is_other_option = label.to_s.strip.downcase.start_with?("other") %>
+                        <% if is_other_option %>
                           <% other_text = raw_answer.is_a?(Hash) ? raw_answer["text"].to_s : "" %>
-                          <% show_other = selected.casecmp?("Other") %>
+                          <% show_other = (selected == value.to_s) || selected.casecmp?("Other") %>
                           <div class="ml-6" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" <%= show_other ? "" : "hidden" %>>
                             <%= text_field_tag "readonly_other_answers[#{question.id}]",
                                                other_text,

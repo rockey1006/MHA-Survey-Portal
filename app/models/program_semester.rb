@@ -53,5 +53,4 @@ class ProgramSemester < ApplicationRecord
     fallback = ProgramSemester.ordered.last
     fallback&.update_column(:current, true)
   end
-
 end

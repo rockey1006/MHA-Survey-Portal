@@ -205,7 +205,12 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    @category_groups = @survey.categories.includes(:section, :questions).order(:id)
+    scope = @survey.categories.includes(:section, :questions)
+    @category_groups = if Category.column_names.include?("position")
+                         scope.order(:position, :id)
+                       else
+                         scope.order(:id)
+                       end
     @categories = @category_groups
     @questions = @survey.questions.includes(:category).order(:question_order)
     @category_names = @category_groups.map(&:name)
@@ -273,6 +278,9 @@ class Admin::SurveysController < Admin::BaseController
     ]
 
     question_attributes << :has_feedback if Question.new.respond_to?(:has_feedback)
+    question_attributes << :program_target_level if Question.new.respond_to?(:program_target_level)
+    question_attributes << :parent_question_id if Question.new.respond_to?(:parent_question_id)
+    question_attributes << :sub_question_order if Question.new.respond_to?(:sub_question_order)
 
     params.require(:survey).permit(
       :title,
@@ -283,6 +291,7 @@ class Admin::SurveysController < Admin::BaseController
         :id,
         :name,
         :description,
+        :position,
         :section_form_uid,
         :_destroy,
         questions_attributes: [

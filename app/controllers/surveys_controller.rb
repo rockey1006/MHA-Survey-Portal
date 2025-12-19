@@ -38,7 +38,12 @@ class SurveysController < ApplicationController
   # @return [void]
   def show
   Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
-    @category_groups = @survey.categories.includes(:section, :questions).order(:id)
+      scope = @survey.categories.includes(:section, :questions)
+      @category_groups = if Category.column_names.include?("position")
+                           scope.order(:position, :id)
+                         else
+                           scope.order(:id)
+                         end
     @existing_answers = {}
     @other_answers = {}
     @computed_required = {}
@@ -219,7 +224,12 @@ class SurveysController < ApplicationController
     end
 
     if missing_required.any? || invalid_links.any?
-      @category_groups = @survey.categories.includes(:section, :questions).order(:id)
+      scope = @survey.categories.includes(:section, :questions)
+      @category_groups = if Category.column_names.include?("position")
+                           scope.order(:position, :id)
+                         else
+                           scope.order(:id)
+                         end
       @existing_answers = answers
       @other_answers = other_answers
       @computed_required = {}

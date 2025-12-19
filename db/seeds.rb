@@ -5,14 +5,14 @@ require "active_support/core_ext/numeric/time"
 require "set"
 require "active_record/tasks/database_tasks"
 
-puts "\n== Seeding Health sample data =="
+puts "\n== Seeding =="
 
 def ensure_schema_loaded!
   connection = ActiveRecord::Base.connection
 
   return if connection.data_source_exists?("users")
 
-  puts "• Database schema missing — running migrations before seeding"
+  puts "• Running migrations"
   ActiveRecord::Tasks::DatabaseTasks.migrate
   ActiveRecord::Base.connection_pool.disconnect!
   ActiveRecord::Base.establish_connection

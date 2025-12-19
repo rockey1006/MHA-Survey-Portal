@@ -1,15 +1,30 @@
 <% category = category_fields.object %>
 <% section_options = local_assigns[:section_options] || [["No section", ""]] %>
+<% position_supported = Category.column_names.include?("position") %>
 <% selected_section_key = category.section_form_uid.presence %>
 <% if selected_section_key.blank? && category.respond_to?(:survey_section_id) && category.survey_section_id.present? %>
   <% selected_section_key = "section-#{category.survey_section_id}" %>
   <% category.section_form_uid = selected_section_key if category.respond_to?(:section_form_uid=) %>
 <% end %>
-<article class="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+<% category_uid = category.persisted? ? "category-#{category.id}" : "category-temp-#{category.object_id}" %>
+<article id="<%= category_uid %>"
+         class="survey-category-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6"
+         data-builder-kind="category"
+         data-builder-label="<%= category.name.to_s.strip.presence || 'Untitled category' %>"
          data-category-fields-target="item">
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="flex-1 space-y-2">
       <%= category_fields.hidden_field :id %>
+      <% if position_supported %>
+        <%= category_fields.hidden_field :position %>
+      <% end %>
+
+      <div class="flex items-center justify-between gap-3">
+        <span class="js-drag-handle select-none rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 cursor-grab" aria-label="Drag to reorder">
+          ⋮⋮
+        </span>
+        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Category</span>
+      </div>
       <%= category_fields.label :name, "Category name", class: "block text-sm font-medium text-slate-700" %>
       <%= category_fields.text_field :name,
                                      required: true,
@@ -25,18 +40,22 @@
                                    data: { category_fields_target: "sectionSelect" } %>
         <p class="text-xs text-slate-500">Choose the section this category belongs to or select "No section".</p>
       </div>
+
+      <%# Display order is controlled via drag-and-drop. %>
     </div>
 
     <% if category.persisted? %>
-      <label class="flex items-center gap-2 text-sm font-medium text-rose-600">
+      <label class="inline-flex items-center gap-2 text-sm font-semibold text-rose-600">
         <%= category_fields.check_box :_destroy, class: checkbox_classes %>
-        <span>Remove category</span>
+        <span aria-hidden="true">🗑️</span>
+        <span>Remove</span>
       </label>
     <% else %>
       <button type="button"
-              class="text-sm font-medium text-rose-600"
+              class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %> text-rose-600"
               data-action="category-fields#remove">
-        Remove category
+        <span aria-hidden="true">🗑️</span>
+        <span>Remove</span>
       </button>
     <% end %>
   </div>
@@ -48,9 +67,34 @@
     </div>
 
     <div class="space-y-4" data-controller="question-fields">
-      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Questions</h3>
+      <h3 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-600">
+        <span aria-hidden="true">❓</span>
+        <span>Questions</span>
+      </h3>
+
+      <%# Ensure parent questions and sub-questions render in a stable order.
+          Parents: question_order asc.
+          Sub-questions: immediately after their parent, by sub_question_order asc.
+      %>
+      <% questions_for_render = category.questions.to_a %>
+      <% parent_order_by_id = questions_for_render.each_with_object({}) do |q, memo|
+           memo[q.id] = q.question_order.to_i if q.id.present? && (!q.respond_to?(:parent_question_id) || q.parent_question_id.blank?)
+         end %>
+      <% ordered_questions_for_render = questions_for_render.sort_by do |q|
+           is_sub = q.respond_to?(:parent_question_id) && q.parent_question_id.present?
+           if is_sub
+             parent_order = parent_order_by_id[q.parent_question_id] || 9_999
+             sub_order = q.respond_to?(:sub_question_order) ? q.sub_question_order.to_i : 9_999
+             [parent_order, 1, sub_order, q.id.to_i.nonzero? || 9_999_999, q.object_id]
+           else
+             order = q.question_order.to_i
+             order = 9_999 if order == 0
+             [order, 0, 0, q.id.to_i.nonzero? || 9_999_999, q.object_id]
+           end
+         end %>
+
       <div class="space-y-4" data-question-fields-target="container">
-        <%= category_fields.fields_for :questions do |question_fields| %>
+        <%= category_fields.fields_for :questions, ordered_questions_for_render do |question_fields| %>
           <%= render "admin/surveys/question_fields",
                      question_fields: question_fields,
                      input_classes: input_classes,

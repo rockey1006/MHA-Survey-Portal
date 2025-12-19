@@ -127,7 +127,7 @@ class SurveyNotificationJob < ApplicationJob
     survey = Survey.find(survey_id)
     student_ids = assignment_scope.where(survey_id: survey_id).distinct.pluck(:student_id)
 
-    Student.includes(:user).where(student_id: student_ids).find_each do |student|
+    Student.includes(:user).where(id: student_ids).find_each do |student|
       Notification.deliver!(
         user: student.user,
         title: "Survey Archived",

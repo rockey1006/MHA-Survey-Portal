@@ -163,7 +163,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
   test "index falls back to current month when no semester configured" do
     sign_in @student_user
-    ProgramSemester.delete_all
+    ProgramSemester.destroy_all
 
     get surveys_path
 

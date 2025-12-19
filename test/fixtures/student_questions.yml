@@ -8,7 +8,7 @@ one:
   updated_at: <%= Time.zone.now %>
 
 completed_entry:
-  student: other_student
+  student: completed_student
   question: fall_q1
   response_value: "5"
   created_at: <%= Time.zone.now %>

@@ -1,6 +1,6 @@
 <% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
-<div class="survey-container mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+<main class="main-content space-y-8 survey-container">
   <header class="survey-header space-y-1 text-center">
     <h1 class="text-2xl font-semibold text-slate-900"><%= survey_title %></h1>
     <p class="text-sm text-slate-600">
@@ -155,4 +155,4 @@
     <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
     <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: tailwind_button_classes(:primary) %>
   </div>
-</div>
+</main>

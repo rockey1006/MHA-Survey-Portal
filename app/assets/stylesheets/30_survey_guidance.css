@@ -375,30 +375,6 @@
 }
 
 @media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-  }
-
-  .header-left {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .nav-links {
-    gap: var(--spacing-lg);
-    margin-left: 0;
-  }
-
-  .nav-link {
-    font-size: var(--font-size-base);
-  }
-
-  .main-content {
-    padding: var(--spacing-lg);
-  }
-
   .dashboard-grid,
   .dashboard-grid-2,
   .dashboard-grid-3,
@@ -417,26 +393,5 @@
 }
 
 @media (max-width: 480px) {
-  .app-header {
-    padding: var(--spacing-sm) var(--spacing-lg);
-  }
-
-  .header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-  }
-
-  .nav-links {
-    gap: var(--spacing-md);
-  }
-
-  .page-title {
-    padding: var(--spacing-lg);
-  }
-
-  .page-title h1 {
-    font-size: var(--font-size-xl);
-  }
 }
 

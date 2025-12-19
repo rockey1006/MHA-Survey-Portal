@@ -100,10 +100,10 @@
           </div>
 
           <div class="form-actions">
-            <%= link_to student_dashboard_path, class: "student-btn student-btn--ghost" do %>
+            <%= link_to student_dashboard_path, class: tailwind_button_classes(:secondary) do %>
               Cancel
             <% end %>
-            <%= form.submit "Save profile", class: "student-btn student-btn--primary" %>
+            <%= form.submit "Save profile", class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
       </section>

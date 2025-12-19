@@ -21,7 +21,7 @@
               <%= button_to "Assign to #{student.full_name.presence || student.email}",
                             assign_advisors_survey_path(@survey, student_id: student.student_id),
                             method: :post,
-                            class: "btn",
+                      class: tailwind_button_classes(:primary),
                             data: { turbo_confirm: "Assign “#{@survey.title}” to #{student.full_name.presence || student.email}?",
                                     confirm:       "Assign “#{@survey.title}” to #{student.full_name.presence || student.email}?" },
                             disabled: assigned %>
@@ -31,7 +31,7 @@
                             method: :delete,
                             data: { turbo_confirm: "Are you sure you want to unassign “#{@survey.title}” from #{student.full_name.presence || student.email}?",
                                     confirm:       "Are you sure you want to unassign “#{@survey.title}” from #{student.full_name.presence || student.email}?" },
-                            class: "btn btn-secondary",
+                      class: tailwind_button_classes(:secondary),
                             disabled: !assigned %>
             </div>
           </div>
@@ -46,7 +46,7 @@
     <% end %>
 
     <div style="margin-top: 1rem;">
-      <%= link_to "← Back to Surveys", advisors_surveys_path %>
+      <%= link_to "← Back to Surveys", advisors_surveys_path, class: tailwind_button_classes(:secondary) %>
     </div>
 
     <div style="margin-top: 1rem;" class="flex justify-end">
@@ -55,7 +55,7 @@
                     method: :post,
                     data: { turbo_confirm: "Assign “#{@survey.title}” to ALL students in this track?",
                             confirm:       "Assign “#{@survey.title}” to ALL students in this track?" },
-                    class: "btn" %>
+                    class: tailwind_button_classes(:primary) %>
     </div>
   </section>
 </main>

@@ -342,6 +342,33 @@
   padding: var(--spacing-2xl);
 }
 
+.main-content--dashboard {
+  max-width: var(--dashboard-container-max-width);
+}
+
+/* Student dashboard: extra breathing room without impacting other dashboards */
+.main-content--student-dashboard {
+  padding: var(--spacing-4xl);
+}
+
+@media (max-width: 768px) {
+  .main-content--student-dashboard {
+    padding: var(--spacing-xl);
+  }
+}
+
+/* Maintenance page */
+.maintenance-card {
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.maintenance-body {
+  color: var(--gray-700);
+  line-height: var(--line-height-relaxed);
+}
+
 .layout-shell {
   max-width: none;
   width: 100%;
@@ -350,5 +377,56 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2xl);
+}
+
+/* Shared responsive layout (kept in header/layout stylesheet to avoid duplicates) */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+  }
+
+  .header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .nav-links {
+    gap: var(--spacing-lg);
+    margin-left: 0;
+  }
+
+  .nav-link {
+    font-size: var(--font-size-base);
+  }
+
+  .main-content {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .nav-links {
+    gap: var(--spacing-md);
+  }
+
+  .page-title {
+    padding: var(--spacing-lg);
+  }
+
+  .page-title h1 {
+    font-size: var(--font-size-xl);
+  }
 }
 

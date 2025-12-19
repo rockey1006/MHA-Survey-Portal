@@ -101,6 +101,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.datetime "updated_at", null: false
     t.bigint "category_id"
     t.boolean "has_evidence_field", default: false, null: false
+    t.boolean "has_feedback", default: false, null: false
     t.jsonb "configuration", default: {}, null: false
     t.integer "program_target_level"
     t.bigint "parent_question_id"

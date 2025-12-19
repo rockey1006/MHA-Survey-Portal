@@ -256,7 +256,7 @@ const ErrorState = ({ message, onRetry }) => {
     children.push(
       h("button", {
         type: "button",
-        className: "reports-button reports-button--primary",
+        className: "btn btn-primary",
         onClick: onRetry
       }, "Try again")
     )
@@ -359,7 +359,7 @@ const FilterBar = ({ filters, options, onChange, onReset }) => {
         ])
       })
     ),
-    h("button", { type: "button", className: "reports-button", onClick: onReset }, "Reset filters")
+    h("button", { type: "button", className: "btn btn-secondary", onClick: onReset }, "Reset filters")
   ])
 }
 

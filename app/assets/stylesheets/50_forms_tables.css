@@ -99,11 +99,6 @@
 }
 
 /* Button styles for forms */
-.btn-form {
-  padding: var(--spacing-md) var(--spacing-xl);
-  font-size: var(--font-size-base);
-}
-
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;
@@ -112,7 +107,9 @@
   .form-actions {
     flex-direction: column;
   }
-}.student-records-page {
+}
+
+.student-records-page {
   max-width: 1200px;
   margin: 2.5rem auto;
   padding: 0 1.5rem 4rem;
@@ -320,19 +317,13 @@
 }
 
 .action-cell .btn {
-  display: inline-block;
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  border: 1px solid #500000;
-  color: #500000;
-  text-decoration: none;
-  font-weight: 600;
-  transition: background 0.2s ease, color 0.2s ease;
+  padding: 0.35rem 0.75rem;
+  min-height: 34px;
+  font-size: var(--font-size-xs);
 }
 
 .action-cell .btn:hover {
-  background: #500000;
-  color: #fff;
+  text-decoration: none;
 }
 
 @media (max-width: 960px) {

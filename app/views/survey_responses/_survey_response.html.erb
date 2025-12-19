@@ -38,6 +38,35 @@
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
   <% categories = survey.present? ? survey.categories.includes(:section, :questions).order(:id).to_a : [] %>
 
+  <%# Read-only survey response pages should show advisor feedback directly under the
+      parent + sub-question group (when feedback exists). %>
+  <% feedbacks = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id)
+                       .includes(:question, :advisor)
+                       .order(updated_at: :desc, created_at: :desc) %>
+  <% per_question_map = {} %>
+  <% per_category_legacy = {} %>
+  <% feedbacks.each do |fb| %>
+    <% if fb.question_id.present? %>
+      <% per_question_map[fb.question_id] ||= fb %>
+    <% elsif fb.category_id.present? %>
+      <% per_category_legacy[fb.category_id] ||= fb %>
+    <% end %>
+    <%# Try parse legacy JSON in comments if present for category-level legacy entries %>
+    <% if fb.comments.present? && fb.category_id.present? %>
+      <% begin %>
+        <% parsed = JSON.parse(fb.comments) rescue nil %>
+        <% if parsed.is_a?(Hash) %>
+          <% parsed.each do |k, v| %>
+            <% cid = k.to_i %>
+            <% per_category_legacy[cid] ||= {} %>
+            <% per_category_legacy[cid] = v %>
+          <% end %>
+        <% end %>
+      <% rescue StandardError %>
+      <% end %>
+    <% end %>
+  <% end %>
+
   <% if categories.any? %>
     <div class="space-y-8">
       <% rendered_section_ids = [] %>
@@ -259,6 +288,39 @@
 
                 </article>
 
+                <%# Read-only: render existing advisor feedback under the end of each
+                    parent question group (parent + any sub-questions). %>
+                <% if !include_feedback_form && section&.mha_competency? %>
+                  <% end_of_parent_group = if is_sub_question
+                                             next_question.nil? || !next_question.sub_question? || next_question.parent_question_id != question.parent_question_id
+                                           else
+                                             next_question.nil? || !next_question.sub_question?
+                                           end %>
+
+                  <% if end_of_parent_group %>
+                    <% feedback_question = is_sub_question ? questions_by_id[question.parent_question_id] : question %>
+                    <% feedback_question_id = feedback_question&.id %>
+                    <% supports_feedback = feedback_question && (!feedback_question.respond_to?(:has_feedback?) || feedback_question.has_feedback?) %>
+
+                    <% if supports_feedback %>
+                      <% next if viewer_is_student_owner && category.name.to_s.strip.downcase == 'employment information' %>
+                      <% fb = feedback_question_id ? per_question_map[feedback_question_id] : nil %>
+                      <% if fb.present? %>
+                        <article class="question-block mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm ring-1 ring-amber-200/40 space-y-2">
+                          <div class="flex flex-wrap items-center justify-between gap-3">
+                            <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — #<%= question_number %></h5>
+                            <p class="text-xs text-slate-600">Score: <%= fb.average_score.present? ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
+                          </div>
+                          <% if fb.comments.present? %>
+                            <div class="text-sm text-slate-700 whitespace-pre-wrap break-words"><%= fb.comments %></div>
+                          <% end %>
+                          <div class="text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>
+                        </article>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                <% end %>
+
                 <%# Advisor feedback entry is only collected for parent questions in the
                     "MHA Competency Self-Assessment" section (mirrors the completing-survey experience). %>
                 <% if include_feedback_form && section&.mha_competency? %>
@@ -331,70 +393,12 @@
     </div>
   <% end %>
 
-  <%# Advisor feedbacks for this student + survey. Support two storage shapes:
-      1) multiple Feedback rows (one per category), and
-      2) a single legacy Feedback whose `comments` is JSON with per-category data.
-  %>
-  <% feedbacks = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id).includes(:question, :advisor) %>
-  <% per_question_map = {} %>
-  <% per_category_legacy = {} %>
-  <% feedbacks.each do |fb| %>
-    <% if fb.question_id.present? %>
-      <% per_question_map[fb.question_id] = fb %>
-    <% elsif fb.category_id.present? %>
-      <% per_category_legacy[fb.category_id] = fb %>
-    <% end %>
-    <%# Try parse legacy JSON in comments if present for category-level legacy entries %>
-    <% if fb.comments.present? && fb.category_id.present? %>
-      <% begin %>
-        <% parsed = JSON.parse(fb.comments) rescue nil %>
-        <% if parsed.is_a?(Hash) %>
-          <% parsed.each do |k, v| %>
-            <% cid = k.to_i %>
-            <% per_category_legacy[cid] ||= {} %>
-            <% per_category_legacy[cid] = v %>
-          <% end %>
-        <% end %>
-      <% rescue StandardError %>
-      <% end %>
-    <% end %>
-  <% end %>
-
-  <%# If we have any feedback entries (either per-category rows or legacy JSON), render them grouped by category
-      unless the caller requested inline feedback inputs (to avoid duplicating the display). %>
-  <% if !(include_feedback_form) && (per_question_map.any? || per_category_legacy.any?) %>
+  <%# Legacy fallback: if there are only category-level legacy feedback entries, keep a minimal
+      section at the bottom so older data doesn't disappear entirely. %>
+  <% if !include_feedback_form && per_category_legacy.any? %>
     <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 ring-1 ring-amber-200/40">
-      <h3 class="text-lg font-semibold">Advisor feedback</h3>
-      <div class="mt-4 space-y-3">
-        <% categories.each do |category| %>
-          <%# If current viewer is the student who owns this response, skip showing advisor feedback for Employment Information category %>
-          <% if viewer_is_student_owner && category.name.to_s.strip.downcase == 'employment information' %>
-            <% next %>
-          <% end %>
-          <%# For student viewers, make category headers larger/bold and add spacing between categories %>
-          <div class="<%= viewer_is_student_owner ? 'rounded-lg border border-amber-200 bg-white/70 p-3 mb-6' : 'rounded-lg border border-amber-200 bg-white/70 p-3' %>">
-            <div class="<%= viewer_is_student_owner ? 'text-lg font-bold' : 'text-sm font-medium' %>"><%= category.name %></div>
-            <div class="mt-2 space-y-2">
-              <%# When the viewer is the student owner, only show advisor feedback for even-numbered questions (Q2, Q4, ...).
-                  Use each_with_index so we can detect odd/even question numbers within the category. %>
-              <% category.questions.ordered.each_with_index do |question, q_index| %>
-                <% if viewer_is_student_owner && ((q_index + 1).odd?) %>
-                  <% next %>
-                <% end %>
-                <% fb = per_question_map[question.id] %>
-                <div class="rounded border border-amber-200 bg-amber-50/50 p-2">
-                  <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium"><%= question.question_text.truncate(80) %></div>
-                    <div class="text-sm text-slate-600">Score: <%= fb&.average_score.present? ? proficiency_label_for(fb.average_score, question) : '—' %></div>
-                  </div>
-                  <div class="mt-1 text-sm text-slate-700"><%= fb&.comments.presence || 'No feedback yet' %></div>
-                  <div class="mt-1 text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>
-                </div>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      </div>
+      <h3 class="text-lg font-semibold">Advisor feedback (legacy)</h3>
+      <p class="mt-2 text-sm text-slate-700">This survey response contains older feedback entries that are not attached to individual questions.</p>
     </section>
   <% end %>
   

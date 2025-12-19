@@ -122,6 +122,8 @@ Rails.application.routes.draw do
   get "about", to: "pages#about", as: :about
   get "faq",   to: "pages#faq",   as: :faq
 
+  get "maintenance", to: "pages#maintenance", as: :maintenance
+
   
 
   # User settings page (accessible to any authenticated user)

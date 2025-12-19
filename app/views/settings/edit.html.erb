@@ -84,8 +84,8 @@
           </div>
 
           <div class="form-actions">
-            <%= link_to "← Back", back_path, class: "settings-btn settings-btn--ghost" %>
-            <%= f.submit "Save changes", class: "settings-btn settings-btn--primary" %>
+            <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
+            <%= f.submit "Save changes", class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
       </section>

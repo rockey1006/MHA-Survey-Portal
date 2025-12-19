@@ -250,8 +250,8 @@
     <% end %>
 
     <div class="survey-actions flex items-center justify-between gap-3">
-      <%= button_tag "Save Progress", type: "button", class: "btn btn-secondary", onclick: "saveSurveyProgress()" %>
-      <%= form.submit "Submit Survey", class: "btn btn-primary" %>
+      <%= button_tag "Save Progress", type: "button", class: tailwind_button_classes(:secondary), onclick: "saveSurveyProgress()" %>
+      <%= form.submit "Submit Survey", class: tailwind_button_classes(:primary) %>
     </div>
   <% end %>
 

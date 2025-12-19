@@ -16,10 +16,10 @@
 
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: .75rem;">
   <div>
-    <a href="<%= student_dashboard_path %>" class="btn btn-secondary">← Back</a>
+    <a href="<%= student_dashboard_path %>" class="<%= tailwind_button_classes(:secondary) %>">← Back</a>
   </div>
   <div>
-    <button onclick="window.print();" class="btn btn-primary">Print</button>
+    <button onclick="window.print();" class="<%= tailwind_button_classes(:primary) %>">Print</button>
   </div>
 </div>
 

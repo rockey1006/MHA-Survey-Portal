@@ -21,7 +21,7 @@
     <section class="empty-state-card">
       <h2>Finish setting up your profile</h2>
       <p>We need to know your track before we can display the correct surveys. Head over to your profile and select Residential or Executive.</p>
-      <%= link_to "Complete Profile", edit_student_profile_path, class: "btn btn-primary" %>
+      <%= link_to "Complete Profile", edit_student_profile_path, class: tailwind_button_classes(:primary) %>
     </section>
   <% elsif @surveys.any? %>
     <div class="survey-board" role="list">
@@ -77,7 +77,7 @@
           <p class="survey-card__description"><%= survey.description.presence || "Complete this survey to capture your latest progress." %></p>
 
           <footer class="survey-card__footer">
-            <%= link_to(assignment&.completed_at? ? "View Submission" : "Open Survey", survey_path(survey), class: "btn btn-primary") %>
+            <%= link_to(assignment&.completed_at? ? "View Submission" : "Open Survey", survey_path(survey), class: tailwind_button_classes(:primary)) %>
           </footer>
         </article>
       <% end %>
@@ -86,7 +86,7 @@
     <section class="empty-state-card">
       <h2>No surveys assigned (yet)</h2>
       <p>Your advisor hasn't published surveys for the <%= @student.track %> track. We'll notify you as soon as one arrives.</p>
-      <%= link_to "Back to dashboard", student_dashboard_path, class: "btn btn-secondary" %>
+      <%= link_to "Back to dashboard", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
     </section>
   <% end %>
 </div>

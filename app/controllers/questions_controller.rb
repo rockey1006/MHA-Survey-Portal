@@ -88,6 +88,20 @@ class QuestionsController < ApplicationController
       params[:question][:question_text] = params[:question].delete(:text)
     end
 
-    params.require(:question).permit(:category_id, :question_order, :question_type, :question_text, :description, :tooltip_text, :answer_options, :is_required, :has_evidence_field, :has_feedback)
+    permitted = [
+      :category_id,
+      :question_order,
+      :question_type,
+      :question_text,
+      :description,
+      :tooltip_text,
+      :answer_options,
+      :is_required,
+      :has_evidence_field
+    ]
+
+    permitted << :has_feedback if Question.new.respond_to?(:has_feedback)
+
+    params.require(:question).permit(*permitted)
   end
 end

@@ -1,14 +1,9 @@
-<main class="w-full space-y-12 px-4 py-10 sm:px-6 lg:px-8">
-  <% primary_button_classes = "inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500" %>
-  <% secondary_button_classes = "inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" %>
-  <% neutral_button_classes = "inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400" %>
-  <% pill_classes = "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600" %>
-  <% card_classes = "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" %>
+<main class="main-content space-y-12">
 
   <div class="mb-4">
     <%= link_to "← Back",
                 admin_dashboard_path,
-                class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                class: tailwind_button_classes(:secondary),
                 data: { turbo: false } %>
   </div>
 
@@ -19,7 +14,7 @@
     </div>
     <div class="flex flex-wrap gap-3">
       <% if defined?(admin_survey_change_logs_path) %>
-        <%= link_to "View Change Log", admin_survey_change_logs_path, class: secondary_button_classes %>
+        <%= link_to "View Change Log", admin_survey_change_logs_path, class: tailwind_button_classes(:secondary) %>
       <% end %>
       <%= link_to "Create Survey", new_admin_survey_path, class: tailwind_button_classes(:primary) %>
     </div>
@@ -58,8 +53,8 @@
     </div>
   </section>
 
-  <section id="semester-manager" class="w-full space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <header class="flex flex-wrap items-center justify-between gap-4">
+  <section id="semester-manager" class="w-full card stack">
+    <header class="toolbar">
       <div>
         <h2 class="text-xl font-semibold text-slate-900">Program semesters</h2>
         <p class="text-sm text-slate-600">Add upcoming terms and choose which semester should appear across advisor and student pages.</p>
@@ -75,7 +70,7 @@
     </header>
 
     <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-      <div class="space-y-4">
+      <div class="stack stack--md">
         <% if @program_semesters.blank? %>
           <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
             No semesters yet. Use the form to create your first entry.
@@ -95,7 +90,7 @@
                     <%= button_to "Make current",
                                   make_current_admin_program_semester_path(semester),
                                   method: :patch,
-                                  class: neutral_button_classes %>
+                                  class: tailwind_button_classes(:subtle, extra_classes: "btn-sm") %>
                   <% end %>
                   <%= button_to "Delete",
                                 admin_program_semester_path(semester),
@@ -109,7 +104,7 @@
         <% end %>
       </div>
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-inner">
+      <div class="card card--tight card--muted">
         <h3 class="text-base font-semibold text-slate-900">Add semester</h3>
         <p class="mb-4 text-sm text-slate-600">Name semesters consistently (e.g., "Fall 2025").</p>
         <%= form_with model: [:admin, @new_program_semester], url: admin_program_semesters_path, local: true, class: "space-y-4" do |form| %>
@@ -141,7 +136,7 @@
       <% end %>
     </header>
 
-  <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="w-full card card--flush">
       <div class="border-b border-slate-200 p-5">
         <%= form_with url: admin_surveys_path, method: :get, local: true, class: "flex w-full flex-wrap items-center gap-3 md:flex-nowrap" do %>
           <%= hidden_field_tag :sort, @sort_column %>
@@ -186,8 +181,8 @@
       <% if @active_surveys.blank? %>
         <div class="p-6 text-center text-sm text-slate-500">No surveys match the current search or filter criteria.</div>
       <% else %>
-        <div class="w-full overflow-x-auto">
-          <table class="min-w-full w-full divide-y divide-slate-200 text-sm">
+        <div class="table-wrapper">
+          <table class="table min-w-full w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Title", "title") %></th>
@@ -226,9 +221,9 @@
                   <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
                   <td class="px-4 py-3 align-top">
                     <div class="flex flex-wrap justify-end gap-2">
-                      <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
-                      <%= link_to "Edit", edit_admin_survey_path(survey), class: neutral_button_classes %>
-                      <%= button_to "Archive", archive_admin_survey_path(survey), method: :patch, data: { turbo_confirm: "Archive '#{survey.title}' and remove it from advisors?" }, class: secondary_button_classes %>
+                      <%= link_to "Preview", preview_admin_survey_path(survey), class: tailwind_button_classes(:subtle, extra_classes: "btn-sm") %>
+                      <%= link_to "Edit", edit_admin_survey_path(survey), class: tailwind_button_classes(:subtle, extra_classes: "btn-sm") %>
+                      <%= button_to "Archive", archive_admin_survey_path(survey), method: :patch, data: { turbo_confirm: "Archive '#{survey.title}' and remove it from advisors?" }, class: tailwind_button_classes(:secondary) %>
                       <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: tailwind_button_classes(:danger) %>
                     </div>
                   </td>
@@ -255,9 +250,9 @@
     <% if @archived_surveys.blank? %>
       <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">No archived surveys yet.</div>
     <% else %>
-      <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="w-full overflow-x-auto">
-          <table class="min-w-full w-full divide-y divide-slate-200 text-sm">
+      <div class="w-full card card--flush">
+        <div class="table-wrapper">
+          <table class="table min-w-full w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Title</th>
@@ -296,8 +291,8 @@
                   <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
                   <td class="px-4 py-3 align-top">
                     <div class="flex flex-wrap justify-end gap-2">
-                      <%= link_to "Preview", preview_admin_survey_path(survey), class: neutral_button_classes %>
-                      <%= button_to "Activate", activate_admin_survey_path(survey), method: :patch, data: { turbo_confirm: "Activate '#{survey.title}' for advisors?" }, class: primary_button_classes %>
+                      <%= link_to "Preview", preview_admin_survey_path(survey), class: tailwind_button_classes(:subtle, extra_classes: "btn-sm") %>
+                      <%= button_to "Activate", activate_admin_survey_path(survey), method: :patch, data: { turbo_confirm: "Activate '#{survey.title}' for advisors?" }, class: tailwind_button_classes(:primary) %>
                       <%= button_to "Delete", admin_survey_path(survey), method: :delete, data: { turbo_confirm: "Delete '#{survey.title}' permanently?" }, class: tailwind_button_classes(:danger) %>
                     </div>
                   </td>

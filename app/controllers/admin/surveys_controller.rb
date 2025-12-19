@@ -259,6 +259,21 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [ActionController::Parameters]
   def survey_params
+    question_attributes = [
+      :id,
+      :question_text,
+      :description,
+      :tooltip_text,
+      :question_type,
+      :question_order,
+      :answer_options,
+      :is_required,
+      :has_evidence_field,
+      :_destroy
+    ]
+
+    question_attributes << :has_feedback if Question.new.respond_to?(:has_feedback)
+
     params.require(:survey).permit(
       :title,
       :description,
@@ -271,17 +286,7 @@ class Admin::SurveysController < Admin::BaseController
         :section_form_uid,
         :_destroy,
         questions_attributes: [
-          :id,
-          :question_text,
-          :description,
-          :tooltip_text,
-          :question_type,
-          :question_order,
-          :answer_options,
-          :is_required,
-          :has_evidence_field,
-          :has_feedback,
-          :_destroy
+          *question_attributes
         ]
       ],
       sections_attributes: [

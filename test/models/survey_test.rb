@@ -26,7 +26,7 @@ class SurveyTest < ActiveSupport::TestCase
   test "requires semester" do
     survey = Survey.new(title: "Test Survey")
     assert_not survey.valid?
-    assert_includes survey.errors[:semester], "can't be blank"
+    assert_includes survey.errors[:program_semester], "must exist"
   end
 
   test "rejects duplicate title within the same semester" do

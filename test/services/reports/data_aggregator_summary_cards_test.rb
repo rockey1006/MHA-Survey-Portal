@@ -109,6 +109,8 @@ module Reports
 
       Feedback.create!(
         student: @student,
+        survey: question.category.survey,
+        category: question.category,
         question: question,
         average_score: 3.0,
         advisor: advisors(:advisor)

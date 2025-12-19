@@ -6,7 +6,7 @@ class Feedback < ApplicationRecord
   belongs_to :advisor, foreign_key: :advisor_id, primary_key: :advisor_id
   # Keep category association for legacy records and for parts of the app
   # that still reference feedback.category
-  belongs_to :category, optional: true
+  belongs_to :category
   belongs_to :question, optional: true
   belongs_to :survey
 

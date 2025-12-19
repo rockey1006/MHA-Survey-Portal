@@ -67,9 +67,10 @@ class Question < ApplicationRecord
   scope :ordered, lambda {
     relation = order(:question_order)
     if column_names.include?("parent_question_id") && column_names.include?("sub_question_order")
+      table = connection.quote_table_name(table_name)
       relation
-        .order(Arel.sql("COALESCE(parent_question_id, id)"))
-        .order(Arel.sql("CASE WHEN parent_question_id IS NULL THEN 0 ELSE 1 END"))
+        .order(Arel.sql("COALESCE(#{table}.parent_question_id, #{table}.id)"))
+        .order(Arel.sql("CASE WHEN #{table}.parent_question_id IS NULL THEN 0 ELSE 1 END"))
         .order(:sub_question_order, :id)
     else
       relation.order(:id)

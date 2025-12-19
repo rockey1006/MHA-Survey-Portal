@@ -15,7 +15,7 @@ class StudentTest < ActiveSupport::TestCase
     test "uin must be exactly 9 digits" do
       student = students(:student)
       student.major = "Public Health"
-      student.track = "Clinical"
+      student.track = "Residential"
 
       student.uin = "123"
       assert_not student.valid?(:profile_completion)
@@ -29,7 +29,7 @@ class StudentTest < ActiveSupport::TestCase
     test "uin normalizes to digits" do
       student = students(:student)
       student.major = "Public Health"
-      student.track = "Clinical"
+      student.track = "Residential"
 
       student.uin = "123-456-789"
       assert student.valid?(:profile_completion)

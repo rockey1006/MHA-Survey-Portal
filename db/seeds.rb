@@ -4,6 +4,13 @@ require "yaml"
 require "active_support/core_ext/numeric/time"
 require "set"
 require "active_record/tasks/database_tasks"
+require "stringio"
+
+_seed_original_stdout = $stdout
+_seed_silence_stdout = Rails.env.test? || ENV["QUIET_SEEDS"].present?
+$stdout = StringIO.new if _seed_silence_stdout
+
+begin
 
 puts "\n== Seeding =="
 
@@ -559,3 +566,7 @@ end
 puts "   • Generated sample ratings for #{StudentQuestion.count} question responses"
 
 puts "🎉 Seed data finished!"
+
+ensure
+  $stdout = _seed_original_stdout if _seed_silence_stdout
+end

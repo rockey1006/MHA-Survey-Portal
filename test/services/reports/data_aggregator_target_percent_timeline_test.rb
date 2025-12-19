@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "securerandom"
 
 module Reports
   class DataAggregatorTargetPercentTimelineTest < ActiveSupport::TestCase
@@ -38,6 +39,7 @@ module Reports
         student_id: @student.student_id,
         advisor_id: @student.advisor&.advisor_id,
         survey: question.category.survey,
+        category: question.category,
         question: question,
         average_score: 4.0,
         comments: "Ok",
@@ -48,6 +50,7 @@ module Reports
         student_id: @other_student.student_id,
         advisor_id: @other_student.advisor&.advisor_id,
         survey: question.category.survey,
+        category: question.category,
         question: question,
         average_score: 3.0,
         comments: "Ok",

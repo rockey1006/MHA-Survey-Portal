@@ -13,3 +13,11 @@ other_student:
   track: Executive
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+completed_student:
+  student_id: <%= ActiveRecord::FixtureSet.identify(:completed_student) %>
+  advisor: other_advisor
+  uin: "111222333"
+  track: Residential
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

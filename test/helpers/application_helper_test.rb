@@ -19,9 +19,12 @@ class ApplicationHelperTest < ActionView::TestCase
     danger = tailwind_button_classes(:danger)
     subtle = tailwind_button_classes(:subtle)
 
-    assert primary.include?("bg-[#500000]")
-    assert danger.include?("bg-rose-600")
-    assert subtle.include?("bg-slate-100")
+    assert_includes primary, "btn-primary"
+    assert_includes danger, "btn-danger"
+    assert_includes subtle, "btn-subtle"
+
+    refute_equal primary, danger
+    refute_equal primary, subtle
   end
 
   test "humanize_audit_value and list behaviors" do

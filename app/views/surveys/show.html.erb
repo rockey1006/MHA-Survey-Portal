@@ -1,6 +1,6 @@
 <% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
-<div class="survey-container mx-auto max-w-4xl space-y-8">
+<div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
   <style>
     .survey-container [id^="survey-section-"],
     .survey-container [id^="survey-category-"],
@@ -13,14 +13,19 @@
       padding-left: 1rem;
     }
   </style>
-  <header class="survey-header text-center space-y-1">
-    <h1 class="text-2xl font-semibold text-slate-900"><%= @survey.title %></h1>
-    <p class="text-sm text-slate-600">
-      Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %>
-    </p>
-    <p class="text-xs text-slate-500">
-      Questions marked with an asterisk (*) are required.
-    </p>
+
+  <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
+    <div class="space-y-8 lg:min-w-0">
+  <header class="survey-header mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="space-y-2">
+      <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><%= @survey.title %></h1>
+      <p class="text-sm text-slate-600">
+        Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %>
+      </p>
+      <p class="text-xs text-slate-500">
+        Questions marked with an asterisk (*) are required.
+      </p>
+    </div>
   </header>
 
   <% flash_alert_present = flash[:alert].present? || flash.now[:alert].present? %>
@@ -33,83 +38,125 @@
     </div>
   <% end %>
 
-  <%= form_with url: submit_survey_path(@survey), method: :post, local: true, data: { turbo: false }, class: "space-y-6 survey-form" do |form| %>
+  <%= form_with url: submit_survey_path(@survey), method: :post, local: true, data: { turbo: false }, class: "space-y-8 survey-form" do |form| %>
     <% rendered_section_ids = [] %>
+    <% section_question_numbers = Hash.new(0) %>
     <% invalid_evidence_ids = Array(@invalid_evidence).map(&:to_s) %>
     <% @category_groups.each do |category| %>
       <% section = category.section %>
       <% section_anchor_id = section.present? ? "survey-section-#{section.id}" : nil %>
-      <% if section.present? && !rendered_section_ids.include?(section.id) %>
-        <div id="<%= section_anchor_id %>" class="space-y-2 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 text-left shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
-          <h2 class="text-xl font-bold text-[#500000]"><%= section.title %></h2>
-          <% if section.description.present? %>
-            <p class="text-sm text-slate-700"><%= section.description %></p>
-          <% end %>
-        </div>
-        <% rendered_section_ids << section.id %>
-      <% end %>
-      <section id="survey-category-<%= category.id %>" class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <header>
-          <h2 class="text-xl font-semibold text-slate-900"><%= category.name %></h2>
+      <div class="survey-block">
+        <% if section.present? && !rendered_section_ids.include?(section.id) %>
+          <div id="<%= section_anchor_id %>" class="survey-section-card space-y-2 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-left shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
+            <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
+            <% if section.description.present? %>
+              <p class="text-sm text-slate-700"><%= section.description %></p>
+            <% end %>
+          </div>
+          <% rendered_section_ids << section.id %>
+        <% end %>
+
+        <section id="survey-category-<%= category.id %>" class="survey-category-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+        <header class="space-y-2">
+          <h2 class="text-xl font-semibold tracking-tight text-slate-900"><%= category.name %></h2>
           <% category_desc = category.description.to_s.strip.presence %>
           <% if category_desc.present? %>
             <p class="indented-description text-sm text-slate-600"><%= category_desc.gsub(/\r?\n/, '<br>').html_safe %></p>
           <% end %>
         </header>
 
-        <% category.questions.ordered.each_with_index do |question, index| %>
-          <% field_name = "answers[#{question.id}]" %>
-          <% current_value = @existing_answers[question.id.to_s] %>
-          <% required = @computed_required[question.id] %>
-          <% evidence_value = if question.question_type == "evidence"
-                                current_value.is_a?(Hash) ? current_value["link"] : current_value
-                              else
-                                nil
-                              end %>
-          <% missing_required_error = false %>
-          <% if request.post? && required %>
-            <% if question.question_type == "evidence" %>
-              <% missing_required_error = evidence_value.to_s.strip.blank? %>
-            <% else %>
-              <% missing_required_error = current_value.to_s.strip.blank? %>
+        <div class="space-y-5">
+          <% number_key = section&.id || category.id %>
+          <% ordered_questions = category.questions.ordered.to_a %>
+          <% branch_parent_ids = ordered_questions.select(&:sub_question?).map(&:parent_question_id).compact.uniq %>
+          <% ordered_questions.each do |question| %>
+            <% is_sub_question = question.sub_question? %>
+            <% question_number = section_question_numbers[number_key] %>
+            <% question_number = (section_question_numbers[number_key] += 1) unless is_sub_question %>
+            <% field_name = "answers[#{question.id}]" %>
+            <% current_value = @existing_answers[question.id.to_s] %>
+            <% required = @computed_required[question.id] %>
+            <% evidence_value = if question.question_type == "evidence"
+                                  current_value.is_a?(Hash) ? current_value["link"] : current_value
+                                else
+                                  nil
+                                end %>
+            <% missing_required_error = false %>
+            <% if request.post? && required %>
+              <% if question.question_type == "evidence" %>
+                <% missing_required_error = evidence_value.to_s.strip.blank? %>
+              <% else %>
+                <% missing_required_error = current_value.to_s.strip.blank? %>
+              <% end %>
             <% end %>
-          <% end %>
-          <% invalid_evidence_error = question.question_type == "evidence" && invalid_evidence_ids.include?(question.id.to_s) %>
-          <% has_error = missing_required_error || invalid_evidence_error %>
-          <% article_classes = ["space-y-2", "question-block"] %>
-          <% article_classes << "ring-2 ring-rose-300 rounded-lg bg-rose-50/70" if has_error %>
+            <% invalid_evidence_error = question.question_type == "evidence" && invalid_evidence_ids.include?(question.id.to_s) %>
+            <% has_error = missing_required_error || invalid_evidence_error %>
+            <% article_classes = ["question-block", "rounded-lg", "border", "border-slate-100", "bg-slate-50/40", "p-4", "space-y-4"] %>
+            <% article_classes << "ml-6" if question.sub_question? %>
+            <% article_classes << "ring-2 ring-rose-300 border-rose-200 bg-rose-50/70" if has_error %>
 
-          <article id="question-block-<%= question.id %>" class="<%= article_classes.join(' ') %>" data-question-id="<%= question.id %>">
+            <% is_branch_parent = !is_sub_question && question.question_type == "multiple_choice" && branch_parent_ids.include?(question.id) %>
+            <% if is_branch_parent %>
+              <% option_values = question.answer_options_list.map { |opt| opt.to_s.strip.downcase } %>
+              <% is_branch_parent = option_values.include?("yes") && option_values.include?("no") %>
+            <% end %>
+            <% branch_target_value = is_branch_parent ? "Yes" : nil %>
+            <% branch_child_of = is_sub_question ? question.parent_question_id : nil %>
+
+            <article id="question-block-<%= question.id %>"
+                     class="<%= article_classes.join(' ') %>"
+                     data-question-id="<%= question.id %>"
+                     <% if is_branch_parent %>
+                       data-branch-parent="true"
+                       data-branch-parent-id="<%= question.id %>"
+                       data-branch-target-value="<%= branch_target_value %>"
+                     <% end %>
+                     <% if branch_child_of.present? %>
+                       data-branch-child-of="<%= branch_child_of %>"
+                     <% end %>>
             <% q_text = question.question_text.to_s.squish %>
             <% desc_text = question.description.to_s.strip.presence %>
             <% tooltip_text = question.tooltip_text.to_s.strip.presence %>
-            <% show_mha_tooltip = question.question_type == "multiple_choice" && section&.mha_competency? %>
+            <% show_mha_tooltip = %w[multiple_choice dropdown].include?(question.question_type) && section&.mha_competency? %>
             <% show_custom_tooltip = tooltip_text.present? && !show_mha_tooltip %>
             <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
-            <label class="block text-sm font-medium text-slate-900" for="question-<%= question.id %>">
-              <span class="font-semibold">Q<%= index + 1 %></span>
-              <span class="ml-2 inline-flex flex-col gap-1">
-                <span class="flex flex-wrap items-center gap-2">
-                  <span><%= q_text %></span>
-                  <% if show_mha_tooltip %>
-                    <% if tooltip_text.present? %>
-                      <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
-                    <% else %>
-                      <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
+            <label class="flex w-full items-start justify-between gap-3 text-sm font-medium text-slate-900" for="question-<%= question.id %>">
+              <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
+              <span class="flex min-w-0 items-start gap-2">
+                <% if is_sub_question %>
+                  <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" aria-label="Sub-question">↳</span>
+                <% else %>
+                  <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200/70 text-xs font-semibold text-slate-700"><%= question_prefix %><%= question_number %></span>
+                <% end %>
+                <span class="min-w-0 flex flex-col gap-1">
+                  <span class="flex min-w-0 flex-wrap items-center gap-2">
+                    <span class="leading-snug"><%= q_text %></span>
+                    <% if show_mha_tooltip %>
+                      <% if tooltip_text.present? %>
+                        <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
+                      <% else %>
+                        <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
+                      <% end %>
+                    <% elsif show_custom_tooltip %>
+                      <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
                     <% end %>
-                  <% elsif show_custom_tooltip %>
-                    <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
-                  <% end %>
-                  <% if required %>
-                    <span class="text-red-600" aria-hidden="true">*</span>
+                    <% if required %>
+                      <span class="text-red-600" aria-hidden="true">*</span>
+                    <% end %>
+                  </span>
+                  <% if formatted_desc.present? %>
+                    <div class="indented-description text-xs leading-relaxed text-slate-600"><%= formatted_desc %></div>
                   <% end %>
                 </span>
-                <% if formatted_desc.present? %>
-                  <div class="indented-description text-xs text-slate-600"><%= formatted_desc %></div>
-                <% end %>
               </span>
+
+              <% if question.question_type_dropdown? && question.program_target_level.present? %>
+                <span class="shrink-0 ml-auto text-right">
+                  <span class="target-level-badge">Target Level: <%= question.program_target_level %>/5</span>
+                </span>
+              <% end %>
             </label>
 
             <% case question.question_type %>
@@ -117,15 +164,39 @@
               <%= text_area_tag field_name, current_value, rows: 3, id: "question-#{question.id}", class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
               
             <% when "multiple_choice" %>
-              <% options = question.answer_options_list.presence || [] %>
+              <% option_pairs = question.answer_option_pairs.presence || [] %>
               <div class="flex flex-col gap-2" role="radiogroup">
-                <% options.each do |option| %>
+                <% option_pairs.each do |label, value| %>
                   <label class="flex items-center gap-2 text-sm text-slate-800">
-                    <%= radio_button_tag field_name, option, current_value.to_s == option.to_s, id: "question-#{question.id}-#{option.parameterize}", class: "h-4 w-4 text-blue-600" %>
-                    <span><%= option %></span>
+                    <%= radio_button_tag field_name,
+                                         value,
+                                         (current_value.is_a?(Hash) ? current_value["answer"].to_s : current_value.to_s) == value.to_s,
+                                         id: "question-#{question.id}-#{label.parameterize}",
+                                         class: "h-4 w-4 text-blue-600" %>
+                    <span><%= label %></span>
                   </label>
+
+                  <% is_other_option = label.to_s.strip.downcase.start_with?("other") %>
+                  <% if is_other_option %>
+                    <% other_value = (@other_answers || {})[question.id.to_s] %>
+                    <div class="ml-6" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>">
+                      <%= text_field_tag "other_answers[#{question.id}]",
+                                         other_value,
+                                         id: "question-#{question.id}-other",
+                                         placeholder: "Please describe...",
+                                         class: "w-full max-w-xl rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                    </div>
+                  <% end %>
                 <% end %>
               </div>
+
+            <% when "dropdown" %>
+              <% option_pairs = question.answer_option_pairs %>
+              <%= select_tag field_name,
+                             options_for_select(option_pairs.map { |label, value| [label, value] }, current_value.to_s),
+                             include_blank: true,
+                             id: "question-#{question.id}",
+                             class: "w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
               
             <% when "scale" %>
               <% scale_labels = scale_labels_for(question) %>
@@ -171,14 +242,16 @@
               <div class="text-xs text-red-600 mt-1">This question is required</div>
             <% end %>
 
-          </article>
-        <% end %>
-      </section>
+            </article>
+          <% end %>
+        </div>
+        </section>
+      </div>
     <% end %>
 
-    <div class="flex items-center justify-between gap-3">
-      <%= button_tag "Save Progress", type: "button", class: "inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring focus-visible:ring-slate-500/70", onclick: "saveSurveyProgress()" %>
-      <%= form.submit "Submit Survey", class: "inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus:outline-none focus-visible:ring focus-visible:ring-blue-500/70" %>
+    <div class="survey-actions flex items-center justify-between gap-3">
+      <%= button_tag "Save Progress", type: "button", class: tailwind_button_classes(:secondary), onclick: "saveSurveyProgress()" %>
+      <%= form.submit "Submit Survey", class: tailwind_button_classes(:primary) %>
     </div>
   <% end %>
 
@@ -281,4 +354,9 @@
       form.submit();
     }
   </script>
+
+    </div>
+
+    <%= render ::SurveyLegendComponent.new(legend: @survey.legend) %>
+  </div>
 </div>

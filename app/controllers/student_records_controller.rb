@@ -144,10 +144,15 @@ class StudentRecordsController < ApplicationController
 
     return true if question.required?
 
-    return false unless question.question_type_multiple_choice?
+     return false unless question.choice_question?
 
-    options = question.answer_options_list.map(&:strip).map(&:downcase)
-    !(options == %w[yes no] || options == %w[no yes])
+     option_values = question.answer_option_values
+     options = option_values.map(&:strip).map(&:downcase)
+     numeric_scale = %w[1 2 3 4 5]
+     has_numeric_scale = (numeric_scale - options).empty?
+     is_flexibility_scale = has_numeric_scale &&
+                            question.question_text.to_s.downcase.include?("flexible")
+    !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
   end
 
   # Preloads feedback entries for the provided student and survey ids.

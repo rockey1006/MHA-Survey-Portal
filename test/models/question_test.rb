@@ -8,7 +8,7 @@ class QuestionTest < ActiveSupport::TestCase
 
   # --- Executive Survey ---
   test "Project Management question in Fall 2025 Executive Survey exists" do
-    survey = Survey.find_by(title: "Executive Survey", semester: "Fall 2025")
+    survey = Survey.joins(:program_semester).find_by(title: "Executive Survey", program_semesters: { name: "Fall 2025" })
     assert_not_nil survey, "Executive Survey (Fall 2025) should exist"
 
     category = survey.categories.find_by(name: "Management Skills")
@@ -20,7 +20,7 @@ class QuestionTest < ActiveSupport::TestCase
   end
 
   test "Evidence question in Executive Survey is required" do
-    survey = Survey.find_by(title: "Executive Survey", semester: "Fall 2025")
+    survey = Survey.joins(:program_semester).find_by(title: "Executive Survey", program_semesters: { name: "Fall 2025" })
     assert_not_nil survey, "Executive Survey should exist"
 
     evidence_questions = survey.questions.where(question_type: "evidence")
@@ -33,7 +33,7 @@ class QuestionTest < ActiveSupport::TestCase
 
   # --- Residential Survey ---
   test "Residential Survey categories and Project Management exist" do
-    survey = Survey.find_by(title: "Residential Survey", semester: "Fall 2025")
+    survey = Survey.joins(:program_semester).find_by(title: "Residential Survey", program_semesters: { name: "Fall 2025" })
     assert_not_nil survey, "Residential Survey (Fall 2025) should exist"
 
     expected_categories = [ "Health Care Environment and Community", "Leadership Skills", "Management Skills", "Analytic and Technical Skills" ]

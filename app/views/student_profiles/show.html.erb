@@ -3,7 +3,7 @@
 <% full_name = @student.full_name.presence || @student.user&.name || "Student" %>
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
-<% track = @student.track.presence || "Not assigned" %>
+<% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
@@ -139,10 +139,10 @@
         </header>
         <p>Update your profile when you change tracks, switch advisors, or need to refresh your contact information. Accurate info keeps survey assignments on track.</p>
         <div class="support-actions">
-          <%= link_to edit_student_profile_path, class: "student-btn student-btn--primary" do %>
+          <%= link_to edit_student_profile_path, class: tailwind_button_classes(:primary) do %>
             Edit profile
           <% end %>
-          <%= link_to student_dashboard_path, class: "student-btn student-btn--ghost" do %>
+          <%= link_to student_dashboard_path, class: tailwind_button_classes(:secondary) do %>
             Back to dashboard
           <% end %>
         </div>

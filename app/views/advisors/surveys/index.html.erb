@@ -79,7 +79,7 @@
               <div class="advisor-survey-id">
                 <span class="advisor-survey-id__label">ID:</span>&nbsp;<%= survey.id %>
               </div>
-              <%= link_to "Assign to Students", advisors_survey_path(survey), class: "advisor-survey-assign-btn", data: { turbo: false } %>
+              <%= link_to "Assign to Students", advisors_survey_path(survey), class: tailwind_button_classes(:secondary), data: { turbo: false } %>
             </div>
           </article>
         <% end %>
@@ -96,7 +96,7 @@
     <div class="advisor-back-row">
       <%= link_to "← Back",
                   advisor_dashboard_path,
-                  class: "advisor-back-link",
+                  class: tailwind_button_classes(:secondary),
                   data: { turbo: false } %>
     </div>
   </section>

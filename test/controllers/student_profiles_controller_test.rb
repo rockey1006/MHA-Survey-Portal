@@ -320,6 +320,16 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "update rejects non-numeric uin" do
+    sign_in @student_user
+
+    patch student_profile_path, params: {
+      student: valid_student_params(uin: "abc")
+    }
+
+    assert_response :unprocessable_entity
+  end
+
   # Strong Parameters
   test "update filters unpermitted parameters" do
     sign_in @student_user

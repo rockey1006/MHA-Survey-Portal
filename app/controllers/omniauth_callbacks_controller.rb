@@ -21,7 +21,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
     unless tamu_email?(email)
       Rails.logger.warn "Blocked OAuth login for non-TAMU email: #{email}"
       flash[:alert] = "Please sign in with your TAMU email (@tamu.edu)."
-      redirect_to new_user_session_path and return
+      redirect_to after_omniauth_failure_path_for(:user) and return
     end
 
     user = User.from_google(**from_google_params.merge(email:, role: role))
@@ -57,7 +57,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
       redirect_to redirect_path
     else
       flash[:alert] = t "devise.omniauth_callbacks.failure", kind: "Google", reason: "#{auth.info.email} is not authorized."
-      redirect_to new_user_session_path
+      redirect_to after_omniauth_failure_path_for(:user)
     end
   end
 
@@ -67,7 +67,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
   #
   # @return [String]
   def after_omniauth_failure_path_for(_scope)
-    new_user_session_path
+    maintenance_path
   end
 
   # Determines the path after a successful sign in, defaulting to the

@@ -4,12 +4,43 @@ require "json"
 class Question < ApplicationRecord
   enum :question_type, {
     multiple_choice: "multiple_choice",
+    dropdown: "dropdown",
     scale: "scale",
     short_answer: "short_answer",
     evidence: "evidence"
   }, prefix: true
 
   belongs_to :category
+
+  def self.sub_question_columns_supported?
+    conn = connection
+    return false unless conn.data_source_exists?(table_name)
+
+    conn.column_exists?(table_name, :parent_question_id) &&
+      conn.column_exists?(table_name, :sub_question_order)
+  rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::NoDatabaseError
+    false
+  end
+
+  if sub_question_columns_supported?
+    belongs_to :parent_question,
+               class_name: "Question",
+               optional: true,
+               inverse_of: :sub_questions
+    has_many :sub_questions,
+             class_name: "Question",
+             foreign_key: :parent_question_id,
+             inverse_of: :parent_question,
+             dependent: :destroy
+  else
+    def parent_question
+      nil
+    end
+
+    def sub_questions
+      Question.none
+    end
+  end
   has_many :student_questions, dependent: :destroy
   has_many :students, through: :student_questions
 
@@ -20,11 +51,40 @@ class Question < ApplicationRecord
   validates :question_text, presence: true
   validates :question_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :question_type, presence: true, inclusion: { in: question_types.values }
+  validates :sub_question_order,
+            numericality: { greater_than_or_equal_to: 0, only_integer: true },
+            allow_nil: true,
+            if: ->(record) { record.has_attribute?(:sub_question_order) }
+  validates :program_target_level,
+            numericality: {
+              only_integer: true,
+              greater_than_or_equal_to: 1,
+              less_than_or_equal_to: 5
+            },
+            allow_nil: true
 
   # @return [ActiveRecord::Relation<Question>] questions ordered for display
-  scope :ordered, -> { order(:question_order) }
+  scope :ordered, lambda {
+    relation = order(:question_order)
+    if column_names.include?("parent_question_id") && column_names.include?("sub_question_order")
+      table = connection.quote_table_name(table_name)
+      relation
+        .order(Arel.sql("COALESCE(#{table}.parent_question_id, #{table}.id)"))
+        .order(Arel.sql("CASE WHEN #{table}.parent_question_id IS NULL THEN 0 ELSE 1 END"))
+        .order(:sub_question_order, :id)
+    else
+      relation.order(:id)
+    end
+  }
+  scope :parent_questions, lambda {
+    column_names.include?("parent_question_id") ? where(parent_question_id: nil) : all
+  }
+  scope :sub_questions_only, lambda {
+    column_names.include?("parent_question_id") ? where.not(parent_question_id: nil) : none
+  }
 
   before_validation :ensure_question_order
+  before_validation :ensure_sub_question_order
 
   # @return [Boolean] whether the question is required
   def required?
@@ -41,17 +101,104 @@ class Question < ApplicationRecord
 
     parsed = JSON.parse(raw) rescue nil
     if parsed.is_a?(Array)
-      parsed
+      parsed.map do |entry|
+        case entry
+        when String
+          entry
+        when Array
+          entry[0].to_s
+        when Hash
+          (entry["label"] || entry[:label] || entry["value"] || entry[:value]).to_s
+        else
+          entry.to_s
+        end
+      end
     else
       raw.gsub(/[\[\]\"“”]/, "").split(",").map(&:strip).reject(&:empty?)
     end
   end
 
+  # Returns a normalized list of [label, value] pairs for choice-style questions.
+  #
+  # Supports answer_options stored as:
+  # - ["Yes", "No"]
+  # - [["Mastery (5)", "5"], ...]
+  # - [{"label":"Mastery (5)","value":"5"}, ...]
+  #
+  # @return [Array<Array(String, String)>]
+  def answer_option_pairs
+    raw = answer_options.to_s
+    return [] if raw.blank?
+
+    parsed = JSON.parse(raw) rescue nil
+    list = parsed.is_a?(Array) ? parsed : answer_options_list
+
+    Array(list).filter_map do |entry|
+      case entry
+      when Array
+        next unless entry.size >= 2
+
+        label = entry[0].to_s.strip
+        value = entry[1].to_s.strip
+        next if label.blank? || value.blank?
+
+        [ label, value ]
+      when Hash
+        label = (entry["label"] || entry[:label]).to_s.strip
+        value = (entry["value"] || entry[:value] || label).to_s.strip
+        next if label.blank? || value.blank?
+
+        [ label, value ]
+      else
+        str = entry.to_s.strip
+        next if str.blank?
+
+        [ str, str ]
+      end
+    end
+  end
+
+  # @return [Array<String>] values for choice-style questions.
+  def answer_option_values
+    answer_option_pairs.map { |(_label, value)| value }
+  end
+
+  # @return [Boolean] whether this question uses discrete choice options
+  def choice_question?
+    question_type_multiple_choice? || question_type_dropdown?
+  end
+
+  # @return [Boolean] whether this question is a sub-question
+  def sub_question?
+    return false unless has_attribute?(:parent_question_id)
+
+    parent_question_id.present?
+  end
+
   private
 
   def ensure_question_order
+    if has_attribute?(:parent_question_id) && parent_question.present?
+      self.question_order = parent_question.question_order
+      return
+    end
+
     return if question_order.present?
 
     self.question_order = (category&.questions&.maximum(:question_order) || 0) + 1
+  end
+
+  def ensure_sub_question_order
+    return unless has_attribute?(:parent_question_id)
+    return unless has_attribute?(:sub_question_order)
+    return unless parent_question.present?
+    return if sub_question_order.present?
+
+    # Prefer in-memory siblings when building nested records during seeding.
+    in_memory_siblings = parent_question.sub_questions.to_a
+    in_memory_max = in_memory_siblings.filter_map { |question| question.has_attribute?(:sub_question_order) ? question.sub_question_order : nil }.max
+    db_max = parent_question.persisted? ? parent_question.sub_questions.maximum(:sub_question_order) : nil
+
+    self.sub_question_order = [ in_memory_max, db_max, 0 ].compact.max + 1
   end
 end

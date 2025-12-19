@@ -1,7 +1,7 @@
 <% content_for :title, "Edit Student Profile" %>
 
 <% full_name = @student.full_name.presence || @student.user&.name || "Student" %>
-<% track = @student.track.presence || "Select a track" %>
+<% track = @student.track.present? ? @student.track.to_s.titleize : "Select a track" %>
 <% major = @student.major.presence || "Add your program" %>
 <% initials = full_name.split.first(2).map { |part| part.first&.upcase }.join.presence || "ST" %>
 
@@ -63,8 +63,12 @@
             <div class="form-field">
               <%= form.label :uin, "UIN" %>
               <%= form.text_field :uin,
-                  placeholder: "123456789",
-                  required: true %>
+                  placeholder: "Enter your 9-digit UIN",
+                  required: true,
+                  inputmode: "numeric",
+                  autocomplete: "off",
+                  maxlength: 9,
+                  pattern: "\\d{9}" %>
               <small>Your 9-digit University ID</small>
             </div>
 
@@ -96,10 +100,10 @@
           </div>
 
           <div class="form-actions">
-            <%= link_to student_dashboard_path, class: "student-btn student-btn--ghost" do %>
+            <%= link_to student_dashboard_path, class: tailwind_button_classes(:secondary) do %>
               Cancel
             <% end %>
-            <%= form.submit "Save profile", class: "student-btn student-btn--primary" %>
+            <%= form.submit "Save profile", class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
       </section>

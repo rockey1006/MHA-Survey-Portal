@@ -219,8 +219,20 @@ class FeedbacksController < ApplicationController
     question_ids = @survey.questions.select(:id)
     @responses = StudentQuestion.where(student_id: @student.student_id, question_id: question_ids).includes(question: :category)
     @existing_feedbacks = Feedback.where(student_id: @student.student_id, survey_id: @survey.id).includes(:category, :advisor, :question)
-    @existing_feedbacks_by_category = @existing_feedbacks.index_by(&:category_id)
-    @existing_feedbacks_by_question = @existing_feedbacks.index_by(&:question_id)
+
+    pick_latest = lambda do |items|
+      items.compact.max_by { |fb| fb.updated_at || fb.created_at || Time.at(0) }
+    end
+
+    @existing_feedbacks_by_category = @existing_feedbacks
+      .select { |fb| fb.category_id.present? }
+      .group_by(&:category_id)
+      .transform_values { |items| pick_latest.call(items) }
+
+    @existing_feedbacks_by_question = @existing_feedbacks
+      .select { |fb| fb.question_id.present? }
+      .group_by(&:question_id)
+      .transform_values { |items| pick_latest.call(items) }
   end
 
   def set_survey_and_student

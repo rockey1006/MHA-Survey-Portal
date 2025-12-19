@@ -9,27 +9,26 @@ class SurveysController < ApplicationController
   # @return [void]
   def index
     @student = current_student
-    track_value = @student&.track.to_s
+    assignments = if @student
+                    SurveyAssignment
+                      .where(student_id: @student.student_id)
+                      .select(:id, :survey_id, :assigned_at, :due_date, :completed_at)
+    else
+                    SurveyAssignment.none
+    end
 
-    @surveys = if track_value.present?
+    assigned_survey_ids = assignments.map(&:survey_id)
+
+    @surveys = if assigned_survey_ids.any?
                  Survey.active
                        .includes(:questions, :track_assignments)
-                       .joins(:track_assignments)
-                       .where("LOWER(survey_track_assignments.track) = ?", track_value.downcase)
-                       .distinct
+                       .where(id: assigned_survey_ids)
                        .ordered
     else
                  Survey.none
     end
 
-    survey_ids = @surveys.map(&:id)
-    @assignment_lookup = if survey_ids.any? && @student
-                           SurveyAssignment
-                             .where(student_id: @student.student_id, survey_id: survey_ids)
-                             .index_by(&:survey_id)
-    else
-                           {}
-    end
+    @assignment_lookup = assignments.index_by(&:survey_id)
 
     @current_semester_label = ProgramSemester.current_name.presence || fallback_semester_label
   end
@@ -39,8 +38,14 @@ class SurveysController < ApplicationController
   # @return [void]
   def show
   Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
-    @category_groups = @survey.categories.includes(:section, :questions).order(:id)
+      scope = @survey.categories.includes(:section, :questions)
+      @category_groups = if Category.column_names.include?("position")
+                           scope.order(:position, :id)
+      else
+                           scope.order(:id)
+      end
     @existing_answers = {}
+    @other_answers = {}
     @computed_required = {}
     student = current_student
 
@@ -60,6 +65,14 @@ class SurveysController < ApplicationController
         if ans.is_a?(Hash)
           if response.question.question_type == "evidence" && ans["link"].present?
             @existing_answers[response.question_id.to_s] = ans["link"]
+          elsif response.question.choice_question? && ans["answer"].present?
+            @existing_answers[response.question_id.to_s] = ans["answer"]
+            option_pairs = response.question.answer_option_pairs
+            other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+            other_value = other_pair ? other_pair[1].to_s : "Other"
+            if ans["answer"].to_s == other_value || ans["answer"].to_s == "Other"
+              @other_answers[response.question_id.to_s] = ans["text"].to_s
+            end
           else
             # For competency/non-evidence questions we previously stored {"text"=>..., "rating"=>n}
             text_value = ans["text"] || ans["answer"]
@@ -81,11 +94,13 @@ class SurveysController < ApplicationController
       category.questions.each do |question|
         required = question.is_required?
 
-        if !required && question.question_type_multiple_choice?
-          options = question.answer_options_list.map(&:strip).map(&:downcase)
+        if !required && question.choice_question?
+          option_values = question.answer_option_values
+          options = option_values.map(&:strip).map(&:downcase)
           # Exception: flexibility scale questions (1-5) should remain optional
-          is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
-                                 question.question_text.to_s.downcase.include?("flexible")
+          numeric_scale = %w[1 2 3 4 5]
+          has_numeric_scale = (numeric_scale - options).empty?
+          is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
           required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
         end
 
@@ -120,6 +135,17 @@ class SurveysController < ApplicationController
                 {}
     end
     answers = answers.stringify_keys
+
+    raw_other_answers = params[:other_answers]
+    other_answers = case raw_other_answers
+    when ActionController::Parameters
+              raw_other_answers.to_unsafe_h
+    when Hash
+              raw_other_answers
+    else
+              {}
+    end
+    other_answers = other_answers.stringify_keys
     @first_error_question_id = nil
     @first_error_section_dom_id = nil
     answers_present = answers.values.any? do |value|
@@ -144,12 +170,32 @@ class SurveysController < ApplicationController
     questions_map.each_value do |question|
       submitted_value = answers[question.id.to_s]
 
+      if question.question_type == "multiple_choice"
+        option_pairs = question.answer_option_pairs
+        other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+        other_value = other_pair ? other_pair[1].to_s : "Other"
+
+        if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+          submitted_value = {
+            "answer" => other_value,
+            "text" => other_answers[question.id.to_s].to_s
+          }
+        end
+      elsif submitted_value.to_s == "Other"
+        submitted_value = {
+          "answer" => "Other",
+          "text" => other_answers[question.id.to_s].to_s
+        }
+      end
+
       # Apply the same required logic as in show action
       required = question.is_required?
-      if !required && question.question_type_multiple_choice?
-        options = question.answer_options_list.map(&:strip).map(&:downcase)
-        is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
-                               question.question_text.to_s.downcase.include?("flexible")
+      if !required && question.choice_question?
+        option_values = question.answer_option_values
+        options = option_values.map(&:strip).map(&:downcase)
+        numeric_scale = %w[1 2 3 4 5]
+        has_numeric_scale = (numeric_scale - options).empty?
+        is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
         required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
       end
 
@@ -178,8 +224,14 @@ class SurveysController < ApplicationController
     end
 
     if missing_required.any? || invalid_links.any?
-      @category_groups = @survey.categories.includes(:section, :questions).order(:id)
+      scope = @survey.categories.includes(:section, :questions)
+      @category_groups = if Category.column_names.include?("position")
+                           scope.order(:position, :id)
+      else
+                           scope.order(:id)
+      end
       @existing_answers = answers
+      @other_answers = other_answers
       @computed_required = {}
       @invalid_evidence = invalid_links.map(&:id)
       error_candidates = (missing_required + invalid_links).map(&:id)
@@ -205,10 +257,12 @@ class SurveysController < ApplicationController
       @category_groups.each do |category|
         category.questions.each do |question|
           required = question.is_required?
-          if !required && question.question_type_multiple_choice?
-            options = question.answer_options_list.map(&:strip).map(&:downcase)
-            is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
-                                   question.question_text.to_s.downcase.include?("flexible")
+          if !required && question.choice_question?
+            option_values = question.answer_option_values
+            options = option_values.map(&:strip).map(&:downcase)
+            numeric_scale = %w[1 2 3 4 5]
+            has_numeric_scale = (numeric_scale - options).empty?
+            is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
             required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
           end
           @computed_required[question.id] = required
@@ -219,10 +273,23 @@ class SurveysController < ApplicationController
       ActiveRecord::Base.transaction do
         allowed_question_ids.each do |question_id|
           submitted_value = answers[question_id.to_s]
+
+          question = questions_map[question_id]
+          if question&.question_type == "multiple_choice"
+            option_pairs = question.answer_option_pairs
+            other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+            other_value = other_pair ? other_pair[1].to_s : "Other"
+
+            if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+              submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+            end
+          elsif submitted_value.to_s == "Other"
+            submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
+          end
+
           record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
           record.advisor_id ||= student.advisor_id
 
-          question = questions_map[question_id]
           if submitted_value.present?
             record.answer = submitted_value
             record.save(validate: false)
@@ -237,10 +304,23 @@ class SurveysController < ApplicationController
     ActiveRecord::Base.transaction do
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
+
+        question = questions_map[question_id]
+        if question&.question_type == "multiple_choice"
+          option_pairs = question.answer_option_pairs
+          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+          other_value = other_pair ? other_pair[1].to_s : "Other"
+
+          if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+            submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+          end
+        elsif submitted_value.to_s == "Other"
+          submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
+        end
+
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        question = questions_map[question_id]
         if submitted_value.present?
           record.answer = submitted_value
           record.save!
@@ -308,7 +388,28 @@ class SurveysController < ApplicationController
       return
     end
 
-    answers = params[:answers] || {}
+    raw_answers = params[:answers]
+    answers = case raw_answers
+    when ActionController::Parameters
+          raw_answers.to_unsafe_h
+    when Hash
+          raw_answers
+    else
+          {}
+    end
+    answers = answers.stringify_keys
+
+    raw_other_answers = params[:other_answers]
+    other_answers = case raw_other_answers
+    when ActionController::Parameters
+              raw_other_answers.to_unsafe_h
+    when Hash
+              raw_other_answers
+    else
+              {}
+    end
+    other_answers = other_answers.stringify_keys
+
     allowed_question_ids = @survey.questions.pluck(:id)
 
     Rails.logger.info "[SAVE_PROGRESS DEBUG] Student ID: #{student.student_id}"
@@ -319,6 +420,9 @@ class SurveysController < ApplicationController
     ActiveRecord::Base.transaction do
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
+        if submitted_value.to_s == "Other"
+          submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
+        end
         Rails.logger.info "[SAVE_PROGRESS DEBUG] Question #{question_id}: value=#{submitted_value.inspect}"
 
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
@@ -350,7 +454,7 @@ class SurveysController < ApplicationController
       progress: progress_summary
     )
 
-    redirect_to survey_path(@survey), notice: notice_message
+    redirect_to student_dashboard_path, notice: notice_message
   end
 
   private
@@ -359,7 +463,7 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def set_survey
-    @survey = Survey.includes(categories: %i[section questions]).find(params[:id])
+    @survey = Survey.includes(:legend, categories: %i[section questions]).find(params[:id])
   end
 
   def question_ids_in_display_order(category_groups)
@@ -368,9 +472,25 @@ class SurveysController < ApplicationController
 
       questions = category.questions
       ordered_questions = if questions.respond_to?(:loaded?) && questions.loaded?
-                            questions.sort_by(&:question_order)
+                            questions.sort_by do |q|
+                              parent_id = q.respond_to?(:parent_question_id) ? q.parent_question_id : nil
+                              group_key = (parent_id || q.id).to_i
+                              sub_flag = q.respond_to?(:sub_question?) ? (q.sub_question? ? 1 : 0) : (parent_id ? 1 : 0)
+                              sub_order = q.respond_to?(:sub_question_order) ? q.sub_question_order.to_i : 0
+                              [ q.question_order.to_i, group_key, sub_flag, sub_order, q.id.to_i ]
+                            end
       else
-                            questions.order(:question_order).to_a
+                            relation = questions.order(:question_order)
+
+                            if Question.sub_question_columns_supported?
+                              relation
+                                .order(Arel.sql("COALESCE(parent_question_id, id)"))
+                                .order(Arel.sql("CASE WHEN parent_question_id IS NULL THEN 0 ELSE 1 END"))
+                                .order(:sub_question_order, :id)
+                                .to_a
+                            else
+                              relation.order(:id).to_a
+                            end
       end
       ordered_questions.map(&:id)
     end

@@ -5,7 +5,7 @@
 
 <%= form_with(model: [:admin, survey],
               local: true,
-              class: "space-y-10",
+              class: "survey-container survey-show mx-auto w-full space-y-8",
               data: { controller: "survey-autosave", "survey-autosave-debounce-value": 4000 }) do |form| %>
   <% if survey.errors.any? %>
     <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -18,11 +18,20 @@
     </div>
   <% end %>
 
-  <div class="flex justify-end text-xs text-slate-500" aria-live="polite">
-    <span data-survey-autosave-target="status">All changes saved</span>
-  </div>
+  <header class="survey-header rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="survey-content-header">
+      <div class="survey-content-heading">
+        <h2 class="text-xl font-semibold tracking-tight text-slate-900">Survey setup</h2>
+        <p class="text-sm text-slate-600">This builder mirrors the student survey layout. Use the sidebar to add and navigate sections, categories, and questions.</p>
+      </div>
 
-  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="text-xs text-slate-500" aria-live="polite">
+        <span data-survey-autosave-target="status">All changes saved</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
     <header class="space-y-1">
       <h2 class="text-lg font-semibold text-slate-900">Survey basics</h2>
       <p class="text-sm text-slate-600">Provide a clear title, semester, and description for advisors.</p>
@@ -63,7 +72,7 @@
     </div>
   </section>
 
-  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <section class="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
     <header class="space-y-1">
       <h2 class="text-lg font-semibold text-slate-900">Track assignments</h2>
       <p class="text-sm text-slate-600">Choose which program track should see this survey.</p>
@@ -94,84 +103,179 @@
 
   <% section_select_options = [["No section", ""]] + survey.sections.map { |section_record| [section_record.title.presence || "Untitled section", section_record.form_uid] } %>
 
-  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="section-fields">
-    <header class="space-y-1">
-      <h2 class="text-lg font-semibold text-slate-900">Sections</h2>
-      <p class="text-sm text-slate-600">Add optional headers that group categories. Use the display order field to control their sequence.</p>
-    </header>
+  <% survey.categories.each do |category_record| %>
+    <% next unless category_record.respond_to?(:section_form_uid=) %>
+    <% if category_record.section_form_uid.blank? && category_record.respond_to?(:survey_section_id) && category_record.survey_section_id.present? %>
+      <% category_record.section_form_uid = "section-#{category_record.survey_section_id}" %>
+    <% end %>
+  <% end %>
 
-    <div class="space-y-4" data-section-fields-target="container">
-      <%= form.fields_for :sections do |section_fields| %>
-        <%= render "admin/surveys/section_fields",
-                   section_fields: section_fields,
-                   input_classes: input_classes,
-                   textarea_classes: textarea_classes %>
-      <% end %>
+  <% ordered_sections_for_render = survey.sections.to_a.sort_by { |s| [s.position.to_i.nonzero? || 9_999, s.id.to_i.nonzero? || 9_999_999, s.object_id] } %>
+  <% known_section_uids = ordered_sections_for_render.map { |s| s.form_uid.to_s }.reject(&:blank?) %>
+  <% position_supported = Category.column_names.include?("position") %>
+  <% ordered_categories_for_render = survey.categories.to_a.sort_by do |c|
+       raw_uid = c.section_form_uid.to_s
+       group_key = raw_uid.present? && known_section_uids.include?(raw_uid) ? raw_uid : "__NO_SECTION__"
+       pos = position_supported ? (c.position.to_i.nonzero? || 9_999) : 9_999
+       [group_key, pos, c.id.to_i.nonzero? || 9_999_999, c.object_id]
+     end %>
+
+  <div class="survey-grid survey-builder-layout grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10" data-controller="survey-builder">
+    <div class="survey-content lg:min-w-0">
+      <section class="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+               data-controller="section-fields category-fields"
+               data-survey-builder-target="sectionsContainer categoriesContainer">
+        <header class="space-y-1">
+          <h2 class="text-lg font-semibold text-slate-900">Survey content</h2>
+          <p class="text-sm text-slate-600">This is the exact order students will see: section header once, then its categories and questions. Drag and drop to reorder.</p>
+        </header>
+
+        <div class="space-y-8" data-section-fields-target="container">
+          <% ordered_sections_for_render.each do |section_record| %>
+            <% categories_for_section = ordered_categories_for_render.select { |c| c.section_form_uid.to_s == section_record.form_uid.to_s && known_section_uids.include?(section_record.form_uid.to_s) } %>
+            <% categories_html = capture do %>
+              <% categories_for_section.each do |category_record| %>
+                <%= form.fields_for :categories, category_record do |category_fields| %>
+                  <%= render "admin/surveys/category_fields",
+                             category_fields: category_fields,
+                             input_classes: input_classes,
+                             textarea_classes: textarea_classes,
+                             checkbox_classes: checkbox_classes,
+                             section_options: section_select_options %>
+                <% end %>
+              <% end %>
+            <% end %>
+
+            <%= form.fields_for :sections, section_record do |section_fields| %>
+              <%= render "admin/surveys/section_fields",
+                         section_fields: section_fields,
+                         input_classes: input_classes,
+                         textarea_classes: textarea_classes,
+                         categories_html: categories_html %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <% new_section = survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
+        <% new_section.form_uid ||= "NEW_SECTION_UID" %>
+        <% section_template = capture do %>
+          <%= form.fields_for :sections, new_section, child_index: "NEW_SECTION" do |section_fields| %>
+            <%= render "admin/surveys/section_fields",
+                       section_fields: section_fields,
+                       input_classes: input_classes,
+                       textarea_classes: textarea_classes,
+                       categories_html: "" %>
+          <% end %>
+        <% end %>
+        <% survey.sections.target.delete(new_section) %>
+        <template data-section-fields-target="template"><%= section_template %></template>
+
+        <%# No-section categories are shown after all section blocks (like the student page). %>
+        <% no_section_categories = ordered_categories_for_render.select { |c|
+             uid = c.section_form_uid.to_s
+             uid.blank? || !known_section_uids.include?(uid)
+           } %>
+        <div class="space-y-6" data-no-section-group data-no-section-group-list data-category-fields-target="container">
+          <% no_section_categories.each do |category_record| %>
+            <%= form.fields_for :categories, category_record do |category_fields| %>
+              <%= render "admin/surveys/category_fields",
+                         category_fields: category_fields,
+                         input_classes: input_classes,
+                         textarea_classes: textarea_classes,
+                         checkbox_classes: checkbox_classes,
+                         section_options: section_select_options %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <% new_category = survey.categories.build(name: "", description: "") %>
+        <% new_category.questions.build(question_text: "", question_order: 1) if new_category.questions.empty? %>
+        <% category_template = capture do %>
+          <%= form.fields_for :categories, new_category, child_index: "NEW_CATEGORY" do |category_fields| %>
+            <%= render "admin/surveys/category_fields",
+                       category_fields: category_fields,
+                       input_classes: input_classes,
+                       textarea_classes: textarea_classes,
+                       checkbox_classes: checkbox_classes,
+                       section_options: section_select_options %>
+          <% end %>
+        <% end %>
+        <% survey.categories.target.delete(new_category) %>
+        <template data-category-fields-target="template"><%= category_template %></template>
+
+        <%# Keep these buttons for the sidebar quick-actions to trigger. %>
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button type="button"
+                  class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                  data-action="section-fields#add">
+            + Add section
+          </button>
+
+          <button type="button"
+                  class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+                  data-action="category-fields#add">
+            + Add category
+          </button>
+        </div>
+      </section>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: tailwind_button_classes(:primary)) %>
+        <%= link_to "Cancel", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
+      </div>
     </div>
 
-    <% new_section = survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
-    <% new_section.form_uid ||= "NEW_SECTION_UID" %>
-    <% section_template = capture do %>
-      <%= form.fields_for :sections, new_section, child_index: "NEW_SECTION" do |section_fields| %>
-        <%= render "admin/surveys/section_fields",
-                   section_fields: section_fields,
-                   input_classes: input_classes,
-                   textarea_classes: textarea_classes %>
-      <% end %>
-    <% end %>
-    <% survey.sections.target.delete(new_section) %>
+    <aside class="survey-sidebar">
+      <div class="sticky top-24 space-y-4 sticky-scroll">
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <span aria-hidden="true">🧰</span>
+            <span>Builder</span>
+          </p>
+          <div class="mt-3 space-y-2">
+            <button type="button"
+                    class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-block btn-sm justify-start') %>"
+                    data-action="survey-builder#addSection"
+                    data-survey-builder-target="addSectionButton">
+              <span aria-hidden="true">➕</span>
+              <span>Section</span>
+            </button>
+            <button type="button"
+                    class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-block btn-sm justify-start') %>"
+                    data-action="survey-builder#addCategory"
+                    data-survey-builder-target="addCategoryButton">
+              <span aria-hidden="true">➕</span>
+              <span>Category</span>
+            </button>
+            <button type="button"
+                    class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-block btn-sm justify-start') %>"
+                    data-action="survey-builder#addQuestion"
+                    data-survey-builder-target="addQuestionButton">
+              <span aria-hidden="true">➕</span>
+              <span>Question</span>
+            </button>
+          </div>
+        </div>
 
-    <template data-section-fields-target="template"><%= section_template %></template>
+        <nav class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <span aria-hidden="true">🧩</span>
+            <span>Sections</span>
+          </p>
+          <div class="survey-builder-nav mt-2 space-y-1" data-survey-builder-target="sectionsNav"></div>
+          <div class="mt-4 border-t border-slate-200 pt-4">
+            <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span aria-hidden="true">🗂️</span>
+              <span>Layout</span>
+            </p>
+            <div class="survey-builder-nav mt-2 space-y-1" data-survey-builder-target="categoriesNav"></div>
+          </div>
+        </nav>
 
-    <button type="button"
-            class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
-            data-action="section-fields#add">
-      + Add section
-    </button>
-  </section>
-
-  <section class="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" data-controller="category-fields">
-    <header class="space-y-1">
-      <h2 class="text-lg font-semibold text-slate-900">Categories &amp; questions</h2>
-      <p class="text-sm text-slate-600">Each category should contain the questions shown together. Assign categories to sections using the dropdown below and control order with the number fields.</p>
-    </header>
-
-    <div class="space-y-6" data-category-fields-target="container">
-      <%= form.fields_for :categories do |category_fields| %>
-        <%= render "admin/surveys/category_fields",
-                   category_fields: category_fields,
-                   input_classes: input_classes,
-                   textarea_classes: textarea_classes,
-                   checkbox_classes: checkbox_classes,
-                   section_options: section_select_options %>
-      <% end %>
-    </div>
-
-    <% new_category = survey.categories.build(name: "", description: "") %>
-    <% new_category.questions.build(question_text: "", question_order: 1) if new_category.questions.empty? %>
-    <% category_template = capture do %>
-      <%= form.fields_for :categories, new_category, child_index: "NEW_CATEGORY" do |category_fields| %>
-        <%= render "admin/surveys/category_fields",
-                   category_fields: category_fields,
-                   input_classes: input_classes,
-                   textarea_classes: textarea_classes,
-                   checkbox_classes: checkbox_classes,
-                   section_options: section_select_options %>
-      <% end %>
-    <% end %>
-    <% survey.categories.target.delete(new_category) %>
-
-    <template data-category-fields-target="template"><%= category_template %></template>
-
-    <button type="button"
-            class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
-            data-action="category-fields#add">
-      + Add another category
-    </button>
-  </section>
-
-  <div class="flex flex-wrap items-center gap-3">
-    <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: tailwind_button_classes(:primary)) %>
-    <%= link_to "Cancel", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
+        <% if survey.respond_to?(:legend) %>
+          <%= render ::SurveyLegendComponent.new(legend: survey.legend) %>
+        <% end %>
+      </div>
+    </aside>
   </div>
 <% end %>

@@ -122,36 +122,37 @@
           <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
             <button type="button"
                     onclick="window.history.back()"
-                    class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    class="<%= tailwind_button_classes(:secondary) %>">
               <span aria-hidden="true">←</span>
               Back to previous page
             </button>
 
             <%= f.submit "Save changes",
-              class: "cta-button inline-flex items-center gap-2 rounded-2xl bg-[#500000] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#3f0000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#500000]" %>
+              class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
       </section>
 
-        <section class="account-checklist-card rounded-[28px] bg-slate-900 px-6 py-6 text-white shadow-lg">
-          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">Checklist</p>
-          <h3 class="mt-2 text-lg font-semibold">Keep your account ready</h3>
-          <ul class="mt-4 space-y-3 text-sm text-white/90">
-            <li class="flex items-start gap-2">
-              <span class="mt-1 h-2 w-2 rounded-full bg-emerald-300"></span>
-              Confirm your display name before exporting reports.
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="mt-1 h-2 w-2 rounded-full bg-amber-300"></span>
-              Review advisor assignments so updates reach the right inbox.
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="mt-1 h-2 w-2 rounded-full bg-sky-300"></span>
-              Keep notifications enabled to catch survey reminders instantly.
-            </li>
-          </ul>
-        </section>
-      </aside>
+        <aside>
+          <section class="account-checklist-card rounded-[28px] bg-slate-900 px-6 py-6 text-white shadow-lg">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">Checklist</p>
+            <h3 class="mt-2 text-lg font-semibold">Keep your account ready</h3>
+            <ul class="mt-4 space-y-3 text-sm text-white/90">
+              <li class="flex items-start gap-2">
+                <span class="mt-1 h-2 w-2 rounded-full bg-emerald-300"></span>
+                Confirm your display name before exporting reports.
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="mt-1 h-2 w-2 rounded-full bg-amber-300"></span>
+                Review advisor assignments so updates reach the right inbox.
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="mt-1 h-2 w-2 rounded-full bg-sky-300"></span>
+                Keep notifications enabled to catch survey reminders instantly.
+              </li>
+            </ul>
+          </section>
+        </aside>
     </div>
   </div>
 </main>

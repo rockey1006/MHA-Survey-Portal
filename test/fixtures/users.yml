@@ -42,3 +42,12 @@ other_student:
   avatar_url: https://example.com/student2.png
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+completed_student:
+  email: completed_student@example.com
+  name: Completed Student
+  role: student
+  uid: completed-student-uid
+  avatar_url: https://example.com/completed-student.png
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

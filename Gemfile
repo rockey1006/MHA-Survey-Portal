@@ -21,6 +21,9 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
+# View components (extract reusable UI into Ruby components)
+gem "view_component"
+
 group :development do
   # Provide wkhtmltopdf binary for local PDF generation
   gem "wkhtmltopdf-binary"

@@ -21,7 +21,7 @@ class Admin::SurveysController < Admin::BaseController
 
     allowed_sort_columns = {
       "title" => "surveys.title",
-      "semester" => "surveys.semester",
+      "semester" => "program_semesters.name",
       "updated_at" => "surveys.updated_at",
       "question_count" => "question_count",
       "category_count" => "category_count"
@@ -30,7 +30,7 @@ class Admin::SurveysController < Admin::BaseController
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
     @sort_direction = params[:direction] == "asc" ? "asc" : "desc"
 
-    active_scope = Survey.active.left_joins(:track_assignments)
+    active_scope = Survey.active.left_joins(:track_assignments, :program_semester)
 
     if @selected_track.present?
       if @selected_track == unassigned_track_token
@@ -43,7 +43,7 @@ class Admin::SurveysController < Admin::BaseController
     if @search_query.present?
       term = "%#{@search_query.downcase}%"
       active_scope = active_scope.where(
-        "LOWER(surveys.title) LIKE :term OR LOWER(surveys.semester) LIKE :term OR LOWER(COALESCE(surveys.description, '')) LIKE :term",
+        "LOWER(surveys.title) LIKE :term OR LOWER(program_semesters.name) LIKE :term OR LOWER(COALESCE(surveys.description, '')) LIKE :term",
         term: term
       )
     end
@@ -57,7 +57,7 @@ class Admin::SurveysController < Admin::BaseController
         "COUNT(DISTINCT categories.id) AS category_count, " \
         "COUNT(DISTINCT questions.id) AS question_count"
       )
-      .group("surveys.id")
+      .group("surveys.id", "program_semesters.name")
 
     order_expression = allowed_sort_columns[@sort_column]
     active_scope = active_scope.order(Arel.sql("#{order_expression} #{@sort_direction}"))
@@ -205,7 +205,12 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    @category_groups = @survey.categories.includes(:section, :questions).order(:id)
+    scope = @survey.categories.includes(:section, :questions)
+    @category_groups = if Category.column_names.include?("position")
+                         scope.order(:position, :id)
+    else
+                         scope.order(:id)
+    end
     @categories = @category_groups
     @questions = @survey.questions.includes(:category).order(:question_order)
     @category_names = @category_groups.map(&:name)
@@ -216,8 +221,8 @@ class Admin::SurveysController < Admin::BaseController
       category.questions.each do |question|
         required = question.is_required?
 
-        if !required && question.question_type_multiple_choice?
-          options = question.answer_options_list.map(&:strip).map(&:downcase)
+        if !required && question.choice_question?
+          options = question.answer_option_values.map(&:strip).map(&:downcase)
           is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
                                  question.question_text.to_s.downcase.include?("flexible")
           required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
@@ -259,6 +264,24 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [ActionController::Parameters]
   def survey_params
+    question_attributes = [
+      :id,
+      :question_text,
+      :description,
+      :tooltip_text,
+      :question_type,
+      :question_order,
+      :answer_options,
+      :is_required,
+      :has_evidence_field,
+      :_destroy
+    ]
+
+    question_attributes << :has_feedback if Question.new.respond_to?(:has_feedback)
+    question_attributes << :program_target_level if Question.new.respond_to?(:program_target_level)
+    question_attributes << :parent_question_id if Question.new.respond_to?(:parent_question_id)
+    question_attributes << :sub_question_order if Question.new.respond_to?(:sub_question_order)
+
     params.require(:survey).permit(
       :title,
       :description,
@@ -268,19 +291,11 @@ class Admin::SurveysController < Admin::BaseController
         :id,
         :name,
         :description,
+        :position,
         :section_form_uid,
         :_destroy,
         questions_attributes: [
-          :id,
-          :question_text,
-          :description,
-          :tooltip_text,
-          :question_type,
-          :question_order,
-          :answer_options,
-          :is_required,
-          :has_evidence_field,
-          :_destroy
+          *question_attributes
         ]
       ],
       sections_attributes: [

@@ -27,7 +27,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
   def up
     create_enum :student_classifications, %w[G1 G2 G3]
     create_enum :student_tracks, %w[Residential Executive]
-    create_enum :question_types, %w[multiple_choice scale short_answer evidence]
+    create_enum :question_types, %w[multiple_choice dropdown scale short_answer evidence]
 
   # Entity table: application user accounts (students, advisors, admins).
     create_table :users do |t|
@@ -100,18 +100,25 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
   # Entity table: survey definitions.
   create_table :surveys do |t|
       t.string :title, null: false
-      t.string :semester, null: false
+      t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
       t.text :description
       t.boolean :is_active, null: false, default: true
       t.references :created_by, foreign_key: { to_table: :users }
       t.timestamps
     end
-    add_index :surveys, :semester
     add_index :surveys, :is_active
     execute <<~SQL
-      CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_semester
-      ON surveys (LOWER(title), LOWER(semester));
+      CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_program_semester
+      ON surveys (LOWER(title), program_semester_id);
     SQL
+
+  # Entity table: survey legend content for the student-facing sidebar.
+  create_table :survey_legends do |t|
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }, index: { unique: true }
+      t.string :title
+      t.text :body, null: false
+      t.timestamps
+    end
 
   # Logical sections grouping related categories (used for instructions/banners).
   create_table :survey_sections do |t|
@@ -130,26 +137,33 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.references :survey_section, foreign_key: { to_table: :survey_sections, on_delete: :nullify }
       t.string :name, null: false
       t.string :description
+      t.integer :position, null: false, default: 0
       t.timestamps
 
       t.index :survey_section_id, name: "index_categories_on_survey_section_id"
+      t.index %i[survey_id position], name: "index_categories_on_survey_id_and_position"
     end
 
   # Entity table: individual survey questions.
   create_table :questions do |t|
       t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
+      t.references :parent_question, foreign_key: { to_table: :questions }, null: true
       t.string :question_text, null: false
       t.text :description
       t.text :tooltip_text
       t.integer :question_order, null: false
+      t.integer :sub_question_order, null: false, default: 0
       t.boolean :is_required, null: false, default: false
       t.enum :question_type, enum_type: :question_types, null: false
       t.text :answer_options
+      t.integer :program_target_level
+      t.boolean :has_feedback, null: false, default: false
       t.boolean :has_evidence_field, null: false, default: false
       t.timestamps
     end
     add_index :questions, %i[category_id question_order]
     add_index :questions, :question_type
+    add_index :questions, %i[parent_question_id sub_question_order], name: "index_questions_on_parent_and_sub_order"
 
   # Join table: links surveys to named program tracks.
   create_table :survey_track_assignments do |t|
@@ -256,6 +270,8 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
 
     backfill_mha_competency_sections
     backfill_mha_competency_tooltips
+    backfill_program_target_levels
+    backfill_mha_competency_feedback_flags
   end
 
   def down
@@ -310,6 +326,43 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
         end
         updated_count
       end
+    end
+  end
+
+  def backfill_program_target_levels
+    MigrationQuestion.reset_column_information
+
+    say_with_time "Backfilling program target levels for MHA competency questions" do
+      execute <<~SQL
+        UPDATE questions
+        SET program_target_level = 3
+        FROM categories
+        INNER JOIN survey_sections
+          ON survey_sections.id = categories.survey_section_id
+        WHERE questions.category_id = categories.id
+          AND questions.program_target_level IS NULL
+          AND questions.question_type IN ('multiple_choice', 'dropdown')
+          AND LOWER(survey_sections.title) = LOWER('#{SECTION_TITLE}');
+      SQL
+    end
+  end
+
+  def backfill_mha_competency_feedback_flags
+    MigrationQuestion.reset_column_information
+    return unless MigrationQuestion.column_names.include?("has_feedback")
+
+    say_with_time "Backfilling has_feedback for MHA competency parent questions" do
+      execute <<~SQL
+        UPDATE questions
+        SET has_feedback = TRUE
+        FROM categories
+        INNER JOIN survey_sections
+          ON survey_sections.id = categories.survey_section_id
+        WHERE questions.category_id = categories.id
+          AND questions.has_feedback = FALSE
+          AND questions.parent_question_id IS NULL
+          AND LOWER(survey_sections.title) = LOWER('#{SECTION_TITLE}');
+      SQL
     end
   end
 

@@ -62,12 +62,16 @@ class DashboardsController < ApplicationController
     @pending_surveys = []
 
     surveys.each do |survey|
-      required_ids = survey.questions.select { |question| required_question?(question) }.map(&:id)
+      parent_questions = survey.questions
+      parent_questions = parent_questions.parent_questions if parent_questions.respond_to?(:parent_questions)
+      parent_question_ids = parent_questions.map(&:id)
+
+      required_ids = parent_questions.select { |question| required_question?(question) }.map(&:id)
       responses = responses_matrix[survey.id]
-      answered_ids = responses.map { |entry| entry[:question_id] }.uniq
+      answered_ids = responses.map { |entry| entry[:question_id] }.uniq & parent_question_ids
       answered_required_count = (answered_ids & required_ids).size
       total_required_count = required_ids.size
-      total_questions = survey.questions.count
+      total_questions = parent_question_ids.size
       answered_total_count = answered_ids.size
       answered_optional_count = [ answered_total_count - answered_required_count, 0 ].max
       total_optional_count = [ total_questions - total_required_count, 0 ].max
@@ -276,6 +280,11 @@ class DashboardsController < ApplicationController
     begin
       current_user.update!(role: new_role)
       flash[:notice] = "Role switched to #{new_role.titleize} for testing."
+
+      if new_role == "student"
+        student = current_user.student_profile
+        SurveyAssignments::AutoAssigner.call(student: student) if student
+      end
     rescue StandardError => e
       Rails.logger.error "Role switch failed for user #{current_user.id}: #{e.message}"
       redirect_back fallback_location: dashboard_path, alert: "Unable to switch roles: #{e.message}" and return
@@ -483,11 +492,14 @@ class DashboardsController < ApplicationController
 
     return true if question.required?
 
-    return false unless question.question_type_multiple_choice?
+    return false unless question.choice_question?
 
-    options = question.answer_options_list.map(&:strip).map(&:downcase)
+    option_values = question.answer_option_values
+    options = option_values.map(&:strip).map(&:downcase)
     # Exception: flexibility scale questions (1-5) should remain optional
-    is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
+    numeric_scale = %w[1 2 3 4 5]
+    has_numeric_scale = (numeric_scale - options).empty?
+    is_flexibility_scale = has_numeric_scale &&
                            question.question_text.to_s.downcase.include?("flexible")
     !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
   end
@@ -495,12 +507,20 @@ class DashboardsController < ApplicationController
   def surveys_for_student(student)
     return Survey.none unless student&.student_id
 
+    # Keep dashboard listings consistent even if the sign-in callback didn't run
+    # (e.g., direct session restore). This will add missing assignments for the
+    # student's track/current semester and remove outdated managed assignments.
+    SurveyAssignments::AutoAssigner.call(student: student)
+
     Survey
       .includes(:questions)
       .joins(:survey_assignments)
       .where(survey_assignments: { student_id: student.student_id })
       .distinct
       .ordered
+  rescue StandardError => e
+    Rails.logger.error("Dashboard auto-assign failed for student #{student&.student_id}: #{e.class}: #{e.message}")
+    Survey.none
   end
 
 

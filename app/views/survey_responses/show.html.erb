@@ -1,4 +1,4 @@
-<div class="mx-auto flex max-w-5xl flex-col gap-6">
+<div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
   <% success_notice = notice.presence || flash[:notice].presence %>
   <% if success_notice.present? %>
     <p class="text-sm font-medium text-emerald-700"><%= success_notice %></p>
@@ -23,9 +23,6 @@
   <div class="flex flex-wrap items-center gap-3">
     <%= link_to "← Back", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
   <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
-  <% if current_user.role_admin? || current_user.role_advisor? %>
-    <%= link_to "Composite Assessment PDF", composite_report_survey_response_path(@survey_response), class: tailwind_button_classes(:secondary), target: "_blank", rel: "noopener noreferrer" %>
-  <% end %>
   </div>
 
   <%= render @survey_response %>
@@ -33,8 +30,5 @@
   <div class="flex flex-wrap items-center gap-3">
     <%= link_to "← Back", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
   <%= link_to "Download as PDF", download_survey_response_path(@survey_response, token: @survey_response.signed_download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
-  <% if current_user.role_admin? || current_user.role_advisor? %>
-    <%= link_to "Composite Assessment PDF", composite_report_survey_response_path(@survey_response), class: tailwind_button_classes(:secondary), target: "_blank", rel: "noopener noreferrer" %>
-  <% end %>
   </div>
 </div>

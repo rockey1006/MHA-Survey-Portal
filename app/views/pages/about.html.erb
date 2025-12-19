@@ -5,7 +5,7 @@
 <% end %>
 
 <main class="about-page px-4 py-16">
-  <div class="about-container mx-auto max-w-6xl space-y-16">
+  <div class="about-container container-md stack stack--xl">
     <section class="about-hero">
       <div class="about-hero__content">
         <p class="eyebrow">Texas A&M · Master of Health Administration</p>
@@ -144,8 +144,8 @@
         </article>
       </div>
       <div class="about-resources__footer">
-        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki" target="_blank" rel="noopener" class="about-btn about-btn--primary">Browse full wiki</a>
-        <button type="button" onclick="window.history.back()" class="about-btn about-btn--ghost">← Back to previous page</button>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki" target="_blank" rel="noopener" class="<%= tailwind_button_classes(:primary) %>">Browse full wiki</a>
+        <button type="button" onclick="window.history.back()" class="<%= tailwind_button_classes(:secondary) %>">← Back to previous page</button>
       </div>
     </section>
 

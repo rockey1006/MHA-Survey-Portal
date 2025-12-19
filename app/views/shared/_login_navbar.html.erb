@@ -25,7 +25,7 @@
       <!-- High contrast toggle -->
       <button
         type="button"
-        class="btn btn-secondary"
+        class="<%= tailwind_button_classes(:secondary) %>"
         data-high-contrast-toggle="true"
         aria-pressed="false"
         aria-label="Toggle high contrast mode">
@@ -35,7 +35,7 @@
       <!-- Text-to-speech toggle -->
       <button
         type="button"
-        class="btn btn-secondary"
+        class="<%= tailwind_button_classes(:secondary) %>"
         data-tts-toggle="true"
         aria-pressed="false"
         aria-label="Read this page aloud">
@@ -43,13 +43,13 @@
       </button>
 
       <a href="https://public-health.tamu.edu/degrees/hpm/mha/index.html"
-         class="btn btn-secondary">
+        class="<%= tailwind_button_classes(:secondary) %>">
         Program Overview
       </a>
 
       <div class="sign-in-launcher" data-signin-menu>
         <button type="button"
-                class="btn btn-primary sign-in-launcher__button"
+          class="<%= tailwind_button_classes(:primary, extra_classes: 'sign-in-launcher__button') %>"
                 data-signin-trigger
                 aria-haspopup="true"
                 aria-expanded="false"

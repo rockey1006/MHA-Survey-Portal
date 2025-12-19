@@ -10,42 +10,72 @@
 
     /* Header */
     .pdf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .pdf-brand { font-size: 18px; font-weight: 700; color: #1f6feb; }
+    .pdf-brand { font-size: 18px; font-weight: 800; color: #500000; }
     .pdf-meta { text-align: right; font-size: 12px; color: #586069; line-height: 1.4; }
 
     /* Info box */
-    .user-info { border: 1px solid #e6eef8; background: #fbfdff; padding: 10px 12px; border-radius: 6px; margin-bottom: 14px; display: flex; gap: 20px; }
+    .user-info { border: 1px solid #e2e8f0; background: #ffffff; padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; display: flex; gap: 20px; }
     .user-info .col { min-width: 160px; }
     .user-info .label { font-size: 11px; color: #6b7785; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
     .user-info .value { font-weight: 600; color: #102a43; }
 
-    h1.survey-title { font-size: 20px; margin: 0 0 8px 0; color: #102a43; }
+    h1.survey-title { font-size: 20px; margin: 0 0 8px 0; color: #0f172a; }
     h2.section-title { font-size: 16px; margin: 18px 0 10px 0; color: #0f172a; }
-    h3.category-title { font-size: 14px; margin: 12px 0 6px 0; color: #134e4a; }
+    h3.category-title { font-size: 14px; margin: 0 0 6px 0; color: #0f172a; }
 
     .metrics-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-    .metric-card { border: 1px solid #e6eef8; background: #fbfdff; padding: 10px 12px; border-radius: 6px; min-width: 150px; }
+    .metric-card { border: 1px solid #e2e8f0; background: #ffffff; padding: 10px 12px; border-radius: 10px; min-width: 150px; }
     .metric-label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
     .metric-value { font-size: 14px; font-weight: 600; color: #102a43; }
 
+    /* Advisor summary (PDF) */
+    .advisor-summary { border: 1px solid #e2e8f0; background: #ffffff; border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; }
+    .advisor-summary__header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+    .advisor-summary__title { font-size: 14px; margin: 0; color: #0f172a; }
+    .advisor-summary__hint { margin: 0; font-size: 11px; color: #6b7785; }
+    /* Use table layout for wkhtmltopdf reliability (flex can stack). */
+    .advisor-summary__grid { display: table; width: 100%; border-collapse: separate; border-spacing: 10px 0; }
+    .advisor-summary__card { display: table-cell; width: 50%; vertical-align: top; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
+    .advisor-summary__cardRow { display: flex; justify-content: space-between; gap: 10px; }
+    .advisor-summary__label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .advisor-summary__percent { font-size: 11px; color: #6b7785; }
+    .advisor-summary__count { font-size: 18px; font-weight: 800; color: #500000; }
+    .advisor-summary__footer { margin-top: 10px; }
+    .advisor-summary__note { margin: 0; font-size: 11px; color: #6b7785; }
+
     .pdf-section { margin-bottom: 18px; }
-    .category-block { border: 1px solid #dbe7ff; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background: #f8fbff; }
+    .section-card { border: 1px solid #fcd34d; border-radius: 12px; padding: 12px 14px; margin: 12px 0; background: rgba(251, 191, 36, 0.12); }
+    .section-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #92400e; margin-bottom: 4px; }
+    .section-name { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .section-description { font-size: 12px; color: #334155; }
+    .section-description p { margin: 6px 0 0 0; }
+
+    .category-block { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; }
     .category-header { margin-bottom: 6px; }
     .category-description { font-size: 12px; color: #475569; }
+    .category-description p { margin: 0 0 6px 0; }
 
-    .question-block { padding: 8px 10px; border-bottom: 1px solid #eef3f8; page-break-inside: avoid; }
+    .question-block { padding: 10px 0; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid; }
     .question-header { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
-    .question-number { color: #0b5cff; font-weight: 700; min-width: 28px; }
-    .question-body { font-weight: 600; color: #0b2a3a; }
+    .question-number { color: #500000; font-weight: 800; min-width: 28px; }
+    .question-heading { display: flex; justify-content: space-between; gap: 10px; width: 100%; }
+    .question-body { font-weight: 700; color: #0f172a; }
+    .target-level-wrap { margin-left: auto; text-align: right; white-space: nowrap; }
+    .target-level-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #0f172a; background: #f1f5f9; border: 1px solid #e2e8f0; }
+    .question-description { font-size: 12px; color: #475569; margin: 4px 0 6px 36px; }
+    .question-description p { margin: 0 0 6px 0; }
     .question-answer { font-size: 12px; color: #102a43; margin-bottom: 4px; }
     .question-meta { font-size: 11px; color: #6b7280; display: flex; gap: 12px; }
 
     .choice-list { list-style: none; padding: 0; margin: 6px 0 0 0; }
     .choice-item { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 4px; border: 1px solid transparent; margin-right: 6px; font-size: 12px; }
-    .choice-item.selected { background: #e4f0ff; border-color: #c1dcff; font-weight: 600; }
-    .choice-marker { font-size: 12px; color: #0b5cff; }
+    .choice-item.selected { background: rgba(80, 0, 0, 0.08); border-color: rgba(80, 0, 0, 0.2); font-weight: 700; }
+    .choice-marker { font-size: 12px; color: #500000; }
 
     .answer-text { white-space: pre-wrap; word-break: break-word; }
+
+    .pdf-select { width: 100%; max-width: 320px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; padding: 6px 10px; font-size: 12px; color: #0f172a; }
+    .pdf-select:disabled { background: #ffffff; color: #0f172a; opacity: 1; }
     .history-label { font-size: 11px; font-weight: 600; margin-top: 6px; }
     .history-list { margin: 4px 0 0 14px; padding: 0; font-size: 11px; color: #475569; }
     .history-list li { margin-bottom: 2px; }
@@ -56,12 +86,12 @@
     .empty-state { font-size: 12px; color: #6b7280; font-style: italic; }
   .truncation-note { font-size: 11px; color: #94a3b8; margin-top: 4px; }
 
-    .feedback-category { border: 1px solid #e6eef8; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; }
-    .feedback-block { border: 1px solid #dbe7ff; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; background: #f9fbff; }
+    .feedback-category { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; }
+    .feedback-block { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: #f8fafc; }
     .feedback-header { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: #334155; margin-bottom: 6px; }
-    .feedback-score { font-weight: 600; color: #0b5cff; }
-    .feedback-comments { font-size: 12px; color: #102a43; }
-    .feedback-comments p { margin: 0 0 6px 0; }
+    .feedback-score { font-weight: 800; color: #500000; }
+    .feedback-comments { font-size: 12px; color: #102a43; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+    .feedback-comments p { margin: 0 0 6px 0; overflow-wrap: anywhere; word-break: break-word; }
     .feedback-empty { font-size: 12px; color: #64748b; font-style: italic; }
     .feedback-meta { margin-top: 4px; font-size: 11px; }
 

@@ -1,4 +1,4 @@
-<main class="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
+<main class="main-content space-y-10">
   <% tracks = @survey.track_list %>
   <% active = @survey.is_active? %>
   <% status_label, status_classes = if active
@@ -41,7 +41,7 @@
         <%= link_to "Preview as student", preview_admin_survey_path(@survey), class: tailwind_button_classes(:subtle) %>
         <%= link_to "Manage surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
         <% if active %>
-          <%= button_to "Archive survey", archive_admin_survey_path(@survey), method: :patch, data: { turbo_confirm: "Archive '#{@survey.title}' and remove it from advisors?" }, class: tailwind_button_classes(:subtle, extra_classes: "border border-slate-300 bg-white text-slate-700") %>
+          <%= button_to "Archive survey", archive_admin_survey_path(@survey), method: :patch, data: { turbo_confirm: "Archive '#{@survey.title}' and remove it from advisors?" }, class: tailwind_button_classes(:subtle) %>
         <% else %>
           <%= button_to "Activate survey", activate_admin_survey_path(@survey), method: :patch, data: { turbo_confirm: "Make '#{@survey.title}' active for advisors?" }, class: tailwind_button_classes(:primary) %>
         <% end %>

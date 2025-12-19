@@ -1,0 +1,31 @@
+<% content_for :title, "Under Maintenance" %>
+
+<% content_for :header do %>
+  <%= render "shared/login_navbar" %>
+<% end %>
+
+<div class="page-title">
+  <div class="survey-meta">
+    <span class="status-badge status-badge--muted">Status 503</span>
+  </div>
+  <h1 class="text-primary">Under Maintenance</h1>
+  <p class="page-subtitle">The portal is temporarily unavailable due to maintenance or a login provider issue.</p>
+</div>
+
+<section class="card-base maintenance-card">
+  <p class="text-base maintenance-body">
+    Please try again in a few minutes. If you need help, contact support at
+    <a class="text-primary font-semibold" href="mailto:ruoqiwei@tamu.edu">ruoqiwei@tamu.edu</a>.
+  </p>
+
+  <div class="heading-actions mt-xl">
+    <%= link_to "Try signing in again", new_user_session_path, class: tailwind_button_classes(:primary) %>
+    <button type="button" onclick="window.location.reload()" class="<%= tailwind_button_classes(:secondary) %>">
+      Reload page
+    </button>
+  </div>
+
+  <p class="text-sm text-muted mt-lg">
+    Tip: If this persists, close the tab and reopen the portal.
+  </p>
+</section>

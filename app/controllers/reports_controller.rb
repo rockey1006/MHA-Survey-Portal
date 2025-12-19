@@ -9,6 +9,7 @@ class ReportsController < ApplicationController
   def export_pdf
   payload = aggregator.export_payload
   section = normalize_export_section(reports_params[:section])
+  y_axis_mode = normalize_y_axis_mode(reports_params[:y_axis])
 
     unless defined?(WickedPdf)
       render plain: "PDF export unavailable. WickedPdf is not configured.", status: :service_unavailable
@@ -18,7 +19,7 @@ class ReportsController < ApplicationController
     html = render_to_string(
       template: "reports/export",
       layout: "report_pdf",
-  locals: { payload: payload, export_section: section }
+  locals: { payload: payload, export_section: section, y_axis_mode: y_axis_mode }
     )
 
     pdf = WickedPdf.new.pdf_from_string(html, page_size: "Letter", orientation: "Landscape")
@@ -31,8 +32,7 @@ class ReportsController < ApplicationController
 
   def export_excel
   payload = aggregator.export_payload
-  section = normalize_export_section(reports_params[:section])
-    package = Reports::ExcelExporter.new(payload, section: section).generate
+    package = Reports::ExcelExporter.new(payload).generate
 
     send_data package.to_stream.read,
               filename: "health-reports-#{Time.current.strftime('%Y%m%d-%H%M')}.xlsx",
@@ -53,11 +53,11 @@ class ReportsController < ApplicationController
   end
 
   def reports_params
-    params.permit(:track, :semester, :survey_id, :category_id, :student_id, :advisor_id, :competency, :section)
+    params.permit(:track, :semester, :survey_id, :category_id, :student_id, :advisor_id, :competency, :section, :y_axis)
   end
 
   def reports_filter_params
-    reports_params.except(:section)
+    reports_params.except(:section, :y_axis)
   end
 
   def normalize_export_section(value)
@@ -66,5 +66,12 @@ class ReportsController < ApplicationController
     return nil if %w[dashboard all full default].include?(normalized)
 
     normalized
+  end
+
+  def normalize_y_axis_mode(value)
+    normalized = value.to_s.strip.downcase
+    return "percent" if normalized == "percent"
+
+    "score"
   end
 end

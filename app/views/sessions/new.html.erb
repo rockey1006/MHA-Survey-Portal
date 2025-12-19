@@ -4,13 +4,13 @@
   <%= render "shared/login_navbar" %>
 <% end %>
 
-<section class="w-full max-w-4xl rounded-3xl bg-white px-8 py-14 text-center shadow-sm ring-1 ring-slate-200 sm:px-10 md:px-12">
-  <h1 class="text-3xl font-semibold text-[#500000] md:text-4xl">MHA Program Portal</h1>
+<section class="w-full max-w-4xl card card--spacious text-center">
+  <h1 class="text-3xl font-semibold text-primary md:text-4xl">MHA Program Portal</h1>
   <p class="mt-4 text-base text-slate-600 md:text-lg">Master of Health Administration &mdash; Student and Advisor access</p>
 </section>
 
 <section id="login-sections" class="w-full max-w-5xl">
-  <div class="flex w-full flex-col gap-10 rounded-3xl bg-white px-10 py-12 text-center shadow-xl ring-1 ring-slate-200 md:flex-row md:items-stretch md:gap-12 md:px-16 md:py-16">
+  <div class="flex w-full flex-col gap-10 card card--spacious text-center md:flex-row md:items-stretch md:gap-12">
     <div id="student-login" class="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-4 md:px-10">
       <h2 class="text-2xl font-semibold text-slate-800">Student Login</h2>
       <p class="max-w-sm text-sm leading-6 text-slate-600">Access your surveys, track requirements, and stay informed on program updates.</p>
@@ -21,7 +21,7 @@
                     class: "w-full max-w-xs" do |form| %>
         <%= form.hidden_field :role, value: 'student' %>
         <%= form.submit "Sign in with Google",
-                        class: "w-full rounded-md bg-[#500000] py-3 text-sm font-semibold text-white transition hover:bg-[#400000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#500000]" %>
+                        class: tailwind_button_classes(:primary, extra_classes: "btn-block") %>
       <% end %>
     </div>
 
@@ -38,7 +38,7 @@
                     class: "w-full max-w-xs" do |form| %>
         <%= form.hidden_field :role, value: 'advisor' %>
         <%= form.submit "Sign in with Google",
-                        class: "w-full rounded-md bg-[#500000] py-3 text-sm font-semibold text-white transition hover:bg-[#400000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#500000]" %>
+                        class: tailwind_button_classes(:primary, extra_classes: "btn-block") %>
       <% end %>
     </div>
   </div>

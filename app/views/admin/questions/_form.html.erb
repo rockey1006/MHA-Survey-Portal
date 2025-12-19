@@ -77,8 +77,8 @@
       </section>
 
       <div class="form-actions">
-        <%= form.submit(question.persisted? ? "Update Question" : "Create Question", class: "btn btn-primary") %>
-        <%= link_to "Cancel", admin_questions_path, class: "btn btn-secondary" %>
+        <%= form.submit(question.persisted? ? "Update Question" : "Create Question", class: tailwind_button_classes(:primary)) %>
+        <%= link_to "Cancel", admin_questions_path, class: tailwind_button_classes(:secondary) %>
       </div>
     </div>
   </div>

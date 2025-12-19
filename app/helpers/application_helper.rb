@@ -68,22 +68,24 @@ module ApplicationHelper
   # @param extra_classes [String]
   # @return [String]
   def tailwind_button_classes(variant = :primary, extra_classes: "")
-    base = "tailwind-btn inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    base = "btn"
 
-    variant_classes = case variant.to_sym
+    variant_class = case variant.to_sym
     when :primary
-      "bg-[#500000] text-white hover:bg-[#330000] focus-visible:outline-[#500000]"
+      "btn-primary"
     when :secondary
-      "border border-[#500000] text-[#500000] hover:bg-[#f9f2f2] focus-visible:outline-[#500000]"
+      "btn-secondary"
+    when :ghost
+      "btn-ghost"
     when :subtle
-      "bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:outline-slate-400"
+      "btn-subtle"
     when :danger
-      "bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600"
+      "btn-danger"
     else
-      "bg-slate-700 text-white hover:bg-slate-800 focus-visible:outline-slate-700"
+      "btn-secondary"
     end
 
-    [ base, variant_classes, extra_classes.presence ].compact.join(" ")
+    [ base, variant_class, extra_classes.presence ].compact.join(" ")
   end
 
   # Returns CSS classes for a survey status pill.

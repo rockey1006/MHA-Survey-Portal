@@ -137,12 +137,110 @@ function initTTSToggle() {
 }
 
 // -----------------------------
+// Survey branching: Yes/No parents
+// -----------------------------
+
+function initSurveyBranching() {
+  const forms = document.querySelectorAll(".survey-form")
+  if (!forms.length) return
+
+  forms.forEach((form) => {
+    if (form.dataset.branchInitialized === "true") return
+    form.dataset.branchInitialized = "true"
+
+    const parents = form.querySelectorAll('[data-branch-parent="true"]')
+    if (!parents.length) return
+
+    const setChildVisibility = (parentId, shouldShow) => {
+      const children = form.querySelectorAll(`[data-branch-child-of="${parentId}"]`)
+      children.forEach((child) => {
+        child.classList.toggle("hidden", !shouldShow)
+        child.setAttribute("aria-hidden", shouldShow ? "false" : "true")
+
+        const inputs = child.querySelectorAll("input, select, textarea, button")
+        inputs.forEach((el) => {
+          if (el.getAttribute("type") === "hidden") return
+          el.disabled = !shouldShow
+        })
+      })
+    }
+
+    parents.forEach((parent) => {
+      const parentId = parent.dataset.branchParentId
+      const targetValue = (parent.dataset.branchTargetValue || "").trim()
+      if (!parentId || !targetValue) return
+
+      const inputName = `answers[${parentId}]`
+      const inputs = form.querySelectorAll(`input[name="${inputName}"]`)
+      if (!inputs.length) return
+
+      const update = () => {
+        const checked = form.querySelector(`input[name="${inputName}"]:checked`)
+        const currentValue = (checked ? checked.value : "").trim()
+        setChildVisibility(parentId, currentValue === targetValue)
+      }
+
+      inputs.forEach((input) => {
+        input.addEventListener("change", update)
+      })
+
+      update()
+    })
+  })
+}
+
+function initOtherChoiceInputs() {
+  const forms = document.querySelectorAll(".survey-form")
+  if (!forms.length) return
+
+  forms.forEach((form) => {
+    if (form.dataset.otherChoiceInitialized === "true") return
+    form.dataset.otherChoiceInitialized = "true"
+
+    const wrappers = form.querySelectorAll("[data-other-input-wrapper]")
+    if (!wrappers.length) return
+
+    const sync = (questionId) => {
+      const inputName = `answers[${questionId}]`
+      const selected = form.querySelector(`input[name="${inputName}"]:checked`)
+
+      const wrapper = form.querySelector(`[data-other-input-wrapper][data-other-for-question-id="${questionId}"]`)
+      if (!wrapper) return
+
+      const otherChoiceValue = (wrapper.dataset.otherChoiceValue || "Other").trim()
+      const isOther = selected && selected.value === otherChoiceValue
+
+      wrapper.classList.toggle("hidden", !isOther)
+      wrapper.setAttribute("aria-hidden", isOther ? "false" : "true")
+
+      const input = wrapper.querySelector("input")
+      if (input) input.disabled = !isOther
+    }
+
+    wrappers.forEach((wrapper) => {
+      const qid = wrapper.dataset.otherForQuestionId
+      if (!qid) return
+
+      const inputName = `answers[${qid}]`
+      const radios = form.querySelectorAll(`input[name="${inputName}"]`)
+      radios.forEach((radio) => {
+        radio.addEventListener("change", () => sync(qid))
+      })
+
+      sync(qid)
+    })
+  })
+}
+
+// -----------------------------
 // Hook into Turbo / DOM load
 // -----------------------------
 
 function initAccessibilityFeatures() {
   initHighContrastToggle()
   initTTSToggle()
+  initSurveyBranching()
+  initOtherChoiceInputs()
 }
 
 document.addEventListener("turbo:load", initAccessibilityFeatures)

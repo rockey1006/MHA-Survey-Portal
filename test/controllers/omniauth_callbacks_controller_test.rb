@@ -15,7 +15,7 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
 
     get user_google_oauth2_omniauth_callback_path, params: { role: "student" }
 
-    assert_redirected_to new_user_session_path
+    assert_redirected_to maintenance_path
     follow_redirect!
     assert_equal "Please sign in with your TAMU email (@tamu.edu).", flash[:alert]
   end
@@ -87,10 +87,11 @@ class OmniauthCallbacksControllerUnitTest < ActionController::TestCase
 
   test "non-TAMU emails are rejected before provisioning" do
     @request.env["omniauth.auth"] = auth_hash(email: "user@example.com")
+    @request.env["devise.mapping"] = Devise.mappings[:user]
 
     get :google_oauth2
 
-    assert_redirected_to new_user_session_path
+    assert_redirected_to maintenance_path
     assert_match "Please sign in with your TAMU email", flash[:alert]
   end
 
@@ -98,8 +99,12 @@ class OmniauthCallbacksControllerUnitTest < ActionController::TestCase
     user = users(:student)
     called = []
 
+    # Ensure Devise mapping is still available when the action hits sign_in.
+    @request.env["devise.mapping"] = Devise.mappings[:user]
+
     SurveyAssignments::AutoAssigner.stub :call, ->(**args) { called << args } do
       User.stub :from_google, user do
+        @request.env["devise.mapping"] = Devise.mappings[:user]
         get :google_oauth2
       end
     end
@@ -112,15 +117,16 @@ class OmniauthCallbacksControllerUnitTest < ActionController::TestCase
 
   test "provisioning failures redirect back with alert" do
     User.stub :from_google, nil do
+      @request.env["devise.mapping"] = Devise.mappings[:user]
       get :google_oauth2
     end
 
-    assert_redirected_to new_user_session_path
+    assert_redirected_to maintenance_path
     assert_match "not authorized", flash[:alert]
   end
 
   test "after_omniauth_failure_path_for returns sign in path" do
-    assert_equal new_user_session_path, @controller.send(:after_omniauth_failure_path_for, :user)
+    assert_equal maintenance_path, @controller.send(:after_omniauth_failure_path_for, :user)
   end
 
   private

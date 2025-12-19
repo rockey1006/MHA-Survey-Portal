@@ -24,4 +24,25 @@ class CompositeReportsHelperTest < ActionView::TestCase
     assert_match(/12.+truncated/i, text)
     assert truncated
   end
+
+  test "composite_answer_parts extracts structured other answers" do
+    parts = composite_answer_parts({ "answer" => "Other", "text" => "Custom option" })
+
+    assert_equal "Other", parts[:value]
+    assert_equal "Custom option", parts[:text]
+  end
+
+  test "composite_answer_parts extracts evidence links" do
+    parts = composite_answer_parts({ "link" => "https://example.com", "rating" => 4 })
+
+    assert_equal "https://example.com", parts[:value]
+    assert_equal "https://example.com", parts[:link]
+    assert_equal 4, parts[:rating]
+  end
+
+  test "composite_display_answer prefers structured text" do
+    assert_equal "Some details", composite_display_answer({ "answer" => "Other", "text" => "Some details" })
+    assert_equal "Yes", composite_display_answer("Yes")
+    assert_equal "A, B", composite_display_answer([ "A", "B" ])
+  end
 end

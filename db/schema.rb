@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -101,9 +101,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
     t.datetime "updated_at", null: false
     t.bigint "category_id"
     t.boolean "has_evidence_field", default: false, null: false
+    t.boolean "has_feedback", default: false, null: false
     t.jsonb "configuration", default: {}, null: false
+    t.integer "program_target_level"
+    t.bigint "parent_question_id"
+    t.integer "sub_question_order", default: 0, null: false
     t.index ["category_id", "question_order"], name: "index_questions_on_category_id_and_question_order"
     t.index ["category_id"], name: "index_questions_on_category_id"
+    t.index ["parent_question_id", "sub_question_order"], name: "index_questions_on_parent_and_sub_order"
+    t.index ["parent_question_id"], name: "index_questions_on_parent_question_id"
     t.index ["question_order"], name: "index_questions_on_question_order"
   end
 
@@ -156,6 +162,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
     t.index ["survey_id"], name: "index_survey_change_logs_on_survey_id"
   end
 
+  create_table "survey_legends", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.string "title"
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["survey_id"], name: "index_survey_legends_on_survey_id", unique: true
+  end
+
   create_table "survey_sections", force: :cascade do |t|
     t.bigint "survey_id", null: false
     t.string "title", null: false
@@ -178,16 +193,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
 
   create_table "surveys", force: :cascade do |t|
     t.string "title", null: false
-    t.string "semester", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "track"
     t.text "description"
     t.boolean "is_active", default: true, null: false
     t.bigint "created_by_id"
-    t.index "lower((title)::text), lower((semester)::text)", name: "index_surveys_on_lower_title_and_semester", unique: true
+    t.bigint "program_semester_id", null: false
+    t.index "lower((title)::text), program_semester_id", name: "index_surveys_on_lower_title_and_program_semester", unique: true
     t.index ["created_by_id"], name: "index_surveys_on_created_by_id"
     t.index ["is_active"], name: "index_surveys_on_is_active"
+    t.index ["program_semester_id"], name: "index_surveys_on_program_semester_id"
     t.index ["track"], name: "index_surveys_on_track"
   end
 
@@ -221,6 +237,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
   add_foreign_key "feedback", "surveys", on_delete: :cascade
   add_foreign_key "notifications", "users", on_delete: :cascade
   add_foreign_key "questions", "categories"
+  add_foreign_key "questions", "questions", column: "parent_question_id"
   add_foreign_key "student_questions", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "student_questions", "questions", on_delete: :cascade
   add_foreign_key "student_questions", "students", primary_key: "student_id", on_delete: :cascade
@@ -231,7 +248,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_25_100000) do
   add_foreign_key "survey_assignments", "surveys", on_delete: :cascade
   add_foreign_key "survey_change_logs", "surveys", on_delete: :nullify
   add_foreign_key "survey_change_logs", "users", column: "admin_id"
+  add_foreign_key "survey_legends", "surveys"
   add_foreign_key "survey_sections", "surveys", on_delete: :cascade
   add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
+  add_foreign_key "surveys", "program_semesters"
   add_foreign_key "surveys", "users", column: "created_by_id"
 end

@@ -1,6 +1,6 @@
 <% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
-<div class="survey-container mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+<main class="main-content space-y-8 survey-container">
   <header class="survey-header space-y-1 text-center">
     <h1 class="text-2xl font-semibold text-slate-900"><%= survey_title %></h1>
     <p class="text-sm text-slate-600">
@@ -23,6 +23,7 @@
   <% else %>
     <div class="space-y-6">
       <% rendered_section_ids = [] %>
+      <% section_question_numbers = Hash.new(0) %>
       <% @category_groups.each do |category| %>
         <% section = category.section %>
         <% if section.present? && !rendered_section_ids.include?(section.id) %>
@@ -43,7 +44,11 @@
             <% end %>
           </header>
 
-          <% category.questions.ordered.each_with_index do |question, index| %>
+          <% number_key = section&.id || category.id %>
+          <% category.questions.ordered.each do |question| %>
+            <% is_sub_question = question.sub_question? %>
+            <% question_number = section_question_numbers[number_key] %>
+            <% question_number = (section_question_numbers[number_key] += 1) unless is_sub_question %>
 
             <% q_text = question.question_text.to_s.strip %>
             <% desc_text = question.description.to_s.strip.presence %>
@@ -55,22 +60,35 @@
 
             <article class="space-y-2 question-block" data-question-id="<%= question.id %>">
               <label class="block text-sm font-medium text-slate-900">
-                <span class="font-semibold">Q<%= index + 1 %></span>
+                <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
+                <% if is_sub_question %>
+                  <span class="font-semibold text-slate-600" aria-label="Sub-question">↳</span>
+                <% else %>
+                  <span class="font-semibold"><%= question_prefix %><%= question_number %></span>
+                <% end %>
                 <span class="ml-2 inline-flex flex-col gap-1">
-                  <span class="flex flex-wrap items-center gap-2">
-                    <span><%= q_text %></span>
-                    <% if show_mha_tooltip %>
-                      <% if tooltip_text.present? %>
-                        <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
-                      <% else %>
-                        <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
+                  <span class="flex items-start justify-between gap-3">
+                    <span class="flex flex-wrap items-center gap-2">
+                      <span><%= q_text %></span>
+                      <% if show_mha_tooltip %>
+                        <% if tooltip_text.present? %>
+                          <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
+                        <% else %>
+                          <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
+                        <% end %>
+                      <% elsif show_custom_tooltip %>
+                        <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
                       <% end %>
-                    <% elsif show_custom_tooltip %>
-                      <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
-                    <% end %>
-                    <% if required %>
-                      <span class="text-red-600" aria-hidden="true">*</span>
-                      <span class="sr-only">Required question</span>
+                      <% if required %>
+                        <span class="text-red-600" aria-hidden="true">*</span>
+                        <span class="sr-only">Required question</span>
+                      <% end %>
+                    </span>
+
+                    <% if question.question_type_dropdown? && question.program_target_level.present? %>
+                      <span class="shrink-0 ml-auto text-right">
+                        <span class="target-level-badge">Target Level: <%= question.program_target_level %>/5</span>
+                      </span>
                     <% end %>
                   </span>
                   <% if formatted_desc.present? %>
@@ -83,15 +101,15 @@
               <% when "short_answer" %>
                 <textarea rows="3" disabled class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">Student response will appear here</textarea>
               <% when "multiple_choice" %>
-                <% options = question.answer_options_list.presence || [] %>
+                <% option_pairs = question.answer_option_pairs.presence || [] %>
                 <div class="flex flex-col gap-2" role="radiogroup">
-                  <% options.each do |option| %>
+                  <% option_pairs.each do |label, _value| %>
                     <label class="flex items-center gap-2 text-sm text-slate-800 opacity-75">
                       <input type="radio" disabled class="h-4 w-4 text-blue-600" />
-                      <span><%= option %></span>
+                      <span><%= label %></span>
                     </label>
                   <% end %>
-                  <% if options.empty? %>
+                  <% if option_pairs.empty? %>
                     <p class="text-xs text-slate-500">(No options configured)</p>
                   <% end %>
                 </div>
@@ -137,4 +155,4 @@
     <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
     <%= link_to "Edit Survey", edit_admin_survey_path(@survey), class: tailwind_button_classes(:primary) %>
   </div>
-</div>
+</main>

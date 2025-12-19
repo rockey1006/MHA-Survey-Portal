@@ -20,7 +20,7 @@ overdue_assignment:
 
 completed_residential_assignment:
   survey: fall_2025
-  student: other_student
+  student: completed_student
   advisor: other_advisor
   assigned_at: <%= 10.days.ago %>
   due_date: <%= 5.days.ago %>

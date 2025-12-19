@@ -19,7 +19,16 @@
 
   <%# Includes all consolidated stylesheet %>
   <%= tailwind_stylesheet_tag %>
-    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag(
+          "00_tokens_utilities",
+          "10_base_reports",
+          "20_header_layout",
+          "30_survey_guidance",
+          "40_flash",
+          "50_forms_tables",
+          "60_components_accessibility",
+          "data-turbo-track": "reload"
+        ) %>
     <%= javascript_importmap_tags %>
     <%# App-wide text scaling: sets a CSS variable based on the user's saved preference (percent) so rem-based sizing scales proportionally. Defaults to 1.0 (100%). %>
     <style>
@@ -31,7 +40,7 @@
     </style>
   </head>
 
-  <body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <body class="<%= ["min-h-screen bg-slate-50 text-slate-800 antialiased", (content_for?(:body_class) ? yield(:body_class) : nil)].compact.join(" ") %>">
     <style>
       /* Smoothly transition margin changes when browser/toolbars adjust the page */
       html, body { transition: margin-top 0.3s ease !important; will-change: margin-top; }

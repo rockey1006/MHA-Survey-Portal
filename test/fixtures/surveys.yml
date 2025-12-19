@@ -1,6 +1,6 @@
 fall_2025:
   title: Fall 2025 Health Assessment
-  semester: Fall 2025
+  program_semester: fall_2025
   description: Baseline residential survey
   is_active: true
   created_at: <%= Time.zone.now %>
@@ -8,7 +8,7 @@ fall_2025:
 
 spring_2025:
   title: Spring 2025 Health Assessment
-  semester: Spring 2025
+  program_semester: spring_2025
   description: Executive program check-in
   is_active: true
   created_at: <%= Time.zone.now %>
@@ -16,7 +16,7 @@ spring_2025:
 
 fall_2025_executive:
   title: Fall 2025 Executive Assessment
-  semester: Fall 2025
+  program_semester: fall_2025
   description: Executive track focus
   is_active: true
   created_at: <%= Time.zone.now %>

@@ -7,9 +7,11 @@ class Survey < ApplicationRecord
     "Executive"
   ].freeze
 
+  belongs_to :program_semester
   belongs_to :creator, class_name: "User", foreign_key: :created_by_id, optional: true
 
   has_many :categories, inverse_of: :survey, dependent: :destroy
+  has_one :legend, class_name: "SurveyLegend", inverse_of: :survey, dependent: :destroy
   has_many :sections,
            class_name: "SurveySection",
            inverse_of: :survey,
@@ -22,20 +24,31 @@ class Survey < ApplicationRecord
   has_many :student_questions, through: :questions
 
   accepts_nested_attributes_for :categories, allow_destroy: true
+  accepts_nested_attributes_for :legend, update_only: true, allow_destroy: true
   accepts_nested_attributes_for :sections, allow_destroy: true
 
-  before_validation :normalize_title_and_semester
+  before_validation :normalize_title
+  before_validation :assign_program_semester_from_semester_name
 
   validates :title,
             presence: true,
             uniqueness: {
-              scope: :semester,
+              scope: :program_semester_id,
               case_sensitive: false,
               message: "already exists for this semester"
             }
-  validates :semester, presence: true
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
+
+  # Virtual semester accessor maintained for compatibility with existing
+  # views/forms. The canonical value lives in program_semesters.name.
+  def semester
+    program_semester&.name || @semester_name_input.to_s.strip.presence
+  end
+
+  def semester=(value)
+    @semester_name_input = value
+  end
 
   # @return [ActiveRecord::Relation<Survey>] newest surveys first
   scope :ordered, -> { order(created_at: :desc) }
@@ -114,23 +127,18 @@ class Survey < ApplicationRecord
       .sort
   end
 
-  def normalize_title_and_semester
+  def normalize_title
     self.title = title.to_s.strip.squeeze(" ")
+  end
 
-    normalized_semester = semester.to_s.strip
-    if normalized_semester.present?
-      tokens = normalized_semester.split(/\s+/)
-      self.semester = tokens.map.with_index do |token, index|
-        if token.match?(/^\d+$/)
-          token
-        elsif index.zero?
-          token.capitalize
-        else
-          token
-        end
-      end.join(" ")
-    else
-      self.semester = normalized_semester
-    end
+  def assign_program_semester_from_semester_name
+    name = @semester_name_input.to_s.strip.squeeze(" ")
+    return if name.blank?
+
+    current_name = program_semester&.name.to_s.strip
+    return if current_name.present? && current_name.casecmp?(name)
+
+    self.program_semester = ProgramSemester.find_by_name_case_insensitive(name) ||
+                            ProgramSemester.create!(name: name)
   end
 end

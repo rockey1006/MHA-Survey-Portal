@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:14
-    container_name: health-db
+    container_name: db
     environment:
       POSTGRES_USER: dev_user
       POSTGRES_PASSWORD: dev_pass
@@ -17,7 +17,7 @@ services:
       args:
         RUBY_VERSION: 3.4.6
       target: dev
-    container_name: health-web
+    container_name: web
     environment:
       PGHOST: db
       PGPORT: 5432
@@ -29,11 +29,10 @@ services:
       - "3000:3000"
     volumes:
       - .:/csce431/501_health:cached
-      - bundle-cache:/usr/local/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
-    command: bash -lc "rm -f tmp/pids/server.pid && bin/rails tailwindcss:build && bin/rails s -b 0.0.0.0 -p 3000"
+    command: bash -lc "bundle check || bundle install; rm -f tmp/pids/server.pid && bin/rails tailwindcss:build && bin/rails s -b 0.0.0.0 -p 3000"
 
   css:
     build:
@@ -41,7 +40,7 @@ services:
       args:
         RUBY_VERSION: 3.4.6
       target: dev
-    container_name: health-css
+    container_name: css
     environment:
       PGHOST: db
       PGPORT: 5432
@@ -51,12 +50,10 @@ services:
       BUNDLE_WITHOUT: ""
     volumes:
       - .:/csce431/501_health:cached
-      - bundle-cache:/usr/local/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
-    command: bash -lc "bin/rails tailwindcss:watch"
+    command: bash -lc "bundle check || bundle install; bin/rails tailwindcss:watch"
 
 volumes:
   db-data:
-  bundle-cache:

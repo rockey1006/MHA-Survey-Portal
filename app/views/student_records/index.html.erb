@@ -1,5 +1,5 @@
 <main class="flex justify-center px-4 py-8">
-  <div class="w-full max-w-5xl space-y-6">
+  <div class="w-full max-w-6xl space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-[#500000]">Student Records</h1>
       <% intro_text = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
@@ -167,16 +167,16 @@
                                   <% if show_actions %>
                                     <%= link_to survey_label,
                                                 survey_link,
-                                                class: [tailwind_button_classes(:secondary), "whitespace-nowrap"].join(" ") %>
+                                                class: tailwind_button_classes(:secondary) %>
                                     <% if survey_response.present? %>
                                       <%= link_to "Download PDF",
                                                   download_survey_response_path(survey_response, token: download_token),
-                                                  class: [tailwind_button_classes(:primary), "whitespace-nowrap"].join(" "),
+                                                  class: tailwind_button_classes(:primary),
                                                   target: "_blank", rel: "noopener noreferrer" %>
                                     <% end %>
                                   <% elsif has_completed %>
                                     <span
-                                      class="<%= [tailwind_button_classes(:secondary), 'opacity-50 cursor-not-allowed pointer-events-none'].join(' ') %>"
+                                      class="<%= tailwind_button_classes(:secondary) %>"
                                       aria-disabled="true"
                                       title="Only the student's advisor or an admin can open this survey">
                                       <%= survey_label || "Review" %>
@@ -205,17 +205,17 @@
         <% if defined?(advisor_dashboard_path) && current_user&.respond_to?(:role_advisor?) && current_user.role_advisor? %>
           <%= link_to "← Back",
                       advisor_dashboard_path,
-                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      class: tailwind_button_classes(:secondary),
                       data: { turbo: false } %>
         <% elsif defined?(admin_dashboard_path) && current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
           <%= link_to "← Back",
                       admin_dashboard_path,
-                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      class: tailwind_button_classes(:secondary),
                       data: { turbo: false } %>
         <% else %>
           <%= link_to "← Back",
                       dashboard_path,
-                      class: "inline-flex items-center rounded-lg bg-slate-200 px-4 py-2 text-slate-800 hover:bg-slate-300",
+                      class: tailwind_button_classes(:secondary),
                       data: { turbo: false } %>
         <% end %>
       </div>

@@ -114,7 +114,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to survey_response_path(survey_response)
   end
 
-  test "index shows only surveys for the student's track" do
+  test "index shows only surveys assigned to the student" do
     sign_in @student_user
 
     get surveys_path
@@ -122,6 +122,17 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Fall 2025 Health Assessment"
     refute_includes response.body, "Spring 2025 Health Assessment"
+  end
+
+  test "index hides unassigned surveys even when track matches" do
+    sign_in users(:other_student)
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "Spring 2025 Health Assessment"
+    refute_includes response.body, "Fall 2025 Executive Assessment"
+    refute_includes response.body, "Fall 2025 Health Assessment"
   end
 
   test "index prompts profile completion when track missing" do
@@ -152,7 +163,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
   test "index falls back to current month when no semester configured" do
     sign_in @student_user
-    ProgramSemester.delete_all
+    ProgramSemester.destroy_all
 
     get surveys_path
 
@@ -344,7 +355,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     answers = { question.id.to_s => "Draft answer" }
     post save_progress_survey_path(@survey), params: { answers: answers }
 
-    assert_redirected_to survey_path(@survey)
+    assert_redirected_to student_dashboard_path
     assert_match /Progress saved! You can continue later\./, flash[:notice]
     assert_match /\d+\/\d+ questions answered/i, flash[:notice]
   end
@@ -356,7 +367,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     post save_progress_survey_path(@survey), params: { answers: {} }
 
-    assert_redirected_to survey_path(@survey)
+    assert_redirected_to student_dashboard_path
   end
 
   test "save_progress updates existing answers" do
@@ -692,7 +703,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     post save_progress_survey_path(@survey)
 
-    assert_redirected_to survey_path(@survey)
+    assert_redirected_to student_dashboard_path
   end
 
   test "submit ignores answers for non-survey questions" do

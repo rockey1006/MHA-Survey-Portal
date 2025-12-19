@@ -4,16 +4,23 @@ require "yaml"
 require "active_support/core_ext/numeric/time"
 require "set"
 require "active_record/tasks/database_tasks"
+require "stringio"
 
-puts "\n== Seeding Health sample data =="
+_seed_original_stdout = $stdout
+_seed_silence_stdout = Rails.env.test? || ENV["QUIET_SEEDS"].present?
+$stdout = StringIO.new if _seed_silence_stdout
+
+begin
+
+puts "\n== Seeding =="
 
 def ensure_schema_loaded!
   connection = ActiveRecord::Base.connection
 
   return if connection.data_source_exists?("users")
 
-  puts "• Database schema missing — running schema load before seeding"
-  ActiveRecord::Tasks::DatabaseTasks.load_schema_current
+  puts "• Running migrations"
+  ActiveRecord::Tasks::DatabaseTasks.migrate
   ActiveRecord::Base.connection_pool.disconnect!
   ActiveRecord::Base.establish_connection
 rescue StandardError => e
@@ -116,7 +123,9 @@ template_data = YAML.safe_load_file(survey_template_path, aliases: true)
 survey_templates = Array(template_data.fetch("surveys"))
 
 preferred_seed_current_semester = "Fall 2025"
-semester_names = survey_templates.map { |definition| definition["semester"].to_s.strip.presence }.compact.uniq
+semester_names = survey_templates.map do |definition|
+  definition.fetch("program_semester").to_s.strip.presence
+end.compact.uniq
 if semester_names.blank?
   semester_names = [Time.zone.now.strftime("%B %Y")]
 end
@@ -133,25 +142,76 @@ unless semester_names.include?(target_current_semester)
   semester_names.uniq!
 end
 
+puts "• Syncing program semesters"
+ProgramSemester.transaction do
+  semester_names.each do |name|
+    ProgramSemester.find_or_create_by!(name: name)
+  end
+
+  ProgramSemester.where.not(name: target_current_semester).update_all(current: false)
+  ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
+end
+
 answer_options_for = lambda do |options|
   return nil if options.blank?
 
-  Array(options).map(&:to_s).reject(&:blank?).to_json
+  normalized = Array(options).filter_map do |entry|
+    case entry
+    when String
+      entry.to_s.strip.presence
+    when Array
+      next if entry.empty?
+
+      label = entry[0].to_s.strip
+      value = entry[1].to_s.strip
+      next if label.blank? || value.blank?
+
+      [label, value]
+    when Hash
+      label = (entry["label"] || entry[:label]).to_s.strip
+      value = (entry["value"] || entry[:value] || label).to_s.strip
+      next if label.blank? || value.blank?
+
+      { "label" => label, "value" => value }
+    else
+      entry.to_s.strip.presence
+    end
+  end
+
+  normalized.to_json
 end
 
 created_surveys = []
 surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
 
+legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
+question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
+sub_questions_supported = ActiveRecord::Base.connection.column_exists?(:questions, :parent_question_id) &&
+                          ActiveRecord::Base.connection.column_exists?(:questions, :sub_question_order)
+
 survey_templates.each do |definition|
   title = definition.fetch("title")
-  semester = definition.fetch("semester")
+  semester = definition.fetch("program_semester").to_s.strip
   puts "   • Ensuring survey: #{title} (#{semester})"
 
+  program_semester = ProgramSemester.find_or_create_by!(name: semester)
+
   Survey.transaction do
-    survey = Survey.find_or_initialize_by(title:, semester:)
+    survey = Survey.find_or_initialize_by(title: title, program_semester: program_semester)
     survey.creator ||= admin_users.first
     survey.description = definition["description"]
     survey.is_active = definition.fetch("is_active", true)
+
+    if legend_supported
+      legend_definition = definition["legend"].presence
+      if legend_definition.present?
+        legend_record = survey.legend || survey.build_legend
+        legend_record.title = legend_definition["title"].to_s.strip.presence
+        legend_record.body = legend_definition.fetch("body", "").to_s
+      else
+        survey.legend&.mark_for_destruction
+      end
+    end
 
     if survey.persisted?
       stale_category_ids = survey.categories.ids
@@ -176,6 +236,8 @@ survey_templates.each do |definition|
       survey.sections.destroy_all if survey.persisted?
       survey.sections.reset
     end
+
+    question_feedback_supported = Question.column_names.include?("has_feedback")
 
     categories = Array(definition.fetch("categories", []))
     section_assignments = sections_supported ? {} : nil
@@ -204,7 +266,7 @@ survey_templates.each do |definition|
           tooltip_value = question_definition["description"].to_s.strip
         end
 
-        category.questions.build(
+        build_attrs = {
           question_text: question_definition.fetch("text"),
           description: question_definition["description"],
           tooltip_text: tooltip_value.presence,
@@ -213,11 +275,72 @@ survey_templates.each do |definition|
           is_required: question_definition.fetch("required", false),
           has_evidence_field: question_definition.fetch("has_evidence_field", false),
           answer_options: answer_options_for.call(question_definition["options"])
-        )
+        }
+
+        if question_feedback_supported
+          build_attrs[:has_feedback] = question_definition.fetch("has_feedback", is_mha_competency_section)
+        end
+
+        if question_target_level_supported && is_mha_competency_section && %w[multiple_choice dropdown].include?(question_definition["type"].to_s)
+          raw_target_level = question_definition["target_level"].presence || question_definition["program_target_level"].presence || 3
+          build_attrs[:program_target_level] = raw_target_level.to_i
+        end
+
+        parent_question = category.questions.build(build_attrs)
+
+        if sub_questions_supported
+          Array(question_definition["sub_questions"]).each do |sub_definition|
+          sub_tooltip_value = sub_definition["tooltip"].to_s.strip
+          if sub_tooltip_value.blank? && is_mha_competency_section && sub_definition["type"].to_s == "multiple_choice"
+            sub_tooltip_value = sub_definition["description"].to_s.strip
+          end
+
+          sub_attrs = {
+            question_text: sub_definition.fetch("text"),
+            description: sub_definition["description"],
+            tooltip_text: sub_tooltip_value.presence,
+            question_order: parent_question.question_order,
+            sub_question_order: sub_definition.fetch("order", 0),
+            question_type: sub_definition.fetch("type"),
+            is_required: sub_definition.fetch("required", false),
+            has_evidence_field: sub_definition.fetch("has_evidence_field", false),
+            answer_options: answer_options_for.call(sub_definition["options"]),
+            parent_question: parent_question
+          }
+
+          if question_feedback_supported
+            sub_attrs[:has_feedback] = sub_definition.fetch("has_feedback", false)
+          end
+
+          if question_target_level_supported && is_mha_competency_section && %w[multiple_choice dropdown].include?(sub_definition["type"].to_s)
+            raw_target_level = sub_definition["target_level"].presence || sub_definition["program_target_level"].presence || 3
+            sub_attrs[:program_target_level] = raw_target_level.to_i
+          end
+
+          category.questions.build(sub_attrs)
+          end
+        end
       end
     end
 
     survey.save!
+
+    if sub_questions_supported
+      # When building nested questions in-memory, sub-questions may be saved before the
+      # parent question has an ID, leaving parent_question_id unset. Repair those links
+      # after the survey save so sub-questions are correctly attached.
+      survey.categories.each do |category|
+        category.questions.each do |question|
+          parent = question.parent_question
+          next unless parent
+          next if question.parent_question_id.present?
+          next unless parent.id
+
+          question.update!(parent_question_id: parent.id)
+        end
+      end
+    end
+
     if sections_supported && section_assignments.present?
       section_records = {}
       ordered_keys = []
@@ -264,16 +387,6 @@ survey_templates.each do |definition|
   end
 end
 
-puts "• Syncing program semesters"
-ProgramSemester.transaction do
-  semester_names.each do |name|
-    ProgramSemester.find_or_create_by!(name: name)
-  end
-
-  ProgramSemester.where.not(name: target_current_semester).update_all(current: false)
-  ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
-end
-
 puts "• Assigning surveys to each student"
 response_rng = Random.new(20_251_110)
 
@@ -306,6 +419,27 @@ drive_links = %w[
   https://drive.google.com/drive/folders/1ExampleFolderId?usp=drive_link
   https://docs.google.com/document/d/1SampleDocumentId/edit?usp=drive_link
 ]
+
+choice_values_for = lambda do |question|
+  raw = question.answer_options.presence || "[]"
+  parsed = JSON.parse(raw)
+  Array(parsed).filter_map do |entry|
+    case entry
+    when String
+      entry.to_s.strip.presence
+    when Hash
+      (entry["value"] || entry[:value] || entry["label"] || entry[:label]).to_s.strip.presence
+    when Array
+      next if entry.empty?
+
+      (entry[1] || entry[0]).to_s.strip.presence
+    else
+      entry.to_s.strip.presence
+    end
+  end.uniq
+rescue JSON::ParserError
+  []
+end
 
 competency_titles = Reports::DataAggregator::COMPETENCY_TITLES
 competency_title_lookup = competency_titles.map { |title| title.to_s.strip }.to_set
@@ -356,13 +490,7 @@ students.each do |student|
                          when "evidence"
                            high_performer ? drive_links.first : drive_links.sample(random: response_rng)
                          when "multiple_choice"
-                           options = begin
-                             raw = question.answer_options.presence || "[]"
-                             parsed = JSON.parse(raw)
-                             Array.wrap(parsed)
-                           rescue JSON::ParserError
-                             []
-                           end
+                           options = choice_values_for.call(question)
 
                            if is_competency_question
                              rating_value = competency_rating_value.call(high_performer: high_performer)
@@ -372,6 +500,15 @@ students.each do |student|
                              selection = options.sample(random: response_rng).presence
                              fallback = preferred && options.include?(preferred) ? preferred : selection
                              fallback.presence || preferred || options.first || "Yes"
+                           end
+                         when "dropdown"
+                           options = choice_values_for.call(question)
+
+                           if is_competency_question
+                             rating_value = competency_rating_value.call(high_performer: high_performer)
+                             options.include?(rating_value) ? rating_value : (options.sample(random: response_rng).presence || rating_value || "3")
+                           else
+                             options.sample(random: response_rng).presence || options.first
                            end
                          when "short_answer"
                            if is_competency_question
@@ -429,3 +566,7 @@ end
 puts "   • Generated sample ratings for #{StudentQuestion.count} question responses"
 
 puts "🎉 Seed data finished!"
+
+ensure
+  $stdout = _seed_original_stdout if _seed_silence_stdout
+end

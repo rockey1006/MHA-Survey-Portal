@@ -45,16 +45,16 @@ module SurveyAssignments
     attr_reader :student, :track
 
     def surveys_for_track
-      current_semester = ProgramSemester.current_name.to_s.strip
+      current_semester = ProgramSemester.current&.name.to_s.strip
       if current_semester.blank?
-        fallback_semester = Survey.order(created_at: :desc).limit(1).pick(:semester)
-        current_semester = fallback_semester.to_s.strip
+        current_semester = ProgramSemester.ordered.last&.name.to_s.strip
       end
 
       return Survey.none if current_semester.blank?
 
       Survey.active
-            .where("LOWER(surveys.semester) = ?", current_semester.downcase)
+        .joins(:program_semester)
+        .where("LOWER(program_semesters.name) = ?", current_semester.downcase)
             .joins(:track_assignments)
             .where("LOWER(survey_track_assignments.track) = ?", track.downcase)
             .distinct

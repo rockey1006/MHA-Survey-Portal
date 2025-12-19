@@ -1,6 +1,9 @@
 # Tracks program semesters (e.g., "Fall 2025") and identifies which one is current.
 class ProgramSemester < ApplicationRecord
   DEFAULT_CURRENT_NAME = "Fall 2025".freeze
+
+  has_many :surveys, dependent: :destroy
+
   before_validation :normalize_name
   after_commit :ensure_single_current!, if: -> { saved_change_to_current? && current? }
   after_destroy :assign_fallback_current!

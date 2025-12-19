@@ -448,10 +448,8 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    # Will raise ActiveRecord::NotNullViolation because category_id is nil
-    assert_raises(ActiveRecord::NotNullViolation) do
-      post feedbacks_path, params: params
-    end
+    post feedbacks_path, params: params
+    assert_response :unprocessable_entity
   end
 
   test "new loads context properly" do

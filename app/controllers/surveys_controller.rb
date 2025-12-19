@@ -454,7 +454,7 @@ class SurveysController < ApplicationController
       progress: progress_summary
     )
 
-    redirect_to student_dashboard_path, notice: notice_message
+    redirect_to survey_path(@survey), notice: notice_message
   end
 
   private

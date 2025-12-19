@@ -132,10 +132,11 @@ class Survey < ApplicationRecord
   end
 
   def assign_program_semester_from_semester_name
-    return if program_semester.present?
-
     name = @semester_name_input.to_s.strip.squeeze(" ")
     return if name.blank?
+
+    current_name = program_semester&.name.to_s.strip
+    return if current_name.present? && current_name.casecmp?(name)
 
     self.program_semester = ProgramSemester.find_by_name_case_insensitive(name) ||
                             ProgramSemester.create!(name: name)

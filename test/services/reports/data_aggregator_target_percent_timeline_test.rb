@@ -57,7 +57,7 @@ module Reports
         updated_at: Time.current
       )
 
-      aggregator = Reports::DataAggregator.new(user: @admin, params: {})
+      aggregator = Reports::DataAggregator.new(user: @admin, params: { survey_id: question.category.survey.id })
       timeline = Array(aggregator.benchmark[:timeline])
 
       assert timeline.any?, "Expected timeline entries to be present"

@@ -224,7 +224,6 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
 
   # Test :survey_archived event
   test "survey archived event notifies all students with assignments" do
-    other_student = students(:other_student)
     expected_notifications = distinct_student_ids_for(@survey.id).size
     assert expected_notifications >= 2
 
@@ -234,8 +233,13 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
 
     notifications = Notification.last(expected_notifications)
     recipients = notifications.map(&:user)
-    assert_includes recipients, @student.user
-    assert_includes recipients, other_student.user
+
+    expected_student_ids = distinct_student_ids_for(@survey.id)
+    expected_student_users = Student.includes(:user).where(student_id: expected_student_ids).map(&:user)
+    expected_student_users.each do |expected_user|
+      assert_includes recipients, expected_user
+    end
+
     assert_equal "Survey Archived", notifications.first.title
     assert_match @survey.title, notifications.first.message
   end

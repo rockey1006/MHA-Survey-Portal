@@ -230,6 +230,8 @@ survey_templates.each do |definition|
       survey.sections.reset
     end
 
+    question_feedback_supported = Question.column_names.include?("has_feedback")
+
     categories = Array(definition.fetch("categories", []))
     section_assignments = sections_supported ? {} : nil
     categories.each do |category_definition|
@@ -268,6 +270,10 @@ survey_templates.each do |definition|
           answer_options: answer_options_for.call(question_definition["options"])
         }
 
+        if question_feedback_supported
+          build_attrs[:has_feedback] = question_definition.fetch("has_feedback", is_mha_competency_section)
+        end
+
         if question_target_level_supported && is_mha_competency_section && %w[multiple_choice dropdown].include?(question_definition["type"].to_s)
           raw_target_level = question_definition["target_level"].presence || question_definition["program_target_level"].presence || 3
           build_attrs[:program_target_level] = raw_target_level.to_i
@@ -294,6 +300,10 @@ survey_templates.each do |definition|
             answer_options: answer_options_for.call(sub_definition["options"]),
             parent_question: parent_question
           }
+
+          if question_feedback_supported
+            sub_attrs[:has_feedback] = sub_definition.fetch("has_feedback", false)
+          end
 
           if question_target_level_supported && is_mha_competency_section && %w[multiple_choice dropdown].include?(sub_definition["type"].to_s)
             raw_target_level = sub_definition["target_level"].presence || sub_definition["program_target_level"].presence || 3

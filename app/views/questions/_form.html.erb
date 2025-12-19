@@ -49,6 +49,13 @@
     <small>Comma-separated list for multiple choice and scale questions.</small>
   </div>
 
+  <% if form.object.respond_to?(:has_feedback) %>
+    <div>
+      <%= form.label :has_feedback, "Collect advisor feedback?", style: "display: block" %>
+      <%= form.check_box :has_feedback %>
+    </div>
+  <% end %>
+
   <div>
     <% if question.persisted? %>
       <%= form.submit "Update Question" %>

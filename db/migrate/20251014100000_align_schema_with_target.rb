@@ -155,6 +155,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.enum :question_type, enum_type: :question_types, null: false
       t.text :answer_options
       t.integer :program_target_level
+      t.boolean :has_feedback, null: false, default: false
       t.boolean :has_evidence_field, null: false, default: false
       t.timestamps
     end
@@ -268,6 +269,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     backfill_mha_competency_sections
     backfill_mha_competency_tooltips
     backfill_program_target_levels
+    backfill_mha_competency_feedback_flags
   end
 
   def down
@@ -338,6 +340,25 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
         WHERE questions.category_id = categories.id
           AND questions.program_target_level IS NULL
           AND questions.question_type IN ('multiple_choice', 'dropdown')
+          AND LOWER(survey_sections.title) = LOWER('#{SECTION_TITLE}');
+      SQL
+    end
+  end
+
+  def backfill_mha_competency_feedback_flags
+    MigrationQuestion.reset_column_information
+    return unless MigrationQuestion.column_names.include?("has_feedback")
+
+    say_with_time "Backfilling has_feedback for MHA competency parent questions" do
+      execute <<~SQL
+        UPDATE questions
+        SET has_feedback = TRUE
+        FROM categories
+        INNER JOIN survey_sections
+          ON survey_sections.id = categories.survey_section_id
+        WHERE questions.category_id = categories.id
+          AND questions.has_feedback = FALSE
+          AND questions.parent_question_id IS NULL
           AND LOWER(survey_sections.title) = LOWER('#{SECTION_TITLE}');
       SQL
     end

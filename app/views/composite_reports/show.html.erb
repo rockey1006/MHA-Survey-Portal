@@ -242,13 +242,24 @@
 
           <% if show_inline_feedback && end_of_parent_group && feedback_for_parent.present? %>
             <% timestamp = feedback_for_parent.updated_at || feedback_for_parent.created_at %>
+            <% selected_proficiency = normalize_proficiency_value(feedback_for_parent.average_score) %>
             <div class="feedback-block">
               <div class="feedback-header">
                 <div><strong>Advisor feedback</strong> <span class="muted">(<%= feedback_for_parent.advisor&.display_name || "—" %>)</span></div>
                 <div class="feedback-score">
-                  Score: <%= feedback_for_parent.average_score.present? ? format('%.2f', feedback_for_parent.average_score.to_f) : "—" %>
+                  <% if selected_proficiency.present? %>
+                    <select class="pdf-select" disabled>
+                      <option value=""></option>
+                      <% proficiency_option_pairs_for(question).each do |label, value| %>
+                        <option value="<%= value %>" <%= value.to_s == selected_proficiency.to_s ? "selected" : "" %>><%= label %></option>
+                      <% end %>
+                    </select>
+                  <% else %>
+                    —
+                  <% end %>
                 </div>
               </div>
+
               <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback_for_parent.comments) %>
               <div class="feedback-comments">
                 <% if comments_text.present? %>

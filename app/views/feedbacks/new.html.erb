@@ -2,7 +2,7 @@
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
       <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true, class: "space-y-8 survey-form" do |f| %>
-        <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question, prefill: params[:prefill].present? } %>
+        <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question } %>
 
         <section class="advisor-summary" data-advisor-feedback-summary>
           <div class="advisor-summary__header">
@@ -69,7 +69,7 @@
       var summary = document.querySelector('[data-advisor-feedback-summary]');
       if (!summary) return;
 
-      var inputs = document.querySelectorAll('input[data-advisor-feedback-score="true"]');
+      var inputs = document.querySelectorAll('[data-advisor-feedback-score="true"]');
 
       var total = 0;
       var atOrAbove = 0;
@@ -99,7 +99,14 @@
       updateAdvisorFeedbackSummary();
       document.addEventListener('input', function(e) {
         var target = e.target;
-        if (target && target.matches && target.matches('input[data-advisor-feedback-score="true"]')) {
+        if (target && target.matches && target.matches('[data-advisor-feedback-score="true"]')) {
+          updateAdvisorFeedbackSummary();
+        }
+      });
+
+      document.addEventListener('change', function(e) {
+        var target = e.target;
+        if (target && target.matches && target.matches('[data-advisor-feedback-score="true"]')) {
           updateAdvisorFeedbackSummary();
         }
       });

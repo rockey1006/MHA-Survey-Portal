@@ -58,6 +58,7 @@ templates:
     options: *mha_competency_dropdown_options
     tooltip: *mha_competency_tooltip
     required: true
+    has_feedback: true
 
   reflection_sub_question: &reflection_sub_question
     order: 1

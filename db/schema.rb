@@ -250,6 +250,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   add_foreign_key "survey_legends", "surveys"
   add_foreign_key "survey_sections", "surveys", on_delete: :cascade
   add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
-  add_foreign_key "surveys", "users", column: "created_by_id"
   add_foreign_key "surveys", "program_semesters"
+  add_foreign_key "surveys", "users", column: "created_by_id"
 end

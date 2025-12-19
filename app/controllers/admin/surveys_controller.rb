@@ -280,6 +280,7 @@ class Admin::SurveysController < Admin::BaseController
           :answer_options,
           :is_required,
           :has_evidence_field,
+          :has_feedback,
           :_destroy
         ]
       ],

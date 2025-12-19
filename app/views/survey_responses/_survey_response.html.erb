@@ -35,7 +35,6 @@
 
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
   <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
-  <% prefill_flag = local_assigns.key?(:prefill) ? local_assigns[:prefill] : params[:prefill].present? %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
   <% categories = survey.present? ? survey.categories.includes(:section, :questions).order(:id).to_a : [] %>
 
@@ -271,43 +270,43 @@
                   <% if end_of_parent_group %>
                     <% feedback_question = is_sub_question ? questions_by_id[question.parent_question_id] : question %>
                     <% feedback_question_id = feedback_question&.id %>
+                    <% supports_feedback = feedback_question && (!feedback_question.respond_to?(:has_feedback?) || feedback_question.has_feedback?) %>
                     <% existing_q = (feedback_question_id && passed_existing_feedbacks) ? passed_existing_feedbacks[feedback_question_id] : nil %>
                     <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
+                    <% if supports_feedback %>
                     <article class="question-block mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm ring-1 ring-amber-200/40 space-y-3">
                     <div class="flex items-center justify-between gap-3">
                       <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
                       <p class="text-xs text-slate-500">Score 0–5, comment optional</p>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (0–5)</label>
-                        <input id="ratings_<%= feedback_question_id %>_average_score"
-                               name="ratings[<%= feedback_question_id %>][average_score]"
-                               value="<%= prefill_flag && existing_q ? existing_q.average_score : '' %>"
-                               type="number"
-                               min="0"
-                               max="5"
-                             step="0.1"
-                               data-advisor-feedback-score="true"
-                               data-program-target-level="<%= feedback_question&.program_target_level %>"
-                               class="w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                          <select id="ratings_<%= feedback_question_id %>_average_score"
+                                  name="ratings[<%= feedback_question_id %>][average_score]"
+                                  data-advisor-feedback-score="true"
+                                  data-program-target-level="<%= feedback_question&.program_target_level %>"
+                                  class="w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value=""></option>
+                            <%= options_for_select(advisor_proficiency_option_pairs_for(feedback_question), normalize_proficiency_value(existing_q&.average_score)) %>
+                          </select>
                       </div>
 
                       <div class="md:col-span-2">
                         <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_comments">Comment (optional)</label>
-                        <input id="ratings_<%= feedback_question_id %>_comments"
-                               name="ratings[<%= feedback_question_id %>][comments]"
-                               value="<%= prefill_flag && existing_q ? existing_q.comments : '' %>"
-                               type="text"
-                               class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        <textarea id="ratings_<%= feedback_question_id %>_comments"
+                                  name="ratings[<%= feedback_question_id %>][comments]"
+                                  rows="3"
+                                  class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"><%= existing_q&.comments.to_s %></textarea>
                       </div>
                     </div>
 
-                    <% if prefill_flag && existing_q %>
+                    <% if existing_q %>
                       <input type="hidden" name="ratings[<%= feedback_question_id %>][id]" value="<%= existing_q.id %>" />
                     <% end %>
                   </article>
+                    <% end %>
                   <% end %>
                 <% end %>
                   <div class="h-6" aria-hidden="true"></div>
@@ -385,7 +384,7 @@
                 <div class="rounded border border-amber-200 bg-amber-50/50 p-2">
                   <div class="flex items-center justify-between">
                     <div class="text-sm font-medium"><%= question.question_text.truncate(80) %></div>
-                    <div class="text-sm text-slate-600">Score: <%= fb ? (fb.average_score.presence || '—') : '—' %></div>
+                    <div class="text-sm text-slate-600">Score: <%= fb&.average_score.present? ? proficiency_label_for(fb.average_score, question) : '—' %></div>
                   </div>
                   <div class="mt-1 text-sm text-slate-700"><%= fb&.comments.presence || 'No feedback yet' %></div>
                   <div class="mt-1 text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>

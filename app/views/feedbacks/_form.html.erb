@@ -24,13 +24,15 @@
   </div>
 
   <div>
-    <%= form.label :average_score, "Score (0–5)", style: "display: block" %>
-    <%= form.number_field :average_score, step: 0.1, min: 0, max: 5 %>
+    <%= form.label :average_score, "Proficiency", style: "display: block" %>
+    <%= form.select :average_score,
+                    options_for_select(advisor_proficiency_option_pairs_for(nil), normalize_proficiency_value(feedback.average_score)),
+                    { include_blank: true } %>
   </div>
 
   <div>
     <%= form.label :comments, style: "display: block" %>
-    <%= form.text_field :comments %>
+    <%= form.text_area :comments, rows: 3 %>
   </div>
 
   <div>

@@ -41,9 +41,9 @@ class SurveysController < ApplicationController
       scope = @survey.categories.includes(:section, :questions)
       @category_groups = if Category.column_names.include?("position")
                            scope.order(:position, :id)
-                         else
+      else
                            scope.order(:id)
-                         end
+      end
     @existing_answers = {}
     @other_answers = {}
     @computed_required = {}
@@ -227,9 +227,9 @@ class SurveysController < ApplicationController
       scope = @survey.categories.includes(:section, :questions)
       @category_groups = if Category.column_names.include?("position")
                            scope.order(:position, :id)
-                         else
+      else
                            scope.order(:id)
-                         end
+      end
       @existing_answers = answers
       @other_answers = other_answers
       @computed_required = {}

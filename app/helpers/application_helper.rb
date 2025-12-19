@@ -85,7 +85,7 @@ module ApplicationHelper
       "btn-secondary"
     end
 
-    [base, variant_class, extra_classes.presence].compact.join(" ")
+    [ base, variant_class, extra_classes.presence ].compact.join(" ")
   end
 
   # Returns CSS classes for a survey status pill.

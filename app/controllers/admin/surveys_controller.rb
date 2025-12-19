@@ -208,9 +208,9 @@ class Admin::SurveysController < Admin::BaseController
     scope = @survey.categories.includes(:section, :questions)
     @category_groups = if Category.column_names.include?("position")
                          scope.order(:position, :id)
-                       else
+    else
                          scope.order(:id)
-                       end
+    end
     @categories = @category_groups
     @questions = @survey.questions.includes(:category).order(:question_order)
     @category_names = @category_groups.map(&:name)

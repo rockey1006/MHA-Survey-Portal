@@ -241,9 +241,9 @@ class CompositeReportGenerator
     scope = survey.categories.includes(:questions, :section)
     @categories ||= if Category.column_names.include?("position")
                      scope.order(:position, :id).to_a
-                   else
+    else
                      scope.order(:id).to_a
-                   end
+    end
   end
 
   def question_responses

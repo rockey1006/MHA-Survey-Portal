@@ -355,7 +355,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     answers = { question.id.to_s => "Draft answer" }
     post save_progress_survey_path(@survey), params: { answers: answers }
 
-    assert_redirected_to survey_path(@survey)
+    assert_redirected_to student_dashboard_path
     assert_match /Progress saved! You can continue later\./, flash[:notice]
     assert_match /\d+\/\d+ questions answered/i, flash[:notice]
   end
@@ -367,7 +367,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     post save_progress_survey_path(@survey), params: { answers: {} }
 
-    assert_redirected_to survey_path(@survey)
+    assert_redirected_to student_dashboard_path
   end
 
   test "save_progress updates existing answers" do
@@ -703,7 +703,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
 
     post save_progress_survey_path(@survey)
 
-    assert_redirected_to survey_path(@survey)
+    assert_redirected_to student_dashboard_path
   end
 
   test "submit ignores answers for non-survey questions" do

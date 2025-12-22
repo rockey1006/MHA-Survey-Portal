@@ -16,7 +16,7 @@ test:
   database: <%= ENV['TEST_DATABASE'] || "health_test" %>
 
 production:
-  url: <%= ENV.fetch('DATABASE_URL') %>
+  url: <%= ENV['DATABASE_URL'] %>
   pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
 
 # Optional named databases used by some features (cache, queue, cable)

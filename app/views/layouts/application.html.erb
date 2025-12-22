@@ -65,27 +65,6 @@
 
       <main class="flex-1 px-4 py-6 sm:px-6 lg:px-8">
         <div class="layout-shell">
-          <!-- Compact Google Translate toggle (top-right under navbar). Click to open language selector panel. -->
-          <div id="gt-compact" aria-hidden="false" class="translate-fab">
-            <button id="gt-toggle" aria-label="Translate site" title="Translate site" class="translate-fab__button">
-              <span class="translate-fab__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="img" focusable="false">
-                  <path d="M12 2a9.93 9.93 0 0 0-7.07 2.93A9.93 9.93 0 0 0 2 12c0 2.66 1.04 5.2 2.93 7.07A9.93 9.93 0 0 0 12 22c2.66 0 5.2-1.04 7.07-2.93A9.93 9.93 0 0 0 22 12c0-2.66-1.04-5.2-2.93-7.07A9.93 9.93 0 0 0 12 2zm6.23 6h-2.72a14.66 14.66 0 0 0-1.09-3.3A8.05 8.05 0 0 1 18.23 8zm-4.13 0h-4.2A12.77 12.77 0 0 1 12 4.1 12.77 12.77 0 0 1 14.1 8zm-6.33 0H5.05A8.05 8.05 0 0 1 9.58 4.7 14.66 14.66 0 0 0 7.77 8zm-.46 2a20.36 20.36 0 0 0 .55 4H5.52a8 8 0 0 1 0-4h2.37zm2.52 0h4.1a18.66 18.66 0 0 1 0 4h-4.1a18.66 18.66 0 0 1 0-4zm6.03 0h2.37a8 8 0 0 1 0 4h-2.37c.38-1.34.56-2.67.56-4zm-5.13 7.9a12.77 12.77 0 0 1-2.1-3.9h4.2a12.77 12.77 0 0 1-2.1 3.9zm-2.33-.27A14.66 14.66 0 0 0 9.58 19.3 8.05 8.05 0 0 1 5.05 16h2.72zm4.76 0H16.5a8.05 8.05 0 0 1-4.53 3.3 14.66 14.66 0 0 0 1.09-3.3z" />
-                </svg>
-              </span>
-              <span class="translate-fab__text">
-                <span class="translate-fab__eyebrow">Language</span>
-                <span class="translate-fab__label">Translate</span>
-              </span>
-            </button>
-            <div id="gt-panel" class="translate-panel" style="display:none;">
-              <div class="translate-panel__header">
-                <p>Choose a language</p>
-                <small>Powered by Google Translate</small>
-              </div>
-              <div id="google_translate_element" class="translate-widget">Loading...</div>
-            </div>
-          </div>
           <% if flash.any? %>
             <div class="space-y-3">
               <% flash.each do |key, value| %>

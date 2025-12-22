@@ -2,7 +2,7 @@
 <% form_uid = section.respond_to?(:form_uid) && section.form_uid.present? ? section.form_uid : "section-temp-#{SecureRandom.hex(4)}" %>
 <% section.form_uid = form_uid if section.respond_to?(:form_uid=) %>
 <article id="<%= form_uid %>"
-         class="survey-section-card space-y-5 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-left shadow-sm"
+         class="c-card survey-section-card space-y-5 border-amber-200 bg-amber-50/60 text-left"
          data-builder-kind="section"
          data-builder-label="<%= section.title.to_s.strip.presence || 'Untitled section' %>"
          data-section-entry

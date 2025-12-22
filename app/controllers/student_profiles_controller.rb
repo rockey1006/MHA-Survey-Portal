@@ -13,12 +13,14 @@ class StudentProfilesController < ApplicationController
   def edit
     @student = current_student
     @advisors = Advisor.joins(:user).order("users.name ASC")
+    @majors = Major.order(:name)
   end
 
   # Update profile information
   def update
     @student = current_student
     @advisors = Advisor.joins(:user).order("users.name ASC")
+    @majors = Major.order(:name)
 
     # Update user name if provided
     if student_params[:name].present?

@@ -1,7 +1,7 @@
 <% survey_title = @survey.title.presence || "Survey ##{@survey.id}" %>
 
 <main class="main-content space-y-8 survey-container">
-  <header class="survey-header space-y-1 text-center">
+  <header class="c-card survey-header space-y-1 text-center">
     <h1 class="text-2xl font-semibold text-slate-900"><%= survey_title %></h1>
     <p class="text-sm text-slate-600">
       Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @track_list.presence&.join(", ") || "Unassigned" %>
@@ -27,7 +27,7 @@
       <% @category_groups.each do |category| %>
         <% section = category.section %>
         <% if section.present? && !rendered_section_ids.include?(section.id) %>
-          <div class="space-y-1 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
+          <div class="c-card space-y-1 border-amber-200 bg-amber-50/70">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
             <h2 class="text-xl font-bold text-[#500000]"><%= section.title %></h2>
             <% if section.description.present? %>
@@ -36,7 +36,7 @@
           </div>
           <% rendered_section_ids << section.id %>
         <% end %>
-        <section class="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <section class="c-card space-y-4">
           <header>
             <h2 class="text-xl font-semibold text-slate-900"><%= category.name %></h2>
             <% if category.description.present? %>

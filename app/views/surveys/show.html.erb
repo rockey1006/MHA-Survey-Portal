@@ -16,7 +16,7 @@
 
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
-  <header class="survey-header mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <header class="c-card survey-header mb-6">
     <div class="space-y-2">
       <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><%= @survey.title %></h1>
       <p class="text-sm text-slate-600">
@@ -47,7 +47,7 @@
       <% section_anchor_id = section.present? ? "survey-section-#{section.id}" : nil %>
       <div class="survey-block">
         <% if section.present? && !rendered_section_ids.include?(section.id) %>
-          <div id="<%= section_anchor_id %>" class="survey-section-card space-y-2 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-left shadow-sm">
+          <div id="<%= section_anchor_id %>" class="c-card survey-section-card space-y-2 text-left border-amber-200 bg-amber-50/60">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
             <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
             <% if section.description.present? %>
@@ -57,7 +57,7 @@
           <% rendered_section_ids << section.id %>
         <% end %>
 
-        <section id="survey-category-<%= category.id %>" class="survey-category-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+        <section id="survey-category-<%= category.id %>" class="c-card survey-category-card space-y-6">
         <header class="space-y-2">
           <h2 class="text-xl font-semibold tracking-tight text-slate-900"><%= category.name %></h2>
           <% category_desc = category.description.to_s.strip.presence %>

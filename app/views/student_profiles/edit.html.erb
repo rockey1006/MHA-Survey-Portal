@@ -1,50 +1,94 @@
 <% content_for :title, "Edit Student Profile" %>
 
 <% full_name = @student.full_name.presence || @student.user&.name || "Student" %>
-<% track = @student.track.present? ? @student.track.to_s.titleize : "Select a track" %>
-<% major = @student.major.presence || "Add your program" %>
+<% email = @student.email %>
+<% uin = @student.uin.presence || "Not provided" %>
+<% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
+<% major = @student.major.presence || "Program TBD" %>
+<% advisor_name = @student.advisor&.name || "Advisor pending" %>
+<% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
+<% updated_text = @student.updated_at ? time_ago_in_words(@student.updated_at) + " ago" : "Just now" %>
 <% initials = full_name.split.first(2).map { |part| part.first&.upcase }.join.presence || "ST" %>
+<% avatar_url = @student.avatar_url.presence %>
 
-<main class="student-profile-edit-page px-4 py-10">
-  <div class="student-profile-edit-container mx-auto max-w-6xl space-y-10">
-    <section class="student-edit-hero">
-      <div class="student-edit-hero__content">
-        <div>
-          <p class="student-edit-hero__eyebrow">Profile setup</p>
-          <h1 class="student-edit-hero__title">Complete your student profile</h1>
-          <p class="student-edit-hero__subtitle">
-            Accurate details keep your advisor assignments and surveys aligned with your program path.
-          </p>
-          <div class="student-edit-hero__badges">
-            <span class="hero-badge">
-              <span class="hero-badge__dot"></span>
+<div class="py-6 sm:py-8">
+  <div class="u-stack u-stack--lg">
+    <section class="c-hero c-hero--maroon c-hero--compact">
+      <div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+        <div class="space-y-8">
+          <div class="space-y-4">
+            <p class="c-eyebrow c-eyebrow--inverse">Edit student profile</p>
+            <h1 class="c-h1 c-h1--inverse"><%= full_name %></h1>
+            <p class="c-lede c-lede--inverse max-w-2xl">Update your identity and program details to keep surveys and advisor assignments accurate.</p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <span class="c-pill c-pill--inverse">
+              <span class="c-pill__dot c-pill__dot--inverse"></span>
               Track · <%= track %>
             </span>
-            <span class="hero-badge">
-              Major · <%= major %>
+            <span class="c-pill c-pill--inverse">
+              Cohort member since <%= member_since %>
+            </span>
+            <span class="c-pill c-pill--inverse">
+              Updated <%= updated_text %>
             </span>
           </div>
         </div>
-        <div class="student-edit-hero__avatar">
-          <span><%= initials %></span>
+
+        <div class="flex flex-col gap-8 sm:flex-row sm:items-start lg:flex-col lg:items-end">
+          <div class="space-y-5">
+            <div>
+              <p class="c-eyebrow c-eyebrow--inverse">Primary email</p>
+              <p class="c-value c-value--xl c-value--inverse"><%= email %></p>
+            </div>
+            <div>
+              <p class="c-eyebrow c-eyebrow--inverse">Advisor</p>
+              <p class="c-value c-value--xl c-value--inverse"><%= advisor_name %></p>
+            </div>
+          </div>
+
+          <div class="c-avatar-tile c-avatar-tile--inverse h-24 w-24 text-xl" <%= "role=\"img\" aria-label=\"#{avatar_aria_label(@student.user)}\"" unless avatar_url %>>
+            <% if avatar_url %>
+              <img src="<%= avatar_url %>" alt="<%= avatar_aria_label(@student.user) %>" loading="lazy">
+            <% else %>
+              <span aria-hidden="true"><%= initials %></span>
+              <span class="sr-only"><%= avatar_aria_label(@student.user) %></span>
+            <% end %>
+          </div>
         </div>
+      </div>
+
+      <div class="mt-6 grid gap-4 md:grid-cols-3">
+        <article class="c-kv c-kv--inverse c-kv--compact">
+          <p class="c-eyebrow c-eyebrow--inverse">Major / Program</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= major %></p>
+        </article>
+        <article class="c-kv c-kv--inverse c-kv--compact">
+          <p class="c-eyebrow c-eyebrow--inverse">UIN</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= uin %></p>
+        </article>
+        <article class="c-kv c-kv--inverse c-kv--compact">
+          <p class="c-eyebrow c-eyebrow--inverse">Advisor status</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= advisor_name %></p>
+        </article>
       </div>
     </section>
 
-    <div class="student-edit-layout">
-      <section class="c-card student-edit-card">
+    <div>
+      <section class="c-card c-card--tight space-y-8">
         <header>
-          <p class="eyebrow">Required sections</p>
-          <h2>Identity & program details</h2>
+          <p class="c-eyebrow">Overview</p>
+          <h2 class="c-h2">Profile details</h2>
         </header>
 
-        <%= form_with model: @student, url: student_profile_path, method: :patch, local: true, class: "student-edit-form" do |form| %>
+        <%= form_with model: @student, url: student_profile_path, method: :patch, local: true, class: "u-stack u-stack--lg" do |form| %>
           <% if @student.errors.any? %>
-            <div class="student-edit-alert">
-              <h3>
+            <div class="c-card c-card--tight border border-rose-200 bg-rose-50 text-rose-800 shadow-none">
+              <h3 class="font-semibold text-rose-900">
                 <%= pluralize(@student.errors.count, "error") %> need your attention before saving
               </h3>
-              <ul>
+              <ul class="mt-2 list-disc pl-5">
                 <% @student.errors.full_messages.each do |message| %>
                   <li><%= message %></li>
                 <% end %>
@@ -52,54 +96,81 @@
             </div>
           <% end %>
 
-          <div class="form-grid">
-            <div class="form-field">
-              <%= form.label :name, "Full name" %>
-              <%= form.text_field :name, value: @student.user&.name,
-                  placeholder: "John Doe",
-                  required: true %>
+          <div class="space-y-8">
+            <div class="space-y-4">
+              <p class="c-h3">Personal</p>
+              <div class="u-grid" style="--u-grid-min: 260px">
+                <div class="c-kv c-kv--compact">
+                  <div class="c-field">
+                    <%= form.label :name, "Full name", class: "c-label" %>
+                    <%= form.text_field :name, value: @student.user&.name,
+                        placeholder: "John Doe",
+                        required: true,
+                        class: "c-input" %>
+                  </div>
+                </div>
+
+                <div class="c-kv c-kv--compact">
+                  <div class="c-field">
+                    <%= form.label :uin, "UIN", class: "c-label" %>
+                    <%= form.text_field :uin,
+                        placeholder: "Enter your 9-digit UIN",
+                        required: true,
+                        inputmode: "numeric",
+                        autocomplete: "off",
+                        maxlength: 9,
+                        pattern: "\\d{9}",
+                        class: "c-input" %>
+                    <small class="c-help">Your 9-digit University ID</small>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="form-field">
-              <%= form.label :uin, "UIN" %>
-              <%= form.text_field :uin,
-                  placeholder: "Enter your 9-digit UIN",
-                  required: true,
-                  inputmode: "numeric",
-                  autocomplete: "off",
-                  maxlength: 9,
-                  pattern: "\\d{9}" %>
-              <small>Your 9-digit University ID</small>
-            </div>
+            <div class="space-y-4 border-t border-slate-100 pt-6">
+              <p class="c-h3">Academic</p>
+              <div class="u-grid" style="--u-grid-min: 260px">
+                <div class="c-kv c-kv--compact">
+                  <div class="c-field">
+                    <%= form.label :major, "Major / Program", class: "c-label" %>
+                    <%= form.select :major,
+                        options_for_select(
+                          @majors.map { |m| [m.name, m.name] },
+                          @student.major.to_s
+                        ),
+                        { prompt: "Select your major" },
+                        { required: true, class: "c-input" } %>
+                  </div>
+                </div>
 
-            <div class="form-field">
-              <%= form.label :major, "Major / Program" %>
-              <%= form.text_field :major,
-                  placeholder: "Health Administration",
-                  required: true %>
-            </div>
+                <div class="c-kv c-kv--compact">
+                  <div class="c-field">
+                    <%= form.label :track, "Program track", class: "c-label" %>
+                    <%= form.select :track,
+                        options_for_select([
+                          ["Residential", "residential"],
+                          ["Executive", "executive"]
+                        ], @student.track.to_s),
+                        { prompt: "Select your track" },
+                        { required: true, class: "c-input" } %>
+                    <small class="c-help">Pick the cohort you belong to</small>
+                  </div>
+                </div>
 
-            <div class="form-field">
-              <%= form.label :track, "Program track" %>
-              <%= form.select :track,
-                  options_for_select([
-                    ["Residential", "Residential"],
-                    ["Executive", "Executive"]
-                  ], @student.track),
-                  { prompt: "Select your track" },
-                  required: true %>
-              <small>Pick the cohort you belong to</small>
-            </div>
-
-            <div class="form-field form-field--full">
-              <%= form.label :advisor_id, "Advisor" %>
-              <%= form.select :advisor_id,
-                  options_from_collection_for_select(@advisors, :advisor_id, :name, @student.advisor_id),
-                  { prompt: "Select your advisor (optional)" } %>
+                <div class="c-kv c-kv--compact" style="grid-column: 1 / -1;">
+                  <div class="c-field">
+                    <%= form.label :advisor_id, "Advisor", class: "c-label" %>
+                    <%= form.select :advisor_id,
+                        options_from_collection_for_select(@advisors, :advisor_id, :name, @student.advisor_id),
+                        { prompt: "Select your advisor (optional)" },
+                        { class: "c-input" } %>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="c-form-actions u-actions">
+          <div class="c-form-actions u-actions u-actions--split border-t border-slate-100 pt-6">
             <%= link_to student_dashboard_path, class: tailwind_button_classes(:secondary) do %>
               Cancel
             <% end %>
@@ -107,18 +178,6 @@
           </div>
         <% end %>
       </section>
-
-      <aside class="c-card student-edit-card student-edit-card--support">
-        <header>
-          <p class="eyebrow">Why we ask</p>
-          <h2>Keep info fresh</h2>
-        </header>
-        <ul class="support-list">
-          <li>We use your track to schedule the right survey cadence.</li>
-          <li>Advisor selections unlock targeted reminders.</li>
-          <li>UIN ensures records sync with TAMU systems.</li>
-        </ul>
-      </aside>
     </div>
   </div>
-</main>
+</div>

@@ -21,33 +21,33 @@
           </div>
         </header>
 
-        <div class="form-grid">
-          <div class="form-field">
-            <%= form.label :question, "Question text" %>
-            <%= form.text_area :question, rows: 4, class: "input", required: true, placeholder: "Describe the question you want to ask" %>
+        <div class="u-grid">
+          <div class="c-field">
+            <%= form.label :question, "Question text", class: "c-label" %>
+            <%= form.text_area :question, rows: 4, class: "c-input input", required: true, placeholder: "Describe the question you want to ask" %>
           </div>
 
-          <div class="form-field">
-            <%= form.label :description, "Question description (optional)" %>
-            <%= form.text_area :description, rows: 3, class: "input", placeholder: "Provide context or competency definition students should always see." %>
-            <p class="field-hint">Displayed directly beneath the question prompt to give everyone constant context.</p>
+          <div class="c-field">
+            <%= form.label :description, "Question description (optional)", class: "c-label" %>
+            <%= form.text_area :description, rows: 3, class: "c-input input", placeholder: "Provide context or competency definition students should always see." %>
+            <p class="c-help field-hint">Displayed directly beneath the question prompt to give everyone constant context.</p>
           </div>
 
-          <div class="form-field">
-            <%= form.label :tooltip_text, "Tooltip text (optional)" %>
-            <%= form.text_area :tooltip_text, rows: 3, class: "input", placeholder: "Short guidance that appears in the tooltip icon." %>
-            <p class="field-hint">Use for hover/click tooltips. Ideal for scales or advisor-only nudges you do not want inline.</p>
+          <div class="c-field">
+            <%= form.label :tooltip_text, "Tooltip text (optional)", class: "c-label" %>
+            <%= form.text_area :tooltip_text, rows: 3, class: "c-input input", placeholder: "Short guidance that appears in the tooltip icon." %>
+            <p class="c-help field-hint">Use for hover/click tooltips. Ideal for scales or advisor-only nudges you do not want inline.</p>
           </div>
 
-          <div class="form-field">
-            <%= form.label :question_type, "Question type" %>
-            <%= form.select :question_type, Question.question_types.keys.map { |type| [type.humanize, type] }, {}, class: "input", required: true %>
+          <div class="c-field">
+            <%= form.label :question_type, "Question type", class: "c-label" %>
+            <%= form.select :question_type, Question.question_types.keys.map { |type| [type.humanize, type] }, {}, class: "c-input input", required: true %>
           </div>
 
-          <div class="form-field">
-            <%= form.label :question_order, "Display order" %>
-            <%= form.number_field :question_order, class: "input", min: 1, required: true %>
-            <p class="field-hint">Controls where this question appears relative to other prompts.</p>
+          <div class="c-field">
+            <%= form.label :question_order, "Display order", class: "c-label" %>
+            <%= form.number_field :question_order, class: "c-input input", min: 1, required: true %>
+            <p class="c-help field-hint">Controls where this question appears relative to other prompts.</p>
           </div>
         </div>
       </section>
@@ -64,14 +64,14 @@
         <div class="form-columns">
           <div class="form-column">
             <label class="section-subheading" for="question_category_ids">Categories</label>
-            <p class="field-hint">Tagged categories help advisors filter and find related prompts.</p>
-            <%= form.collection_select :category_ids, @categories, :id, :name, { include_hidden: false }, { multiple: true, size: 8, class: "multi-select" } %>
+            <p class="c-help field-hint">Tagged categories help advisors filter and find related prompts.</p>
+            <%= form.collection_select :category_ids, @categories, :id, :name, { include_hidden: false }, { multiple: true, size: 8, class: "c-input multi-select" } %>
           </div>
 
           <div class="form-column">
-            <%= form.label :answer_options, "Answer options" %>
-            <%= form.text_area :answer_options, rows: 6, class: "input", placeholder: "Provide comma separated options or JSON array (used for multiple choice)." %>
-            <p class="field-hint">Leave blank for free-form answers. Example: [\"Strongly Agree\", \"Agree\", \"Neutral\", \"Disagree\", \"Strongly Disagree\"].</p>
+            <%= form.label :answer_options, "Answer options", class: "c-label" %>
+            <%= form.text_area :answer_options, rows: 6, class: "c-input input", placeholder: "Provide comma separated options or JSON array (used for multiple choice)." %>
+            <p class="c-help field-hint">Leave blank for free-form answers. Example: [\"Strongly Agree\", \"Agree\", \"Neutral\", \"Disagree\", \"Strongly Disagree\"].</p>
           </div>
         </div>
       </section>

@@ -668,13 +668,8 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "submit preserves existing assigned_at" do
     sign_in @student_user
     old_time = 2.days.ago
-    assignment = SurveyAssignment.find_or_create_by!(
-      survey_id: @survey.id,
-      student_id: @student.student_id
-    ) do |a|
-      a.advisor_id = @student.advisor_id
-      a.assigned_at = old_time
-    end
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: @survey.id, student_id: @student.student_id)
+    assignment.update!(advisor_id: @student.advisor_id, assigned_at: old_time)
 
     # Provide answers for required questions
     answers = {}

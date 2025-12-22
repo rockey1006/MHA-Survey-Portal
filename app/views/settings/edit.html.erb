@@ -18,9 +18,9 @@
                  root_path
                end %>
 
-<main class="settings-page px-4 py-12">
-  <div class="settings-container mx-auto max-w-6xl space-y-10">
-    <section class="settings-hero">
+<main class="bg-slate-50 px-4 py-12">
+  <div class="mx-auto max-w-6xl space-y-10">
+    <section class="c-card c-card--spacious settings-hero">
       <div>
         <p class="settings-hero__eyebrow">Experience controls</p>
         <h1 class="settings-hero__title">Personalize your workspace</h1>
@@ -44,16 +44,16 @@
     </section>
 
     <div class="settings-grid">
-      <section class="settings-card">
+      <section class="c-card c-card--spacious settings-card">
         <header>
           <p class="eyebrow">Account-wide</p>
           <h2>Accessibility preferences</h2>
           <p>These settings change typography scales and translation helpers across reports, dashboards, and emails.</p>
         </header>
 
-        <%= form_with model: @user, url: settings_path, method: :patch, local: true, id: "settings-form", class: "settings-form" do |f| %>
+        <%= form_with model: @user, url: settings_path, method: :patch, local: true, id: "settings-form", class: "u-stack u-stack--xl" do |f| %>
           <% if @user.errors.any? %>
-            <div class="settings-alert">
+            <div class="c-card c-card--tight settings-alert">
               <h3><%= pluralize(@user.errors.count, "error") %> need attention</h3>
               <ul>
                 <% @user.errors.full_messages.each do |msg| %>
@@ -63,23 +63,23 @@
             </div>
           <% end %>
 
-          <div class="form-grid">
-            <div class="form-field">
-              <label>Language</label>
-              <div class="language-pill">
+          <div class="u-grid" style="--u-grid-min: 240px">
+            <div class="c-field">
+              <label class="c-label">Language</label>
+              <div class="c-card c-card--tight language-pill">
                 <span id="language-pill-label"><%= current_language_label %></span>
                 <span class="pill-hint">Managed automatically via translation bar</span>
               </div>
               <%= f.hidden_field :language, value: lang_code, id: 'settings_language_input' %>
             </div>
 
-            <div class="form-field">
-              <label>Text size</label>
+            <div class="c-field">
+              <label class="c-label">Text size</label>
               <%= f.select :text_scale_percent,
                     options_for_select([["100% (default)", 100], ["125%", 125], ["150%", 150], ["175%", 175], ["200%", 200]], text_scale),
                     {},
-                    class: "settings-select" %>
-              <small>Increase up to 200% for larger copy. We scale line-height and key controls automatically.</small>
+                    class: "c-input settings-select" %>
+              <small class="c-help">Increase up to 200% for larger copy. We scale line-height and key controls automatically.</small>
             </div>
           </div>
 
@@ -90,16 +90,16 @@
         <% end %>
       </section>
 
-      <aside class="settings-card settings-card--support">
+      <aside class="c-card c-card--spacious settings-card settings-card--support">
         <header>
           <p class="eyebrow">Helpful context</p>
           <h2>Why these settings live here</h2>
         </header>
-        <ul class="support-list">
+        <ul class="u-stack u-stack--md list-none">
           <li>Language preference follows your Google Translate selection so dashboards are instantly readable.</li>
           <li>Text scale applies to reports, surveys, and exports — no extra zooming required.</li>
         </ul>
-        <p class="support-tip">Future releases will add notification controls based on these preferences.</p>
+        <p class="mt-8 text-sm text-white/80">Future releases will add notification controls based on these preferences.</p>
       </aside>
     </div>
   </div>

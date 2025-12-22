@@ -36,8 +36,8 @@
       <!-- Member Management Form -->
       <%= form_with url: update_roles_path, method: :patch, local: true, id: "role-management-form", data: { turbo: false }, remote: false do |form| %>
         <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-        <div class="users-table-container">
-          <table class="users-table">
+        <div class="c-card c-card--flush c-table-wrapper">
+          <table class="c-table">
             <thead>
               <tr>
                 <th class="table-header-avatar">Avatar</th>
@@ -113,7 +113,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="mt-6 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+        <div class="c-card c-card--tight mt-6 flex flex-col gap-4">
           <div class="text-sm text-slate-600" id="changes-summary" style="display: none;">
             <span class="changes-count font-semibold">0 changes pending</span>
           </div>

@@ -42,8 +42,8 @@
                 <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
                 <% track_select_options = [["Select track", ""]] + @track_select_options %>
 
-                <div class="users-table-container" style="overflow-x: auto;">
-                    <table class="users-table">
+                <div class="c-card c-card--flush c-table-wrapper">
+                    <table class="c-table">
                         <thead>
                             <tr>
                                 <th class="table-header-avatar">Avatar</th>
@@ -132,7 +132,7 @@
                     </table>
                 </div>
 
-                <div class="mt-6 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                <div class="c-card c-card--tight mt-6 flex flex-col gap-4">
                     <div class="text-sm text-slate-600" id="student-changes-summary" style="display: none;">
                         <span class="changes-count font-semibold">0 changes pending</span>
                     </div>
@@ -144,8 +144,8 @@
                 </div>
             <% end %>
         <% else %>
-            <div class="users-table-container" style="overflow-x: auto;">
-                <table class="users-table">
+            <div class="c-card c-card--flush c-table-wrapper">
+                <table class="c-table">
                     <thead>
                         <tr>
                             <th class="table-header-avatar">Avatar</th>

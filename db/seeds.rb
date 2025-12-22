@@ -9,7 +9,6 @@ require "stringio"
 _seed_original_stdout = $stdout
 _seed_silence_stdout = Rails.env.test? || ENV["QUIET_SEEDS"].present?
 $stdout = StringIO.new if _seed_silence_stdout
-
 begin
 
 puts "\n== Seeding =="
@@ -29,6 +28,11 @@ rescue StandardError => e
 end
 
 ensure_schema_loaded!
+
+# Majors
+if ActiveRecord::Base.connection.data_source_exists?("majors")
+  Major.find_or_create_by!(name: "Health Administration")
+end
 
 previous_queue_adapter = ActiveJob::Base.queue_adapter
 seed_async_adapter = nil

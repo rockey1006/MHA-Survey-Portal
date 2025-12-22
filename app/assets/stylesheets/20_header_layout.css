@@ -370,13 +370,18 @@
 }
 
 .layout-shell {
-  max-width: none;
+  max-width: var(--container-max-width);
   width: 100%;
   margin-left: auto;
   margin-right: auto;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: var(--spacing-2xl);
+}
+
+.layout-shell > * {
+  width: 100%;
 }
 
 /* Shared responsive layout (kept in header/layout stylesheet to avoid duplicates) */

@@ -8,7 +8,7 @@
 <% end %>
 <% category_uid = category.persisted? ? "category-#{category.id}" : "category-temp-#{category.object_id}" %>
 <article id="<%= category_uid %>"
-         class="survey-category-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6"
+         class="c-card survey-category-card space-y-6"
          data-builder-kind="category"
          data-builder-label="<%= category.name.to_s.strip.presence || 'Untitled category' %>"
          data-category-fields-target="item">

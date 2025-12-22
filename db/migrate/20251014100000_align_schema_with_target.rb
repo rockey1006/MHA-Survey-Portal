@@ -73,6 +73,14 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     add_foreign_key :students, :users, column: :student_id, on_delete: :cascade
     add_foreign_key :students, :advisors, column: :advisor_id, primary_key: :advisor_id, on_delete: :nullify
 
+  # Entity table: majors (available options for student major/program).
+  create_table :majors do |t|
+      t.string :name, null: false
+      t.timestamps
+
+      t.index :name, unique: true
+    end
+
   # Entity table: in-app notification records per user.
   create_table :notifications do |t|
       t.references :user, null: false, foreign_key: { to_table: :users, on_delete: :cascade }

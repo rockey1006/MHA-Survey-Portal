@@ -13,19 +13,10 @@
 
 .survey-show .survey-header {
   border-top: 4px solid var(--tamu-maroon);
-  padding: var(--spacing-2xl);
 }
 
 .survey-show .survey-section-title {
   color: var(--tamu-maroon);
-}
-
-.survey-show .survey-section-card {
-  padding: var(--spacing-2xl);
-}
-
-.survey-show .survey-category-card {
-  padding: var(--spacing-2xl);
 }
 
 .survey-show .question-block {

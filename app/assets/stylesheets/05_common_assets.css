@@ -63,6 +63,180 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* === Typography ========================================================== */
+
+.c-eyebrow {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+}
+
+.c-eyebrow--inverse {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.c-h1,
+.c-h2,
+.c-h3 {
+  margin: 0;
+  color: var(--gray-900);
+  line-height: var(--line-height-tight);
+}
+
+.c-h1 {
+  font-size: var(--font-size-6xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.c-h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.c-h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.c-h1--inverse,
+.c-h2--inverse,
+.c-h3--inverse {
+  color: var(--white);
+}
+
+.c-lede {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--gray-600);
+}
+
+.c-lede--inverse {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.c-value {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+}
+
+.c-value--lg { font-size: var(--font-size-lg); }
+.c-value--xl { font-size: var(--font-size-xl); }
+
+.c-value--inverse {
+  color: var(--white);
+}
+
+/* Small key/value container (label + value blocks)
+ * Use for dense info grids: <div class="c-kv"><dt ...><dd ...></div>
+ */
+.c-kv {
+  border: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.c-kv--compact {
+  padding: var(--spacing-md);
+}
+
+.c-kv--inverse {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Pills / chips (token-driven)
+ * For inline metadata like Track / Updated / etc.
+ */
+.c-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--gray-200);
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.c-pill--inverse {
+  border-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+}
+
+.c-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex: none;
+  background-color: var(--gray-400);
+}
+
+.c-pill__dot--brand {
+  background-color: var(--primary-color);
+}
+
+.c-pill__dot--inverse {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Dots / markers (token-driven)
+ * Use for timelines, status indicators, etc.
+ */
+.c-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.c-dot--brand {
+  background-color: var(--primary-color);
+  box-shadow: 0 0 0 4px var(--primary-hover);
+}
+
+.c-dot--muted {
+  background-color: var(--gray-200);
+}
+
+/* Avatar tile (for initials badges) */
+.c-avatar-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-lg);
+  border: 2px solid var(--gray-200);
+  background-color: var(--gray-50);
+  color: var(--gray-900);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.c-avatar-tile--inverse {
+  border-color: rgba(255, 255, 255, 0.55);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+}
+
+.c-avatar-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
 /* === Surfaces (cards/panels) ============================================ */
 
 .c-surface {
@@ -84,6 +258,12 @@
 .c-card--flush { padding: 0; }
 .c-card--muted { background-color: var(--gray-50); }
 .c-card--dashed { border-style: dashed; }
+
+.c-card--inverse {
+  background: linear-gradient(165deg, #0f172a, #1e293b);
+  color: var(--white);
+  border: none;
+}
 
 .c-card--interactive {
   cursor: pointer;
@@ -167,6 +347,12 @@
   }
 }
 
+@media (max-width: 640px) {
+  .c-h1 {
+    font-size: var(--font-size-5xl);
+  }
+}
+
 /* === Tables ============================================================= */
 
 .c-table-wrapper { width: 100%; overflow-x: auto; }
@@ -211,6 +397,72 @@
 .u-actions--split { justify-content: space-between; }
 
 .u-text-primary { color: var(--primary-color); }
+
+/* Responsive grid utility
+ * Default min column width: 220px
+ * Override per-instance with inline style: style="--u-grid-min: 240px"
+ */
+.u-grid {
+  display: grid;
+  gap: var(--spacing-2xl);
+  grid-template-columns: repeat(auto-fit, minmax(var(--u-grid-min, 220px), 1fr));
+}
+
+/* === Heroes ============================================================== */
+
+.c-hero {
+  border-radius: 32px;
+  color: var(--white);
+  padding: var(--spacing-4xl);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.c-hero--compact {
+  padding: var(--spacing-3xl);
+}
+
+.c-hero--maroon {
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.15), transparent 45%),
+    linear-gradient(135deg, #350306, #6f0e19 45%, #9b1c2a);
+  box-shadow: 0 20px 60px rgba(53, 3, 6, 0.3);
+}
+
+@media (max-width: 640px) {
+  .c-hero {
+    padding: var(--spacing-3xl);
+  }
+}
+
+/* === Timelines =========================================================== */
+
+.c-timeline {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.c-timeline__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+}
+
+.c-timeline__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.c-timeline__title {
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+}
+
+.c-timeline__meta {
+  color: var(--gray-600);
+  line-height: var(--line-height-relaxed);
+}
 
 /* === High contrast support ===============================================
  * Most colors flow through variables which are already strengthened in

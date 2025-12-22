@@ -137,6 +137,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
 
+  create_table "majors", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_majors_on_name", unique: true
+  end
+
   create_table "survey_assignments", force: :cascade do |t|
     t.bigint "survey_id", null: false
     t.bigint "student_id", null: false

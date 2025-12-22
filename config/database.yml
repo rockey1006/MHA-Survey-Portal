@@ -16,13 +16,17 @@ test:
   database: <%= ENV['TEST_DATABASE'] || "health_test" %>
 
 production:
-  <<: *default
-  url: <%= ENV['DATABASE_URL'] %>
+  url: <%= ENV.fetch('DATABASE_URL') %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
 
 # Optional named databases used by some features (cache, queue, cable)
 cache:
+  <% if Rails.env.production? && ENV['DATABASE_URL'].present? %>
+  url: <%= ENV['DATABASE_URL'] %>
+  <% else %>
   <<: *default
   database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
+  <% end %>
 
 queue:
   <% if Rails.env.production? && ENV['DATABASE_URL'].present? %>
@@ -33,5 +37,9 @@ queue:
   <% end %>
 
 cable:
+  <% if Rails.env.production? && ENV['DATABASE_URL'].present? %>
+  url: <%= ENV['DATABASE_URL'] %>
+  <% else %>
   <<: *default
   database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
+  <% end %>

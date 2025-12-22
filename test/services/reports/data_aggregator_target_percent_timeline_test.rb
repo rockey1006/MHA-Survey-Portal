@@ -9,10 +9,6 @@ module Reports
       @admin = users(:admin)
       @student = students(:student)
       @other_student = students(:other_student)
-
-      SurveyAssignment.delete_all
-      StudentQuestion.delete_all
-      Feedback.delete_all
     end
 
     test "benchmark timeline includes target percent fields" do

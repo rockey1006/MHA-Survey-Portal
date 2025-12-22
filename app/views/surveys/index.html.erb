@@ -18,7 +18,7 @@
   </section>
 
   <% if @student&.track.blank? %>
-    <section class="empty-state-card">
+    <section class="c-card c-card--spacious u-stack empty-state-card">
       <h2>Finish setting up your profile</h2>
       <p>We need to know your track before we can display the correct surveys. Head over to your profile and select Residential or Executive.</p>
       <%= link_to "Complete Profile", edit_student_profile_path, class: tailwind_button_classes(:primary) %>
@@ -47,7 +47,7 @@
           else
             "No due date"
           end %>
-        <article class="survey-card" role="listitem">
+        <article class="c-card c-card--interactive survey-card" role="listitem">
           <header class="survey-card__header">
             <div>
               <p class="survey-card__semester"><%= survey.semester.presence || "Semester TBD" %></p>
@@ -83,7 +83,7 @@
       <% end %>
     </div>
   <% else %>
-    <section class="empty-state-card">
+    <section class="c-card c-card--spacious u-stack empty-state-card">
       <h2>No surveys assigned (yet)</h2>
       <p>Your advisor hasn't published surveys for the <%= @student.track %> track. We'll notify you as soon as one arrives.</p>
       <%= link_to "Back to dashboard", student_dashboard_path, class: tailwind_button_classes(:secondary) %>

@@ -53,7 +53,7 @@
     </div>
   </section>
 
-  <section id="semester-manager" class="w-full card stack">
+  <section id="semester-manager" class="w-full c-card u-stack">
     <header class="toolbar">
       <div>
         <h2 class="text-xl font-semibold text-slate-900">Program semesters</h2>
@@ -70,7 +70,7 @@
     </header>
 
     <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-      <div class="stack stack--md">
+      <div class="u-stack u-stack--md">
         <% if @program_semesters.blank? %>
           <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
             No semesters yet. Use the form to create your first entry.
@@ -104,7 +104,7 @@
         <% end %>
       </div>
 
-      <div class="card card--tight card--muted">
+      <div class="c-card c-card--tight c-card--muted">
         <h3 class="text-base font-semibold text-slate-900">Add semester</h3>
         <p class="mb-4 text-sm text-slate-600">Name semesters consistently (e.g., "Fall 2025").</p>
         <%= form_with model: [:admin, @new_program_semester], url: admin_program_semesters_path, local: true, class: "space-y-4" do |form| %>
@@ -136,7 +136,7 @@
       <% end %>
     </header>
 
-    <div class="w-full card card--flush">
+    <div class="w-full c-card c-card--flush">
       <div class="border-b border-slate-200 p-5">
         <%= form_with url: admin_surveys_path, method: :get, local: true, class: "flex w-full flex-wrap items-center gap-3 md:flex-nowrap" do %>
           <%= hidden_field_tag :sort, @sort_column %>
@@ -181,8 +181,8 @@
       <% if @active_surveys.blank? %>
         <div class="p-6 text-center text-sm text-slate-500">No surveys match the current search or filter criteria.</div>
       <% else %>
-        <div class="table-wrapper">
-          <table class="table min-w-full w-full divide-y divide-slate-200 text-sm">
+        <div class="c-table-wrapper">
+          <table class="c-table min-w-full w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Title", "title") %></th>
@@ -250,9 +250,9 @@
     <% if @archived_surveys.blank? %>
       <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">No archived surveys yet.</div>
     <% else %>
-      <div class="w-full card card--flush">
-        <div class="table-wrapper">
-          <table class="table min-w-full w-full divide-y divide-slate-200 text-sm">
+      <div class="w-full c-card c-card--flush">
+        <div class="c-table-wrapper">
+          <table class="c-table min-w-full w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Title</th>

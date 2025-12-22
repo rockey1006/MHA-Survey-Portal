@@ -1,0 +1,231 @@
+/*
+ * Common, reusable “design system” building blocks.
+ *
+ * Goal: give you a stable set of classes you can migrate pages onto gradually,
+ * while continuing to rely on the existing token variables in 00_tokens_utilities.css
+ * and the high-contrast overrides in 60_components_accessibility.css.
+ *
+ * Naming:
+ * - c-*  component classes (semantic building blocks)
+ * - u-*  small utilities (layout/spacing helpers)
+ */
+
+/* === Page layout ========================================================= */
+
+.c-container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.c-container--dashboard {
+  max-width: var(--dashboard-container-max-width);
+}
+
+.c-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+.c-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.c-page-title {
+  margin: 0;
+  color: var(--gray-800);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.c-page-title--brand {
+  color: var(--primary-color);
+}
+
+.c-page-subtitle {
+  margin: var(--spacing-sm) 0 0;
+  color: var(--gray-600);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.c-section-title {
+  margin: 0;
+  color: var(--gray-800);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* === Surfaces (cards/panels) ============================================ */
+
+.c-surface {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+}
+
+.c-card {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-card--tight { padding: var(--spacing-xl); }
+.c-card--spacious { padding: var(--spacing-4xl); }
+.c-card--flush { padding: 0; }
+.c-card--muted { background-color: var(--gray-50); }
+.c-card--dashed { border-style: dashed; }
+
+.c-card--interactive {
+  cursor: pointer;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.c-card--interactive:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+}
+
+/* === Buttons / links =====================================================
+ *
+ * NOTE: Core .btn styles and variants already live in 60_components_accessibility.css.
+ * For now, use those directly in markup:
+ *   class="btn btn-primary" | "btn btn-secondary" | "btn btn-danger" | "btn btn-ghost" | "btn btn-subtle"
+ */
+
+/* === Forms =============================================================== */
+
+.c-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.c-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-700);
+}
+
+.c-help {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.c-error {
+  font-size: var(--font-size-xs);
+  color: var(--error-color);
+}
+
+.c-input {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  background-color: var(--white);
+  color: var(--gray-800);
+}
+
+.c-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-hover);
+}
+
+.c-input[aria-invalid="true"],
+.c-input.is-invalid {
+  border-color: var(--error-color);
+}
+
+.c-input[aria-invalid="true"]:focus,
+.c-input.is-invalid:focus {
+  box-shadow: 0 0 0 3px var(--error-light);
+}
+
+/* Form action rows
+ * Use with: class="c-form-actions u-actions"
+ * (u-actions supplies the base flex layout.)
+ */
+
+@media (max-width: 600px) {
+  .c-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+/* === Tables ============================================================= */
+
+.c-table-wrapper { width: 100%; overflow-x: auto; }
+
+.c-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--white);
+}
+
+.c-table th,
+.c-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  vertical-align: top;
+}
+
+.c-table thead th {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray-700);
+  background-color: var(--gray-100);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-table tbody tr:hover td {
+  background-color: var(--gray-50);
+}
+
+/* === Utilities =========================================================== */
+
+.u-stack { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.u-stack--sm { gap: var(--spacing-sm); }
+.u-stack--md { gap: var(--spacing-md); }
+.u-stack--lg { gap: var(--spacing-xl); }
+.u-stack--xl { gap: var(--spacing-2xl); }
+
+.u-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-md); align-items: center; justify-content: flex-end; }
+.u-actions--start { justify-content: flex-start; }
+.u-actions--split { justify-content: space-between; }
+
+.u-text-primary { color: var(--primary-color); }
+
+/* === High contrast support ===============================================
+ * Most colors flow through variables which are already strengthened in
+ * body.high-contrast (see 60_components_accessibility.css).
+ */
+
+body.high-contrast .c-surface,
+body.high-contrast .c-card,
+body.high-contrast .c-input,
+body.high-contrast .c-table {
+  border-color: #000000;
+}
+
+body.high-contrast .c-page-title,
+body.high-contrast .c-section-title,
+body.high-contrast .c-label {
+  color: #000000;
+}

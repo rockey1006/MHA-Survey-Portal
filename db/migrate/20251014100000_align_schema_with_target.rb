@@ -139,8 +139,6 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.string :description
       t.integer :position, null: false, default: 0
       t.timestamps
-
-      t.index :survey_section_id, name: "index_categories_on_survey_section_id"
       t.index %i[survey_id position], name: "index_categories_on_survey_id_and_position"
     end
 

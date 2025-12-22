@@ -1,13 +1,6 @@
 ﻿/* Dashboard-specific component styles */
 
 /* Dashboard Cards */
-.dashboard-section,
-.dashboard-card {
-  background-color: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--border-radius-lg);
-}
-
 .dashboard-card {
   transition: all var(--transition-normal);
   height: fit-content;
@@ -1198,11 +1191,6 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.survey-filter-form {
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-sm);
-}
-
 .survey-content {
   display: flex;
   flex-direction: column;
@@ -1286,16 +1274,8 @@
   justify-content: flex-end;
 }
 
-.survey-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
 .survey-table {
-  width: 100%;
   min-width: 960px;
-  border-collapse: separate;
-  border-spacing: 0;
   overflow: hidden;
 }
 
@@ -1640,15 +1620,7 @@
 }
 
 .empty-state-card {
-  background-color: var(--white);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--gray-200);
-  padding: var(--spacing-4xl);
-  text-align: left;
   box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
 }
 
 .empty-state-card h2 {
@@ -1875,7 +1847,6 @@
 @media (max-width: 768px) {
   .form-card,
   .summary-card,
-  .survey-filter-form,
   .bulk-actions,
   .survey-list-card {
     padding: var(--spacing-xl);
@@ -2011,8 +1982,6 @@ body.high-contrast .btn.btn-subtle:hover:not(:disabled) {
 }
 
 /* Cards and panels: increase contrast for borders/text */
-body.high-contrast .dashboard-card,
-body.high-contrast .dashboard-section,
 body.high-contrast .form-card,
 body.high-contrast .summary-card,
 body.high-contrast .survey-list-card,
@@ -2429,11 +2398,8 @@ body.high-contrast .advisor-survey-track-chip {
 }
 
 .student-card {
-  background-color: var(--white);
   border-radius: 28px;
-  border: 1px solid var(--gray-200);
   padding: var(--spacing-3xl);
-  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2xl);
@@ -2623,10 +2589,7 @@ body.high-contrast .advisor-survey-track-chip {
 }
 
 .student-edit-card {
-  background-color: var(--white);
   border-radius: 28px;
-  border: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
   padding: var(--spacing-4xl);
   display: flex;
   flex-direction: column;
@@ -2741,11 +2704,6 @@ body.high-contrast .advisor-survey-track-chip {
   color: var(--gray-500);
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-}
 
 @media (max-width: 900px) {
   .student-edit-layout {
@@ -2763,10 +2721,7 @@ body.high-contrast .advisor-survey-track-chip {
     align-items: flex-start;
   }
 
-  .form-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
+  /* .form-actions migrated to 05_common_assets.css (.c-form-actions + .u-actions) */
 }
 
 /* --------------------------------------------------------
@@ -2988,11 +2943,6 @@ body.high-contrast .advisor-survey-track-chip {
   line-height: 1.5;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-}
 
 @media (max-width: 900px) {
   .settings-grid {
@@ -3005,10 +2955,7 @@ body.high-contrast .advisor-survey-track-chip {
     padding: var(--spacing-3xl);
   }
 
-  .form-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
+  /* .form-actions migrated to 05_common_assets.css (.c-form-actions + .u-actions) */
 }
 
 /* --------------------------------------------------------

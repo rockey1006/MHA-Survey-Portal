@@ -7,7 +7,7 @@
     <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
   </header>
 
-  <section class="card stack">
+  <section class="c-card u-stack">
     <header class="toolbar">
       <h2 class="text-lg font-semibold text-slate-900">Recent activity</h2>
       <%= form_with url: admin_survey_change_logs_path, method: :get, local: true, class: "toolbar__group" do %>
@@ -17,7 +17,7 @@
                          options_for_select([["All actions", ""]] + @available_actions.map { |action| [action.titleize, action] }, @action_filter),
                          class: "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
         </div>
-        <div class="actions-row">
+        <div class="u-actions">
           <%= submit_tag "Apply", class: tailwind_button_classes(:primary) %>
           <% if @action_filter.present? %>
             <%= link_to "Reset", admin_survey_change_logs_path, class: tailwind_button_classes(:subtle) %>

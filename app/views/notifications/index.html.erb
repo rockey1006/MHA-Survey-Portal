@@ -2,7 +2,7 @@
 
 <div class="flex min-h-[calc(100vh-8rem)] w-full justify-center bg-slate-50 px-4 py-14 sm:py-20">
   <div class="w-full max-w-4xl space-y-12">
-    <header class="card card--spacious card--muted">
+    <header class="c-card c-card--spacious c-card--muted">
       <div class="flex flex-col gap-10 md:flex-row md:items-center md:justify-between">
         <div class="space-y-3">
           <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Inbox</p>
@@ -12,11 +12,11 @@
           </p>
         </div>
         <div class="grid w-full max-w-sm grid-cols-2 gap-5 text-center text-sm font-medium">
-          <div class="card card--tight card--muted">
+          <div class="c-card c-card--tight c-card--muted">
             <p class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-600">Unread</p>
             <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @unread_notification_count %></p>
           </div>
-          <div class="card card--tight">
+          <div class="c-card c-card--tight">
             <p class="text-[0.7rem] uppercase tracking-[0.2em] text-slate-600">Total</p>
             <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @total_notifications %></p>
           </div>
@@ -34,7 +34,7 @@
     </header>
 
     <% if @notifications.blank? %>
-    <div class="card card--spacious card--dashed empty-state">
+    <div class="c-card c-card--spacious c-card--dashed empty-state">
       <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
         <svg aria-hidden="true" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 004 0v-1m-4 0h4" />
@@ -47,7 +47,7 @@
   <div class="space-y-8">
         <% @notifications.each do |notification| %>
         <% unread = !notification.read? %>
-        <article class="relative overflow-hidden card notification-card <%= 'notification-card--unread' if unread %>">
+        <article class="relative overflow-hidden c-card notification-card <%= 'notification-card--unread' if unread %>">
           <%= link_to notification_path(notification), class: "block h-full p-7 sm:p-8" do %>
             <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-6">
               <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full notification-icon">

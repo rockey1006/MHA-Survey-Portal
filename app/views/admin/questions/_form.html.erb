@@ -12,7 +12,7 @@
 
   <div class="survey-form-layout">
     <div class="survey-form-main">
-      <section class="form-card">
+      <section class="c-card form-card">
         <header class="form-card-header">
           <span class="step-pill">Question Details</span>
           <div>
@@ -52,7 +52,7 @@
         </div>
       </section>
 
-      <section class="form-card">
+      <section class="c-card form-card">
         <header class="form-card-header">
           <span class="step-pill">Configuration</span>
           <div>
@@ -76,7 +76,7 @@
         </div>
       </section>
 
-      <div class="form-actions">
+      <div class="c-form-actions u-actions">
         <%= form.submit(question.persisted? ? "Update Question" : "Create Question", class: tailwind_button_classes(:primary)) %>
         <%= link_to "Cancel", admin_questions_path, class: tailwind_button_classes(:secondary) %>
       </div>

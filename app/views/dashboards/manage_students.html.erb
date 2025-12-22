@@ -1,13 +1,13 @@
 <!-- Student Advisor Management view -->
 <main class="main-content" style="display: flex; justify-content: center;">
-    <section class="dashboard-section" style="max-width: 1200px; width: 100%;">
+    <section class="c-card dashboard-section" style="max-width: 1200px; width: 100%;">
         <div class="section-header">
             <h1 class="section-title">🎓 Student Advisor Management</h1>
             <p class="section-subtitle">Review advisees and assign advisors across the program.</p>
         </div>
 
         <div class="role-summary-grid">
-            <div class="role-summary-card">
+            <div class="c-card role-summary-card">
                 <div class="role-summary-icon student">👥</div>
                 <div class="role-summary-info">
                     <div class="role-summary-count"><%= @assignment_stats[:total] %></div>
@@ -15,7 +15,7 @@
                 </div>
             </div>
 
-            <div class="role-summary-card">
+            <div class="c-card role-summary-card">
                 <div class="role-summary-icon advisor">✅</div>
                 <div class="role-summary-info">
                     <div class="role-summary-count"><%= @assignment_stats[:assigned] %></div>
@@ -23,7 +23,7 @@
                 </div>
             </div>
 
-            <div class="role-summary-card">
+            <div class="c-card role-summary-card">
                 <div class="role-summary-icon admin">📋</div>
                 <div class="role-summary-info">
                     <div class="role-summary-count"><%= @assignment_stats[:unassigned] %></div>

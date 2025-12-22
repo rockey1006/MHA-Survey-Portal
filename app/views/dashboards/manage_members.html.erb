@@ -1,6 +1,6 @@
 <!-- Member Management content - layout provides html/head/body and navbar -->
 <main class="main-content main-content--dashboard">
-    <section class="dashboard-section">
+    <section class="c-card dashboard-section">
       <div class="section-header">
         <h1 class="section-title">👥 Member Management</h1>
         <p class="section-subtitle">Manage member roles and permissions for the MHA Program</p>
@@ -8,7 +8,7 @@
 
       <!-- Role Summary Cards -->
       <div class="role-summary-grid">
-        <div class="role-summary-card">
+        <div class="c-card role-summary-card">
           <div class="role-summary-icon student">👨‍🎓</div>
           <div class="role-summary-info">
             <div class="role-summary-count"><%= @role_counts[:student] %></div>
@@ -16,7 +16,7 @@
           </div>
         </div>
         
-        <div class="role-summary-card">
+        <div class="c-card role-summary-card">
           <div class="role-summary-icon advisor">👨‍🏫</div>
           <div class="role-summary-info">
             <div class="role-summary-count"><%= @role_counts[:advisor] %></div>
@@ -24,7 +24,7 @@
           </div>
         </div>
         
-        <div class="role-summary-card">
+        <div class="c-card role-summary-card">
           <div class="role-summary-icon admin">👨‍💼</div>
           <div class="role-summary-info">
             <div class="role-summary-count"><%= @role_counts[:admin] %></div>

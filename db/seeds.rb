@@ -44,7 +44,11 @@ unless Rails.env.test?
   end
 end
 
-Rails.cache.clear
+begin
+  Rails.cache.clear
+rescue ActiveRecord::StatementInvalid => e
+  warn "• Skipping cache clear (cache schema not loaded yet): #{e.message}"
+end
 
 seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   role_value = User.normalize_role(role) || role.to_s

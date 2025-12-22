@@ -8,43 +8,60 @@ default: &default
   port: <%= ENV['PGPORT'] || ENV['DATABASE_PORT'] || 5432 %>
 
 development:
-  <<: *default
-  database: <%= ENV['DATABASE'] || "health_development" %>
+  primary:
+    <<: *default
+    database: <%= ENV['DATABASE'] || "health_development" %>
+  cache:
+    <<: *default
+    database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
+  queue:
+    <<: *default
+    database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
+  cable:
+    <<: *default
+    database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
 
 test:
-  <<: *default
-  database: <%= ENV['TEST_DATABASE'] || "health_test" %>
+  primary:
+    <<: *default
+    database: <%= ENV['TEST_DATABASE'] || "health_test" %>
+  cache:
+    <<: *default
+    database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
+  queue:
+    <<: *default
+    database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
+  cable:
+    <<: *default
+    database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
 
 production:
-  <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
-  url: <%= ENV['DATABASE_URL'] %>
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
-  <% else %>
-  <<: *default
-  database: <%= ENV['DATABASE'] || "health_production" %>
-  <% end %>
-
-# Optional named databases used by some features (cache, queue, cable)
-cache:
-  <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
-  url: <%= ENV['DATABASE_URL'] %>
-  <% else %>
-  <<: *default
-  database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
-  <% end %>
-
-queue:
-  <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
-  url: <%= ENV['DATABASE_URL'] %>
-  <% else %>
-  <<: *default
-  database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
-  <% end %>
-
-cable:
-  <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
-  url: <%= ENV['DATABASE_URL'] %>
-  <% else %>
-  <<: *default
-  database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
-  <% end %>
+  primary:
+    <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
+    url: <%= ENV['DATABASE_URL'] %>
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
+    <% else %>
+    <<: *default
+    database: <%= ENV['DATABASE'] || "health_production" %>
+    <% end %>
+  cache:
+    <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
+    url: <%= ENV['DATABASE_URL'] %>
+    <% else %>
+    <<: *default
+    database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
+    <% end %>
+  queue:
+    <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
+    url: <%= ENV['DATABASE_URL'] %>
+    <% else %>
+    <<: *default
+    database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
+    <% end %>
+  cable:
+    <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
+    url: <%= ENV['DATABASE_URL'] %>
+    <% else %>
+    <<: *default
+    database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
+    <% end %>

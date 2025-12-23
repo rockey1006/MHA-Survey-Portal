@@ -103,6 +103,9 @@ Rails.application.routes.draw do
     member do
       get :download
       get :composite_report
+      get :edit
+      patch :update
+      delete :destroy
     end
   end
 

@@ -19,6 +19,10 @@
   margin-right: auto;
 }
 
+.c-container--wide {
+  max-width: none;
+}
+
 .c-container--dashboard {
   max-width: var(--dashboard-container-max-width);
 }
@@ -345,6 +349,28 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* === Toolbars (action rows) ============================================= */
+
+.c-toolbar {
+  width: 100%;
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.c-toolbar--spaced {
+  margin-bottom: var(--spacing-2xl);
+}
+
 /* === Buttons / links =====================================================
  *
  * NOTE: Core .btn styles and variants already live in 60_components_accessibility.css.
@@ -434,6 +460,18 @@
   background-color: var(--white);
 }
 
+.c-table--sm {
+  font-size: var(--font-size-sm);
+}
+
+.c-table--divide tbody td {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-table--divide tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .c-table th,
 .c-table td {
   padding: var(--spacing-md) var(--spacing-lg);
@@ -454,6 +492,27 @@
   background-color: var(--gray-50);
 }
 
+/* === Version navigation ================================================== */
+
+.c-version-nav {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.c-version-nav__label {
+  white-space: nowrap;
+}
+
+.c-version-nav__arrow {
+  min-width: 40px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
 /* === Utilities =========================================================== */
 
 .u-stack { display: flex; flex-direction: column; gap: var(--spacing-lg); }
@@ -467,6 +526,8 @@
 .u-actions--split { justify-content: space-between; }
 
 .u-text-primary { color: var(--primary-color); }
+
+.u-text-right { text-align: right; }
 
 /* Responsive grid utility
  * Default min column width: 220px

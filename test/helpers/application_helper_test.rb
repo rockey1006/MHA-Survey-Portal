@@ -4,10 +4,10 @@ class ApplicationHelperTest < ActionView::TestCase
   include ApplicationHelper
 
   test "flash_classes returns expected classes for known keys" do
-    assert_includes flash_classes(:notice), "border-blue-500"
-    assert_includes flash_classes(:success), "border-emerald-500"
-    assert_includes flash_classes(:alert), "border-red-500"
-    assert_includes flash_classes(:warning), "border-amber-500"
+    assert_includes flash_classes(:notice), "flash__notice"
+    assert_includes flash_classes(:success), "flash__success"
+    assert_includes flash_classes(:alert), "flash__alert"
+    assert_includes flash_classes(:warning), "flash__warning"
   end
 
   test "flash_title returns fallback for unknown keys" do

@@ -60,6 +60,7 @@ class StudentRecordsController < ApplicationController
 
     feedback_lookup = load_feedback_lookup(student_ids, survey_ids)
     assignments_lookup = load_assignment_lookup(student_ids, survey_ids)
+    admin_update_lookup = load_admin_update_lookup(student_ids, survey_ids)
 
     responses_matrix = Hash.new do |hash, student_id|
       hash[student_id] = Hash.new { |inner, survey_id| inner[survey_id] = [] }
@@ -96,6 +97,7 @@ class StudentRecordsController < ApplicationController
 
               assignment = assignments_lookup.dig(student.student_id, survey.id)
               completed_at = assignment&.completed_at
+              due_date = assignment&.due_date
               status_text = completed_at.present? ? "Completed" : "Pending"
 
               {
@@ -103,6 +105,8 @@ class StudentRecordsController < ApplicationController
                 advisor: student.advisor,
                 status: status_text,
                 completed_at: completed_at,
+                due_date: due_date,
+                admin_updated_at: admin_update_lookup[[student.student_id, survey.id]],
                 survey: survey,
                 survey_response: survey_response,
                 download_token: survey_response.signed_download_token,
@@ -198,5 +202,14 @@ class StudentRecordsController < ApplicationController
       .each_with_object(Hash.new { |hash, sid| hash[sid] = {} }) do |assignment, memo|
         memo[assignment.student_id][assignment.survey_id] = assignment
       end
+  end
+
+  def load_admin_update_lookup(student_ids, survey_ids)
+    return {} if student_ids.blank? || survey_ids.blank?
+
+    SurveyResponseVersion
+      .where(student_id: student_ids, survey_id: survey_ids, event: %w[admin_edited admin_deleted])
+      .group(:student_id, :survey_id)
+      .maximum(:created_at)
   end
 end

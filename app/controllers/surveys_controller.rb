@@ -49,6 +49,10 @@ class SurveysController < ApplicationController
     @computed_required = {}
     student = current_student
 
+    if student
+      @survey_assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    end
+
     Rails.logger.info "[SHOW DEBUG] Student ID: #{student&.student_id}"
     Rails.logger.info "[SHOW DEBUG] Survey ID: #{@survey.id}"
 
@@ -122,6 +126,13 @@ class SurveysController < ApplicationController
 
     unless student
       redirect_to student_dashboard_path, alert: "Student record not found for current user."
+      return
+    end
+
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    if assignment&.completed_at? && assignment.due_date.present? && assignment.due_date < Time.current
+      survey_response = SurveyResponse.build(student: student, survey: @survey)
+      redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed."
       return
     end
 
@@ -337,8 +348,22 @@ class SurveysController < ApplicationController
       assignment.assigned_at ||= Time.current
       assignment.save! if assignment.new_record? || assignment.changed?
 
+      was_completed = assignment.completed_at?
+
       Rails.logger.info "[SUBMIT] Marking assignment #{assignment.id} as completed"
       assignment.mark_completed!
+
+      begin
+        SurveyResponseVersion.capture_current!(
+          student: student,
+          survey: @survey,
+          assignment: assignment,
+          actor_user: current_user,
+          event: (was_completed ? :revised : :submitted)
+        )
+      rescue StandardError => version_error
+        Rails.logger.warn "[SUBMIT] Failed to capture survey response version: #{version_error.class}: #{version_error.message}"
+      end
 
       Rails.logger.info "[SUBMIT] Enqueueing notification job"
       begin
@@ -385,6 +410,17 @@ class SurveysController < ApplicationController
 
     unless student
       redirect_to student_dashboard_path, alert: "Student record not found for current user."
+      return
+    end
+
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    if assignment&.completed_at?
+      if assignment.due_date.present? && assignment.due_date < Time.current
+        survey_response = SurveyResponse.build(student: student, survey: @survey)
+        redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed."
+      else
+        redirect_to survey_path(@survey), alert: "This survey has already been submitted. Use Submit Survey to update your answers."
+      end
       return
     end
 
@@ -505,8 +541,13 @@ class SurveysController < ApplicationController
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
     return unless assignment&.completed_at?
 
+    # Allow unlimited revisions if no due date exists, or when the due date
+    # hasn't passed yet.
+    return if assignment.due_date.blank?
+    return if assignment.due_date >= Time.current
+
     survey_response = SurveyResponse.build(student: student, survey: @survey)
-    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and can only be viewed." and return
+    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed." and return
   end
 
   # Checks if a Google-hosted link (Drive/Docs/Sites) is publicly accessible.

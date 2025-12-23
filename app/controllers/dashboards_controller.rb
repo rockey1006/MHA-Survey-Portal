@@ -58,6 +58,11 @@ class DashboardsController < ApplicationController
                     .where(student_id: @student.student_id, survey_id: surveys.map(&:id))
                     .index_by(&:survey_id)
 
+    admin_update_by_survey = SurveyResponseVersion
+                  .where(student_id: @student.student_id, survey_id: surveys.map(&:id), event: %w[admin_edited admin_deleted])
+                  .group(:survey_id)
+                  .maximum(:created_at)
+
     @completed_surveys = []
     @pending_surveys = []
 
@@ -86,6 +91,7 @@ class DashboardsController < ApplicationController
       # Only consider a survey "Completed" when it was submitted, not just answered
       assignment = assignments[survey.id]
       completed_at = assignment&.completed_at
+      due_date = assignment&.due_date
 
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
@@ -96,6 +102,8 @@ class DashboardsController < ApplicationController
         required_answered_count: answered_required_count,
         required_total_count: total_required_count,
         completed_at: completed_at,
+        due_date: due_date,
+        admin_updated_at: admin_update_by_survey[survey.id],
         required: required_ids.present?,
         survey_response: survey_response,
         download_token: survey_response.signed_download_token
@@ -446,7 +454,13 @@ class DashboardsController < ApplicationController
   def ensure_admin!
     return true if current_user.role_admin?
 
-    redirect_to dashboard_path, alert: "Access denied. Admin privileges required."
+    # Students may occasionally hit admin-only URLs (bookmarks, stale links, etc.)
+    # but we don't want to show an admin-only warning in the student experience.
+    if current_user.role_student?
+      redirect_to dashboard_path
+    else
+      redirect_to dashboard_path, alert: "Access denied. Admin privileges required."
+    end
     false
   end
 

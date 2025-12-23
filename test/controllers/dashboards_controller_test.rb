@@ -60,7 +60,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     get manage_members_path
     assert_redirected_to dashboard_path
     follow_redirect!
-    assert_match "Access denied", flash[:alert]
+    assert_nil flash[:alert]
   end
 
   test "manage_members lists users for admin" do
@@ -239,6 +239,10 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Fall 2025 Health Assessment"
     refute_includes response.body, "Spring 2025 Health Assessment"
+
+    assignment = survey_assignments(:residential_assignment)
+    expected_due = "Due #{I18n.l(assignment.due_date.to_date, format: :long)}"
+    assert_includes response.body, expected_due
   end
 
   test "advisor dashboard handles admin impersonation" do

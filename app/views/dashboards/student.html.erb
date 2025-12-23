@@ -26,6 +26,8 @@
                 <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
                   Status: <%= entry[:status] %>
+                  &bull;
+                  <%= survey_due_note(entry[:due_date]) %>
                   <% total_questions = progress[:total_questions].to_i %>
                   <% answered_total = progress[:answered_total].to_i %>
                   <% if total_questions.positive? %>
@@ -64,6 +66,8 @@
               <% survey = entry[:survey] %>
               <% survey_response = entry[:survey_response] %>
               <% download_token = entry[:download_token] %>
+              <% due_date = entry[:due_date] %>
+              <% can_edit = due_date.blank? || due_date >= Time.current %>
               <div class="completed-item">
                 <div class="survey-icon"></div>
                 <div class="survey-title"><%= survey.title %></div>
@@ -74,12 +78,24 @@
                 <% end %>
                 <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
-                  Completed on <%= entry[:completed_at]&.to_date || 'N/A' %>
+                  <% submitted_at = entry[:completed_at] %>
+                  <% admin_updated_at = entry[:admin_updated_at] %>
+                  <% if admin_updated_at.present? %>
+                    Submitted on <%= submitted_at&.to_date || 'N/A' %>
+                    &bull;
+                    Admin updated on <%= admin_updated_at.to_date %>
+                  <% else %>
+                    Completed on <%= submitted_at&.to_date || 'N/A' %>
+                  <% end %>
+                  &bull;
+                  <%= survey_due_note(due_date) %>
+                </div>
+
+                <div class="survey-meta">
                   <% total_questions = progress[:total_questions].to_i %>
                   <% answered_total = progress[:answered_total].to_i %>
                   <% if total_questions.positive? %>
                     <span class="survey-progress">
-                      &bull;
                       <%= answered_total %>/<%= total_questions %> answered
                       <% if progress[:total_required].to_i.positive? %>
                         <span class="survey-progress-detail">(required <%= progress[:answered_required].to_i %>/<%= progress[:total_required].to_i %>)</span>
@@ -90,6 +106,11 @@
                 <div class="survey-actions">
                   <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                     <%= link_to 'Review', survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
+                    <% if can_edit %>
+                      <%= link_to 'Edit', survey_path(survey), class: tailwind_button_classes(:secondary) %>
+                    <% else %>
+                      <span class="#{tailwind_button_classes(:secondary)} opacity-50 pointer-events-none" aria-disabled="true">Edit</span>
+                    <% end %>
                     <%= link_to 'Download PDF', download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
                   </div>
                 </div>

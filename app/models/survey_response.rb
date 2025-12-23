@@ -47,9 +47,11 @@ class SurveyResponse
     end
   end
 
-  def initialize(student:, survey:)
+  def initialize(student:, survey:, answers_override: nil, as_of: nil)
     @student = student
     @survey = survey
+    @answers_override = answers_override
+    @as_of = as_of
   end
 
   # @return [String] composite identifier combining student and survey
@@ -96,6 +98,8 @@ class SurveyResponse
 
   # @return [Time, nil] most recent update across responses
   def completion_date
+    return @as_of if @as_of.present?
+
     @completion_date ||= question_responses.maximum(:updated_at)
   end
 
@@ -164,14 +168,37 @@ class SurveyResponse
 
   # @return [ActiveRecord::Relation<StudentQuestion>] responses for survey questions
   def question_responses
-    question_ids = survey.questions.select(:id)
-    @question_responses ||= StudentQuestion
+    return @question_responses if defined?(@question_responses)
+
+    if @answers_override
+      question_ids = @answers_override.keys.map(&:to_i)
+      questions = Question.includes(:category).where(id: question_ids).index_by(&:id)
+      timestamp = @as_of || Time.current
+
+      @question_responses = question_ids.filter_map do |qid|
+        question = questions[qid]
+        next unless question
+
+        OpenStruct.new(
+          question_id: qid,
+          question: question,
+          answer: @answers_override[qid.to_s],
+          created_at: timestamp,
+          updated_at: timestamp
+        )
+      end
+    else
+      question_ids = survey.questions.select(:id)
+      @question_responses = StudentQuestion
                               .where(student_id: student.student_id, question_id: question_ids)
                               .includes(question: :category)
+    end
   end
 
   # @return [Hash{Integer => Object}] answers keyed by question id
   def answers
+    return @answers_override if @answers_override
+
     @answers ||= question_responses.index_by(&:question_id).transform_values(&:answer)
   end
 

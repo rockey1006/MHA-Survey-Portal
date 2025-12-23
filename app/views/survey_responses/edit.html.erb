@@ -1,12 +1,33 @@
-<% content_for :title, "Editing survey response" %>
+<% content_for :title, "Edit survey responses" %>
 
-<h1>Editing survey response</h1>
+<div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
+  <% return_to = @return_to.presence || params[:return_to].presence %>
 
-<%= render "form", survey_response: @survey_response %>
+  <%= form_with url: survey_response_path(@survey_response.id, return_to: return_to), method: :patch, local: true, data: { disable_submit_if_unchanged: true } do %>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <%= link_to "← Back", (return_to.presence || student_records_path), class: tailwind_button_classes(:secondary) %>
 
-<br>
+      <div class="flex flex-wrap items-center gap-3">
+        <%= submit_tag "Save changes",
+                       class: tailwind_button_classes(:primary),
+                       data: { save_button: true, turbo_confirm: "Save changes to this student's survey response?" },
+                       disabled: true %>
+        <%= link_to "Cancel", survey_response_path(@survey_response.id, return_to: return_to), class: tailwind_button_classes(:secondary) %>
+      </div>
+    </div>
 
-<div>
-  <%= link_to "Show this survey response", @survey_response %> |
-  <%= link_to "Back to survey responses", survey_responses_path, class: tailwind_button_classes(:secondary) %>
+    <%= render "survey_responses/survey_response",
+               survey_response: @survey_response,
+               editable: true,
+               existing_answers: @existing_answers,
+               other_answers: @other_answers %>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <%= submit_tag "Save changes",
+                     class: tailwind_button_classes(:primary),
+                     data: { save_button: true, turbo_confirm: "Save changes to this student's survey response?" },
+                     disabled: true %>
+      <%= link_to "Cancel", survey_response_path(@survey_response.id, return_to: return_to), class: tailwind_button_classes(:secondary) %>
+    </div>
+  <% end %>
 </div>

@@ -228,6 +228,27 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :student_questions, %i[student_id question_id], unique: true
 
+  # Entity table: immutable snapshots of survey responses (version history).
+  create_table :survey_response_versions do |t|
+      t.bigint :student_id, null: false
+      t.bigint :survey_id, null: false
+      t.bigint :advisor_id
+      t.bigint :survey_assignment_id
+      t.bigint :actor_user_id
+      t.string :actor_role
+      t.string :event, null: false
+      t.jsonb :answers, null: false, default: {}
+      t.timestamps
+    end
+
+    add_index :survey_response_versions, %i[student_id survey_id created_at], name: "index_srv_versions_on_student_survey_created"
+    add_index :survey_response_versions, :survey_assignment_id
+    add_index :survey_response_versions, :actor_user_id
+
+    add_foreign_key :survey_response_versions, :students, column: :student_id, primary_key: :student_id
+    add_foreign_key :survey_response_versions, :surveys, column: :survey_id
+    add_foreign_key :survey_response_versions, :survey_assignments, column: :survey_assignment_id
+
   # Join table: tag categories that participate in a survey.
   create_table :survey_category_tags do |t|
       t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }

@@ -1963,6 +1963,36 @@ body.high-contrast .survey-table tbody tr:hover td {
   background-color: #f0f0f0;
 }
 
+/* Flash messages: ensure strong contrast regardless of tone */
+body.high-contrast .flash {
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-left-width: 6px;
+}
+
+body.high-contrast .flash__notice {
+  border-left-color: var(--info-color);
+}
+
+body.high-contrast .flash__success {
+  border-left-color: var(--success-color);
+}
+
+body.high-contrast .flash__warning {
+  border-left-color: var(--warning-color);
+}
+
+body.high-contrast .flash__alert {
+  border-left-color: var(--error-color);
+}
+
+body.high-contrast .flash a,
+body.high-contrast .flash a:visited {
+  color: #000000 !important;
+  text-decoration: underline;
+}
+
 /* High-contrast: hero + inverse “chip/tile” components */
 body.high-contrast .c-hero,
 body.high-contrast .c-hero--maroon {

@@ -431,6 +431,111 @@ function initImpersonationReadOnlyUI() {
 
 
 // -----------------------------
+// Disable submit if unchanged (survey response edit)
+// -----------------------------
+
+function initDisableSubmitIfUnchanged() {
+  const forms = document.querySelectorAll('form[data-disable-submit-if-unchanged="true"]')
+  if (!forms.length) return
+
+  const serialize = (form) => {
+    const entries = []
+
+    const elements = Array.from(form.elements || [])
+    elements.forEach((el) => {
+      if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return
+
+      if (el.disabled) return
+      if (!el.name) return
+
+      if (el instanceof HTMLInputElement) {
+        const type = (el.type || "").toLowerCase()
+
+        // Ignore Rails plumbing + buttons.
+        if (type === "hidden" || type === "submit" || type === "button" || type === "reset") return
+
+        if (type === "radio") {
+          if (!el.checked) return
+          entries.push([ el.name, el.value ])
+          return
+        }
+
+        if (type === "checkbox") {
+          entries.push([ el.name, el.checked ? (el.value || "on") : "" ])
+          return
+        }
+
+        entries.push([ el.name, el.value || "" ])
+        return
+      }
+
+      if (el instanceof HTMLSelectElement) {
+        if (el.multiple) {
+          const values = Array.from(el.selectedOptions || []).map((opt) => opt.value)
+          entries.push([ el.name, values.sort().join("\u0000") ])
+        } else {
+          entries.push([ el.name, el.value || "" ])
+        }
+        return
+      }
+
+      // textarea
+      entries.push([ el.name, el.value || "" ])
+    })
+
+    entries.sort((a, b) => {
+      if (a[0] === b[0]) return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0
+      return a[0] < b[0] ? -1 : 1
+    })
+
+    return JSON.stringify(entries)
+  }
+
+  const setDisabled = (form, disabled) => {
+    const buttons = form.querySelectorAll('[data-save-button="true"]')
+    buttons.forEach((btn) => {
+      btn.disabled = !!disabled
+      if (disabled) {
+        btn.setAttribute("aria-disabled", "true")
+      } else {
+        btn.removeAttribute("aria-disabled")
+      }
+    })
+  }
+
+  forms.forEach((form) => {
+    if (form.dataset.disableSubmitInitialized === "true") return
+    form.dataset.disableSubmitInitialized = "true"
+
+    const baseline = serialize(form)
+    form.dataset.disableSubmitBaseline = baseline
+
+    const refresh = () => {
+      const current = serialize(form)
+      const unchanged = current === form.dataset.disableSubmitBaseline
+      setDisabled(form, unchanged)
+    }
+
+    // Disable on first load unless already dirty.
+    refresh()
+
+    let scheduled = false
+    const scheduleRefresh = () => {
+      if (scheduled) return
+      scheduled = true
+      window.requestAnimationFrame(() => {
+        scheduled = false
+        refresh()
+      })
+    }
+
+    form.addEventListener("input", scheduleRefresh)
+    form.addEventListener("change", scheduleRefresh)
+  })
+}
+
+
+// -----------------------------
 // Hook into Turbo / DOM load
 // -----------------------------
 
@@ -442,6 +547,7 @@ function initAccessibilityFeatures() {
   initToggleSwitches()
   initComboboxes()
   initImpersonationReadOnlyUI()
+  initDisableSubmitIfUnchanged()
 }
 
 document.addEventListener("turbo:load", initAccessibilityFeatures)

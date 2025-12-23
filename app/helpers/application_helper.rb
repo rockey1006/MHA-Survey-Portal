@@ -107,6 +107,25 @@ module ApplicationHelper
     "#{base} #{variant}"
   end
 
+  # Returns a human-friendly due date label for survey summaries.
+  #
+  # @param due_date [Time, Date, nil]
+  # @return [String]
+  def survey_due_note(due_date)
+    return "No due date" if due_date.blank?
+
+    date = due_date.to_date
+    today = Time.zone.today
+
+    if date < today
+      "Overdue · #{l(date, format: :long)}"
+    elsif date == today
+      "Due today"
+    else
+      "Due #{l(date, format: :long)}"
+    end
+  end
+
   # Generates a concise summary string from survey audit metadata.
   #
   # @param metadata [Hash]

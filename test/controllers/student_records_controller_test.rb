@@ -53,6 +53,8 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_nil row[:completed_at]
 
     assignment = survey_assignments(:residential_assignment)
+    assert_not_nil row[:due_date]
+    assert_in_delta assignment.due_date.to_i, row[:due_date].to_i, 1
     completion_time = Time.current
     assignment.update!(completed_at: completion_time)
 

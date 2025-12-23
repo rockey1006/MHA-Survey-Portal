@@ -77,7 +77,18 @@
           <p class="survey-card__description"><%= survey.description.presence || "Complete this survey to capture your latest progress." %></p>
 
           <footer class="survey-card__footer">
-            <%= link_to(assignment&.completed_at? ? "View Submission" : "Open Survey", survey_path(survey), class: tailwind_button_classes(:primary)) %>
+            <% if assignment&.completed_at? %>
+              <% survey_response = SurveyResponse.build(student: @student, survey: survey) %>
+              <% can_edit = assignment.due_date.blank? || assignment.due_date >= Time.current %>
+              <%= link_to "View Submission", survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
+              <% if can_edit %>
+                <%= link_to "Edit", survey_path(survey), class: tailwind_button_classes(:primary) %>
+              <% else %>
+                <span class="#{tailwind_button_classes(:primary)} opacity-50 pointer-events-none" aria-disabled="true">Edit</span>
+              <% end %>
+            <% else %>
+              <%= link_to "Open Survey", survey_path(survey), class: tailwind_button_classes(:primary) %>
+            <% end %>
           </footer>
         </article>
       <% end %>

@@ -18,44 +18,51 @@
                  root_path
                end %>
 
-<main class="bg-slate-50 px-4 py-12">
-  <div class="mx-auto max-w-6xl space-y-10">
-    <section class="c-card c-card--spacious settings-hero">
-      <div>
-        <p class="settings-hero__eyebrow">Experience controls</p>
-        <h1 class="settings-hero__title">Personalize your workspace</h1>
-        <p class="settings-hero__subtitle">Language and text settings sync everywhere you sign in, so dashboards, surveys, and reports stay readable.</p>
-        <div class="settings-hero__badges">
-          <span class="hero-badge">
-            <span class="hero-badge__dot"></span>
-            Language · <span id="current-language-display"><%= current_language_label %></span>
-          </span>
-          <span class="hero-badge">
-            Text scale · <%= text_scale %>%
-          </span>
+<div class="py-6 sm:py-8">
+  <div class="u-stack u-stack--lg">
+    <section class="c-hero c-hero--maroon c-hero--compact">
+      <div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+        <div class="space-y-8">
+          <div class="space-y-4">
+            <p class="c-eyebrow c-eyebrow--inverse">Settings</p>
+            <h1 class="c-h1 c-h1--inverse">Personalize your workspace</h1>
+            <p class="c-lede c-lede--inverse max-w-2xl">Language and text settings sync everywhere you sign in, so dashboards, surveys, and reports stay readable.</p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <span class="c-pill c-pill--inverse">
+              <span class="c-pill__dot c-pill__dot--inverse" aria-hidden="true"></span>
+              Language · <span id="current-language-display"><%= current_language_label %></span>
+            </span>
+            <span class="c-pill c-pill--inverse">
+              Text scale · <%= text_scale %>%
+            </span>
+          </div>
         </div>
-      </div>
-      <div class="settings-hero__card">
-        <p class="eyebrow">Need to revert?</p>
-        <h2>Changes apply instantly</h2>
-        <p>We refresh the app after saving so your accessibility preferences update without hunting for toggles again.</p>
-        <p class="card-hint">Prefer the default view? Set text size back to 100%.</p>
+
+        <div class="c-kv c-kv--inverse" style="max-width: 28rem;">
+          <p class="c-eyebrow c-eyebrow--inverse">Tip</p>
+          <p class="c-value c-value--lg c-value--inverse">Changes apply instantly</p>
+          <p class="c-lede c-lede--inverse" style="margin-top: var(--spacing-sm);">We refresh after saving so your preferences update app-wide.</p>
+        </div>
       </div>
     </section>
 
-    <div class="settings-grid">
-      <section class="c-card c-card--spacious settings-card">
+    <div>
+      <section class="c-card c-card--tight space-y-8">
         <header>
-          <p class="eyebrow">Account-wide</p>
-          <h2>Accessibility preferences</h2>
-          <p>These settings change typography scales and translation helpers across reports, dashboards, and emails.</p>
+          <p class="c-eyebrow">Account-wide</p>
+          <h2 class="c-h2">Accessibility preferences</h2>
+          <p class="c-lede">These settings change typography scale and translation helpers across dashboards, surveys, and reports.</p>
         </header>
 
-        <%= form_with model: @user, url: settings_path, method: :patch, local: true, id: "settings-form", class: "u-stack u-stack--xl" do |f| %>
+        <%= form_with model: @user, url: settings_path, method: :patch, local: true, id: "settings-form", class: "u-stack u-stack--lg" do |f| %>
           <% if @user.errors.any? %>
-            <div class="c-card c-card--tight settings-alert">
-              <h3><%= pluralize(@user.errors.count, "error") %> need attention</h3>
-              <ul>
+            <div class="c-card c-card--tight border border-rose-200 bg-rose-50 text-rose-800 shadow-none">
+              <h3 class="font-semibold text-rose-900">
+                <%= pluralize(@user.errors.count, "error") %> need attention
+              </h3>
+              <ul class="mt-2 list-disc pl-5">
                 <% @user.errors.full_messages.each do |msg| %>
                   <li><%= msg %></li>
                 <% end %>
@@ -63,47 +70,37 @@
             </div>
           <% end %>
 
-          <div class="u-grid" style="--u-grid-min: 240px">
-            <div class="c-field">
-              <label class="c-label">Language</label>
-              <div class="c-card c-card--tight language-pill">
-                <span id="language-pill-label"><%= current_language_label %></span>
-                <span class="pill-hint">Managed automatically via translation bar</span>
+          <div class="u-grid" style="--u-grid-min: 260px">
+            <div class="c-kv c-kv--compact">
+              <div class="c-field">
+                <label class="c-label">Language</label>
+                <p class="c-value c-value--lg"><span id="language-pill-label"><%= current_language_label %></span></p>
+                <small class="c-help">Managed automatically via the translation bar.</small>
+                <%= f.hidden_field :language, value: lang_code, id: 'settings_language_input' %>
               </div>
-              <%= f.hidden_field :language, value: lang_code, id: 'settings_language_input' %>
             </div>
 
-            <div class="c-field">
-              <label class="c-label">Text size</label>
-              <%= f.select :text_scale_percent,
-                    options_for_select([["100% (default)", 100], ["125%", 125], ["150%", 150], ["175%", 175], ["200%", 200]], text_scale),
-                    {},
-                    class: "c-input settings-select" %>
-              <small class="c-help">Increase up to 200% for larger copy. We scale line-height and key controls automatically.</small>
+            <div class="c-kv c-kv--compact">
+              <div class="c-field">
+                <label class="c-label">Text size</label>
+                <%= f.select :text_scale_percent,
+                      options_for_select([["100% (default)", 100], ["125%", 125], ["150%", 150], ["175%", 175], ["200%", 200]], text_scale),
+                      {},
+                      class: "c-input" %>
+                <small class="c-help">Increase up to 200% for larger copy.</small>
+              </div>
             </div>
           </div>
 
-          <div class="c-form-actions u-actions">
-            <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
+          <div class="c-form-actions u-actions u-actions--split border-t border-slate-100 pt-6">
+            <%= link_to "Cancel", back_path, class: tailwind_button_classes(:secondary) %>
             <%= f.submit "Save changes", class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
       </section>
-
-      <aside class="c-card c-card--spacious settings-card settings-card--support">
-        <header>
-          <p class="eyebrow">Helpful context</p>
-          <h2>Why these settings live here</h2>
-        </header>
-        <ul class="u-stack u-stack--md list-none">
-          <li>Language preference follows your Google Translate selection so dashboards are instantly readable.</li>
-          <li>Text scale applies to reports, surveys, and exports — no extra zooming required.</li>
-        </ul>
-        <p class="mt-8 text-sm text-white/80">Future releases will add notification controls based on these preferences.</p>
-      </aside>
     </div>
   </div>
-</main>
+</div>
 <script>
   // Submit settings via fetch to ensure we can reload the app immediately on success.
   (function() {

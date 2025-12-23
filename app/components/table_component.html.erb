@@ -1,0 +1,15 @@
+<div class="c-table-wrapper overflow-x-auto">
+  <table class="c-table c-table--sm c-table--divide">
+    <thead>
+      <tr>
+        <% headers.each_with_index do |header, idx| %>
+          <th scope="col" class="<%= header_cell_classes(idx) %>"><%= header %></th>
+        <% end %>
+      </tr>
+    </thead>
+
+    <tbody>
+      <%= content %>
+    </tbody>
+  </table>
+</div>

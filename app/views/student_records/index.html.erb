@@ -1,5 +1,6 @@
-<main class="flex justify-center px-4 py-8">
-  <div class="c-page w-full max-w-6xl space-y-6">
+<main class="px-4 py-8">
+  <div class="c-container c-container--wide">
+    <div class="c-page space-y-6">
     <header class="c-page-header space-y-2">
       <h1 class="c-page-title c-page-title--brand text-3xl font-semibold">Student Records</h1>
       <% intro_text = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
@@ -64,22 +65,10 @@
                     <span class="text-sm text-slate-500">Assigned <%= l(survey.created_at.to_date, format: :long) rescue survey.created_at.to_s(:long) %></span>
                   </summary>
 
-                  <div class="c-table-wrapper overflow-x-auto">
-                    <table class="c-table mx-auto w-full divide-y divide-slate-200 text-sm">
-                      <thead class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        <tr>
-                          <th scope="col" class="px-4 py-3">#</th>
-                          <th scope="col" class="px-4 py-3">Student</th>
-                          <th scope="col" class="px-4 py-3">Advisor</th>
-                          <th scope="col" class="px-4 py-3">Track</th>
-                          <th scope="col" class="px-4 py-3">Status</th>
-                          <th scope="col" class="px-4 py-3">Completion</th>
-                          <th scope="col" class="px-4 py-3">Feedback</th>
-                          <th scope="col" class="px-4 py-3 text-right">Survey</th>
-                        </tr>
-                      </thead>
-
-                      <tbody class="divide-y divide-slate-200 bg-white">
+                  <%= render TableComponent.new(
+                    headers: ["#", "Student", "Advisor", "Track", "Status", "Completion", "Feedback", "Survey"],
+                    right_align: [7]
+                  ) do %>
                         <% if filtered_rows.blank? %>
                           <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
                             "No students currently in this track."
@@ -97,6 +86,8 @@
                             <% advisor                 = row[:advisor] %>
                             <% status_text             = row[:status] %>
                             <% completion_date         = row[:completed_at] %>
+                            <% due_date                = row[:due_date] %>
+                            <% admin_updated_at         = row[:admin_updated_at] %>
                             <% survey_response         = row[:survey_response] %>
                             <% download_token          = row[:download_token] %>
                             <% feedback_entries        = Array(row[:feedbacks]) %>
@@ -143,10 +134,17 @@
 
                               <td class="px-4 py-3 text-sm text-slate-700">
                                 <% if completion_date.present? %>
-                                  <div class="font-semibold text-slate-900"><%= l(completion_date, format: :long) %></div>
-                                  <div class="mt-1 text-xs text-slate-500">Updated <%= time_ago_in_words(completion_date) %> ago</div>
+                                  <% if admin_updated_at.present? %>
+                                    <div class="font-semibold text-slate-900">Submitted <%= l(completion_date, format: :long) %></div>
+                                    <div class="mt-1 text-xs text-slate-500">Admin updated <%= l(admin_updated_at, format: :long) %></div>
+                                  <% else %>
+                                    <div class="font-semibold text-slate-900"><%= l(completion_date, format: :long) %></div>
+                                    <div class="mt-1 text-xs text-slate-500">Updated <%= time_ago_in_words(completion_date) %> ago</div>
+                                  <% end %>
+                                  <div class="mt-1 text-xs text-slate-500"><%= survey_due_note(due_date) %></div>
                                 <% else %>
                                   <span class="text-xs text-slate-500">Not yet completed</span>
+                                  <div class="mt-1 text-xs text-slate-500"><%= survey_due_note(due_date) %></div>
                                 <% end %>
                               </td>
 
@@ -163,7 +161,7 @@
                                 <% advisor_can_open = current_advisor_profile&.advisor_id.present? && student.advisor_id.present? && current_advisor_profile.advisor_id == student.advisor_id %>
                                 <% can_open = admin_can_open || advisor_can_open %>
                                 <% show_actions = has_completed && can_open %>
-                                <div class="flex justify-end gap-2 whitespace-nowrap">
+                                <div class="flex flex-wrap justify-end gap-2">
                                   <% if show_actions %>
                                     <%= link_to survey_label,
                                                 survey_link,
@@ -173,6 +171,32 @@
                                                   download_survey_response_path(survey_response, token: download_token),
                                                   class: tailwind_button_classes(:primary),
                                                   target: "_blank", rel: "noopener noreferrer" %>
+
+                                      <% if admin_can_open %>
+                                          <details class="relative">
+                                            <summary
+                                              class="list-none <%= tailwind_button_classes(:secondary) %>"
+                                              aria-label="More actions"
+                                              title="More actions">
+                                              …
+                                            </summary>
+
+                                            <div class="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                                              <div class="py-1">
+                                                <%= link_to "Edit",
+                                                            edit_survey_response_path(survey_response, return_to: request.fullpath),
+                                                            class: "block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" %>
+
+                                                <%= button_to "Delete",
+                                                            survey_response_path(survey_response),
+                                                            method: :delete,
+                                                            form_class: "block",
+                                                            class: "block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50",
+                                                            data: { turbo_confirm: "Delete this student's survey responses? This cannot be undone." } %>
+                                              </div>
+                                            </div>
+                                          </details>
+                                      <% end %>
                                     <% end %>
                                   <% elsif has_completed %>
                                     <span
@@ -189,9 +213,7 @@
                             </tr>
                           <% end %>
                         <% end %>
-                      </tbody>
-                    </table>
-                  </div>
+                  <% end %>
                 </details>
               <% end %>
             </div>
@@ -221,6 +243,7 @@
       </div>
 
       
+    </div>
     </div>
   </div>
 </main>

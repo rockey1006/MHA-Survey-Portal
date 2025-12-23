@@ -4,12 +4,150 @@ class SurveyResponsesController < ApplicationController
   before_action :set_survey_response
   before_action :authorize_view!, only: %i[show download]
   before_action :authorize_composite!, only: :composite_report
+  before_action :authorize_admin!, only: %i[edit update destroy]
 
   # Shows a survey response within the standard layout.
   #
   # @return [void]
   def show
+    @return_to = safe_return_to_param
+    load_versions!
     @question_responses = preload_question_responses
+  end
+
+  # Admin-only: edit a student's survey answers.
+  def edit
+    @survey = @survey_response.survey
+    @student = @survey_response.student
+    @return_to = safe_return_to_param
+
+    flash.now[:notice] ||= "You’re currently editing a student response."
+
+    @existing_answers = {}
+    @other_answers = {}
+
+    responses = StudentQuestion
+                  .where(student_id: @student.student_id, question_id: @survey.questions.select(:id))
+                  .includes(:question)
+
+    responses.each do |response|
+      ans = response.answer
+      if ans.is_a?(Hash) && response.question&.choice_question?
+        @existing_answers[response.question_id.to_s] = ans["answer"] || ans[:answer]
+        @other_answers[response.question_id.to_s] = ans["text"].to_s if ans["text"].present?
+      elsif ans.is_a?(Hash)
+        @existing_answers[response.question_id.to_s] = ans["text"] || ans["answer"] || ans[:text] || ans[:answer]
+      else
+        @existing_answers[response.question_id.to_s] = ans
+      end
+    end
+  end
+
+  # Admin-only: persist edits as the new "latest" state while preserving
+  # previous versions.
+  def update
+    @survey = @survey_response.survey
+    @student = @survey_response.student
+    @return_to = safe_return_to_param
+
+    raw_answers = params[:answers]
+    answers = case raw_answers
+    when ActionController::Parameters
+                raw_answers.to_unsafe_h
+    when Hash
+                raw_answers
+    else
+                {}
+    end
+    answers = answers.stringify_keys
+
+    raw_other_answers = params[:other_answers]
+    other_answers = case raw_other_answers
+    when ActionController::Parameters
+              raw_other_answers.to_unsafe_h
+    when Hash
+              raw_other_answers
+    else
+              {}
+    end
+    other_answers = other_answers.stringify_keys
+
+    questions_map = @survey.questions.includes(category: :section).index_by(&:id)
+    allowed_question_ids = questions_map.keys
+
+    ActiveRecord::Base.transaction do
+      allowed_question_ids.each do |question_id|
+        submitted_value = answers[question_id.to_s]
+        question = questions_map[question_id]
+
+        if question&.question_type == "multiple_choice"
+          option_pairs = question.answer_option_pairs
+          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+          other_value = other_pair ? other_pair[1].to_s : "Other"
+
+          if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+            submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+          end
+        elsif submitted_value.to_s == "Other"
+          submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
+        end
+
+        record = StudentQuestion.find_or_initialize_by(student_id: @student.student_id, question_id: question_id)
+        record.advisor_id ||= @student.advisor_id
+
+        if submitted_value.present?
+          record.answer = submitted_value
+          record.save!(validate: false)
+        elsif record.persisted?
+          record.destroy!
+        end
+      end
+
+      assignment = SurveyAssignment.find_by(student_id: @student.student_id, survey_id: @survey.id)
+      SurveyResponseVersion.capture_current!(
+        student: @student,
+        survey: @survey,
+        assignment: assignment,
+        actor_user: current_user,
+        event: :admin_edited
+      )
+    end
+
+    redirect_to survey_response_path(@survey_response.id, return_to: @return_to), notice: "Survey responses updated."
+  end
+
+  # Admin-only: delete a student's survey responses. This clears the student's
+  # saved answers for the survey and resets completion.
+  def destroy
+    survey = @survey_response.survey
+    student = @survey_response.student
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: survey.id)
+
+    ActiveRecord::Base.transaction do
+      # Capture what existed before deletion.
+      SurveyResponseVersion.capture_current!(
+        student: student,
+        survey: survey,
+        assignment: assignment,
+        actor_user: current_user,
+        event: :admin_deleted
+      )
+
+      StudentQuestion.where(student_id: student.student_id, question_id: survey.questions.select(:id)).delete_all
+      assignment&.update!(completed_at: nil)
+    end
+
+    recipient = student.user
+    if recipient
+      Notification.deliver!(
+        user: recipient,
+        title: "Survey response deleted",
+        message: "An admin deleted your responses for '#{survey.title}'. If the due date has not passed, you may submit again.",
+        notifiable: assignment
+      )
+    end
+
+    redirect_to student_records_path, notice: "Survey responses deleted."
   end
 
   # Streams a PDF version of the survey response that matches the composite report payload.
@@ -82,6 +220,14 @@ class SurveyResponsesController < ApplicationController
 
   private
 
+  def safe_return_to_param
+    value = params[:return_to].to_s
+    return nil if value.blank?
+    return nil unless value.start_with?("/") && !value.start_with?("//")
+
+    value
+  end
+
   # Finds the survey response by signed token or ID parameter.
   #
   # @return [void]
@@ -129,6 +275,12 @@ class SurveyResponsesController < ApplicationController
     head :unauthorized
   end
 
+  def authorize_admin!
+    return if current_user&.role_admin?
+
+    head :unauthorized
+  end
+
   # Ensures only admins or the student's assigned advisor can generate composite reports.
   #
   # @return [void]
@@ -168,6 +320,41 @@ class SurveyResponsesController < ApplicationController
   # @return [ActiveRecord::Associations::CollectionProxy<QuestionResponse>]
   def preload_question_responses
     @survey_response.question_responses
+  end
+
+  def load_versions!
+    @versions = SurveyResponseVersion
+                  .for_pair(student_id: @survey_response.student_id, survey_id: @survey_response.survey_id)
+                  .chronological
+
+    raw_version_id = params[:version_id].presence
+    @selected_version = raw_version_id ? @versions.find_by(id: raw_version_id) : nil
+
+    if @selected_version
+      @survey_response = SurveyResponse.new(
+        student: @survey_response.student,
+        survey: @survey_response.survey,
+        answers_override: @selected_version.answers,
+        as_of: @selected_version.created_at
+      )
+    end
+
+    # Determine previous/next for navigation.
+    @previous_version = nil
+    @next_version = nil
+
+    if @versions.size > 1
+      if @selected_version
+        idx = @versions.index(@selected_version)
+        if idx
+          @previous_version = idx.positive? ? @versions[idx - 1] : nil
+          @next_version = (idx < @versions.size - 1) ? @versions[idx + 1] : nil
+        end
+      else
+        # Default is "latest" (no version_id). Previous goes to last stored version.
+        @previous_version = @versions.last
+      end
+    end
   end
 
   # Sends the generated PDF with validation to guard against corrupt files.

@@ -16,11 +16,11 @@
 
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
-  <header class="c-card survey-header mb-6">
+  <header class="c-card survey-header mb-8">
     <div class="space-y-2">
       <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><%= @survey.title %></h1>
       <p class="text-sm text-slate-600">
-        Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %>
+        Semester: <%= @survey.semester.presence || "TBD" %> · Tracks: <%= @survey.track_list.presence&.join(", ") || "Unassigned" %> · <%= survey_due_note(@survey_assignment&.due_date) %>
       </p>
       <p class="text-xs text-slate-500">
         Questions marked with an asterisk (*) are required.
@@ -249,9 +249,14 @@
       </div>
     <% end %>
 
-    <div class="survey-actions flex items-center justify-between gap-3">
-      <%= button_tag "Save Progress", type: "button", class: tailwind_button_classes(:secondary), onclick: "saveSurveyProgress()" %>
-      <%= form.submit "Submit Survey", class: tailwind_button_classes(:primary) %>
+    <% allow_save_progress = !(@survey_assignment&.completed_at?) %>
+    <div class="c-toolbar mt-8">
+      <div class="c-toolbar__row <%= allow_save_progress ? 'justify-between w-full' : 'justify-end w-full' %>">
+        <% if allow_save_progress %>
+          <%= button_tag "Save Progress", type: "button", class: tailwind_button_classes(:secondary), onclick: "saveSurveyProgress()" %>
+        <% end %>
+        <%= form.submit "Submit Survey", class: tailwind_button_classes(:primary) %>
+      </div>
     </div>
   <% end %>
 

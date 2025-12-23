@@ -3,7 +3,7 @@
 <div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
   <% return_to = @return_to.presence || params[:return_to].presence %>
 
-  <%= form_with url: survey_response_path(@survey_response.id, return_to: return_to), method: :patch, local: true, data: { disable_submit_if_unchanged: true } do %>
+  <%= form_with url: survey_response_path(@survey_response.id, return_to: return_to), method: :patch, local: true, data: { disable_submit_if_unchanged: true }, html: { class: "survey-form" } do %>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <%= link_to "← Back", (return_to.presence || student_records_path), class: tailwind_button_classes(:secondary) %>
 

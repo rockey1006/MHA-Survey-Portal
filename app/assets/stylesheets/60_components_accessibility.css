@@ -1386,73 +1386,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-.surveys-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3xl);
-  width: 100%;
-  max-width: 1100px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.survey-hero {
-  background: linear-gradient(120deg, var(--primary-color), var(--tamu-maroon-dark));
-  color: var(--white);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-4xl);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3xl);
-  box-shadow: var(--shadow-lg);
-}
-
-.survey-hero .eyebrow {
-  font-size: var(--font-size-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: var(--spacing-sm);
-}
-
-.survey-hero h1 {
-  font-size: var(--font-size-3xl);
-  margin-bottom: var(--spacing-md);
-}
-
-.survey-hero .subtitle {
-  font-size: var(--font-size-lg);
-  margin-top: var(--spacing-sm);
-}
-
-.survey-hero__badge {
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-xl) var(--spacing-3xl);
-  text-align: center;
-  min-width: 180px;
-}
-
-.survey-hero__badge span {
-  font-size: var(--font-size-sm);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.survey-hero__badge strong {
-  display: block;
-  font-size: var(--font-size-2xl);
-  margin-top: var(--spacing-sm);
-}
-
-.survey-board {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--spacing-2xl);
-}
 
 .survey-card {
   padding: var(--spacing-3xl);
@@ -1580,26 +1513,7 @@
   border-color: var(--primary-color);
 }
 
-.empty-state-card {
-  box-shadow: var(--shadow-md);
-}
-
-.empty-state-card h2 {
-  font-size: var(--font-size-2xl);
-  color: var(--gray-800);
-}
-
-.empty-state-card p {
-  font-size: var(--font-size-lg);
-  color: var(--gray-600);
-}
-
 @media (max-width: 768px) {
-  .survey-hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .survey-card__header {
     flex-direction: column;
     align-items: flex-start;

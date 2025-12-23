@@ -25,9 +25,10 @@
 
   <div>
     <%= form.label :average_score, "Proficiency", style: "display: block" %>
-    <%= form.select :average_score,
-                    options_for_select(advisor_proficiency_option_pairs_for(nil), normalize_proficiency_value(feedback.average_score)),
-                    { include_blank: true } %>
+    <%= render "shared/proficiency_select",
+               id: "#{form.object_name}_average_score",
+               name: "#{form.object_name}[average_score]",
+               selected: normalize_proficiency_value(feedback.average_score) %>
   </div>
 
   <div>

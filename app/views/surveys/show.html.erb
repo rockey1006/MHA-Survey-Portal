@@ -249,12 +249,18 @@
       </div>
     <% end %>
 
+    <% raw_return_to = params[:return_to].to_s %>
+    <% cancel_path = (raw_return_to.present? && raw_return_to.start_with?("/") && !raw_return_to.start_with?("//")) ? raw_return_to : student_dashboard_path %>
+
     <% allow_save_progress = !(@survey_assignment&.completed_at?) %>
     <div class="c-toolbar mt-8">
-      <div class="c-toolbar__row <%= allow_save_progress ? 'justify-between w-full' : 'justify-end w-full' %>">
-        <% if allow_save_progress %>
-          <%= button_tag "Save Progress", type: "button", class: tailwind_button_classes(:secondary), onclick: "saveSurveyProgress()" %>
-        <% end %>
+      <div class="c-toolbar__row justify-between w-full">
+        <div class="flex items-center gap-2">
+          <%= link_to "Cancel", cancel_path, class: tailwind_button_classes(:secondary) %>
+          <% if allow_save_progress %>
+            <%= button_tag "Save Progress", type: "button", class: tailwind_button_classes(:secondary), onclick: "saveSurveyProgress()" %>
+          <% end %>
+        </div>
         <%= form.submit "Submit Survey", class: tailwind_button_classes(:primary) %>
       </div>
     </div>

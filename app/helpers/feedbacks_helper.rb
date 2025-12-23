@@ -7,7 +7,7 @@ module FeedbacksHelper
           [ "Experienced (4)", "4" ],
           [ "Mastery (5)", "5" ]
      ].freeze
-     ADVISOR_ONLY_OPTION = [ "Not able to assess (0)", "0" ].freeze
+     NOT_ASSESSABLE_LABEL = "Not able to assess".freeze
 
      # Normalizes stored scores (Integer/Float/String) into a dropdown value string.
      # Ensures values like 3.0 map to "3" so selects and labels match option values.
@@ -27,6 +27,8 @@ module FeedbacksHelper
           int_value = numeric.round
           return nil unless int_value.between?(0, 5)
 
+          return nil if int_value.zero?
+
           int_value.to_s
      end
 
@@ -45,8 +47,9 @@ module FeedbacksHelper
 
           base = DEFAULT_PROFICIENCY_PAIRS if base.blank?
 
-          values = base.map { |(_label, value)| value.to_s }
-          base + (values.include?("0") ? [] : [ ADVISOR_ONLY_OPTION ])
+          # Ensure the advisor score dropdown is always 1–5 (blank means not assessed),
+          # even if older survey config includes a 0 option.
+          base.reject { |(_label, value)| value.to_s == "0" }
      end
 
      # Maps a stored score into a label for display.
@@ -57,6 +60,13 @@ module FeedbacksHelper
      # @return [String]
      def proficiency_label_for(score, question = nil)
           return "—" if score.nil?
+
+          numeric = begin
+               Float(score)
+          rescue StandardError
+               nil
+          end
+          return NOT_ASSESSABLE_LABEL if numeric && numeric.round.zero?
 
           normalized = normalize_proficiency_value(score) || score.to_s.strip
 

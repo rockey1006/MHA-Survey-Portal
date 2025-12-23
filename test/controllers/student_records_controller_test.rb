@@ -25,6 +25,27 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
     assert_includes response.body, "No students currently in this track are assigned to you."
+
+    # Advisors can view Student Records but should not see admin-only edit/delete actions.
+    assert_not_includes response.body, 'aria-label="More actions"'
+    assert_not_includes response.body, "Delete this student's survey responses?"
+  end
+
+  test "admin can filter students by search query" do
+    sign_in @admin
+
+    get student_records_path(q: users(:student).name)
+    assert_response :success
+    assert_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
+  end
+
+  test "advisor search stays within assigned scope" do
+    sign_in @advisor
+
+    get student_records_path(q: users(:other_student).email)
+    assert_response :success
+    assert_not_includes response.body, users(:other_student).name
   end
 
   test "unauthenticated user redirected" do

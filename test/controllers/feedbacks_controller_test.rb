@@ -206,7 +206,7 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "batch create rejects scores outside 0-5" do
+  test "batch create rejects scores outside 1-5" do
     q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
 
     params = {
@@ -214,6 +214,24 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
       student_id: @student.student_id,
       ratings: {
         q1.id.to_s => { average_score: "6", comments: "Too high" }
+      }
+    }
+
+    assert_no_difference "Feedback.count" do
+      post feedbacks_path, params: params
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "batch create rejects 0 score" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "0", comments: "Not assessable" }
       }
     }
 

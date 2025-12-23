@@ -12,6 +12,7 @@ class SurveyResponsesController < ApplicationController
   def show
     @return_to = safe_return_to_param
     load_versions!
+    @survey_assignment = SurveyAssignment.find_by(student_id: @survey_response.student_id, survey_id: @survey_response.survey_id)
     @question_responses = preload_question_responses
   end
 
@@ -329,6 +330,7 @@ class SurveyResponsesController < ApplicationController
 
     raw_version_id = params[:version_id].presence
     @selected_version = raw_version_id ? @versions.find_by(id: raw_version_id) : nil
+    @selected_version ||= @versions.last if @versions.present?
 
     if @selected_version
       @survey_response = SurveyResponse.new(
@@ -344,15 +346,10 @@ class SurveyResponsesController < ApplicationController
     @next_version = nil
 
     if @versions.size > 1
-      if @selected_version
-        idx = @versions.index(@selected_version)
-        if idx
-          @previous_version = idx.positive? ? @versions[idx - 1] : nil
-          @next_version = (idx < @versions.size - 1) ? @versions[idx + 1] : nil
-        end
-      else
-        # Default is "latest" (no version_id). Previous goes to last stored version.
-        @previous_version = @versions.last
+      idx = @versions.index(@selected_version)
+      if idx
+        @previous_version = idx.positive? ? @versions[idx - 1] : nil
+        @next_version = (idx < @versions.size - 1) ? @versions[idx + 1] : nil
       end
     end
   end

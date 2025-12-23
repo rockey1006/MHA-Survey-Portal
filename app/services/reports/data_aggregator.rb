@@ -50,8 +50,10 @@ module Reports
       "questions.program_target_level AS program_target_level",
       "surveys.id AS survey_id",
       "surveys.title AS survey_title",
+      "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
     ].freeze
@@ -68,8 +70,10 @@ module Reports
       "questions.program_target_level AS program_target_level",
       "surveys.id AS survey_id",
       "surveys.title AS survey_title",
+      "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
     ].freeze
@@ -1034,6 +1038,8 @@ module Reports
       value = parse_numeric(record.response_value)
       return nil unless value
 
+      effective_target_level = competency_target_level_for_record(record)
+
       {
         id: record.student_question_id,
         score: value,
@@ -1042,7 +1048,7 @@ module Reports
         category_id: record.category_id,
         category_name: record.category_name,
         question_text: record.question_text,
-        program_target_level: record.respond_to?(:program_target_level) ? record.program_target_level : nil,
+        program_target_level: effective_target_level,
         survey_id: record.survey_id,
         survey_title: record.survey_title,
         survey_semester: record.survey_semester,
@@ -1050,6 +1056,29 @@ module Reports
         student_id: record.student_primary_id,
         advisor_id: record.owning_advisor_id || record.advisor_id
       }
+    end
+
+    def competency_target_level_for_record(record)
+      fallback = record.respond_to?(:program_target_level) ? record.program_target_level : nil
+      return fallback unless record.respond_to?(:program_semester_id) && record.respond_to?(:student_track)
+
+      semester_id = record.program_semester_id
+      track = record.student_track
+      title = record.question_text
+      program_year = record.respond_to?(:student_program_year) ? record.student_program_year : nil
+
+      lookup = competency_target_level_lookup
+      lookup[[ semester_id, track, program_year, title ]] ||
+        lookup[[ semester_id, track, nil, title ]] ||
+        fallback
+    end
+
+    def competency_target_level_lookup
+      @competency_target_level_lookup ||= CompetencyTargetLevel
+        .select(:program_semester_id, :track, :program_year, :competency_title, :target_level)
+        .each_with_object({}) do |row, memo|
+          memo[[ row.program_semester_id, row.track, row.program_year, row.competency_title ]] = row.target_level
+        end
     end
 
     def sanitize_tracks(values)

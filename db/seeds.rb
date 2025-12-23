@@ -160,6 +160,52 @@ ProgramSemester.transaction do
   ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
 end
 
+if ActiveRecord::Base.connection.data_source_exists?("competency_target_levels")
+  defaults_path = Rails.root.join("db", "data", "default_target_levels.yml")
+  if File.exist?(defaults_path)
+    puts "• Seeding default competency target levels"
+
+    defaults = YAML.safe_load_file(defaults_path)
+    semesters_to_seed = Array(defaults["semesters"]).map { |name| name.to_s.strip }.reject(&:blank?)
+    program_years_to_seed = Array(defaults["program_years"]).map { |val| val.to_i }.uniq
+    track_defaults = defaults["tracks"].is_a?(Hash) ? defaults["tracks"] : {}
+
+    competency_titles = Reports::DataAggregator::COMPETENCY_TITLES
+    now = Time.current
+    rows = []
+
+    semesters_to_seed.each do |semester_name|
+      program_semester = ProgramSemester.find_or_create_by!(name: semester_name)
+
+      track_defaults.each do |track_name, track_config|
+        levels = Array(track_config.is_a?(Hash) ? track_config["levels"] : nil).map(&:to_i)
+        if levels.size != competency_titles.size
+          warn "• Skipping target levels for #{track_name} (#{semester_name}): expected #{competency_titles.size} levels, got #{levels.size}"
+          next
+        end
+
+        program_years_to_seed.each do |program_year|
+          competency_titles.each_with_index do |title, idx|
+            rows << {
+              program_semester_id: program_semester.id,
+              track: track_name,
+              program_year: program_year,
+              competency_title: title,
+              target_level: levels[idx],
+              created_at: now,
+              updated_at: now
+            }
+          end
+        end
+      end
+    end
+
+    if rows.any?
+      CompetencyTargetLevel.upsert_all(rows, unique_by: :index_competency_targets_unique)
+    end
+  end
+end
+
 answer_options_for = lambda do |options|
   return nil if options.blank?
 

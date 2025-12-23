@@ -1,30 +1,34 @@
 <% welcome_source = @student&.user&.name.presence || current_user&.name.presence || current_user&.email.presence %>
 <% welcome_name = welcome_source.to_s.split(/\s+/).first.presence || "Welcome" %>
-<div class="surveys-page">
-  <section class="survey-hero">
-    <div>
-      <p class="eyebrow">My Surveys</p>
-      <h1><%= welcome_name %>, here's what's waiting for you</h1>
-      <% if @student&.track.present? %>
-        <p class="subtitle">You are viewing surveys for the <strong><%= @student.track %></strong> track.</p>
-      <% else %>
-        <p class="subtitle">Select your program track so we can curate the correct surveys for you.</p>
-      <% end %>
-    </div>
-    <div class="survey-hero__badge">
-      <span>Semester</span>
-      <strong><%= @current_semester_label %></strong>
-    </div>
-  </section>
+<main class="px-4 py-8">
+  <div class="c-container c-page">
+    <section class="c-hero c-hero--maroon">
+      <div class="c-page-header">
+        <div class="u-stack u-stack--sm">
+          <p class="c-eyebrow c-eyebrow--inverse">My Surveys</p>
+          <h1 class="c-h2 c-h2--inverse"><%= welcome_name %>, here's what's waiting for you</h1>
+          <% if @student&.track.present? %>
+            <p class="c-lede c-lede--inverse">You are viewing surveys for the <strong><%= @student.track %></strong> track.</p>
+          <% else %>
+            <p class="c-lede c-lede--inverse">Select your program track so we can curate the correct surveys for you.</p>
+          <% end %>
+        </div>
 
-  <% if @student&.track.blank? %>
-    <section class="c-card c-card--spacious u-stack empty-state-card">
-      <h2>Finish setting up your profile</h2>
-      <p>We need to know your track before we can display the correct surveys. Head over to your profile and select Residential or Executive.</p>
-      <%= link_to "Complete Profile", edit_student_profile_path, class: tailwind_button_classes(:primary) %>
+        <dl class="c-kv c-kv--inverse c-kv--compact u-text-right">
+          <dt class="c-eyebrow c-eyebrow--inverse">Semester</dt>
+          <dd class="c-value c-value--xl c-value--inverse"><%= @current_semester_label %></dd>
+        </dl>
+      </div>
     </section>
-  <% elsif @surveys.any? %>
-    <div class="survey-board" role="list">
+
+    <% if @student&.track.blank? %>
+      <section class="c-card c-card--spacious u-stack">
+        <h2 class="c-h2">Finish setting up your profile</h2>
+        <p class="c-lede">We need to know your track before we can display the correct surveys. Head over to your profile and select Residential or Executive.</p>
+        <%= link_to "Complete Profile", edit_student_profile_path, class: tailwind_button_classes(:primary) %>
+      </section>
+    <% elsif @surveys.any? %>
+      <div class="u-grid" style="--u-grid-min: 280px" role="list">
       <% @surveys.each do |survey| %>
         <% assignment = @assignment_lookup[survey.id] %>
         <% status_label, status_variant = if assignment&.completed_at?
@@ -34,19 +38,7 @@
           else
             ["Not Started", "muted"]
           end %>
-        <% due_note = if assignment&.due_date.present?
-            due_date = assignment.due_date.to_date
-            today = Time.zone.today
-            if due_date < today
-              "Overdue · #{l(due_date, format: :long)}"
-            elsif due_date == today
-              "Due today"
-            else
-              "Due #{l(due_date, format: :long)}"
-            end
-          else
-            "No due date"
-          end %>
+        <% due_note = survey_due_note(assignment&.due_date) %>
         <article class="c-card c-card--interactive survey-card" role="listitem">
           <header class="survey-card__header">
             <div>
@@ -93,13 +85,14 @@
         </article>
       <% end %>
     </div>
-  <% else %>
-    <section class="c-card c-card--spacious u-stack empty-state-card">
-      <h2>No surveys assigned (yet)</h2>
-      <p>Your advisor hasn't published surveys for the <%= @student.track %> track. We'll notify you as soon as one arrives.</p>
-      <%= link_to "Back to dashboard", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
-    </section>
-  <% end %>
-</div>
+    <% else %>
+      <section class="c-card c-card--spacious u-stack">
+        <h2 class="c-h2">No surveys assigned (yet)</h2>
+        <p class="c-lede">Your advisor hasn't published surveys for the <%= @student.track %> track. We'll notify you as soon as one arrives.</p>
+        <%= link_to "Back to dashboard", student_dashboard_path, class: tailwind_button_classes(:secondary) %>
+      </section>
+    <% end %>
+  </div>
+</main>
 
 

@@ -104,19 +104,17 @@
               <% number_key = section&.id || category.id %>
                 <% ordered_questions = category.questions.ordered.to_a %>
                 <% questions_by_id = ordered_questions.index_by(&:id) %>
+                <% branch_parent_ids = ordered_questions.select(&:sub_question?).map(&:parent_question_id).compact.uniq %>
                 <% ordered_questions.each_with_index do |question, q_index| %>
                   <% is_sub_question = question.sub_question? %>
                   <% next_question = ordered_questions[q_index + 1] %>
 
-                  <%# Hide conditional subquestions (e.g. Employment follow-ups) unless parent is answered "Yes" %>
-                  <% if is_sub_question %>
-                    <% parent = questions_by_id[question.parent_question_id] %>
-                    <% parent_raw = parent ? (existing_answers[parent.id] || existing_answers[parent.id.to_s]) : nil %>
-                    <% parent_value = parent_raw.is_a?(Hash) ? (parent_raw["answer"] || parent_raw[:answer] || parent_raw["value"] || parent_raw[:value] || parent_raw["text"] || parent_raw[:text] || parent_raw["link"] || parent_raw[:link]).to_s : parent_raw.to_s %>
-                    <% parent_options = parent ? parent.answer_options_list.map { |opt| opt.to_s.strip.downcase } : [] %>
-                    <% conditional_yes_no = parent.present? && parent.question_type == "multiple_choice" && parent_options.include?("yes") && parent_options.include?("no") %>
-                    <% next if conditional_yes_no && !parent_value.casecmp?("Yes") %>
-                  <% end %>
+                  <% parent = is_sub_question ? questions_by_id[question.parent_question_id] : nil %>
+                  <% parent_raw = parent ? (existing_answers[parent.id] || existing_answers[parent.id.to_s]) : nil %>
+                  <% parent_value = parent_raw.is_a?(Hash) ? (parent_raw["answer"] || parent_raw[:answer] || parent_raw["value"] || parent_raw[:value] || parent_raw["text"] || parent_raw[:text] || parent_raw["link"] || parent_raw[:link]).to_s : parent_raw.to_s %>
+                  <% parent_options = parent ? parent.answer_options_list.map { |opt| opt.to_s.strip.downcase } : [] %>
+                  <% conditional_yes_no_child = parent.present? && parent.question_type == "multiple_choice" && parent_options.include?("yes") && parent_options.include?("no") %>
+                  <% hide_branch_child = is_sub_question && conditional_yes_no_child && !parent_value.casecmp?("Yes") %>
 
                   <% question_number = section_question_numbers[number_key] %>
                   <% question_number = (section_question_numbers[number_key] += 1) unless is_sub_question %>
@@ -152,7 +150,23 @@
                   <% required = !(is_yes_no || is_flexibility_scale) %>
                 <% end %>
 
-                <article class="question-block rounded-lg border border-slate-100 bg-slate-50/40 p-4 space-y-4 <%= question.sub_question? ? 'ml-6' : '' %>">
+                <% is_branch_parent = !is_sub_question && question.question_type == "multiple_choice" && branch_parent_ids.include?(question.id) %>
+                <% if is_branch_parent %>
+                  <% option_values = question.answer_options_list.map { |opt| opt.to_s.strip.downcase } %>
+                  <% is_branch_parent = option_values.include?("yes") && option_values.include?("no") %>
+                <% end %>
+                <% branch_target_value = is_branch_parent ? "Yes" : nil %>
+                <% branch_child_of = is_sub_question ? question.parent_question_id : nil %>
+
+                <article class="question-block rounded-lg border border-slate-100 bg-slate-50/40 p-4 space-y-4 <%= question.sub_question? ? 'ml-6' : '' %> <%= hide_branch_child ? 'hidden' : '' %>"
+                         <% if is_branch_parent %>
+                           data-branch-parent="true"
+                           data-branch-parent-id="<%= question.id %>"
+                           data-branch-target-value="<%= branch_target_value %>"
+                         <% end %>
+                         <% if branch_child_of.present? %>
+                           data-branch-child-of="<%= branch_child_of %>"
+                         <% end %>>
                   <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
 
                   <label class="flex w-full items-start justify-between gap-3 text-sm font-medium text-slate-900" for="question-<%= question.id %>">
@@ -224,13 +238,13 @@
                                             raw_answer.is_a?(Hash) ? raw_answer["text"].to_s : ""
                                           end %>
                           <% show_other = (selected == value.to_s) || selected.casecmp?("Other") %>
-                          <div class="ml-6" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" <%= show_other ? "" : "hidden" %>>
+                          <div class="ml-6 <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
                             <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                                other_text,
                                                id: "question-#{question.id}-other",
                                                placeholder: "Please describe...",
                                                class: "w-full max-w-xl rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                               disabled: input_disabled %>
+                                               disabled: (input_disabled || !show_other) %>
                           </div>
                         <% end %>
                       <% end %>
@@ -253,13 +267,13 @@
                                         raw_answer.is_a?(Hash) ? raw_answer["text"].to_s : ""
                                       end %>
                       <% show_other = selected_value.to_s.strip.downcase.start_with?("other") || other_text.present? %>
-                      <div class="mt-2 max-w-xl" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" <%= show_other ? "" : "hidden" %>>
+                      <div class="mt-2 max-w-xl <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= other_pair[1] %>" aria-hidden="<%= show_other ? "false" : "true" %>">
                         <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                            other_text,
                                            id: "question-#{question.id}-other",
                                            placeholder: "Other…",
                                            class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                           disabled: input_disabled %>
+                                           disabled: (input_disabled || !show_other) %>
                       </div>
                     <% end %>
                   <% when "scale" %>
@@ -374,20 +388,22 @@
                     <article class="question-block mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm ring-1 ring-amber-200/40 space-y-3">
                     <div class="flex items-center justify-between gap-3">
                       <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
-                      <p class="text-xs text-slate-500">Score 0–5, comment optional</p>
+                      <p class="text-xs text-slate-500">Score 1–5, comment optional</p>
                     </div>
 
                       <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (0–5)</label>
-                          <select id="ratings_<%= feedback_question_id %>_average_score"
-                                  name="ratings[<%= feedback_question_id %>][average_score]"
-                                  data-advisor-feedback-score="true"
-                                  data-program-target-level="<%= feedback_question&.program_target_level %>"
-                                  class="w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value=""></option>
-                            <%= options_for_select(advisor_proficiency_option_pairs_for(feedback_question), normalize_proficiency_value(existing_q&.average_score)) %>
-                          </select>
+                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (1–5)</label>
+                        <%= render "shared/proficiency_select",
+                                   id: "ratings_#{feedback_question_id}_average_score",
+                                   name: "ratings[#{feedback_question_id}][average_score]",
+                                   question: feedback_question,
+                                   selected: normalize_proficiency_value(existing_q&.average_score),
+                                   data: {
+                                     advisor_feedback_score: true,
+                                     program_target_level: feedback_question&.program_target_level
+                                   },
+                                   class_name: "w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
                       </div>
 
                       <div class="md:col-span-2">
@@ -406,7 +422,11 @@
                     <% end %>
                   <% end %>
                 <% end %>
-                  <div class="h-6" aria-hidden="true"></div>
+                  <% if branch_child_of.present? && conditional_yes_no_child %>
+                    <div class="h-6 <%= hide_branch_child ? 'hidden' : '' %>" aria-hidden="true" data-branch-child-of="<%= branch_child_of %>"></div>
+                  <% else %>
+                    <div class="h-6" aria-hidden="true"></div>
+                  <% end %>
               <% end %>
             </div>
           <% else %>

@@ -11,7 +11,6 @@ module CompositeReportsHelper
     [ "Emerging (2)", "2" ],
     [ "Beginner (1)", "1" ]
   ].freeze
-  ADVISOR_ONLY_PROFICIENCY_OPTION = [ "Not able to assess (0)", "0" ].freeze
 
   # Truncates long text responses to keep PDF generation manageable on low-memory dynos.
   #
@@ -67,7 +66,7 @@ module CompositeReportsHelper
   end
 
   # Returns [label, value] pairs for proficiency dropdowns used in the PDF.
-  # Prefer the question's own dropdown options (student labels), then add the advisor-only 0 option.
+  # Prefer the question's own dropdown options (student labels).
   def proficiency_option_pairs_for(question)
     base = if question && question.respond_to?(:answer_option_pairs)
       question.answer_option_pairs
@@ -76,8 +75,7 @@ module CompositeReportsHelper
     end
 
     base = DEFAULT_PROFICIENCY_OPTION_PAIRS if base.blank?
-    values = base.map { |(_label, value)| value.to_s }
-    base + (values.include?("0") ? [] : [ ADVISOR_ONLY_PROFICIENCY_OPTION ])
+    base.reject { |(_label, value)| value.to_s == "0" }
   end
 
   # Normalizes stored feedback scores into a dropdown value string.
@@ -86,6 +84,8 @@ module CompositeReportsHelper
 
     int_value = score.to_f.round
     return nil unless int_value.between?(0, 5)
+
+    return nil if int_value.zero?
 
     int_value.to_s
   end

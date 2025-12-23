@@ -148,9 +148,25 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "major"
+    t.integer "program_year"
     t.index ["advisor_id"], name: "index_students_on_advisor_id"
+    t.index ["program_year"], name: "index_students_on_program_year"
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
+
+  create_table "competency_target_levels", force: :cascade do |t|
+    t.bigint "program_semester_id", null: false
+    t.string "track", null: false
+    t.integer "program_year"
+    t.string "competency_title", null: false
+    t.integer "target_level", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["program_semester_id", "track", "program_year", "competency_title"], name: "index_competency_targets_unique", unique: true
+    t.index ["program_semester_id"], name: "index_competency_target_levels_on_program_semester_id"
+  end
+
+  add_foreign_key "competency_target_levels", "program_semesters"
 
   create_table "survey_assignments", force: :cascade do |t|
     t.bigint "survey_id", null: false

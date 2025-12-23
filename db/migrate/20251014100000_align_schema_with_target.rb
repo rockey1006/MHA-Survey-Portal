@@ -71,11 +71,13 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.string :uin
       t.bigint :advisor_id
       t.string :major
+      t.integer :program_year
       t.enum :track, enum_type: :student_tracks, null: false, default: "Residential"
       t.enum :classification, enum_type: :student_classifications, null: false, default: "G1"
       t.timestamps
 
       t.index :advisor_id
+      t.index :program_year
       t.index :uin, unique: true, where: "uin IS NOT NULL"
     end
     add_foreign_key :students, :users, column: :student_id, on_delete: :cascade
@@ -112,6 +114,20 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :program_semesters, :name, unique: true
     add_index :program_semesters, :current, where: "current = true"
+
+  # Entity table: per-competency target overrides by semester/track/year.
+  create_table :competency_target_levels do |t|
+      t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
+      t.string :track, null: false
+      t.integer :program_year
+      t.string :competency_title, null: false
+      t.integer :target_level, null: false
+      t.timestamps
+    end
+    add_index :competency_target_levels,
+              %i[program_semester_id track program_year competency_title],
+              unique: true,
+              name: "index_competency_targets_unique"
 
   # Entity table: survey definitions.
   create_table :surveys do |t|

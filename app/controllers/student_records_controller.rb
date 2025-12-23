@@ -7,6 +7,7 @@ class StudentRecordsController < ApplicationController
   #
   # @return [void]
   def index
+    @search_query = params[:q].to_s.strip
     @students = load_students
     @student_records = build_student_records(@students)
   end
@@ -37,10 +38,21 @@ class StudentRecordsController < ApplicationController
       Student.none
     end
 
-    scope
-      .left_joins(:user)
-      .includes(:user, advisor: :user)
-      .order(Arel.sql("LOWER(users.name) ASC"))
+    scope = scope
+            .left_joins(:user)
+            .includes(:user, advisor: :user)
+
+    if @search_query.present?
+      lowered_query = @search_query.downcase
+      query_like = "%#{ActiveRecord::Base.sanitize_sql_like(lowered_query)}%"
+
+      scope = scope.where(
+        "LOWER(users.name) LIKE :q OR LOWER(users.email) LIKE :q OR CAST(students.uin AS TEXT) LIKE :q",
+        q: query_like
+      )
+    end
+
+    scope.order(Arel.sql("LOWER(users.name) ASC"))
   end
 
   # Builds a nested data structure summarizing survey completion for each

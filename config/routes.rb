@@ -54,6 +54,8 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resource :maintenance, only: %i[show update]
+    get "target_levels", to: "target_levels#index", as: :target_levels
+    patch "target_levels", to: "target_levels#update"
     resources :surveys do
       member do
         get :preview

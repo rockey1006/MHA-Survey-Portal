@@ -51,6 +51,14 @@ class SurveysController < ApplicationController
 
     if student
       @survey_assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+
+      if @survey_assignment&.completed_at?
+        due_date = @survey_assignment.due_date
+        can_revise = due_date.blank? || due_date >= Time.current
+        if can_revise
+          flash.now[:notice] ||= "You’re editing a submitted survey. Previous submissions are still visible in your submission history."
+        end
+      end
     end
 
     Rails.logger.info "[SHOW DEBUG] Student ID: #{student&.student_id}"

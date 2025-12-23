@@ -1,0 +1,50 @@
+# Default competency target levels (1-5) aligned to Reports::DataAggregator::COMPETENCY_TITLES order.
+# These defaults are applied for each listed semester, track, and program year.
+
+semesters:
+  - Fall 2025
+  - Spring 2025
+
+program_years:
+  - 1
+  - 2
+
+tracks:
+  Residential:
+    levels:
+      - 3
+      - 4
+      - 3
+      - 3
+      - 4
+      - 3
+      - 4
+      - 4
+      - 3
+      - 3
+      - 4
+      - 3
+      - 2
+      - 3
+      - 3
+      - 3
+      - 3
+  Executive:
+    levels:
+      - 3
+      - 4
+      - 4
+      - 3
+      - 4
+      - 4
+      - 4
+      - 4
+      - 4
+      - 4
+      - 4
+      - 4
+      - 3
+      - 4
+      - 3
+      - 2
+      - 3

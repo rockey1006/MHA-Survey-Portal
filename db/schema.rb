@@ -65,6 +65,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["survey_id"], name: "index_feedback_on_survey_id"
   end
 
+  create_table "majors", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_majors_on_name", unique: true
+  end
+
   create_table "notifications", force: :cascade do |t|
     t.string "title", null: false
     t.text "message"
@@ -135,13 +142,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.string "major"
     t.index ["advisor_id"], name: "index_students_on_advisor_id"
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
-  end
-
-  create_table "majors", force: :cascade do |t|
-    t.string "name", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_majors_on_name", unique: true
   end
 
   create_table "survey_assignments", force: :cascade do |t|

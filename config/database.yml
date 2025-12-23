@@ -15,17 +15,17 @@ development:
     <<: *default
     database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
     migrations_paths: db/cache_migrate
-    schema_dump: db/cache_schema.rb
+    schema_dump: cache_schema.rb
   queue:
     <<: *default
     database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
     migrations_paths: db/queue_migrate
-    schema_dump: db/queue_schema.rb
+    schema_dump: queue_schema.rb
   cable:
     <<: *default
     database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
     migrations_paths: db/cable_migrate
-    schema_dump: db/cable_schema.rb
+    schema_dump: cable_schema.rb
 
 test:
   primary:
@@ -35,17 +35,17 @@ test:
     <<: *default
     database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
     migrations_paths: db/cache_migrate
-    schema_dump: db/cache_schema.rb
+    schema_dump: cache_schema.rb
   queue:
     <<: *default
     database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
     migrations_paths: db/queue_migrate
-    schema_dump: db/queue_schema.rb
+    schema_dump: queue_schema.rb
   cable:
     <<: *default
     database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
     migrations_paths: db/cable_migrate
-    schema_dump: db/cable_schema.rb
+    schema_dump: cable_schema.rb
 
 production:
   primary:
@@ -64,7 +64,7 @@ production:
     database: <%= ENV['CACHE_DATABASE'] || "health_cache" %>
     <% end %>
     migrations_paths: db/cache_migrate
-    schema_dump: db/cache_schema.rb
+    schema_dump: cache_schema.rb
   queue:
     <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
     url: <%= ENV['DATABASE_URL'] %>
@@ -73,7 +73,7 @@ production:
     database: <%= ENV['QUEUE_DATABASE'] || "health_queue" %>
     <% end %>
     migrations_paths: db/queue_migrate
-    schema_dump: db/queue_schema.rb
+    schema_dump: queue_schema.rb
   cable:
     <% if ENV['DATABASE_URL'] && !ENV['DATABASE_URL'].empty? %>
     url: <%= ENV['DATABASE_URL'] %>
@@ -82,4 +82,4 @@ production:
     database: <%= ENV['CABLE_DATABASE'] || "health_cable" %>
     <% end %>
     migrations_paths: db/cable_migrate
-    schema_dump: db/cable_schema.rb
+    schema_dump: cable_schema.rb

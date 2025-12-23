@@ -13,6 +13,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
   max-width: var(--container-max-width);
   margin: 0 auto;
 }
@@ -21,12 +23,14 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2xl);
+  min-width: 0;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
+  min-width: 0;
 }
 
 /* Logo Section */
@@ -57,8 +61,14 @@
 /* Navigation */
 .nav-links {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-4xl);
   margin-left: var(--spacing-6xl);
+  min-width: 0;
+}
+
+.user-section {
+  min-width: 0;
 }
 
 .nav-link {
@@ -88,6 +98,11 @@
   align-items: center;
   gap: var(--spacing-lg);
   position: relative;
+}
+
+/* Toggle switches in header should match the header color scheme. */
+.app-header .c-toggle__label {
+  color: var(--white);
 }
 
 .sign-in-launcher {

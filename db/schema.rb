@@ -96,6 +96,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["name"], name: "index_program_semesters_on_name", unique: true
   end
 
+  create_table "site_settings", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "value"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_site_settings_on_key", unique: true
+  end
+
   create_table "questions", force: :cascade do |t|
     t.string "question_text", null: false
     t.text "description"

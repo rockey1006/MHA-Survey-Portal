@@ -149,6 +149,7 @@ class DashboardsController < ApplicationController
     @total_responses = StudentQuestion.count
     @total_reports = SurveyAssignment.count
     @recent_activity = build_recent_admin_activity
+    @maintenance_enabled = SiteSetting.maintenance_enabled?
   end
 
   # Lists all members and role counts for admin management.

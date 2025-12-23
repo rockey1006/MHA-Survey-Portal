@@ -47,6 +47,7 @@ Rails.application.routes.draw do
   get "debug_users", to: "dashboards#debug_users", as: :debug_users
 
   namespace :admin do
+    resource :maintenance, only: %i[show update]
     resources :surveys do
       member do
         get :preview

@@ -19,35 +19,51 @@ function applyHighContrast(enabled) {
     body.classList.remove("high-contrast")
   }
 
-  // Keep all toggles in sync
-  const buttons = document.querySelectorAll("[data-high-contrast-toggle]")
-  buttons.forEach((btn) => {
-    btn.setAttribute("aria-pressed", enabled ? "true" : "false")
-    btn.textContent = enabled ? "High Contrast: On" : "High Contrast: Off"
+  // Keep all toggles in sync (supports both legacy buttons and new switches)
+  const controls = document.querySelectorAll("[data-high-contrast-toggle]")
+  controls.forEach((el) => {
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+      el.checked = enabled
+      el.setAttribute("aria-checked", enabled ? "true" : "false")
+      if (el.dataset.toggleInitialized === "true") {
+        el.dataset.togglePrev = enabled ? "true" : "false"
+      }
+    } else {
+      el.setAttribute("aria-pressed", enabled ? "true" : "false")
+      el.textContent = enabled ? "High Contrast: On" : "High Contrast: Off"
+    }
   })
 }
 
 function initHighContrastToggle() {
-  const buttons = document.querySelectorAll("[data-high-contrast-toggle]")
-  if (!buttons.length) return
+  const controls = document.querySelectorAll("[data-high-contrast-toggle]")
+  if (!controls.length) return
 
   // Restore previous preference (if any)
   const stored = window.localStorage.getItem(HIGH_CONTRAST_KEY)
   const initialEnabled = stored === "true"
   applyHighContrast(initialEnabled)
 
-  buttons.forEach((btn) => {
+  controls.forEach((el) => {
     // Avoid adding duplicate listeners on Turbo navigations
-    if (btn.dataset.hcInitialized === "true") return
-    btn.dataset.hcInitialized = "true"
+    if (el.dataset.hcInitialized === "true") return
+    el.dataset.hcInitialized = "true"
 
-    btn.addEventListener("click", (e) => {
-      e.preventDefault()
+    const handler = (e) => {
+      if (!(el instanceof HTMLInputElement && el.type === "checkbox")) {
+        e.preventDefault()
+      }
       const isEnabled = document.body.classList.contains("high-contrast")
       const next = !isEnabled
       applyHighContrast(next)
       window.localStorage.setItem(HIGH_CONTRAST_KEY, String(next))
-    })
+    }
+
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+      el.addEventListener("change", handler)
+    } else {
+      el.addEventListener("click", handler)
+    }
   })
 }
 
@@ -63,10 +79,18 @@ function stopReading() {
   }
   currentUtterance = null
 
-  const buttons = document.querySelectorAll("[data-tts-toggle]")
-  buttons.forEach((btn) => {
-    btn.setAttribute("aria-pressed", "false")
-    btn.textContent = "Read Page Aloud"
+  const controls = document.querySelectorAll("[data-tts-toggle]")
+  controls.forEach((el) => {
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+      el.checked = false
+      el.setAttribute("aria-checked", "false")
+      if (el.dataset.toggleInitialized === "true") {
+        el.dataset.togglePrev = "false"
+      }
+    } else {
+      el.setAttribute("aria-pressed", "false")
+      el.textContent = "Read Page Aloud"
+    }
   })
 }
 
@@ -92,10 +116,18 @@ function startReading() {
   utterance.pitch = 1.0
 
   utterance.onstart = () => {
-    const buttons = document.querySelectorAll("[data-tts-toggle]")
-    buttons.forEach((btn) => {
-      btn.setAttribute("aria-pressed", "true")
-      btn.textContent = "Stop Reading"
+    const controls = document.querySelectorAll("[data-tts-toggle]")
+    controls.forEach((el) => {
+      if (el instanceof HTMLInputElement && el.type === "checkbox") {
+        el.checked = true
+        el.setAttribute("aria-checked", "true")
+        if (el.dataset.toggleInitialized === "true") {
+          el.dataset.togglePrev = "true"
+        }
+      } else {
+        el.setAttribute("aria-pressed", "true")
+        el.textContent = "Stop Reading"
+      }
     })
   }
 
@@ -107,24 +139,28 @@ function startReading() {
 }
 
 function initTTSToggle() {
-  const buttons = document.querySelectorAll("[data-tts-toggle]")
-  if (!buttons.length) return
+  const controls = document.querySelectorAll("[data-tts-toggle]")
+  if (!controls.length) return
 
   // If API is missing, disable the control
   if (!("speechSynthesis" in window)) {
-    buttons.forEach((btn) => {
-      btn.disabled = true
-      btn.textContent = "Read Aloud (not supported)"
+    controls.forEach((el) => {
+      el.disabled = true
+      if (!(el instanceof HTMLInputElement && el.type === "checkbox")) {
+        el.textContent = "Read Aloud (not supported)"
+      }
     })
     return
   }
 
-  buttons.forEach((btn) => {
-    if (btn.dataset.ttsInitialized === "true") return
-    btn.dataset.ttsInitialized = "true"
+  controls.forEach((el) => {
+    if (el.dataset.ttsInitialized === "true") return
+    el.dataset.ttsInitialized = "true"
 
-    btn.addEventListener("click", (e) => {
-      e.preventDefault()
+    const handler = (e) => {
+      if (!(el instanceof HTMLInputElement && el.type === "checkbox")) {
+        e.preventDefault()
+      }
 
       const isSpeaking = window.speechSynthesis.speaking
       if (isSpeaking) {
@@ -132,7 +168,13 @@ function initTTSToggle() {
       } else {
         startReading()
       }
-    })
+    }
+
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+      el.addEventListener("change", handler)
+    } else {
+      el.addEventListener("click", handler)
+    }
   })
 }
 
@@ -233,6 +275,46 @@ function initOtherChoiceInputs() {
 }
 
 // -----------------------------
+// Reusable toggle switch (confirm + submit)
+// -----------------------------
+
+function initToggleSwitches() {
+  const inputs = document.querySelectorAll('input[type="checkbox"][data-toggle-switch="true"]')
+  if (!inputs.length) return
+
+  inputs.forEach((input) => {
+    if (input.dataset.toggleInitialized === "true") return
+    input.dataset.toggleInitialized = "true"
+
+    // Track last confirmed state so cancel can revert cleanly.
+    input.dataset.togglePrev = input.checked ? "true" : "false"
+    input.setAttribute("aria-checked", input.checked ? "true" : "false")
+
+    input.addEventListener("change", (e) => {
+      const nextChecked = input.checked
+      const prevChecked = input.dataset.togglePrev === "true"
+
+      const confirmOn = input.getAttribute("data-confirm-on")
+      const confirmOff = input.getAttribute("data-confirm-off")
+      const message = nextChecked ? confirmOn : confirmOff
+
+      if (message && !window.confirm(message)) {
+        // Revert to previous value and do not submit.
+        input.checked = prevChecked
+        input.setAttribute("aria-checked", prevChecked ? "true" : "false")
+        return
+      }
+
+      input.dataset.togglePrev = nextChecked ? "true" : "false"
+      input.setAttribute("aria-checked", nextChecked ? "true" : "false")
+
+      const form = input.closest("form")
+      if (form) form.requestSubmit()
+    })
+  })
+}
+
+// -----------------------------
 // Hook into Turbo / DOM load
 // -----------------------------
 
@@ -241,6 +323,7 @@ function initAccessibilityFeatures() {
   initTTSToggle()
   initSurveyBranching()
   initOtherChoiceInputs()
+  initToggleSwitches()
 }
 
 document.addEventListener("turbo:load", initAccessibilityFeatures)

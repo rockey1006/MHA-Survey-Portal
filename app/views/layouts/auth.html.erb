@@ -37,17 +37,18 @@
     </style>
 
     <div class="flex min-h-screen flex-col">
-      <div class="w-full px-4 pt-4">
-        <div class="layout-shell">
-          <div class="flex items-center justify-end">
-            <%= render "shared/translate_toggle" %>
-          </div>
-        </div>
-      </div>
       <% if content_for?(:header) %>
         <header class="w-full">
           <%= yield :header %>
         </header>
+      <% else %>
+        <div class="w-full px-4 pt-4">
+          <div class="layout-shell">
+            <div class="flex items-center justify-end">
+              <%= render "shared/translate_toggle" %>
+            </div>
+          </div>
+        </div>
       <% end %>
 
       <% if flash.any? %>

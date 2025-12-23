@@ -46,6 +46,14 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.index :role
     end
 
+  # Entity table: site-wide configuration settings.
+  create_table :site_settings do |t|
+      t.string :key, null: false
+      t.string :value
+      t.timestamps
+    end
+    add_index :site_settings, :key, unique: true
+
   # Entity table: admin role profile (1:1 with users).
   create_table :admins, primary_key: :admin_id do |t|
       t.timestamps

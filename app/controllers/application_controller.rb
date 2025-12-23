@@ -3,6 +3,7 @@
 # accessors for views.
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
+  before_action :redirect_for_maintenance_mode
   before_action :authenticate_user!
   before_action :check_student_profile_complete
   before_action :load_notification_state, if: :user_signed_in?
@@ -55,6 +56,36 @@ class ApplicationController < ActionController::Base
     notifications_scope = current_user.notifications
     @unread_notification_count = notifications_scope.unread.count
     @recent_notifications = notifications_scope.recent.limit(10)
+  end
+
+  # When enabled, redirects non-admin users to the maintenance page.
+  # Admins can still sign in and access admin tools to disable maintenance.
+  def redirect_for_maintenance_mode
+    return unless SiteSetting.maintenance_enabled?
+    return if maintenance_mode_whitelisted_path?
+
+    if current_user&.role_admin?
+      return
+    end
+
+    redirect_to maintenance_path
+  end
+
+  def maintenance_mode_whitelisted_path?
+    path = request.path.to_s
+
+    return true if path == maintenance_path
+    return true if path == "/up"
+
+    # Allow authentication flow even while maintenance is enabled.
+    return true if path.start_with?("/sign_in")
+    return true if path.start_with?("/sign_out")
+    return true if path.start_with?("/users/auth")
+
+    # Allow assets to load on the maintenance page.
+    return true if path.start_with?("/assets/")
+
+    false
   end
 
   # Fallback semester label used when there is no ProgramSemester configured yet.

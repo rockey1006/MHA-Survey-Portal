@@ -22,25 +22,19 @@
     </div>
 
     <div class="user-section">
-      <!-- High contrast toggle -->
-      <button
-        type="button"
-        class="<%= tailwind_button_classes(:secondary) %>"
-        data-high-contrast-toggle="true"
-        aria-pressed="false"
-        aria-label="Toggle high contrast mode">
-        High Contrast: Off
-      </button>
+      <%= render ToggleSwitchComponent.new(
+        id: "high-contrast-toggle",
+        checked: false,
+        label: "High Contrast",
+        data: { high_contrast_toggle: true }
+      ) %>
 
-      <!-- Text-to-speech toggle -->
-      <button
-        type="button"
-        class="<%= tailwind_button_classes(:secondary) %>"
-        data-tts-toggle="true"
-        aria-pressed="false"
-        aria-label="Read this page aloud">
-        Read Page Aloud
-      </button>
+      <%= render ToggleSwitchComponent.new(
+        id: "tts-toggle",
+        checked: false,
+        label: "Read Aloud",
+        data: { tts_toggle: true }
+      ) %>
 
       <%= render "shared/translate_toggle" %>
 

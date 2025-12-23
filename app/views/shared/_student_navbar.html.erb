@@ -1,5 +1,22 @@
 <!-- Student Navigation Header -->
 <header class="app-header" role="banner">
+  <% if impersonating? %>
+    <div class="flash flash__warning impersonation-banner" role="status">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          Viewing as <strong><%= current_user&.display_name %></strong> (read-only)
+          <% if impersonator_user.present? %>
+            <span class="opacity-80">— signed in as <%= impersonator_user.display_name %></span>
+          <% end %>
+        </div>
+        <%= link_to "Exit view",
+                    impersonation_path,
+                    method: :delete,
+                    class: "underline whitespace-nowrap" %>
+      </div>
+    </div>
+  <% end %>
+
   <div class="header-content">
     <div class="header-left">
       <div class="logo" aria-label="Texas A&amp;M University">

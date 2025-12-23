@@ -46,6 +46,12 @@ Rails.application.routes.draw do
   patch "update_roles", to: "dashboards#update_roles", as: :update_roles
   get "debug_users", to: "dashboards#debug_users", as: :debug_users
 
+  # Admin-only: start impersonating a student; while impersonating, allow exit.
+  resource :impersonation, only: %i[new create destroy]
+
+  # Admin-only: start impersonating an advisor; while impersonating, allow exit.
+  resource :advisor_impersonation, only: %i[new create destroy]
+
   namespace :admin do
     resource :maintenance, only: %i[show update]
     resources :surveys do

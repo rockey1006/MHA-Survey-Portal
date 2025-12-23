@@ -41,7 +41,11 @@
     </style>
   </head>
 
-  <body class="<%= ["min-h-screen bg-slate-50 text-slate-800 antialiased", (content_for?(:body_class) ? yield(:body_class) : nil)].compact.join(" ") %>">
+  <body
+    class="<%= ["min-h-screen bg-slate-50 text-slate-800 antialiased", (content_for?(:body_class) ? yield(:body_class) : nil)].compact.join(" ") %>"
+    data-impersonating="<%= impersonating? ? "true" : "false" %>"
+    data-impersonation-kind="<%= impersonation_kind %>"
+  >
     <style>
       /* Smoothly transition margin changes when browser/toolbars adjust the page */
       html, body { transition: margin-top 0.3s ease !important; will-change: margin-top; }

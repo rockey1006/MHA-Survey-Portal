@@ -105,6 +105,11 @@
   color: var(--white);
 }
 
+.app-header .impersonation-banner {
+  margin-bottom: 0;
+  border-radius: 0;
+}
+
 .sign-in-launcher {
   position: relative;
 }

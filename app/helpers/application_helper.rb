@@ -3,8 +3,8 @@
 module ApplicationHelper
   DEFAULT_SCALE_LABELS = %w[1 2 3 4 5].freeze
 
-  # Base Tailwind utility classes applied to flash messages.
-  FLASH_BASE_CLASSES = "mb-4 flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 shadow-sm".freeze
+  # Base CSS class applied to all flash notifications.
+  FLASH_BASE_CLASSES = "flash".freeze
   # Query string keys that should be preserved when building sortable headers.
   SURVEY_SORTABLE_KEYS = %w[q track semester].freeze
 
@@ -17,15 +17,15 @@ module ApplicationHelper
 
     case tone
     when :notice, :info
-      "#{FLASH_BASE_CLASSES} border-blue-500 bg-blue-50 text-blue-900"
+      "#{FLASH_BASE_CLASSES} flash__notice"
     when :success
-      "#{FLASH_BASE_CLASSES} border-emerald-500 bg-emerald-50 text-emerald-900"
+      "#{FLASH_BASE_CLASSES} flash__success"
     when :alert, :error
-      "#{FLASH_BASE_CLASSES} border-red-500 bg-red-50 text-red-900"
+      "#{FLASH_BASE_CLASSES} flash__alert"
     when :warning
-      "#{FLASH_BASE_CLASSES} border-amber-500 bg-amber-50 text-amber-900"
+      "#{FLASH_BASE_CLASSES} flash__warning"
     else
-      "#{FLASH_BASE_CLASSES} border-slate-400 bg-white text-slate-700"
+      FLASH_BASE_CLASSES
     end
   end
 

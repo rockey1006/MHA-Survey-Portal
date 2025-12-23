@@ -315,6 +315,122 @@ function initToggleSwitches() {
 }
 
 // -----------------------------
+// Combobox (searchable dropdown)
+// -----------------------------
+
+function initComboboxes() {
+  const widgets = document.querySelectorAll('[data-combobox="true"]')
+  if (!widgets.length) return
+
+  widgets.forEach((widget) => {
+    if (widget.dataset.comboboxInitialized === "true") return
+    widget.dataset.comboboxInitialized = "true"
+
+    const input = widget.querySelector('[data-combobox-input="true"]')
+    const hidden = widget.querySelector('[data-combobox-value="true"]')
+    const menu = widget.querySelector('[data-combobox-menu="true"]')
+    const empty = widget.querySelector('[data-combobox-empty="true"]')
+    if (!input || !hidden || !menu) return
+
+    const options = Array.from(widget.querySelectorAll('[data-combobox-option="true"]'))
+
+    const setOpen = (open) => {
+      menu.classList.toggle("hidden", !open)
+      input.setAttribute("aria-expanded", open ? "true" : "false")
+    }
+
+    const filter = () => {
+      const q = (input.value || "").trim().toLowerCase()
+      let visible = 0
+
+      options.forEach((btn) => {
+        const haystack = (btn.dataset.comboboxOptionSearch || "").toLowerCase()
+        const match = q === "" || haystack.includes(q)
+        btn.hidden = !match
+        if (match) visible += 1
+      })
+
+      if (empty) empty.hidden = !(q !== "" && visible === 0)
+    }
+
+    const selectOption = (btn) => {
+      const value = btn.dataset.comboboxOptionValue || ""
+      const label = btn.dataset.comboboxOptionLabel || ""
+      hidden.value = value
+      input.value = label
+      setOpen(false)
+    }
+
+    input.addEventListener("focus", () => {
+      filter()
+      setOpen(true)
+    })
+
+    input.addEventListener("input", () => {
+      hidden.value = "" // user is typing; clear selection until chosen
+      filter()
+      setOpen(true)
+    })
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        setOpen(false)
+        return
+      }
+    })
+
+    options.forEach((btn) => {
+      btn.addEventListener("click", () => selectOption(btn))
+    })
+
+    document.addEventListener("click", (e) => {
+      if (!widget.contains(e.target)) setOpen(false)
+    })
+  })
+}
+
+// -----------------------------
+// Impersonation: lock write forms (UI)
+// -----------------------------
+
+function initImpersonationReadOnlyUI() {
+  const body = document.body
+  if (!body) return
+  if (body.dataset.impersonating !== "true") return
+
+  const forms = document.querySelectorAll("form")
+  forms.forEach((form) => {
+    if (form.dataset.impersonationLocked === "true") return
+
+    const rawMethod = (form.getAttribute("method") || "get").toLowerCase()
+    if (rawMethod === "get") return
+
+    const action = (form.getAttribute("action") || "").toLowerCase()
+    const override = form.querySelector('input[name="_method"]')
+    const intendedMethod = (override ? override.value : rawMethod).toLowerCase()
+
+    const isExitOrSignOut =
+      intendedMethod === "delete" &&
+      (action.endsWith("/impersonation") ||
+        action.endsWith("/advisor_impersonation") ||
+        action.endsWith("/users/sign_out") ||
+        action.endsWith("/sign_out"))
+
+    if (isExitOrSignOut) return
+
+    form.dataset.impersonationLocked = "true"
+    form.setAttribute("aria-disabled", "true")
+
+    const controls = form.querySelectorAll("input, select, textarea, button")
+    controls.forEach((el) => {
+      if (el instanceof HTMLInputElement && el.type === "hidden") return
+      el.disabled = true
+    })
+  })
+}
+
+
+// -----------------------------
 // Hook into Turbo / DOM load
 // -----------------------------
 
@@ -324,6 +440,8 @@ function initAccessibilityFeatures() {
   initSurveyBranching()
   initOtherChoiceInputs()
   initToggleSwitches()
+  initComboboxes()
+  initImpersonationReadOnlyUI()
 }
 
 document.addEventListener("turbo:load", initAccessibilityFeatures)

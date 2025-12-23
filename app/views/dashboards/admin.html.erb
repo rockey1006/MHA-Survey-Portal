@@ -62,6 +62,15 @@
           <div class="feature-description"><%= @maintenance_enabled ? "Enabled" : "Disabled" %></div>
         <% end %>
       </div>
+
+      <!-- View as Student -->
+      <div class="feature-item admin-feature">
+        <%= link_to new_impersonation_path, class: "feature-link" do %>
+          <div class="feature-icon admin-icon">🕵️</div>
+          <div class="feature-title admin-title">View as Student/Advisor</div>
+          <div class="feature-description">Read-only preview</div>
+        <% end %>
+      </div>
     </div>
   </section>
 

@@ -1,0 +1,47 @@
+<div class="space-y-2" data-combobox="true">
+  <label for="<%= "#{id}-display" %>" class="block text-sm font-semibold text-slate-800"><%= label %></label>
+
+  <input type="hidden" name="<%= name %>" value="" data-combobox-value="true" <%= required ? "required" : "" %> />
+
+  <div class="relative">
+    <input
+      id="<%= "#{id}-display" %>"
+      type="text"
+      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+      placeholder="<%= placeholder %>"
+      autocomplete="off"
+      data-combobox-input="true"
+      aria-autocomplete="list"
+      aria-expanded="false"
+    />
+
+    <div
+      class="absolute z-20 mt-2 hidden max-h-64 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+      data-combobox-menu="true"
+      role="listbox"
+    >
+      <% normalized_options.each do |opt| %>
+        <button
+          type="button"
+          class="block w-full px-3 py-2 text-left text-sm text-slate-900 hover:bg-slate-50"
+          data-combobox-option="true"
+          data-combobox-option-value="<%= opt[:value] %>"
+          data-combobox-option-label="<%= opt[:label] %>"
+          data-combobox-option-search="<%= [opt[:label], opt[:description]].compact.join(" ").downcase %>"
+          role="option"
+        >
+          <div class="font-medium"><%= opt[:label] %></div>
+          <% if opt[:description].present? %>
+            <div class="text-xs text-slate-500"><%= opt[:description] %></div>
+          <% end %>
+        </button>
+      <% end %>
+
+      <div class="px-3 py-2 text-sm text-slate-500" data-combobox-empty="true" hidden>
+        No matches.
+      </div>
+    </div>
+  </div>
+
+  <p class="text-xs text-slate-500">Start typing to search.</p>
+</div>

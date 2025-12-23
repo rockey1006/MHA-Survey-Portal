@@ -15,7 +15,7 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
 
     get user_google_oauth2_omniauth_callback_path, params: { role: "student" }
 
-    assert_redirected_to maintenance_path
+    assert_redirected_to root_path
     follow_redirect!
     assert_equal "Please sign in with your TAMU email (@tamu.edu).", flash[:alert]
   end
@@ -91,7 +91,7 @@ class OmniauthCallbacksControllerUnitTest < ActionController::TestCase
 
     get :google_oauth2
 
-    assert_redirected_to maintenance_path
+    assert_redirected_to root_path
     assert_match "Please sign in with your TAMU email", flash[:alert]
   end
 
@@ -121,12 +121,12 @@ class OmniauthCallbacksControllerUnitTest < ActionController::TestCase
       get :google_oauth2
     end
 
-    assert_redirected_to maintenance_path
+    assert_redirected_to root_path
     assert_match "not authorized", flash[:alert]
   end
 
   test "after_omniauth_failure_path_for returns sign in path" do
-    assert_equal maintenance_path, @controller.send(:after_omniauth_failure_path_for, :user)
+    assert_equal root_path, @controller.send(:after_omniauth_failure_path_for, :user)
   end
 
   private

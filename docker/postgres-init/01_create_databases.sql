@@ -1,26 +1,25 @@
 -- Creates the Rails multi-db databases used by config/database.yml.
 -- This runs automatically on first container init when db-data is empty.
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_development') THEN
-    CREATE DATABASE health_development;
-  END IF;
+-- NOTE: CREATE DATABASE cannot run inside a DO block (it requires autocommit).
+-- psql's \gexec executes the returned SQL as a top-level statement.
 
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_test') THEN
-    CREATE DATABASE health_test;
-  END IF;
+SELECT format('CREATE DATABASE %I', 'health_development')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_development')
+\gexec
 
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_cache') THEN
-    CREATE DATABASE health_cache;
-  END IF;
+SELECT format('CREATE DATABASE %I', 'health_test')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_test')
+\gexec
 
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_queue') THEN
-    CREATE DATABASE health_queue;
-  END IF;
+SELECT format('CREATE DATABASE %I', 'health_cache')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_cache')
+\gexec
 
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_cable') THEN
-    CREATE DATABASE health_cable;
-  END IF;
-END
-$$;
+SELECT format('CREATE DATABASE %I', 'health_queue')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_queue')
+\gexec
+
+SELECT format('CREATE DATABASE %I', 'health_cable')
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'health_cable')
+\gexec

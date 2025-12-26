@@ -241,7 +241,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
 
     assignment = survey_assignments(:residential_assignment)
-    expected_due = "Due #{I18n.l(assignment.due_date.to_date, format: :long)}"
+    expected_due = ApplicationController.helpers.survey_due_note(assignment.due_date)
     assert_includes response.body, expected_due
   end
 

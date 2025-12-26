@@ -3,6 +3,7 @@ student:
   advisor: advisor
   uin: "123456789"
   track: Residential
+  program_year: 1
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -11,6 +12,7 @@ other_student:
   advisor: other_advisor
   uin: "987654321"
   track: Executive
+  program_year: 1
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -19,5 +21,6 @@ completed_student:
   advisor: other_advisor
   uin: "111222333"
   track: Residential
+  program_year: 1
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>

@@ -273,7 +273,13 @@ answer_options_for = lambda do |options|
       value = (entry["value"] || entry[:value] || label).to_s.strip
       next if label.blank? || value.blank?
 
-      { "label" => label, "value" => value }
+      requires_text = entry.key?("requires_text") || entry.key?(:requires_text) ? !!(entry["requires_text"] || entry[:requires_text]) : nil
+      requires_text = entry.key?("other_text") || entry.key?(:other_text) ? !!(entry["other_text"] || entry[:other_text]) : requires_text
+      requires_text = entry.key?("other") || entry.key?(:other) ? !!(entry["other"] || entry[:other]) : requires_text
+
+      definition = { "label" => label, "value" => value }
+      definition["requires_text"] = true if requires_text
+      definition
     else
       entry.to_s.strip.presence
     end
@@ -604,6 +610,8 @@ students.each do |student|
                            high_performer ? drive_links.first : drive_links.sample(random: response_rng)
                          when "multiple_choice"
                            options = choice_values_for.call(question)
+                           other_pair = question.answer_option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+                           other_value = other_pair ? other_pair[1].to_s : "Other"
 
                            if is_competency_question
                              rating_value = competency_rating_value.call(high_performer: high_performer)
@@ -616,6 +624,8 @@ students.each do |student|
                            end
                          when "dropdown"
                            options = choice_values_for.call(question)
+                           other_pair = question.answer_option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+                           other_value = other_pair ? other_pair[1].to_s : "Other"
 
                            if is_competency_question
                              rating_value = competency_rating_value.call(high_performer: high_performer)
@@ -632,6 +642,28 @@ students.each do |student|
                          else
                            high_performer ? "Completed with distinction." : sample_text.call(question)
                          end
+
+        if %w[multiple_choice dropdown].include?(question.question_type)
+          serialized = response_value.to_s
+          option_pairs = question.answer_option_pairs
+          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+          other_value = other_pair ? other_pair[1].to_s : "Other"
+          other_selected = serialized == other_value || serialized.casecmp?("Other") || serialized.strip.downcase.start_with?("other")
+
+          if other_selected
+            other_label = other_pair ? other_pair[0].to_s.downcase : ""
+            question_text = question.question_text.to_s.downcase
+
+            other_text = if other_label.include?("work schedule") || (question_text.include?("work") && question_text.include?("hours"))
+              "My schedule varies week-to-week; I can usually adjust shifts with some notice."
+            else
+              sample_text.call(question)
+            end
+
+            answer_for_storage = other_pair ? other_value : (serialized.presence || "Other")
+            response_value = { "answer" => answer_for_storage, "text" => other_text.to_s }.to_json
+          end
+        end
 
         record.advisor_id ||= advisor_profile&.advisor_id if high_performer && !is_competency_question
 

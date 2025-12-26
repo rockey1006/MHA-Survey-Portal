@@ -231,8 +231,8 @@
                           <span><%= label %></span>
                         </label>
 
-                        <% is_other_option = label.to_s.strip.downcase.start_with?("other") %>
-                        <% if is_other_option %>
+                        <% requires_text = question.answer_option_requires_text?(value) %>
+                        <% if requires_text %>
                           <% other_text = if editable
                                             other_answers[question.id.to_s].to_s
                                           else
@@ -264,19 +264,23 @@
                                    id: "question-#{question.id}",
                                    class: "w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
 
-                    <% other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") } %>
-                    <% if other_pair.present? %>
+                    <% option_pairs.each do |label, value| %>
+                      <% next unless question.answer_option_requires_text?(value) %>
                       <% other_text = if editable
                                         other_answers[question.id.to_s].to_s
                                       else
-                                        raw_answer.is_a?(Hash) ? raw_answer["text"].to_s : ""
+                                        if raw_answer.is_a?(Hash)
+                                          (raw_answer["text"] || raw_answer[:text] || raw_answer["other_text"] || raw_answer[:other_text]).to_s
+                                        else
+                                          ""
+                                        end
                                       end %>
-                      <% show_other = selected_value.to_s.strip.downcase.start_with?("other") || other_text.present? %>
-                      <div class="mt-2 max-w-xl <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= other_pair[1] %>" aria-hidden="<%= show_other ? "false" : "true" %>">
+                      <% show_other = (selected_value.to_s == value.to_s) || selected_value.casecmp?(label.to_s) || selected_value.casecmp?("Other") || other_text.present? %>
+                      <div class="mt-2 max-w-xl <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
                         <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                            other_text,
-                                           id: "question-#{question.id}-other",
-                                           placeholder: "Other…",
+                                           id: "question-#{question.id}-other-#{value.to_s.parameterize}",
+                                           placeholder: "Please describe...",
                                            class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
                                            disabled: (input_disabled || !show_other) %>
                       </div>

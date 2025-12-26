@@ -103,7 +103,7 @@ common_categories: &common_categories
               - ["3 — Some flexibility: some ability to adjust days per week or hours per day; you must work the total hours per week.", "3"]
               - ["4 — Flexible schedule: flexibility in days worked or hours worked per week, with limited variation in total hours per week.", "4"]
               - ["5 — Very flexible schedule: flexibility in days or hours worked each day, including total hours worked per week.", "5"]
-              - ["Other — Please describe the flexibility of your work schedule.", "0"]
+              - { label: "Other — Please describe the flexibility of your work schedule.", value: "0", requires_text: true }
 
   - name: "Health Care Environment and Community"
     description: "Relation between health care operations and community organizations and policies"

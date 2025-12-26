@@ -244,19 +244,24 @@ function initOtherChoiceInputs() {
 
     const sync = (questionId) => {
       const inputName = `answers[${questionId}]`
-      const selected = form.querySelector(`input[name="${inputName}"]:checked`)
 
-      const wrapper = form.querySelector(`[data-other-input-wrapper][data-other-for-question-id="${questionId}"]`)
-      if (!wrapper) return
+      const selectedRadio = form.querySelector(`input[name="${inputName}"]:checked`)
+      const select = form.querySelector(`select[name="${inputName}"]`)
+      const currentValue = (selectedRadio ? selectedRadio.value : (select ? select.value : "")).trim()
 
-      const otherChoiceValue = (wrapper.dataset.otherChoiceValue || "Other").trim()
-      const isOther = selected && selected.value === otherChoiceValue
+      const matchingWrappers = form.querySelectorAll(`[data-other-input-wrapper][data-other-for-question-id="${questionId}"]`)
+      if (!matchingWrappers.length) return
 
-      wrapper.classList.toggle("hidden", !isOther)
-      wrapper.setAttribute("aria-hidden", isOther ? "false" : "true")
+      matchingWrappers.forEach((wrapper) => {
+        const otherChoiceValue = (wrapper.dataset.otherChoiceValue || "Other").trim()
+        const isOther = currentValue && currentValue === otherChoiceValue
 
-      const input = wrapper.querySelector("input")
-      if (input) input.disabled = !isOther
+        wrapper.classList.toggle("hidden", !isOther)
+        wrapper.setAttribute("aria-hidden", isOther ? "false" : "true")
+
+        const input = wrapper.querySelector("input")
+        if (input) input.disabled = !isOther
+      })
     }
 
     wrappers.forEach((wrapper) => {
@@ -268,6 +273,11 @@ function initOtherChoiceInputs() {
       radios.forEach((radio) => {
         radio.addEventListener("change", () => sync(qid))
       })
+
+      const select = form.querySelector(`select[name="${inputName}"]`)
+      if (select) {
+        select.addEventListener("change", () => sync(qid))
+      }
 
       sync(qid)
     })

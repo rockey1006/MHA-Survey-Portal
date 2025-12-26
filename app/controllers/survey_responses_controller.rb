@@ -104,16 +104,11 @@ class SurveyResponsesController < ApplicationController
         submitted_value = answers[question_id.to_s]
         question = questions_map[question_id]
 
-        if question&.question_type == "multiple_choice"
-          option_pairs = question.answer_option_pairs
-          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
-          other_value = other_pair ? other_pair[1].to_s : "Other"
-
-          if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
-            submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+        if question&.choice_question?
+          selected_value = submitted_value.to_s
+          if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
+            submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
           end
-        elsif submitted_value.to_s == "Other"
-          submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
         end
 
         record = StudentQuestion.find_or_initialize_by(student_id: @student.student_id, question_id: question_id)

@@ -148,7 +148,7 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
       question_order: 999,
       is_required: false,
       has_evidence_field: false,
-      answer_options: ["Yes", "No", "Other"].to_json
+      answer_options: [ "Yes", "No", "Other" ].to_json
     )
 
     StudentQuestion.where(student_id: @student.student_id, question_id: question.id).delete_all

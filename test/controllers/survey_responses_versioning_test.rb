@@ -51,8 +51,14 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
   end
 
   test "admin edit captures a baseline when no prior versions exist" do
-    question = @survey.questions.order(:id).first
+    question = @survey.questions.order(:id).detect do |candidate|
+      StudentQuestion.where(student_id: @student.student_id, question_id: candidate.id).none?
+    end
+    question ||= @survey.questions.order(:id).first
     assert question, "Expected survey to have at least one question"
+
+    # Ensure we don't collide with fixtures.
+    StudentQuestion.where(student_id: @student.student_id, question_id: question.id).delete_all
 
     # Create persisted answers without creating any SurveyResponseVersion rows.
     StudentQuestion.create!(

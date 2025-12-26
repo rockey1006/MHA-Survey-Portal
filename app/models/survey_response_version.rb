@@ -13,6 +13,23 @@ class SurveyResponseVersion < ApplicationRecord
   scope :chronological, -> { order(created_at: :asc, id: :asc) }
 
   class << self
+    # Returns a normalized hash of the current persisted StudentQuestion answers
+    # for the given student/survey pair.
+    #
+    # @param student [Student]
+    # @param survey [Survey]
+    # @return [Hash{String => Object}]
+    def current_answers_for(student:, survey:)
+      question_ids = survey.questions.select(:id)
+      responses = StudentQuestion
+                    .where(student_id: student.student_id, question_id: question_ids)
+                    .select(:question_id, :response_value, :updated_at, :created_at)
+
+      responses.each_with_object({}) do |record, memo|
+        memo[record.question_id.to_s] = record.answer
+      end
+    end
+
     # Captures a snapshot of the current persisted StudentQuestion answers for
     # the given student/survey pair.
     #
@@ -23,14 +40,7 @@ class SurveyResponseVersion < ApplicationRecord
     # @param event [String, Symbol]
     # @return [SurveyResponseVersion]
     def capture_current!(student:, survey:, assignment: nil, actor_user: nil, event:)
-      question_ids = survey.questions.select(:id)
-      responses = StudentQuestion
-                    .where(student_id: student.student_id, question_id: question_ids)
-                    .select(:question_id, :response_value, :updated_at, :created_at)
-
-      answers = responses.each_with_object({}) do |record, memo|
-        memo[record.question_id.to_s] = record.answer
-      end
+      answers = current_answers_for(student: student, survey: survey)
 
       create!(
         student_id: student.student_id,

@@ -77,6 +77,29 @@ class SurveyResponsesController < ApplicationController
     allowed_question_ids = questions_map.keys
 
     ActiveRecord::Base.transaction do
+      assignment = SurveyAssignment.find_by(student_id: @student.student_id, survey_id: @survey.id)
+
+      # If the student has existing persisted answers but no snapshot for the
+      # current state, capture a baseline so the admin edit doesn't erase
+      # the only visible history.
+      before_answers = SurveyResponseVersion.current_answers_for(student: @student, survey: @survey)
+      existing_versions = SurveyResponseVersion
+                            .for_pair(student_id: @student.student_id, survey_id: @survey.id)
+                            .chronological
+
+      if before_answers.present?
+        latest_answers = existing_versions.last&.answers
+        if latest_answers != before_answers
+          SurveyResponseVersion.capture_current!(
+            student: @student,
+            survey: @survey,
+            assignment: assignment,
+            actor_user: current_user,
+            event: :admin_snapshot
+          )
+        end
+      end
+
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
         question = questions_map[question_id]
@@ -104,14 +127,16 @@ class SurveyResponsesController < ApplicationController
         end
       end
 
-      assignment = SurveyAssignment.find_by(student_id: @student.student_id, survey_id: @survey.id)
-      SurveyResponseVersion.capture_current!(
-        student: @student,
-        survey: @survey,
-        assignment: assignment,
-        actor_user: current_user,
-        event: :admin_edited
-      )
+      after_answers = SurveyResponseVersion.current_answers_for(student: @student, survey: @survey)
+      if after_answers != before_answers
+        SurveyResponseVersion.capture_current!(
+          student: @student,
+          survey: @survey,
+          assignment: assignment,
+          actor_user: current_user,
+          event: :admin_edited
+        )
+      end
     end
 
     redirect_to survey_response_path(@survey_response.id, return_to: @return_to), notice: "Survey responses updated."

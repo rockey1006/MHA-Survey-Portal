@@ -50,6 +50,39 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "admin edit captures a baseline when no prior versions exist" do
+    question = @survey.questions.order(:id).first
+    assert question, "Expected survey to have at least one question"
+
+    # Create persisted answers without creating any SurveyResponseVersion rows.
+    StudentQuestion.create!(
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      question_id: question.id,
+      response_value: "A_BEFORE"
+    )
+
+    assert_equal 0, SurveyResponseVersion.for_pair(student_id: @student.student_id, survey_id: @survey.id).count
+
+    sign_in @admin_user
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    assert_difference "SurveyResponseVersion.count", 2 do
+      patch survey_response_path(survey_response), params: { answers: { question.id.to_s => "A_AFTER" } }
+    end
+    assert_response :redirect
+
+    versions = SurveyResponseVersion
+                 .for_pair(student_id: @student.student_id, survey_id: @survey.id)
+                 .chronological
+
+    assert_equal 2, versions.size
+    assert_equal "admin_snapshot", versions.first.event
+    assert_equal "A_BEFORE", versions.first.answers[question.id.to_s]
+    assert_equal "admin_edited", versions.last.event
+    assert_equal "A_AFTER", versions.last.answers[question.id.to_s]
+  end
+
   test "survey response show supports version navigation" do
     sign_in @student_user
 

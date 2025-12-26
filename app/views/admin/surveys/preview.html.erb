@@ -85,9 +85,12 @@
                       <% end %>
                     </span>
 
-                    <% if question.question_type_dropdown? && question.program_target_level.present? %>
+                      <% preview_track = (@track_list.is_a?(Array) && @track_list.size == 1) ? @track_list.first : nil %>
+                      <% preview_student = preview_track.present? ? OpenStruct.new(track_before_type_cast: preview_track, program_year: nil) : nil %>
+                      <% preview_target_level = preview_student ? effective_competency_target_level(question: question, survey: @survey, student: preview_student) : question.program_target_level %>
+                      <% if question.question_type_dropdown? && preview_target_level.present? %>
                       <span class="shrink-0 ml-auto text-right">
-                        <span class="target-level-badge">Target Level: <%= question.program_target_level %>/5</span>
+                          <span class="target-level-badge">Target Level: <%= preview_target_level %>/5</span>
                       </span>
                     <% end %>
                   </span>

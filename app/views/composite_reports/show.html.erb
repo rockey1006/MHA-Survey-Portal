@@ -122,9 +122,10 @@
               <% end %>
               <div class="question-heading">
                 <div class="question-body"><%= question.question_text %></div>
-                <% if question.question_type == "dropdown" && question.program_target_level.present? %>
+                <% effective_target_level = effective_competency_target_level(question: question, survey: survey, student: student) %>
+                <% if question.question_type == "dropdown" && effective_target_level.present? %>
                   <div class="target-level-wrap">
-                    <span class="target-level-badge">Target Level: <%= question.program_target_level %>/5</span>
+                    <span class="target-level-badge">Target Level: <%= effective_target_level %>/5</span>
                   </div>
                 <% end %>
               </div>
@@ -339,7 +340,7 @@
 
   feedback_rows_for_summary.each do |entry|
     question = questions_by_id_for_summary[entry.question_id]
-    target = question&.program_target_level
+    target = effective_competency_target_level(question: question, survey: survey, student: student)
     next if target.blank?
 
     score = entry.average_score.to_f

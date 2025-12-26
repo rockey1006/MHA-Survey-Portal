@@ -205,6 +205,36 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, Time.zone.now.strftime("%B %Y")
   end
 
+  test "show displays effective competency target level from CompetencyTargetLevel" do
+    sign_in @student_user
+
+    @student.update!(program_year: 1)
+    competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
+    category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
+
+    question = category.questions.create!(
+      question_text: competency_title,
+      question_order: 999,
+      question_type: "dropdown",
+      answer_options: %w[1 2 3 4 5].to_json,
+      program_target_level: 1
+    )
+
+    CompetencyTargetLevel.create!(
+      program_semester: @survey.program_semester,
+      track: @student.track_before_type_cast,
+      program_year: 1,
+      competency_title: competency_title,
+      target_level: 4
+    )
+
+    get survey_path(@survey)
+    assert_response :success
+
+    assert_match(/#{Regexp.escape(competency_title)}.*Target Level: 4\/5/m, response.body)
+    refute_match(/#{Regexp.escape(competency_title)}.*Target Level: 1\/5/m, response.body)
+  end
+
   # Authentication Tests
   test "index requires authentication" do
     get surveys_path

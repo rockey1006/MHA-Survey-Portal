@@ -200,9 +200,10 @@
                       </span>
                     </span>
 
-                    <% if question.question_type_dropdown? && question.program_target_level.present? %>
+                    <% effective_target_level = effective_competency_target_level(question: question, survey: survey, student: sr&.student) %>
+                    <% if question.question_type_dropdown? && effective_target_level.present? %>
                       <span class="shrink-0 ml-auto text-right">
-                        <span class="target-level-badge">Target Level: <%= question.program_target_level %>/5</span>
+                        <span class="target-level-badge">Target Level: <%= effective_target_level %>/5</span>
                       </span>
                     <% end %>
                   </label>
@@ -401,7 +402,7 @@
                                    selected: normalize_proficiency_value(existing_q&.average_score),
                                    data: {
                                      advisor_feedback_score: true,
-                                     program_target_level: feedback_question&.program_target_level
+                                     program_target_level: effective_competency_target_level(question: feedback_question, survey: survey, student: sr&.student)
                                    },
                                    class_name: "w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
                       </div>

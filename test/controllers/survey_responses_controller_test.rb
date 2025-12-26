@@ -85,6 +85,40 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     @survey_response = SurveyResponse.build(student: student, survey: survey)
   end
 
+  test "show uses competency target levels rather than legacy question program_target_level" do
+    sign_in @student_user
+
+    student = students(:student)
+    student.update!(program_year: 1)
+    survey = surveys(:fall_2025)
+
+    competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
+    category = survey.categories.first || survey.categories.create!(name: "Test Category", description: "")
+
+    category.questions.create!(
+      question_text: competency_title,
+      question_order: 999,
+      question_type: "dropdown",
+      answer_options: %w[1 2 3 4 5].to_json,
+      program_target_level: 1
+    )
+
+    CompetencyTargetLevel.create!(
+      program_semester: survey.program_semester,
+      track: student.track_before_type_cast,
+      program_year: 1,
+      competency_title: competency_title,
+      target_level: 5
+    )
+
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+
+    get survey_response_path(survey_response)
+    assert_response :success
+    assert_match(/#{Regexp.escape(competency_title)}.*Target Level: 5\/5/m, response.body)
+    refute_match(/#{Regexp.escape(competency_title)}.*Target Level: 1\/5/m, response.body)
+  end
+
   test "student can view their own survey response" do
     sign_in @student_user
 

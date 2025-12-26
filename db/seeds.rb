@@ -263,6 +263,7 @@ end
 
 created_surveys = []
 surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
+survey_due_dates = {}
 
 legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
 question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
@@ -449,6 +450,15 @@ survey_templates.each do |definition|
     seed_auto_assign_students = definition.fetch("seed_auto_assign_students", true)
     tracks = Array(definition.fetch("tracks", [])).map(&:to_s)
     survey.assign_tracks!(tracks)
+
+    raw_due_date = definition["due_date"].to_s.strip
+    if raw_due_date.present?
+      begin
+        survey_due_dates[survey.id] = Time.zone.parse(raw_due_date).end_of_day
+      rescue StandardError
+        # Ignore invalid due dates; we will fall back to default assignment logic.
+      end
+    end
 
     created_surveys << survey
 
@@ -637,11 +647,11 @@ students.each do |student|
     completion_time = nil
     if pending_student
       assigned_time = Time.zone.now - response_rng.rand(3..10).days
-      due_time = assigned_time + 14.days
+      due_time = survey_due_dates[survey.id] || (assigned_time + 14.days)
     else
       completion_time = latest_response_timestamp || Time.zone.now
       assigned_time = completion_time - 10.days
-      due_time = assigned_time + 14.days
+      due_time = survey_due_dates[survey.id] || (assigned_time + 14.days)
     end
 
     assignment = SurveyAssignment.find_or_initialize_by(student_id: student.student_id, survey_id: survey.id)

@@ -238,6 +238,7 @@ class FeedbacksController < ApplicationController
   def load_feedback_new_context
     # Build PORO and related data the `new` view expects so re-rendering `new`
     # preserves student responses and existing feedback state.
+    @return_to = safe_return_to_param
     @survey_response = SurveyResponse.build(student: @student, survey: @survey)
     question_ids = @survey.questions.select(:id)
     @responses = StudentQuestion.where(student_id: @student.student_id, question_id: question_ids).includes(question: :category)
@@ -364,12 +365,14 @@ class FeedbacksController < ApplicationController
   end
 
   def after_save_redirect_path
+    safe_return_to_param
+  end
+
+  def safe_return_to_param
     return_to = params[:return_to].to_s
+    return student_records_path if return_to.blank?
+
     # Only allow local (relative) paths to avoid open redirects.
-    if return_to.start_with?("/") && !return_to.start_with?("//")
-      return_to
-    else
-      student_records_path
-    end
+    return_to.start_with?("/") && !return_to.start_with?("//") ? return_to : student_records_path
   end
 end

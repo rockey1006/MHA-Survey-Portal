@@ -17,8 +17,16 @@ module SurveyAssignments
       end
     end
 
+    test "skips assignment when program year is blank" do
+      @student.update_columns(track: "Residential", program_year: nil)
+
+      assert_no_difference -> { SurveyAssignment.count } do
+        AutoAssigner.call(student: @student)
+      end
+    end
+
     test "assigns surveys matching the student's track" do
-      @student.update_columns(track: "Residential")
+      @student.update_columns(track: "Residential", program_year: 1)
 
       assert_difference -> { @student.survey_assignments.count }, 1 do
         AutoAssigner.call(student: @student)
@@ -32,7 +40,7 @@ module SurveyAssignments
     end
 
     test "replaces assignments when the track changes" do
-      @student.update_columns(track: "Residential")
+      @student.update_columns(track: "Residential", program_year: 1)
       AutoAssigner.call(student: @student)
 
       @student.update_columns(track: "Executive")
@@ -42,7 +50,7 @@ module SurveyAssignments
     end
 
     test "keeps completed assignments when the track changes" do
-      @student.update_columns(track: "Residential")
+      @student.update_columns(track: "Residential", program_year: 1)
       AutoAssigner.call(student: @student)
 
       assignment = @student.survey_assignments.find_by!(survey: surveys(:fall_2025))
@@ -65,7 +73,7 @@ module SurveyAssignments
       ProgramSemester.find_or_create_by!(name: "Spring 2025").update!(current: true)
       ProgramSemester.where.not(name: "Spring 2025").update_all(current: false)
 
-      @student.update_columns(track: "Executive")
+      @student.update_columns(track: "Executive", program_year: 1)
       AutoAssigner.call(student: @student)
 
       assert_equal [ surveys(:spring_2025).id ], @student.survey_assignments.pluck(:survey_id)

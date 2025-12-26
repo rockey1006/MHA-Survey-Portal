@@ -16,10 +16,10 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   # Helper to generate valid student params for profile completion
   def valid_student_params(overrides = {})
     {
-      name: @student.user.name || "Test Name",
       uin: @student.uin || "123456789",
       major: @student.major || "Computer Science",
       track: @student.track || "Residential",
+      program_year: @student.program_year || 1,
       advisor_id: @student.advisor_id || Advisor.first&.id
     }.merge(overrides)
   end
@@ -38,7 +38,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update requires authentication" do
-    patch student_profile_path, params: { student: { name: "Test" } }
+    patch student_profile_path, params: { student: { program_year: 1 } }
 
     assert_redirected_to new_user_session_path
   end
@@ -65,7 +65,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   test "update requires student role" do
     sign_in @admin
 
-    patch student_profile_path, params: { student: { name: "Test" } }
+    patch student_profile_path, params: { student: { program_year: 1 } }
 
     assert_redirected_to root_path
     assert_equal "Access denied.", flash[:alert]
@@ -92,7 +92,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   test "advisor cannot access update" do
     sign_in @advisor
 
-    patch student_profile_path, params: { student: { name: "Test" } }
+    patch student_profile_path, params: { student: { program_year: 1 } }
 
     assert_redirected_to root_path
     assert_equal "Access denied.", flash[:alert]
@@ -150,34 +150,15 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   # Update Action Tests - Name
-  test "update allows changing student name" do
+  test "update does not allow changing student name" do
     sign_in @student_user
     original_name = @student.user.name
 
     patch student_profile_path, params: {
-      student: valid_student_params(name: "New Name")
+      student: valid_student_params.merge(name: "New Name")
     }
 
     assert_redirected_to student_dashboard_path
-    @student.user.reload
-    assert_equal "New Name", @student.user.name
-  ensure
-    @student.user.update!(name: original_name) if original_name
-  end
-
-  test "update preserves name when not provided" do
-    sign_in @student_user
-    original_name = @student.user.name
-
-    patch student_profile_path, params: {
-      student: {
-        uin: @student.uin,
-        major: @student.major,
-        track: @student.track,
-        advisor_id: @student.advisor_id
-      }
-    }
-
     @student.user.reload
     assert_equal original_name, @student.user.name
   end
@@ -218,13 +199,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     original_track = @student.track
 
     patch student_profile_path, params: {
-      student: {
-        name: @student.user.name || "Test Name",
-        uin: @student.uin || "123456789",
-        major: @student.major || "Computer Science",
-        track: "Executive",
-        advisor_id: @student.advisor_id || Advisor.first&.id
-      }
+      student: valid_student_params(track: "Executive")
     }
 
     assert_redirected_to student_dashboard_path
@@ -254,21 +229,21 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   # Update Action Tests - Multiple Attributes
   test "update allows changing multiple attributes" do
     sign_in @student_user
-    original_name = @student.user.name
     original_major = @student.major
+    original_program_year = @student.program_year
 
     patch student_profile_path, params: {
-      student: valid_student_params(name: "Updated Name", major: "Updated Major")
+      student: valid_student_params(program_year: 2, major: "Updated Major")
     }
 
     assert_redirected_to student_dashboard_path
     @student.reload
     @student.user.reload
-    assert_equal "Updated Name", @student.user.name
     assert_equal "Updated Major", @student.major
+    assert_equal 2, @student.program_year
   ensure
-    @student.user.update!(name: original_name)
     @student.update!(major: original_major)
+    @student.update!(program_year: original_program_year)
   end
 
   # Success Messages
@@ -299,10 +274,10 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
 
     patch student_profile_path, params: {
       student: {
-        name: "",
         uin: "",
         major: "",
         track: "",
+        program_year: nil,
         advisor_id: nil
       }
     }
@@ -343,7 +318,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal original_student_id, @student.student_id
   end
 
-  test "update only permits name uin major track and advisor_id" do
+  test "update only permits uin major track program_year and advisor_id" do
     sign_in @student_user
 
     patch student_profile_path, params: {
@@ -385,6 +360,13 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
 
   test "update skips auto-assignment when track unchanged and assignments exist" do
     sign_in @student_user
+    @student.update_columns(program_year: 1)
+    SurveyAssignment.find_or_create_by!(student_id: @student.student_id, survey: surveys(:fall_2025)) do |assignment|
+      assignment.advisor_id = @student.advisor_id
+      assignment.assigned_at = Time.zone.now
+      assignment.due_date = 2.weeks.from_now
+    end
+
     auto_assign_called = false
 
     SurveyAssignments::AutoAssigner.stub(:call, ->(**) { auto_assign_called = true }) do
@@ -438,14 +420,15 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     other_student = Student.where.not(student_id: @student.student_id).first
     other_student ||= create_additional_student
 
-    other_student_name = other_student.user.name
+    other_student.update_columns(major: "Other Major") if other_student.major.blank?
+    other_student_major = other_student.major
 
     patch student_profile_path, params: {
-      student: valid_student_params(name: "Different Name")
+      student: valid_student_params(major: "Different Major")
     }
 
-    other_student.user.reload
-    assert_equal other_student_name, other_student.user.name
+    other_student.reload
+    assert_equal other_student_major, other_student.major
   end
 
   # Form Display
@@ -458,20 +441,6 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   # Persistence Tests
-  test "update persists name changes to user" do
-    sign_in @student_user
-    original_name = @student.user.name
-
-    patch student_profile_path, params: {
-      student: valid_student_params(name: "Persisted Name")
-    }
-
-    user_from_db = User.find(@student.user.id)
-    assert_equal "Persisted Name", user_from_db.name
-  ensure
-    @student.user.update!(name: original_name)
-  end
-
   test "update persists student attribute changes" do
     sign_in @student_user
     original_major = @student.major
@@ -486,21 +455,18 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     @student.update!(major: original_major) if original_major
   end
 
-  # Edge Cases
-  test "update handles blank name" do
+  test "update persists program year changes" do
     sign_in @student_user
+    original_program_year = @student.program_year
 
     patch student_profile_path, params: {
-      student: {
-        name: "",
-        uin: @student.uin,
-        major: @student.major,
-        track: @student.track,
-        advisor_id: @student.advisor_id
-      }
+      student: valid_student_params(program_year: 2)
     }
 
-    assert_response :unprocessable_entity
+    student_from_db = Student.find(@student.student_id)
+    assert_equal 2, student_from_db.program_year
+  ensure
+    @student.update!(program_year: original_program_year)
   end
 
   test "update allows nil advisor_id" do
@@ -547,7 +513,8 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
       advisor: advisor,
       uin: generate_unique_uin,
       track: @student.track || "Residential",
-      major: @student.major || "Undeclared"
+      major: @student.major || "Undeclared",
+      program_year: 1
     )
   end
 
@@ -593,22 +560,24 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   # Save Transaction
-  test "update saves both user and student in transaction" do
+  test "update saves student changes without changing user name" do
     sign_in @student_user
     original_name = @student.user.name
     original_major = @student.major
+    original_program_year = @student.program_year
 
     patch student_profile_path, params: {
-      student: valid_student_params(name: "Transaction Name", major: "Transaction Major")
+      student: valid_student_params(program_year: 2, major: "Transaction Major")
     }
 
     @student.reload
     @student.user.reload
-    assert_equal "Transaction Name", @student.user.name
+    assert_equal original_name, @student.user.name
     assert_equal "Transaction Major", @student.major
+    assert_equal 2, @student.program_year
   ensure
-    @student.user.update!(name: original_name)
     @student.update!(major: original_major)
+    @student.update!(program_year: original_program_year)
   end
 
   # Track Values
@@ -628,25 +597,6 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     end
   ensure
     @student.update!(track: original_track) if original_track
-  end
-
-  # Blank Name Handling
-  test "update skips user name update when name is blank" do
-    sign_in @student_user
-    original_name = @student.user.name
-
-    patch student_profile_path, params: {
-      student: {
-        name: "   ",
-        uin: @student.uin,
-        major: @student.major,
-        track: @student.track,
-        advisor_id: @student.advisor_id
-      }
-    }
-
-    # Should fail validation
-    assert_response :unprocessable_entity
   end
 
   # Advisor Join

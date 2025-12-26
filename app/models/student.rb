@@ -23,8 +23,10 @@ class Student < ApplicationRecord
   validates :uin, format: { with: UIN_FORMAT, message: "must be exactly 9 digits" }, allow_nil: true
   validates :major, presence: true, on: :profile_completion
   validates :track, presence: true, on: :profile_completion
+  validates :program_year, presence: true, on: :profile_completion
+  validates :program_year, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 10 }, allow_nil: true
 
-  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? }
+  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? || saved_change_to_program_year? }
 
   # Checks if the student has completed their profile setup
   #

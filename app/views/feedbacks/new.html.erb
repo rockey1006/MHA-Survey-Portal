@@ -2,7 +2,7 @@
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
       <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true, data: { turbo: false }, class: "space-y-8 survey-form" do |f| %>
-        <% back_path = params[:return_to].presence || student_records_path %>
+        <% back_path = @return_to.presence || student_records_path %>
         <%= hidden_field_tag :return_to, back_path %>
         <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question } %>
 

@@ -253,6 +253,7 @@ common_categories: &common_categories
 
 survey_base: &survey_base
   program_semester: "Fall 2025"
+  due_date: "2025-12-08"
   legend:
     title: "Rating Scale Reference"
     body: *mha_competency_tooltip
@@ -277,16 +278,20 @@ surveys:
 
   - <<: *executive_survey_base
     program_semester: "Spring 2025"
+    due_date: "2025-04-29"
     seed_auto_assign_students: false
 
   - <<: *residential_survey_base
     program_semester: "Spring 2025"
+    due_date: "2025-04-29"
     seed_auto_assign_students: false
 
   - <<: *executive_survey_base
     program_semester: "Spring 2026"
+    due_date: "2026-04-28"
     seed_auto_assign_students: false
 
   - <<: *residential_survey_base
     program_semester: "Spring 2026"
+    due_date: "2026-04-28"
     seed_auto_assign_students: false

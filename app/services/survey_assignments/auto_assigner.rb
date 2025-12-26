@@ -2,26 +2,28 @@
 
 module SurveyAssignments
   # Ensures a student's survey assignments mirror the surveys associated with
-  # their current track selection. When the student has not selected a track,
+  # their current track selection and program year. When either value is blank,
   # the auto assigner leaves the assignment list untouched so that a first-time
   # login does not receive surveys prematurely.
   class AutoAssigner
     # @param student [Student]
     # @param track [String, nil]
+    # @param program_year [Integer, String, nil]
     # @return [void]
-    def self.call(student:, track: nil)
-      new(student:, track:).call
+    def self.call(student:, track: nil, program_year: nil)
+      new(student:, track:, program_year:).call
     end
 
-    def initialize(student:, track: nil)
+    def initialize(student:, track: nil, program_year: nil)
       @student = student
       @track = (track.presence || student&.track).to_s.strip
+      @program_year = program_year.presence || student&.program_year
     end
 
     def call
       return unless student
 
-      if track.blank?
+      if track.blank? || program_year.blank?
         # Track selection not available yet; remove any outdated managed
         # assignments so that onboarding students start with a clean slate.
         remove_managed_assignments!(allowed_ids: [])
@@ -42,7 +44,7 @@ module SurveyAssignments
 
     private
 
-    attr_reader :student, :track
+    attr_reader :student, :track, :program_year
 
     def surveys_for_track
       current_semester = ProgramSemester.current&.name.to_s.strip

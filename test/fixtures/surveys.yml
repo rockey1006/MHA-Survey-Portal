@@ -21,3 +21,19 @@ fall_2025_executive:
   is_active: true
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+spring_2026_residential:
+  title: Spring 2026 Health Assessment
+  program_semester: spring_2026
+  description: Spring residential survey
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+spring_2026_executive:
+  title: Spring 2026 Executive Assessment
+  program_semester: spring_2026
+  description: Spring executive survey
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

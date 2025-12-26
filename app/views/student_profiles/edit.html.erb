@@ -4,6 +4,7 @@
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
 <% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
+<% program_year = @student.program_year.presence || "Not set" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
@@ -69,8 +70,8 @@
           <p class="c-value c-value--xl c-value--inverse"><%= uin %></p>
         </article>
         <article class="c-kv c-kv--inverse c-kv--compact">
-          <p class="c-eyebrow c-eyebrow--inverse">Advisor status</p>
-          <p class="c-value c-value--xl c-value--inverse"><%= advisor_name %></p>
+          <p class="c-eyebrow c-eyebrow--inverse">Program year</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= program_year %></p>
         </article>
       </div>
     </section>
@@ -102,16 +103,6 @@
               <div class="u-grid" style="--u-grid-min: 260px">
                 <div class="c-kv c-kv--compact">
                   <div class="c-field">
-                    <%= form.label :name, "Full name", class: "c-label" %>
-                    <%= form.text_field :name, value: @student.user&.name,
-                        placeholder: "John Doe",
-                        required: true,
-                        class: "c-input" %>
-                  </div>
-                </div>
-
-                <div class="c-kv c-kv--compact">
-                  <div class="c-field">
                     <%= form.label :uin, "UIN", class: "c-label" %>
                     <%= form.text_field :uin,
                         placeholder: "Enter your 9-digit UIN",
@@ -130,6 +121,20 @@
             <div class="space-y-4 border-t border-slate-100 pt-6">
               <p class="c-h3">Academic</p>
               <div class="u-grid" style="--u-grid-min: 260px">
+                <div class="c-kv c-kv--compact">
+                  <div class="c-field">
+                    <%= form.label :program_year, "Program year", class: "c-label" %>
+                    <%= form.select :program_year,
+                        options_for_select([
+                          ["Year 1", 1],
+                          ["Year 2", 2]
+                        ], @student.program_year),
+                        { prompt: "Select your year" },
+                        { required: true, class: "c-input" } %>
+                    <small class="c-help">Used to determine which surveys to assign.</small>
+                  </div>
+                </div>
+
                 <div class="c-kv c-kv--compact">
                   <div class="c-field">
                     <%= form.label :major, "Major / Program", class: "c-label" %>

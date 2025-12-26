@@ -299,9 +299,6 @@
 /* Section Styles */
 
 /* Extra spacing between categories in survey views to improve readability */
-.category-section {
-  margin-bottom: var(--spacing-xl);
-}
 
 .section-header {
   display: flex;
@@ -327,35 +324,11 @@
   flex-shrink: 0;
 }
 
-.section-action {
-  color: var(--info-color);
-  text-decoration: none;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.section-action:hover {
-  color: var(--info-hover);
-  text-decoration: underline;
-}
-
 /* Empty State */
 .empty-state {
   text-align: center;
   padding: var(--spacing-3xl);
   color: var(--gray-400);
-}
-
-.empty-state-icon {
-  width: 48px;
-  height: 48px;
-  background-color: var(--gray-300);
-  border-radius: var(--border-radius-full);
-  margin: 0 auto var(--spacing-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-xl);
 }
 
 /* Responsive Design */

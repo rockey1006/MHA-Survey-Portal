@@ -26,13 +26,6 @@
   min-width: 0;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-  min-width: 0;
-}
-
 /* Logo Section */
 .logo {
   display: flex;
@@ -319,22 +312,6 @@
   font-size: var(--font-size-sm);
 }
 
-.sign-out-link {
-  color: var(--white);
-  text-decoration: none;
-  font-size: var(--font-size-sm);
-  padding: var(--spacing-xs) var(--spacing-md);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--border-radius-sm);
-  transition: all var(--transition-normal);
-  display: none; /* Hidden by default, shown in profile dropdown */
-}
-
-.sign-out-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
 /* Page Title Section */
 .page-title {
   background-color: var(--white);
@@ -367,6 +344,7 @@
 }
 
 /* Student dashboard: extra breathing room without impacting other dashboards */
+
 .main-content--student-dashboard {
   padding: var(--spacing-4xl);
 }
@@ -376,7 +354,6 @@
     padding: var(--spacing-xl);
   }
 }
-
 /* Maintenance page */
 .maintenance-card {
   max-width: 40rem;

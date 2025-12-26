@@ -81,11 +81,11 @@
                     <% if user == current_user %>
                       <span class="role-locked">Role Locked</span>
                     <% else %>
-                      <div class="role-selector">
+                      <div class="c-select-wrapper">
                         <%= select_tag "role_updates[#{user.id}]", 
                             options_for_select(User.roles.map { |key, value| [key.titleize, key] }, user.role || 'student'),
                             { 
-                              class: 'role-select', 
+                              class: 'c-select', 
                               data: { 
                                 user_id: user.id, 
                                 current_role: user.role || 'student',
@@ -101,7 +101,7 @@
                     <% if user == current_user %>
                       <span class="action-disabled">-</span>
                     <% else %>
-                      <span class="role-change-indicator" data-user-id="<%= user.id %>">
+                      <span class="c-change-indicator" data-user-id="<%= user.id %>">
                         No changes
                       </span>
                     <% end %>
@@ -150,7 +150,7 @@
         const pendingChanges = {};
 
         function findIndicator(userId) {
-          return form.querySelector(`.role-change-indicator[data-user-id="${userId}"]`);
+          return form.querySelector(`.c-change-indicator[data-user-id="${userId}"]`);
         }
 
         function updateUI() {
@@ -172,7 +172,7 @@
           }
         }
 
-        form.querySelectorAll('.role-select').forEach(select => {
+        form.querySelectorAll('.c-select').forEach(select => {
           const userId = select.dataset.userId;
           const originalRole = select.dataset.originalRole || select.dataset.currentRole;
           const indicator = findIndicator(userId);
@@ -196,7 +196,7 @@
               };
 
               indicator.textContent = `${originalRole} → ${newRole}`;
-              indicator.className = 'role-change-indicator changed';
+              indicator.className = 'c-change-indicator changed';
 
               if (userRow) {
                 userRow.classList.add('has-changes');
@@ -204,7 +204,7 @@
             } else {
               delete pendingChanges[userId];
               indicator.textContent = 'No changes';
-              indicator.className = 'role-change-indicator';
+              indicator.className = 'c-change-indicator';
 
               if (userRow) {
                 userRow.classList.remove('has-changes');

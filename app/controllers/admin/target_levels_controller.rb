@@ -11,6 +11,12 @@ class Admin::TargetLevelsController < Admin::BaseController
 
   def update
     load_selector_options
+
+    unless @selected_semester_id.present? && @selected_track.present?
+      redirect_to admin_target_levels_path, alert: "Select a semester and track before updating target levels."
+      return
+    end
+
     targets_payload = params[:targets]
 
     targets = if targets_payload.respond_to?(:to_unsafe_h)
@@ -75,15 +81,20 @@ class Admin::TargetLevelsController < Admin::BaseController
     ]
 
     requested_semester_id = params[:program_semester_id].to_s.presence
-    default_semester_id = ProgramSemester.current&.id || @semesters.first&.id
-    @selected_semester_id = (requested_semester_id || default_semester_id).to_i
-    @selected_track = params[:track].to_s.presence || @tracks.first
+    @selected_semester_id = requested_semester_id&.to_i
+    @selected_track = params[:track].to_s.presence
 
     year = params[:program_year].to_s.strip
     @selected_program_year = year.present? ? year.to_i : nil
   end
 
   def load_targets
+    unless @selected_semester_id.present? && @selected_track.present?
+      @competencies = []
+      @targets_by_title = {}
+      return
+    end
+
     @competencies = Reports::DataAggregator::COMPETENCY_TITLES
 
     scoped = CompetencyTargetLevel.where(

@@ -88,10 +88,10 @@
                                     </td>
 
                                     <td class="user-track-update-cell" style="min-width: 13rem;">
-                                        <div class="role-selector">
+                                        <div class="c-select-wrapper">
                                             <%= select_tag "track_updates[#{student.student_id}]",
                                                     options_for_select(track_select_options, track_key),
-                                                    class: "role-select track-select w-full",
+                                                    class: "c-select track-select w-full",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_track: track_key,
@@ -107,10 +107,10 @@
                                     </td>
 
                                     <td class="user-new-role-cell" style="min-width: 12rem;">
-                                        <div class="role-selector">
+                                        <div class="c-select-wrapper">
                                             <%= select_tag "advisor_updates[#{student.student_id}]",
                                                     options_for_select(@advisor_select_options, current_advisor_id),
-                                                    class: "role-select advisor-select",
+                                                    class: "c-select advisor-select",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_advisor: current_advisor_id,
@@ -122,7 +122,7 @@
                                     </td>
 
                                     <td class="user-actions-cell" style="min-width: 12rem;">
-                                        <span class="student-change-indicator" data-student-id="<%= student.student_id %>">
+                                        <span class="c-change-indicator" data-student-id="<%= student.student_id %>">
                                             No changes
                                         </span>
                                     </td>
@@ -217,7 +217,7 @@
             const changeRegistry = new Map();
 
             function indicatorFor(studentId) {
-                return form.querySelector(`.student-change-indicator[data-student-id="${studentId}"]`);
+                return form.querySelector(`.c-change-indicator[data-student-id="${studentId}"]`);
             }
 
             function rowFor(studentId) {
@@ -244,13 +244,13 @@
 
                 if (messages.length > 0) {
                     indicator.textContent = messages.join(' | ');
-                    indicator.className = 'student-change-indicator changed';
+                    indicator.className = 'c-change-indicator changed';
                     if (row) {
                         row.classList.add('has-changes');
                     }
                 } else {
                     indicator.textContent = 'No changes';
-                    indicator.className = 'student-change-indicator';
+                    indicator.className = 'c-change-indicator';
                     if (row) {
                         row.classList.remove('has-changes');
                     }

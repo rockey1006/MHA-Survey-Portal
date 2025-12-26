@@ -34,8 +34,17 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
-  color: var(--white);
-  background: var(--tamu-maroon);
+  color: var(--white, var(--gray-50));
+  background: var(--tamu-maroon, var(--gray-900));
+  border: 1px solid var(--tamu-maroon, var(--gray-900));
+}
+
+@media (forced-colors: active) {
+  .target-level-badge {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+  }
 }
 
 /* Deterministic vertical spacing between cards (avoid relying on Tailwind space-y) */

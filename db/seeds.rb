@@ -54,6 +54,18 @@ rescue ActiveRecord::StatementInvalid => e
   warn "• Skipping cache clear (cache schema not loaded yet): #{e.message}"
 end
 
+# Demo/test seed data (sample users + generated responses) is intentionally
+# disabled in production. Set `SEED_DEMO_DATA=0` to disable it in other envs.
+seed_demo_data = !Rails.env.production?
+seed_demo_data = false if ENV["SEED_DEMO_DATA"].to_s.strip.casecmp?("0")
+puts "• Skipping demo/test seed data" unless seed_demo_data
+
+admin_users = []
+advisors = []
+students = []
+pending_student_ids = []
+multi_semester_student_ids = []
+
 seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   role_value = User.normalize_role(role) || role.to_s
   user = User.find_or_initialize_by(email: email)
@@ -66,60 +78,74 @@ seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   user
 end
 
-puts "• Creating administrative accounts"
-admin_accounts = [
-  # { email: "health-admin1@tamu.edu", name: "Health Admin One" }
-]
+if seed_demo_data
+  puts "• Creating administrative accounts"
+  admin_accounts = [
+    # { email: "health-admin1@tamu.edu", name: "Health Admin One" }
+  ]
 
-admin_users = admin_accounts.map do |attrs|
-  seed_user.call(email: attrs[:email], name: attrs[:name], role: :admin)
+  admin_users = admin_accounts.map do |attrs|
+    seed_user.call(email: attrs[:email], name: attrs[:name], role: :admin)
+  end
+
+  if admin_users.empty?
+    admin_users << seed_user.call(email: "admin@tamu.edu", name: "MHA Admin", role: :admin)
+  end
+
+  puts "• Creating advisor accounts"
+  advisor_users = [
+    seed_user.call(email: "rainsuds@tamu.edu", name: "Tee Li", role: :advisor),
+    seed_user.call(email: "advisor.clark@tamu.edu", name: "Jordan Clark", role: :advisor)
+  ]
+
+  advisors = advisor_users.map(&:advisor_profile)
+  advisors_by_email = advisor_users.index_by { |user| user.email.to_s.downcase }
+
+  puts "• Creating sample students"
+  students_data_path = Rails.root.join("db", "data", "sample_students.yml")
+  unless File.exist?(students_data_path)
+    raise "Sample students data file not found: #{students_data_path}."
+  end
+
+  students_seed = Array(YAML.safe_load_file(students_data_path))
+  students_with_metadata = students_seed.map do |attrs|
+    data = attrs.is_a?(Hash) ? attrs : {}
+    email = data.fetch("email")
+    name = data.fetch("name")
+    track = data.fetch("track")
+    advisor_email = data.fetch("advisor_email")
+    pending = data.fetch("pending", false)
+    program_year = data.fetch("program_year", 1)
+    multi_semester = if data.key?("multi_semester")
+      data.fetch("multi_semester")
+    else
+      program_year.to_i == 2
+    end
+
+    advisor_user = advisors_by_email[advisor_email.to_s.downcase]
+    raise "Unknown advisor_email #{advisor_email} for student #{email}" unless advisor_user
+
+    user = seed_user.call(email: email, name: name, role: :student)
+    profile = user.student_profile || Student.new(student_id: user.id)
+    profile.assign_attributes(track: track, advisor: advisor_user.advisor_profile, program_year: program_year)
+    # Bypass validations for seed data; first-login flow will collect required fields
+    profile.save!(validate: false)
+
+    { profile: profile, pending: pending, multi_semester: multi_semester }
+  end
+
+  students = students_with_metadata.map { |entry| entry[:profile] }
+  pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
+  multi_semester_student_ids = students_with_metadata.select { |entry| entry[:multi_semester] }.map { |entry| entry[:profile].student_id }
+
+  high_performer_emails = %w[
+    nova.mitchell25@tamu.edu
+    emery.walsh24@tamu.edu
+    kiara.hughes25@tamu.edu
+  ]
+  high_performers = students.select { |student| high_performer_emails.include?(student.user.email) }
+  high_performer_ids = high_performers.map(&:student_id)
 end
-
-puts "• Creating advisor accounts"
-advisor_users = [
-  seed_user.call(email: "rainsuds@tamu.edu", name: "Tee Li", role: :advisor),
-  seed_user.call(email: "advisor.clark@tamu.edu", name: "Jordan Clark", role: :advisor)
-]
-
-advisors = advisor_users.map(&:advisor_profile)
-
-puts "• Creating sample students"
-# Set :pending to true for any student who should appear with an incomplete survey assignment
-students_seed = [
-  { email: "avery.harrison25@tamu.edu", name: "Avery Harrison", track: "Residential", advisor: advisors.first },
-  { email: "liam.daniels25@tamu.edu", name: "Liam Daniels", track: "Residential", advisor: advisors.first },
-  { email: "zoe.elliott24@tamu.edu", name: "Zoe Elliott", track: "Residential", advisor: advisors.first },
-  { email: "mila.perez25@tamu.edu", name: "Mila Perez", track: "Executive", advisor: advisors.last },
-  { email: "carter.andrews25@tamu.edu", name: "Carter Andrews", track: "Executive", advisor: advisors.last },
-  { email: "sloan.reese24@tamu.edu", name: "Sloan Reese", track: "Executive", advisor: advisors.last },
-  { email: "nova.mitchell25@tamu.edu", name: "Nova Mitchell", track: "Residential", advisor: advisors.first },
-  { email: "emery.walsh24@tamu.edu", name: "Emery Walsh", track: "Residential", advisor: advisors.first },
-  { email: "kiara.hughes25@tamu.edu", name: "Kiara Hughes", track: "Executive", advisor: advisors.last },
-  { email: "judah.nguyen24@tamu.edu", name: "Judah Nguyen", track: "Executive", advisor: advisors.last },
-  { email: "logan.ramsey25@tamu.edu", name: "Logan Ramsey", track: "Residential", advisor: advisors.first, pending: true },
-  { email: "isla.merritt25@tamu.edu", name: "Isla Merritt", track: "Executive", advisor: advisors.last, pending: true }
-]
-
-students_with_metadata = students_seed.map do |attrs|
-  pending = attrs.delete(:pending) { false }
-  user = seed_user.call(email: attrs[:email], name: attrs[:name], role: :student)
-  profile = user.student_profile || Student.new(student_id: user.id)
-  profile.assign_attributes(track: attrs[:track], advisor: attrs[:advisor])
-  # Bypass validations for seed data; first-login flow will collect required fields
-  profile.save!(validate: false)
-  { profile: profile, pending: pending }
-end
-
-students = students_with_metadata.map { |entry| entry[:profile] }
-pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
-
-high_performer_emails = %w[
-  nova.mitchell25@tamu.edu
-  emery.walsh24@tamu.edu
-  kiara.hughes25@tamu.edu
-]
-high_performers = students.select { |student| high_performer_emails.include?(student.user.email) }
-high_performer_ids = high_performers.map(&:student_id)
 
 puts "• Loading program survey templates"
 survey_template_path = Rails.root.join("db", "data", "program_surveys.yml")
@@ -252,7 +278,7 @@ survey_templates.each do |definition|
 
   Survey.transaction do
     survey = Survey.find_or_initialize_by(title: title, program_semester: program_semester)
-    survey.creator ||= admin_users.first
+    survey.creator ||= admin_users.first || User.admins.first
     survey.description = definition["description"]
     survey.is_active = definition.fetch("is_active", true)
 
@@ -513,7 +539,17 @@ students.each do |student|
   next if normalized_student_track.blank?
   pending_student = pending_student_ids.include?(student.student_id)
 
-  Array(surveys_by_track[normalized_student_track]).each do |survey|
+  surveys_to_seed = Array(surveys_by_track[normalized_student_track])
+  if multi_semester_student_ids.include?(student.student_id)
+    multi_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
+    extra_surveys = created_surveys.select do |survey|
+      multi_semesters.include?(survey.program_semester.name.to_s.strip) &&
+        survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
+    end
+    surveys_to_seed = (surveys_to_seed + extra_surveys).uniq
+  end
+
+  surveys_to_seed.each do |survey|
     latest_response_timestamp = nil
 
     unless pending_student

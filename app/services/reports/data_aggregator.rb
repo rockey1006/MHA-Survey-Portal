@@ -1063,22 +1063,55 @@ module Reports
       return fallback unless record.respond_to?(:program_semester_id) && record.respond_to?(:student_track)
 
       semester_id = record.program_semester_id
-      track = record.student_track
-      title = record.question_text
+      track = record.student_track.to_s.strip
+      title = normalized_competency_title(record.question_text)
       program_year = record.respond_to?(:student_program_year) ? record.student_program_year : nil
 
-      lookup = competency_target_level_lookup
-      lookup[[ semester_id, track, program_year, title ]] ||
-        lookup[[ semester_id, track, nil, title ]] ||
+      exact_lookup = competency_target_level_lookup
+
+      exact_lookup[[ semester_id, track, program_year, title ]] ||
+        exact_lookup[[ semester_id, track, nil, title ]] ||
+        (program_year.nil? ? competency_target_level_any_year_lookup[[ semester_id, track, title ]] : nil) ||
         fallback
     end
 
     def competency_target_level_lookup
-      @competency_target_level_lookup ||= CompetencyTargetLevel
-        .select(:program_semester_id, :track, :program_year, :competency_title, :target_level)
-        .each_with_object({}) do |row, memo|
-          memo[[ row.program_semester_id, row.track, row.program_year, row.competency_title ]] = row.target_level
-        end
+      competency_target_level_lookup_bundle[:exact]
+    end
+
+    def competency_target_level_any_year_lookup
+      competency_target_level_lookup_bundle[:any_year]
+    end
+
+    def competency_target_level_lookup_bundle
+      @competency_target_level_lookup_bundle ||= begin
+        exact = {}
+        any_year = {}
+
+        CompetencyTargetLevel
+          .select(:id, :program_semester_id, :track, :program_year, :competency_title, :target_level)
+          .find_each do |row|
+            semester_id = row.program_semester_id
+            track = row.track.to_s.strip
+            title = normalized_competency_title(row.competency_title)
+            program_year = row.program_year
+
+            exact[[ semester_id, track, program_year, title ]] = row.target_level
+
+            next if program_year.blank?
+
+            any_year_key = [ semester_id, track, title ]
+            existing = any_year[any_year_key]
+            if existing.nil? || program_year.to_i < existing[:year]
+              any_year[any_year_key] = { year: program_year.to_i, level: row.target_level }
+            end
+          end
+
+        {
+          exact: exact,
+          any_year: any_year.transform_values { |entry| entry[:level] }
+        }
+      end
     end
 
     def sanitize_tracks(values)

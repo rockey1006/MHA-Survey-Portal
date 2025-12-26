@@ -1,7 +1,9 @@
 <div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
-      <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true, class: "space-y-8 survey-form" do |f| %>
+      <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true, data: { turbo: false }, class: "space-y-8 survey-form" do |f| %>
+        <% back_path = params[:return_to].presence || student_records_path %>
+        <%= hidden_field_tag :return_to, back_path %>
         <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question } %>
 
         <section class="c-card advisor-summary" data-advisor-feedback-summary>
@@ -43,8 +45,75 @@
           </div>
         </section>
 
-        <div class="survey-actions flex items-center justify-end gap-3">
-          <%= f.submit "Save feedback", class: tailwind_button_classes(:primary) %>
+        <% if defined?(@confidential_notes_enabled) && @confidential_notes_enabled %>
+          <% default_idx = Array(@confidential_note_tabs).find_index { |t| t[:editable] } || 0 %>
+          <section class="c-card c-card--tight space-y-3" data-controller="tabs" data-tabs-default-id-value="note-tab-<%= default_idx %>">
+            <div class="space-y-1">
+              <h3 class="text-sm font-semibold tracking-tight text-slate-900">Confidential advisor notes</h3>
+              <p class="text-xs text-slate-600">Visible only to the assigned advisor.</p>
+            </div>
+
+            <div class="reports-tabs__list" role="tablist" aria-label="Confidential notes by survey">
+              <% Array(@confidential_note_tabs).each_with_index do |tab, idx| %>
+                <% survey = tab[:survey] %>
+                <% semester_label = survey&.semester.presence || survey&.program_semester&.name.presence %>
+                <% tracks = survey&.respond_to?(:track_list) ? Array(survey.track_list).map(&:to_s).map(&:strip).reject(&:blank?) : [] %>
+                <% track_label = tracks.any? ? tracks.map(&:titleize).join("/") : nil %>
+                <% label = [semester_label, track_label].compact.join(" · ").presence || [semester_label, survey&.title].compact.join(" · ").presence || "Survey ##{survey&.id}" %>
+                <button type="button"
+                        id="confidential-note-tab-<%= idx %>"
+                        class="reports-tabs__button"
+                        role="tab"
+                        aria-controls="confidential-note-panel-<%= idx %>"
+                        data-tabs-target="button"
+                        data-tab-id="note-tab-<%= idx %>"
+                        data-action="tabs#activate">
+                  <%= label %>
+                  <% if tab[:editable] %>
+                    · Current
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+
+            <% Array(@confidential_note_tabs).each_with_index do |tab, idx| %>
+              <% survey = tab[:survey] %>
+              <% note = tab[:note] %>
+              <% editable = tab[:editable] %>
+              <div id="confidential-note-panel-<%= idx %>"
+                   role="tabpanel"
+                   aria-labelledby="confidential-note-tab-<%= idx %>"
+                   data-tabs-target="panel"
+                   data-tab-id="note-tab-<%= idx %>"
+                   class="reports-tab__body space-y-3 <%= idx == default_idx ? "" : "hidden" %>"
+                   <%= idx == default_idx ? "" : "hidden" %>>
+                <% if editable %>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600" for="confidential_advisor_note_body">Note</label>
+                    <textarea id="confidential_advisor_note_body"
+                              name="confidential_advisor_note[body]"
+                              rows="4"
+                              class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"><%= note&.body.to_s %></textarea>
+                  </div>
+                <% else %>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Note (read-only)</label>
+                    <textarea rows="4"
+                              readonly
+                              class="w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm shadow-sm"><%= note&.body.to_s %></textarea>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+          </section>
+        <% end %>
+
+        <div class="c-toolbar mt-8">
+          <div class="c-toolbar__row justify-between w-full">
+            <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
+            <%= f.submit "Save", class: tailwind_button_classes(:primary) %>
+          </div>
         </div>
       <% end %>
     </div>
@@ -97,6 +166,7 @@
 
     function bind() {
       updateAdvisorFeedbackSummary();
+
       document.addEventListener('input', function(e) {
         var target = e.target;
         if (target && target.matches && target.matches('[data-advisor-feedback-score="true"]')) {

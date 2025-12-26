@@ -282,3 +282,11 @@ surveys:
   - <<: *residential_survey_base
     program_semester: "Spring 2025"
     seed_auto_assign_students: false
+
+  - <<: *executive_survey_base
+    program_semester: "Spring 2026"
+    seed_auto_assign_students: false
+
+  - <<: *residential_survey_base
+    program_semester: "Spring 2026"
+    seed_auto_assign_students: false

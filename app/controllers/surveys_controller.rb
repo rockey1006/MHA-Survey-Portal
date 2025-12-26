@@ -455,7 +455,8 @@ class SurveysController < ApplicationController
     end
     other_answers = other_answers.stringify_keys
 
-    allowed_question_ids = @survey.questions.pluck(:id)
+    questions_map = @survey.questions.index_by(&:id)
+    allowed_question_ids = questions_map.keys
 
     Rails.logger.info "[SAVE_PROGRESS DEBUG] Student ID: #{student.student_id}"
     Rails.logger.info "[SAVE_PROGRESS DEBUG] Answers received: #{answers.inspect}"
@@ -465,7 +466,17 @@ class SurveysController < ApplicationController
     ActiveRecord::Base.transaction do
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
-        if submitted_value.to_s == "Other"
+        question = questions_map[question_id]
+
+        if question&.choice_question?
+          option_pairs = question.answer_option_pairs
+          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+          other_value = other_pair ? other_pair[1].to_s : "Other"
+
+          if submitted_value.to_s == other_value || submitted_value.to_s.casecmp?("Other")
+            submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+          end
+        elsif submitted_value.to_s.casecmp?("Other")
           submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
         end
         Rails.logger.info "[SAVE_PROGRESS DEBUG] Question #{question_id}: value=#{submitted_value.inspect}"
@@ -473,7 +484,6 @@ class SurveysController < ApplicationController
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        question = @survey.questions.find { |q| q.id == question_id }
         if submitted_value.present?
           record.answer = submitted_value
           # Skip validations when saving progress; validations happen on submit

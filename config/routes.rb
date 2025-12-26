@@ -107,6 +107,7 @@ Rails.application.routes.draw do
       get :composite_report
       get :edit
       patch :update
+      patch :confidential_advisor_note, to: "confidential_advisor_notes#update"
       delete :destroy
     end
   end

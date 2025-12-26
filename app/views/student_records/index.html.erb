@@ -97,8 +97,8 @@
                   </summary>
 
                   <%= render TableComponent.new(
-                    headers: ["#", "Student", "Advisor", "Track", "Status", "Completion", "Feedback", "Survey"],
-                    right_align: [7]
+                    headers: ["#", "Student", "Advisor", "Track", "Year", "Status", "Completion", "Feedback", "Survey"],
+                    right_align: [8]
                   ) do %>
                         <% if filtered_rows.blank? %>
                           <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
@@ -107,7 +107,7 @@
                             "No students currently in this track are assigned to you."
                           end %>
                           <tr>
-                            <td colspan="7" class="px-4 py-6 text-center text-sm text-slate-500">
+                            <td colspan="9" class="px-4 py-6 text-center text-sm text-slate-500">
                               <%= empty_track_message %>
                             </td>
                           </tr>
@@ -156,6 +156,14 @@
                                   <div class="font-semibold text-slate-900"><%= student.track.titleize %></div>
                                 <% else %>
                                   <div class="font-semibold text-slate-400">Track unknown</div>
+                                <% end %>
+                              </td>
+
+                              <td class="px-4 py-3 text-sm text-slate-700">
+                                <% if student.program_year.present? %>
+                                  <div class="font-semibold text-slate-900"><%= student.program_year %></div>
+                                <% else %>
+                                  <div class="font-semibold text-slate-400">—</div>
                                 <% end %>
                               </td>
 

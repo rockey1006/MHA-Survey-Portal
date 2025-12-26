@@ -319,6 +319,19 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :feedback, :survey_id
 
+  # Entity table: advisor-only confidential notes per student+survey.
+  create_table :confidential_advisor_notes do |t|
+      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
+      t.text :body, null: false
+      t.timestamps
+    end
+    add_index :confidential_advisor_notes,
+              %i[student_id survey_id advisor_id],
+              unique: true,
+              name: "index_confidential_notes_on_student_survey_advisor"
+
     backfill_mha_competency_sections
     backfill_mha_competency_tooltips
     backfill_program_target_levels

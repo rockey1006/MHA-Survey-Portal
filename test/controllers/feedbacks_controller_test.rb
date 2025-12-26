@@ -188,6 +188,102 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated", existing.comments
   end
 
+  test "batch create saves confidential advisor note when present" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      },
+      confidential_advisor_note: { body: "Confidential note from unified save" }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", 1 do
+      post feedbacks_path, params: params
+    end
+
+    note = ConfidentialAdvisorNote.find_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id
+    )
+    assert note
+    assert_equal "Confidential note from unified save", note.body
+  end
+
+  test "batch create clears confidential advisor note when blank" do
+    ConfidentialAdvisorNote.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      body: "Existing confidential note"
+    )
+
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      },
+      confidential_advisor_note: { body: "   " }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", -1 do
+      post feedbacks_path, params: params
+    end
+
+    refute ConfidentialAdvisorNote.find_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id
+    )
+  end
+
+  test "batch create allows note-only save and redirects" do
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {},
+      confidential_advisor_note: { body: "Note-only save" }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", 1 do
+      post feedbacks_path, params: params
+    end
+
+    assert_response :redirect
+    assert_redirected_to student_records_path
+
+    note = ConfidentialAdvisorNote.find_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id
+    )
+    assert note
+    assert_equal "Note-only save", note.body
+  end
+
+  test "batch create redirects to return_to when provided" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      return_to: "/student_records",
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      }
+    }
+
+    post feedbacks_path, params: params
+    assert_response :redirect
+    assert_redirected_to student_records_path
+  end
+
   test "batch create with validation errors rolls back transaction" do
     q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
 

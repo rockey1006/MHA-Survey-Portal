@@ -270,10 +270,10 @@
                 <% if comments_text.present? %>
                   <%= simple_format(comments_text) %>
                   <% if comments_truncated %>
-                    <div class="truncation-note">Full comments available in the Health application.</div>
+                    <div class="truncation-note">Full feedback available in the Health application.</div>
                   <% end %>
                 <% else %>
-                  <div class="feedback-empty">No comments provided</div>
+                  <div class="feedback-empty">No feedback provided</div>
                 <% end %>
               </div>
               <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
@@ -314,10 +314,10 @@
               <% if comments_text.present? %>
                 <%= simple_format(comments_text) %>
                 <% if comments_truncated %>
-                  <div class="truncation-note">Full comments available in the Health application.</div>
+                  <div class="truncation-note">Full feedback available in the Health application.</div>
                 <% end %>
               <% else %>
-                <div class="feedback-empty">No comments provided</div>
+                <div class="feedback-empty">No feedback provided</div>
               <% end %>
             </div>
             <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>

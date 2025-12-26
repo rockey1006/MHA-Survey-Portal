@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -46,6 +46,31 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.bigint "survey_section_id"
     t.index ["survey_id"], name: "index_categories_on_survey_id"
     t.index ["survey_section_id"], name: "index_categories_on_survey_section_id"
+  end
+
+  create_table "competency_target_levels", force: :cascade do |t|
+    t.bigint "program_semester_id", null: false
+    t.string "track", null: false
+    t.integer "program_year"
+    t.string "competency_title", null: false
+    t.integer "target_level", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["program_semester_id", "track", "program_year", "competency_title"], name: "index_competency_targets_unique", unique: true
+    t.index ["program_semester_id"], name: "index_competency_target_levels_on_program_semester_id"
+  end
+
+  create_table "confidential_advisor_notes", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "survey_id", null: false
+    t.bigint "advisor_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["advisor_id"], name: "index_confidential_advisor_notes_on_advisor_id"
+    t.index ["student_id", "survey_id", "advisor_id"], name: "index_confidential_notes_on_student_survey_advisor", unique: true
+    t.index ["student_id"], name: "index_confidential_advisor_notes_on_student_id"
+    t.index ["survey_id"], name: "index_confidential_advisor_notes_on_survey_id"
   end
 
   create_table "feedback", force: :cascade do |t|
@@ -153,20 +178,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["program_year"], name: "index_students_on_program_year"
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
-
-  create_table "competency_target_levels", force: :cascade do |t|
-    t.bigint "program_semester_id", null: false
-    t.string "track", null: false
-    t.integer "program_year"
-    t.string "competency_title", null: false
-    t.integer "target_level", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["program_semester_id", "track", "program_year", "competency_title"], name: "index_competency_targets_unique", unique: true
-    t.index ["program_semester_id"], name: "index_competency_target_levels_on_program_semester_id"
-  end
-
-  add_foreign_key "competency_target_levels", "program_semesters"
 
   create_table "survey_assignments", force: :cascade do |t|
     t.bigint "survey_id", null: false
@@ -277,6 +288,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
   add_foreign_key "categories", "survey_sections", on_delete: :nullify
   add_foreign_key "categories", "surveys"
+  add_foreign_key "competency_target_levels", "program_semesters"
+  add_foreign_key "confidential_advisor_notes", "advisors", primary_key: "advisor_id", on_delete: :cascade
+  add_foreign_key "confidential_advisor_notes", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "confidential_advisor_notes", "surveys", on_delete: :cascade
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
   add_foreign_key "feedback", "questions"

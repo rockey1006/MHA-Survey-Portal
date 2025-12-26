@@ -96,6 +96,8 @@ class FeedbacksController < ApplicationController
 
         if batch_errors.any?
           raise ActiveRecord::Rollback
+        else
+          save_confidential_advisor_note_from_params!
         end
       end
 
@@ -112,6 +114,16 @@ class FeedbacksController < ApplicationController
       end
 
       if saved_feedbacks.empty?
+        # Allow note-only saves so the single Save action persists all page content.
+        if params[:confidential_advisor_note].present?
+          save_confidential_advisor_note_from_params!
+          respond_to do |format|
+            format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
+            format.json { render json: { ok: true }, status: :created }
+          end
+          return
+        end
+
         Rails.logger.error "[FeedbacksController#create] saved_feedbacks empty; ratings=#{ratings.inspect}"
         @feedback = Feedback.new
         @feedback.errors.add(:base, "No ratings provided")
@@ -126,7 +138,7 @@ class FeedbacksController < ApplicationController
       @feedback = saved_feedbacks.first
 
       respond_to do |format|
-        format.html { redirect_to student_records_path, notice: "Feedback saved." }
+        format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
         format.json { render json: saved_feedbacks, status: :created }
       end
       return
@@ -144,6 +156,16 @@ class FeedbacksController < ApplicationController
         comments: feedback_params[:comments]
       )
     else
+      # Support note-only submissions even when the feedback UI posts no ratings.
+      if params[:confidential_advisor_note].present?
+        save_confidential_advisor_note_from_params!
+        respond_to do |format|
+          format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
+          format.json { render json: { ok: true }, status: :created }
+        end
+        return
+      end
+
       @feedback = Feedback.new
       @feedback.errors.add(:base, "No category or ratings provided")
       respond_to do |format|
@@ -155,7 +177,8 @@ class FeedbacksController < ApplicationController
 
     respond_to do |format|
       if @feedback.save
-        format.html { redirect_to student_records_path, notice: "Category feedback saved." }
+        save_confidential_advisor_note_from_params!
+        format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
         format.json { render json: @feedback, status: :created, location: @feedback }
       else
         load_feedback_new_context
@@ -233,6 +256,59 @@ class FeedbacksController < ApplicationController
       .select { |fb| fb.question_id.present? }
       .group_by(&:question_id)
       .transform_values { |items| pick_latest.call(items) }
+
+    load_confidential_note_context
+  end
+
+  def load_confidential_note_context
+    @confidential_notes_enabled = false
+    @confidential_note_owner_advisor_id = nil
+    @confidential_note_current = nil
+    @confidential_note_tabs = []
+
+    current = current_user
+    return unless current
+
+    if current.role_advisor?
+      advisor_profile = current_advisor_profile
+      return unless advisor_profile
+      return unless @student&.advisor_id.present? && advisor_profile.advisor_id == @student.advisor_id
+
+      @confidential_note_owner_advisor_id = advisor_profile.advisor_id
+    elsif current.role_admin?
+      return unless @student&.advisor_id.present?
+
+      @confidential_note_owner_advisor_id = @student.advisor_id
+    else
+      return
+    end
+
+    @confidential_notes_enabled = true
+
+    notes = ConfidentialAdvisorNote
+              .where(student_id: @student.student_id, advisor_id: @confidential_note_owner_advisor_id)
+              .includes(:survey)
+
+    @confidential_note_current = notes.find { |note| note.survey_id == @survey.id }
+
+    other_notes = notes.reject { |note| note.survey_id == @survey.id }
+
+    tabs = []
+    tabs << {
+      survey: @survey,
+      note: @confidential_note_current,
+      editable: true
+    }
+
+    other_notes.each do |note|
+      tabs << {
+        survey: note.survey,
+        note: note,
+        editable: false
+      }
+    end
+
+    @confidential_note_tabs = tabs
   end
 
   def set_survey_and_student
@@ -241,5 +317,59 @@ class FeedbacksController < ApplicationController
 
     @survey = Survey.find(survey_id)
     @student = Student.find(student_id)
+  end
+
+  def save_confidential_advisor_note_from_params!
+    return unless params[:confidential_advisor_note].present?
+
+    advisor_id = confidential_note_owner_advisor_id_for_current_user
+    return unless advisor_id
+
+    body = params.dig(:confidential_advisor_note, :body).to_s
+
+    note = ConfidentialAdvisorNote.find_or_initialize_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: advisor_id
+    )
+
+    if body.strip.blank?
+      note.destroy if note.persisted?
+      return
+    end
+
+    note.body = body
+    note.save!
+  end
+
+  def confidential_note_owner_advisor_id_for_current_user
+    current = current_user
+    return nil unless current
+
+    if current.role_advisor?
+      advisor_profile = current_advisor_profile
+      return nil unless advisor_profile
+      return nil unless @student&.advisor_id.present? && advisor_profile.advisor_id == @student.advisor_id
+
+      return advisor_profile.advisor_id
+    end
+
+    if current.role_admin?
+      return nil unless @student&.advisor_id.present?
+
+      return @student.advisor_id
+    end
+
+    nil
+  end
+
+  def after_save_redirect_path
+    return_to = params[:return_to].to_s
+    # Only allow local (relative) paths to avoid open redirects.
+    if return_to.start_with?("/") && !return_to.start_with?("//")
+      return_to
+    else
+      student_records_path
+    end
   end
 end

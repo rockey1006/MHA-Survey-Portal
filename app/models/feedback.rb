@@ -2,6 +2,8 @@
 class Feedback < ApplicationRecord
   self.table_name = "feedback"
 
+  COMMENTS_MAX_LENGTH = 1000
+
   belongs_to :student, foreign_key: :student_id, primary_key: :student_id
   belongs_to :advisor, foreign_key: :advisor_id, primary_key: :advisor_id
   # Keep category association for legacy records and for parts of the app
@@ -16,6 +18,8 @@ class Feedback < ApplicationRecord
               less_than_or_equal_to: 5
             },
             allow_nil: true
+
+  validates :comments, length: { maximum: COMMENTS_MAX_LENGTH }, allow_nil: true
      # NOTE: previously we enforced uniqueness on survey_id which prevented
      # storing multiple per-category feedback rows for the same survey. That
      # constraint is enforced at a composite level in the DB and/or via

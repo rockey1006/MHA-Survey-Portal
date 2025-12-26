@@ -260,6 +260,39 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "save_progress persists other text for custom other option values" do
+    sign_in @student_user
+
+    category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
+    question = category.questions.create!(
+      question_text: "Pick one",
+      question_order: 9999,
+      question_type: "multiple_choice",
+      answer_options: [
+        { label: "Option A", value: "A" },
+        { label: "Other (please specify)", value: "other_custom" }
+      ].to_json,
+      is_required: false
+    )
+
+    post save_progress_survey_path(@survey), params: {
+      answers: { question.id.to_s => "other_custom" },
+      other_answers: { question.id.to_s => "My custom other" }
+    }
+
+    assert_redirected_to student_dashboard_path
+
+    record = StudentQuestion.find_by(student_id: @student.student_id, question_id: question.id)
+    assert record, "Expected saved StudentQuestion record"
+    assert_kind_of Hash, record.answer
+    assert_equal "other_custom", record.answer["answer"]
+    assert_equal "My custom other", record.answer["text"]
+
+    get survey_path(@survey)
+    assert_response :success
+    assert_includes response.body, "My custom other"
+  end
+
   # Show Action Tests
   test "show displays survey form" do
     sign_in @student_user

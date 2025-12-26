@@ -45,7 +45,12 @@ module FeedbacksHelper
                []
           end
 
-          base = DEFAULT_PROFICIENCY_PAIRS if base.blank?
+          # Some survey configs store dropdown options as label-only arrays (e.g.,
+          # ["Beginner (1)", "Emerging (2)", ...]). In that case, Question#answer_option_pairs
+          # returns [label, label], which breaks Feedback numeric validation.
+          value_strings = Array(base).map { |(_label, value)| value.to_s.strip }
+          numeric_values = value_strings.select { |v| v.match?(/\A[1-5]\z/) }
+          base = DEFAULT_PROFICIENCY_PAIRS if base.blank? || numeric_values.size < 5
 
           # Ensure the advisor score dropdown is always 1–5 (blank means not assessed),
           # even if older survey config includes a 0 option.

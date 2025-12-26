@@ -61,4 +61,30 @@ class FeedbackTest < ActiveSupport::TestCase
     refute Feedback.new(base_attrs.merge(average_score: 0)).valid?
     refute Feedback.new(base_attrs.merge(average_score: 5.1)).valid?
   end
+
+  test "comments length is limited" do
+    user = User.create!(email: "stu-comments@example.com", name: "Student Comments", role: "student")
+    student = user.student_profile
+
+    adv_user = User.create!(email: "adv-comments@example.com", name: "Advisor Comments", role: "advisor")
+    advisor = adv_user.advisor_profile
+
+    survey = Survey.new(title: "Comments Survey", semester: "Fall 2025")
+    category = survey.categories.build(name: "C")
+    category.questions.build(question_text: "Q1", question_order: 1, question_type: "short_answer")
+    survey.save!
+
+    base_attrs = {
+      student_id: student.student_id,
+      advisor_id: advisor.advisor_id,
+      survey_id: survey.id,
+      category_id: survey.categories.first.id
+    }
+
+    assert Feedback.new(base_attrs.merge(comments: "a" * Feedback::COMMENTS_MAX_LENGTH)).valid?
+
+    too_long = Feedback.new(base_attrs.merge(comments: "a" * (Feedback::COMMENTS_MAX_LENGTH + 1)))
+    refute too_long.valid?
+    assert_includes too_long.errors[:comments], "is too long (maximum is #{Feedback::COMMENTS_MAX_LENGTH} characters)"
+  end
 end

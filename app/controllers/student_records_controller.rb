@@ -118,7 +118,7 @@ class StudentRecordsController < ApplicationController
                 status: status_text,
                 completed_at: completed_at,
                 due_date: due_date,
-                admin_updated_at: admin_update_lookup[[student.student_id, survey.id]],
+                admin_updated_at: admin_update_lookup[[ student.student_id, survey.id ]],
                 survey: survey,
                 survey_response: survey_response,
                 download_token: survey_response.signed_download_token,

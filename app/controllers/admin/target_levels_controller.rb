@@ -69,9 +69,9 @@ class Admin::TargetLevelsController < Admin::BaseController
     @semesters = ProgramSemester.order(Arel.sql("current DESC"), Arel.sql("LOWER(name) ASC"))
     @tracks = Student.tracks.values
     @program_year_options = [
-      ["All years", ""],
-      ["Year 1", "1"],
-      ["Year 2", "2"]
+      [ "All years", "" ],
+      [ "Year 1", "1" ],
+      [ "Year 2", "2" ]
     ]
 
     requested_semester_id = params[:program_semester_id].to_s.presence

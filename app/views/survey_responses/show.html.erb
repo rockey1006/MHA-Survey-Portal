@@ -1,5 +1,5 @@
 <div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
-  <% return_to = @return_to.presence || params[:return_to].presence %>
+  <% return_to = @return_to.presence %>
   <% back_path = return_to.presence || student_dashboard_path %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && @survey_response&.student.present? && (current_user.id == @survey_response.student.user&.id) %>
   <% due_date = defined?(@survey_assignment) ? @survey_assignment&.due_date : nil %>

@@ -10,7 +10,7 @@ class ApplicationController < ActionController::Base
   before_action :load_notification_state, if: :user_signed_in?
   allow_browser versions: :modern
 
-  helper_method :current_student, :current_advisor_profile, :impersonating?, :impersonator_user, :impersonation_kind
+  helper_method :current_student, :current_advisor_profile, :impersonating?, :impersonator_user, :impersonation_kind, :safe_return_to_param
 
   # @return [Student, nil] the authenticated user's student profile, if present
   def current_student
@@ -25,6 +25,20 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  # Safely extracts a return_to path for back/cancel links.
+  #
+  # Only allows internal relative paths (e.g. "/student/dashboard").
+  # Prevents protocol-relative URLs like "//evil.com".
+  #
+  # @return [String, nil]
+  def safe_return_to_param
+    value = params[:return_to].to_s
+    return nil if value.blank?
+    return nil unless value.start_with?("/") && !value.start_with?("//")
+
+    value
+  end
 
   # Redirects students to profile setup if their profile is incomplete
   def check_student_profile_complete

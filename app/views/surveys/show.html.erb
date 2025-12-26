@@ -249,8 +249,7 @@
       </div>
     <% end %>
 
-    <% raw_return_to = params[:return_to].to_s %>
-    <% cancel_path = (raw_return_to.present? && raw_return_to.start_with?("/") && !raw_return_to.start_with?("//")) ? raw_return_to : student_dashboard_path %>
+    <% cancel_path = @return_to.presence || student_dashboard_path %>
 
     <% allow_save_progress = !(@survey_assignment&.completed_at?) %>
     <div class="c-toolbar mt-8">

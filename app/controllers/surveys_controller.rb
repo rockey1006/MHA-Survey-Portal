@@ -37,6 +37,7 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def show
+    @return_to = safe_return_to_param
   Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
       scope = @survey.categories.includes(:section, :questions)
       @category_groups = if Category.column_names.include?("position")

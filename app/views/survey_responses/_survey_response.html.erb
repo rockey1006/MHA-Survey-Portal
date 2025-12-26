@@ -236,9 +236,13 @@
                           <% other_text = if editable
                                             other_answers[question.id.to_s].to_s
                                           else
-                                            raw_answer.is_a?(Hash) ? raw_answer["text"].to_s : ""
+                                            if raw_answer.is_a?(Hash)
+                                              (raw_answer["text"] || raw_answer[:text] || raw_answer["other_text"] || raw_answer[:other_text]).to_s
+                                            else
+                                              ""
+                                            end
                                           end %>
-                          <% show_other = (selected == value.to_s) || selected.casecmp?("Other") %>
+                          <% show_other = (selected == value.to_s) || selected.casecmp?(label.to_s) || selected.casecmp?("Other") || other_text.present? %>
                           <div class="ml-6 <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
                             <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                                other_text,

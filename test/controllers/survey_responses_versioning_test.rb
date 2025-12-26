@@ -116,6 +116,11 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers }
     assert_response :redirect
 
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+    get survey_response_path(survey_response)
+    assert_response :success
+    assert_match(/<a[^>]+>Edit<\/a>/, response.body)
+
     # Create a second version by revising before due date.
     assignment = SurveyAssignment.find_by!(student_id: @student.student_id, survey_id: @survey.id)
     assignment.update!(due_date: 2.days.from_now)
@@ -125,12 +130,43 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
     post submit_survey_path(@survey), params: { answers: answers2 }
     assert_response :redirect
 
-    survey_response = SurveyResponse.build(student: @student, survey: @survey)
     get survey_response_path(survey_response)
     assert_response :success
     assert_includes response.body, "Version"
     assert_includes response.body, "Latest"
     assert_includes response.body, "←"
+  end
+
+  test "survey response show renders Other free-text in read-only view" do
+    category = @survey.categories.order(:id).first
+    assert category, "Expected survey to have at least one category"
+
+    question = Question.create!(
+      category: category,
+      question_text: "Test question with Other",
+      question_type: "multiple_choice",
+      question_order: 999,
+      is_required: false,
+      has_evidence_field: false,
+      answer_options: ["Yes", "No", "Other"].to_json
+    )
+
+    StudentQuestion.where(student_id: @student.student_id, question_id: question.id).delete_all
+
+    record = StudentQuestion.new(
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      question_id: question.id
+    )
+    record.answer = { "text" => "My other free text" }
+    record.save!(validate: false)
+
+    sign_in @admin_user
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+    get survey_response_path(survey_response)
+    assert_response :success
+    assert_includes response.body, "My other free text"
+    refute_match(/<div[^>]*class="[^"]*hidden[^"]*"[^>]*data-other-for-question-id="#{question.id}"[^>]*>/, response.body)
   end
 
   test "admin delete creates notification" do

@@ -9,12 +9,12 @@
     <div class="c-toolbar__row">
       <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
       <% if viewer_is_student_owner %>
-        <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || !defined?(@selected_version) || @selected_version == @versions.last %>
+        <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || @selected_version.blank? || @selected_version == @versions.last %>
         <% can_edit = viewing_latest_version && can_edit_by_due_date %>
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
-          <span class="#{tailwind_button_classes(:secondary)} opacity-50 pointer-events-none" aria-disabled="true">Edit</span>
+          <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
         <% end %>
       <% end %>
       <%= link_to "Download as PDF",
@@ -40,7 +40,7 @@
                         class: tailwind_button_classes(:secondary, extra_classes: "c-version-nav__arrow"),
                         aria: { label: "Previous version" } %>
           <% else %>
-            <span class="#{tailwind_button_classes(:secondary, extra_classes: "c-version-nav__arrow")}" aria-disabled="true">←</span>
+            <span class="<%= tailwind_button_classes(:secondary, extra_classes: "c-version-nav__arrow") %>" aria-disabled="true">←</span>
           <% end %>
 
           <span class="c-version-nav__label text-xs text-slate-600">
@@ -65,7 +65,7 @@
                         class: tailwind_button_classes(:secondary, extra_classes: "c-version-nav__arrow"),
                         aria: { label: "Next version" } %>
           <% else %>
-            <span class="#{tailwind_button_classes(:secondary, extra_classes: "c-version-nav__arrow")}" aria-disabled="true">→</span>
+            <span class="<%= tailwind_button_classes(:secondary, extra_classes: "c-version-nav__arrow") %>" aria-disabled="true">→</span>
           <% end %>
         </div>
       <% end %>
@@ -78,12 +78,12 @@
     <div class="c-toolbar__row">
       <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
       <% if viewer_is_student_owner %>
-        <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || !defined?(@selected_version) || @selected_version == @versions.last %>
+        <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || @selected_version.blank? || @selected_version == @versions.last %>
         <% can_edit = viewing_latest_version && can_edit_by_due_date %>
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
-          <span class="#{tailwind_button_classes(:secondary)} opacity-50 pointer-events-none" aria-disabled="true">Edit</span>
+          <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
         <% end %>
       <% end %>
       <%= link_to "Download as PDF",

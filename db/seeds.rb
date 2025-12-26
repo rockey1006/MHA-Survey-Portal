@@ -180,7 +180,7 @@ end
 existing_current_semester = ProgramSemester.current_name.to_s.strip.presence
 # Seed behavior: in non-production environments, prefer the newest semester so
 # newly created accounts get the newest surveys assigned automatically.
-target_current_semester = if Rails.env.production?
+target_current_semester = if Rails.env.production? && !seed_demo_data
   existing_current_semester ||
     semester_names.find { |name| name.casecmp?(preferred_seed_current_semester) } ||
     semester_names.last

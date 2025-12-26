@@ -243,10 +243,10 @@ function initOtherChoiceInputs() {
     if (!wrappers.length) return
 
     const sync = (questionId) => {
-      const inputName = `answers[${questionId}]`
-
-      const selectedRadio = form.querySelector(`input[name="${inputName}"]:checked`)
-      const select = form.querySelector(`select[name="${inputName}"]`)
+      // Support both editable survey forms (answers[ID]) and read-only displays
+      // (readonly_answers[ID]) by matching on the trailing [ID].
+      const selectedRadio = form.querySelector(`input[type="radio"][name$="[${questionId}]"]:checked`)
+      const select = form.querySelector(`select[name$="[${questionId}]"]`)
       const currentValue = (selectedRadio ? selectedRadio.value : (select ? select.value : "")).trim()
 
       const matchingWrappers = form.querySelectorAll(`[data-other-input-wrapper][data-other-for-question-id="${questionId}"]`)
@@ -260,7 +260,11 @@ function initOtherChoiceInputs() {
         wrapper.setAttribute("aria-hidden", isOther ? "false" : "true")
 
         const input = wrapper.querySelector("input")
-        if (input) input.disabled = !isOther
+        // Only manage disabled state for editable inputs (other_answers[ID]).
+        // Read-only pages intentionally keep inputs disabled.
+        if (input && (input.name || "").startsWith("other_answers[")) {
+          input.disabled = !isOther
+        }
       })
     }
 
@@ -268,13 +272,12 @@ function initOtherChoiceInputs() {
       const qid = wrapper.dataset.otherForQuestionId
       if (!qid) return
 
-      const inputName = `answers[${qid}]`
-      const radios = form.querySelectorAll(`input[name="${inputName}"]`)
+      const radios = form.querySelectorAll(`input[type="radio"][name$="[${qid}]"]`)
       radios.forEach((radio) => {
         radio.addEventListener("change", () => sync(qid))
       })
 
-      const select = form.querySelector(`select[name="${inputName}"]`)
+      const select = form.querySelector(`select[name$="[${qid}]"]`)
       if (select) {
         select.addEventListener("change", () => sync(qid))
       }

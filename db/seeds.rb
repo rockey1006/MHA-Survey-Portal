@@ -49,15 +49,28 @@ unless Rails.env.test?
 end
 
 begin
-  Rails.cache.clear
+  connection = ActiveRecord::Base.connection
+  has_solid_cache = connection.data_source_exists?("solid_cache_entries")
+
+  if has_solid_cache
+    Rails.cache.clear
+  else
+    puts "• Skipping cache clear (solid_cache_entries table not present)"
+  end
 rescue ActiveRecord::StatementInvalid => e
   warn "• Skipping cache clear (cache schema not loaded yet): #{e.message}"
 end
 
 # Demo/test seed data (sample users + generated responses) is intentionally
-# disabled in production. Set `SEED_DEMO_DATA=0` to disable it in other envs.
+# disabled in production unless explicitly enabled.
+# - Default: enabled in non-production, disabled in production.
+# - Override: set SEED_DEMO_DATA=1 (or true/yes) to enable even in production.
+#             set SEED_DEMO_DATA=0 (or false/no) to force-disable.
 seed_demo_data = !Rails.env.production?
-seed_demo_data = false if ENV["SEED_DEMO_DATA"].to_s.strip.casecmp?("0")
+if ENV.key?("SEED_DEMO_DATA")
+  raw = ENV["SEED_DEMO_DATA"].to_s.strip.downcase
+  seed_demo_data = %w[1 true yes y on].include?(raw)
+end
 puts "• Skipping demo/test seed data" unless seed_demo_data
 
 admin_users = []

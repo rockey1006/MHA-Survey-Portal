@@ -135,10 +135,12 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
       t.text :description
       t.boolean :is_active, null: false, default: true
+      t.datetime :due_date
       t.references :created_by, foreign_key: { to_table: :users }
       t.timestamps
     end
     add_index :surveys, :is_active
+    add_index :surveys, :due_date
     execute <<~SQL
       CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_program_semester
       ON surveys (LOWER(title), program_semester_id);

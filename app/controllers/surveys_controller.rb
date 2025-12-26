@@ -351,27 +351,47 @@ class SurveysController < ApplicationController
     end
 
     begin
-      Rails.logger.info "[SUBMIT] Creating/updating assignment for survey #{@survey.id}, student #{student.student_id}"
-      assignment = SurveyAssignment.find_or_initialize_by(survey_id: @survey.id, student_id: student.student_id)
-      assignment.advisor_id ||= student.advisor_id
-      assignment.assigned_at ||= Time.current
-      assignment.save! if assignment.new_record? || assignment.changed?
+      assignment = nil
+      was_completed = nil
 
-      was_completed = assignment.completed_at?
+      ActiveRecord::Base.transaction do
+        Rails.logger.info "[SUBMIT] Creating/updating assignment for survey #{@survey.id}, student #{student.student_id}"
 
-      Rails.logger.info "[SUBMIT] Marking assignment #{assignment.id} as completed"
-      assignment.mark_completed!
+        assignment = SurveyAssignment.lock.find_by(survey_id: @survey.id, student_id: student.student_id)
+        unless assignment
+          begin
+            assignment = SurveyAssignment.create!(
+              survey_id: @survey.id,
+              student_id: student.student_id,
+              advisor_id: student.advisor_id,
+              assigned_at: Time.current
+            )
+          rescue ActiveRecord::RecordNotUnique
+            assignment = SurveyAssignment.lock.find_by!(survey_id: @survey.id, student_id: student.student_id)
+          end
+        end
 
-      begin
-        SurveyResponseVersion.capture_current!(
-          student: student,
-          survey: @survey,
-          assignment: assignment,
-          actor_user: current_user,
-          event: (was_completed ? :revised : :submitted)
-        )
-      rescue StandardError => version_error
-        Rails.logger.warn "[SUBMIT] Failed to capture survey response version: #{version_error.class}: #{version_error.message}"
+        assignment.advisor_id ||= student.advisor_id
+        assignment.assigned_at ||= Time.current
+        assignment.save! if assignment.changed?
+
+        was_completed = assignment.completed_at?
+
+        Rails.logger.info "[SUBMIT] Marking assignment #{assignment.id} as completed"
+        assignment.mark_completed!
+
+        begin
+          SurveyResponseVersion.capture_current!(
+            student: student,
+            survey: @survey,
+            assignment: assignment,
+            actor_user: current_user,
+            event: (was_completed ? :revised : :submitted),
+            skip_if_unchanged: true
+          )
+        rescue StandardError => version_error
+          Rails.logger.warn "[SUBMIT] Failed to capture survey response version: #{version_error.class}: #{version_error.message}"
+        end
       end
 
       Rails.logger.info "[SUBMIT] Enqueueing notification job"

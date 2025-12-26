@@ -50,6 +50,24 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "double submit with unchanged answers does not create an extra version" do
+    question = @survey.questions.order(:id).first
+    assert question, "Expected survey to have at least one question"
+
+    sign_in @student_user
+
+    answers = { question.id.to_s => "A1" }
+    post submit_survey_path(@survey), params: { answers: answers }
+    assert_response :redirect
+
+    assert_equal 1, SurveyResponseVersion.for_pair(student_id: @student.student_id, survey_id: @survey.id).count
+
+    assert_no_difference "SurveyResponseVersion.for_pair(student_id: @student.student_id, survey_id: @survey.id).count" do
+      post submit_survey_path(@survey), params: { answers: answers }
+      assert_response :redirect
+    end
+  end
+
   test "admin edit captures a baseline when no prior versions exist" do
     question = @survey.questions.order(:id).detect do |candidate|
       StudentQuestion.where(student_id: @student.student_id, question_id: candidate.id).none?

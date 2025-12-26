@@ -117,13 +117,24 @@ module ApplicationHelper
     date = due_date.to_date
     today = Time.zone.today
 
+    formatted_date = format_calendar_date(date)
+
     if date < today
-      "Overdue · #{l(date, format: :long)}"
+      "Overdue · #{formatted_date}"
     elsif date == today
       "Due today"
     else
-      "Due #{l(date, format: :long)}"
+      "Due #{formatted_date}"
     end
+  end
+
+  # Formats a date like "January 9, 2026" (no leading zero).
+  #
+  # @param value [Time, Date]
+  # @return [String]
+  def format_calendar_date(value)
+    date = value.to_date
+    "#{date.strftime('%B')} #{date.day}, #{date.year}"
   end
 
   # Generates a concise summary string from survey audit metadata.

@@ -773,7 +773,7 @@ class DashboardsController < ApplicationController
         survey_title = assignment.survey&.title.presence || "Survey ##{assignment.survey_id}" || "Survey"
         student_name = assignment.student&.user&.name.presence || "Student ##{assignment.student_id}" || "Student"
         advisor_name = assignment.advisor&.display_name.presence || assignment.advisor&.email || "Advisor"
-        due_label = assignment.due_date.present? ? l(assignment.due_date.to_date, format: :long) : "No due date"
+        due_label = assignment.due_date.present? ? helpers.format_calendar_date(assignment.due_date) : "No due date"
 
         entries << {
           timestamp: assignment.updated_at,

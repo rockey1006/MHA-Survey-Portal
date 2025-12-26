@@ -38,9 +38,20 @@ class SurveyResponseVersion < ApplicationRecord
     # @param assignment [SurveyAssignment, nil]
     # @param actor_user [User, nil]
     # @param event [String, Symbol]
+    # @param skip_if_unchanged [Boolean] when true, avoids creating a new version when answers are unchanged
     # @return [SurveyResponseVersion]
-    def capture_current!(student:, survey:, assignment: nil, actor_user: nil, event:)
+    def capture_current!(student:, survey:, assignment: nil, actor_user: nil, event:, skip_if_unchanged: false)
       answers = current_answers_for(student: student, survey: survey)
+
+      if skip_if_unchanged
+        previous = where(
+          student_id: student.student_id,
+          survey_id: survey.id,
+          survey_assignment_id: assignment&.id
+        ).order(created_at: :desc, id: :desc).first
+
+        return previous if previous&.answers == answers
+      end
 
       create!(
         student_id: student.student_id,

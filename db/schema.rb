@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_26_090000) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_26_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -258,8 +258,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_26_090000) do
     t.boolean "is_active", default: true, null: false
     t.bigint "created_by_id"
     t.bigint "program_semester_id", null: false
+    t.datetime "due_date"
     t.index "lower((title)::text), program_semester_id", name: "index_surveys_on_lower_title_and_program_semester", unique: true
     t.index ["created_by_id"], name: "index_surveys_on_created_by_id"
+    t.index ["due_date"], name: "index_surveys_on_due_date"
     t.index ["is_active"], name: "index_surveys_on_is_active"
     t.index ["program_semester_id"], name: "index_surveys_on_program_semester_id"
     t.index ["track"], name: "index_surveys_on_track"

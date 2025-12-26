@@ -76,7 +76,13 @@ module SurveyAssignments
         assignment = existing[survey.id] || SurveyAssignment.new(student_id: student.student_id, survey: survey)
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.zone.now
-        assignment.due_date ||= 2.weeks.from_now if assignment.respond_to?(:due_date)
+        if assignment.respond_to?(:due_date) && survey.respond_to?(:due_date)
+          desired_due_date = survey.due_date
+
+          if desired_due_date.present?
+            assignment.due_date = desired_due_date if assignment.due_date.blank? || assignment.due_date.to_date != desired_due_date.to_date
+          end
+        end
 
         assignment.save! if assignment.new_record? || assignment.changed?
       end

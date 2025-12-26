@@ -165,9 +165,17 @@ if semester_names.blank?
 end
 
 existing_current_semester = ProgramSemester.current_name.to_s.strip.presence
-target_current_semester = existing_current_semester ||
-                          semester_names.find { |name| name.casecmp?(preferred_seed_current_semester) } ||
-                          semester_names.last
+# Seed behavior: in non-production environments, prefer the newest semester so
+# newly created accounts get the newest surveys assigned automatically.
+target_current_semester = if Rails.env.production?
+  existing_current_semester ||
+    semester_names.find { |name| name.casecmp?(preferred_seed_current_semester) } ||
+    semester_names.last
+else
+  semester_names.find { |name| name.casecmp?("Spring 2026") } ||
+    semester_names.last ||
+    existing_current_semester
+end
 
 target_current_semester ||= semester_names.first
 
@@ -262,8 +270,7 @@ answer_options_for = lambda do |options|
 end
 
 created_surveys = []
-surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
-survey_due_dates = {}
+survey_due_dates = nil
 
 legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
 question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
@@ -447,33 +454,22 @@ survey_templates.each do |definition|
       end
     end
 
-    seed_auto_assign_students = definition.fetch("seed_auto_assign_students", true)
     tracks = Array(definition.fetch("tracks", [])).map(&:to_s)
     survey.assign_tracks!(tracks)
 
     raw_due_date = definition["due_date"].to_s.strip
     if raw_due_date.present?
       begin
-        survey_due_dates[survey.id] = Time.zone.parse(raw_due_date).end_of_day
+        parsed_due_date = Time.zone.parse(raw_due_date)
+        survey.due_date = parsed_due_date.end_of_day if parsed_due_date
       rescue StandardError
         # Ignore invalid due dates; we will fall back to default assignment logic.
       end
     end
 
+    survey.save! if survey.changed?
+
     created_surveys << survey
-
-    semester_matches_current = target_current_semester.present? && semester.to_s.casecmp?(target_current_semester)
-
-    if seed_auto_assign_students && semester_matches_current
-      tracks.each do |track|
-        normalized_track = track.to_s.strip.downcase
-        surveys_by_track[normalized_track] << survey
-      end
-    elsif seed_auto_assign_students
-      puts "     ↳ Skipping student auto-assignment during seeding (#{semester} is not the current semester #{target_current_semester})"
-    else
-      puts "     ↳ Skipping student auto-assignment during seeding"
-    end
   end
 end
 
@@ -548,9 +544,13 @@ students.each do |student|
   normalized_student_track = track_value.to_s.strip.downcase
   next if normalized_student_track.blank?
   pending_student = pending_student_ids.include?(student.student_id)
+  program_year_value = student.program_year.to_i
 
-  surveys_to_seed = Array(surveys_by_track[normalized_student_track])
-  if multi_semester_student_ids.include?(student.student_id)
+  surveys_to_seed = created_surveys.select do |survey|
+    survey.program_semester&.name.to_s.strip.casecmp?(target_current_semester.to_s.strip) &&
+      survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
+  end
+  if multi_semester_student_ids.include?(student.student_id) || program_year_value == 2
     multi_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
     extra_surveys = created_surveys.select do |survey|
       multi_semesters.include?(survey.program_semester.name.to_s.strip) &&
@@ -640,26 +640,72 @@ students.each do |student|
       puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
       puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
       puts "     ↳ Track auto-assign will create survey tasks on next profile update"
+
+      # Seed completion history for most Year-1 students on the Spring 2026 survey.
+      # This helps exercise UI states that depend on completed assignments.
+      if survey.program_semester&.name.to_s.strip.casecmp?("Spring 2026") && program_year_value == 1
+        incomplete_seed_email = "zoe.elliott24@tamu.edu"
+        completion_timestamp = latest_response_timestamp || Time.current
+
+        assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
+          record.advisor_id = student.advisor_id
+          record.assigned_at = completion_timestamp
+          record.due_date = survey.due_date if survey.respond_to?(:due_date)
+        end
+
+        assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
+        assignment.update!(due_date: survey.due_date) if assignment.due_date.blank? && survey.respond_to?(:due_date) && survey.due_date.present?
+        assignment.update!(completed_at: nil) if student.user.email.to_s.downcase == incomplete_seed_email
+
+        unless student.user.email.to_s.downcase == incomplete_seed_email
+          assignment.mark_completed!(completion_timestamp)
+
+          SurveyResponseVersion.capture_current!(
+            student: student,
+            survey: survey,
+            assignment: assignment,
+            actor_user: student.user,
+            event: :submitted,
+            skip_if_unchanged: true
+          )
+        end
+      end
+
+      # Seed Year-2 students with multi-semester completions so confidential
+      # notes history and version navigation have realistic data.
+      if program_year_value == 2
+        completion_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
+        if completion_semesters.include?(survey.program_semester&.name.to_s.strip)
+          completion_timestamp = latest_response_timestamp || Time.current
+
+          assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
+            record.advisor_id = student.advisor_id
+            record.assigned_at = completion_timestamp
+            record.due_date = survey.due_date if survey.respond_to?(:due_date)
+          end
+
+          assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
+          assignment.update!(due_date: survey.due_date) if assignment.due_date.blank? && survey.respond_to?(:due_date) && survey.due_date.present?
+          assignment.mark_completed!(completion_timestamp)
+
+          SurveyResponseVersion.capture_current!(
+            student: student,
+            survey: survey,
+            assignment: assignment,
+            actor_user: student.user,
+            event: :submitted,
+            skip_if_unchanged: true
+          )
+        end
+      end
     else
       puts "   • Assigned #{survey.title} to #{student.user.name} (#{track_value}) — awaiting completion"
     end
 
-    completion_time = nil
-    if pending_student
-      assigned_time = Time.zone.now - response_rng.rand(3..10).days
-      due_time = survey_due_dates[survey.id] || (assigned_time + 14.days)
-    else
-      completion_time = latest_response_timestamp || Time.zone.now
-      assigned_time = completion_time - 10.days
-      due_time = survey_due_dates[survey.id] || (assigned_time + 14.days)
-    end
-
-    assignment = SurveyAssignment.find_or_initialize_by(student_id: student.student_id, survey_id: survey.id)
-    assignment.advisor_id ||= student.advisor_id
-    assignment.assigned_at ||= assigned_time
-    assignment.due_date ||= due_time
-    assignment.save!
-    assignment.mark_completed!(completion_time) if completion_time.present?
+    # Survey assignments are intentionally not created here.
+    # We rely on SurveyAssignments::AutoAssigner (triggered by student profile
+    # updates) to assign the newest surveys so assignment behavior is exercised
+    # consistently in dev/test.
   end
 end
 

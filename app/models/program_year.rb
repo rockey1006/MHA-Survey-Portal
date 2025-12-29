@@ -42,6 +42,6 @@ class ProgramYear < ApplicationRecord
 
   # @return [Array<Array(String, Integer)>] [label, value]
   def self.options_for_select
-    values.map { |year| ["Year #{year}", year] }
+    values.map { |year| [ "Year #{year}", year ] }
   end
 end

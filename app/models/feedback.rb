@@ -20,10 +20,10 @@ class Feedback < ApplicationRecord
             allow_nil: true
 
   validates :comments, length: { maximum: COMMENTS_MAX_LENGTH }, allow_nil: true
-     # NOTE: previously we enforced uniqueness on survey_id which prevented
-     # storing multiple per-category feedback rows for the same survey. That
-     # constraint is enforced at a composite level in the DB and/or via
-     # application logic; allow multiple Feedback records per survey here.
+  # NOTE: previously we enforced uniqueness on survey_id which prevented
+  # storing multiple per-category feedback rows for the same survey. That
+  # constraint is enforced at a composite level in the DB and/or via
+  # application logic; allow multiple Feedback records per survey here.
 
   after_commit :enqueue_feedback_received_notification, on: [ :create, :update ]
 

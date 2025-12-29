@@ -42,7 +42,7 @@ class ProgramTrack < ApplicationRecord
 
     DEFAULT_TRACKS.map { |attrs| [ attrs[:key], attrs[:name] ] }.to_h
   rescue ActiveRecord::StatementInvalid
-    DEFAULT_TRACKS.map { |attrs| [attrs[:key], attrs[:name]] }.to_h
+    DEFAULT_TRACKS.map { |attrs| [ attrs[:key], attrs[:name] ] }.to_h
   end
 
   # Accepts either the key ("residential"), the display name ("Residential"), or

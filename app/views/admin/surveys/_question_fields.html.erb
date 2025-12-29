@@ -87,13 +87,28 @@
         <span class="min-w-0 flex flex-col gap-1">
           <span class="flex min-w-0 flex-wrap items-center gap-2">
             <span class="leading-snug cursor-text" data-question-preview-target="promptText" data-action="click->question-preview#editPrompt"><%= preview_prompt %></span>
-            <% if tooltip_preview.present? %>
-              <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_preview %></span>
-            <% end %>
+            <span class="inline-flex hidden" data-question-preview-target="tooltipRoot">
+              <div class="standard-tooltip" data-standard-tooltip>
+                <button type="button"
+                        class="standard-tooltip-trigger"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        aria-controls="tooltip-<%= question_uid %>"
+                        aria-label="Show additional context">
+                  <span aria-hidden="true">ⓘ</span>
+                </button>
+
+                <div id="tooltip-<%= question_uid %>"
+                     class="standard-tooltip-panel"
+                     role="dialog"
+                     aria-label="Additional context">
+                  <div class="cursor-text" data-question-preview-target="tooltipBody" data-action="click->question-preview#editTooltip"></div>
+                </div>
+              </div>
+            </span>
             <span class="text-red-600 <%= required_preview ? '' : 'hidden' %>" aria-hidden="true" data-question-preview-target="requiredStar">*</span>
           </span>
           <div class="indented-description cursor-text text-xs leading-relaxed text-slate-600" data-question-preview-target="descriptionText" data-action="click->question-preview#editDescription"><%= preview_desc.present? ? preview_desc.gsub(/\r?\n/, '<br>').html_safe : "<span class='text-slate-400'>Add description</span>".html_safe %></div>
-          <p class="text-xs text-slate-500 <%= tooltip_preview.present? ? '' : 'hidden' %>" data-question-preview-target="tooltipLine"><%= tooltip_preview.present? ? "Tooltip: #{tooltip_preview}" : '' %></p>
         </span>
       </span>
     </div>

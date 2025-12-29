@@ -19,6 +19,8 @@ export default class extends Controller {
     "descriptionText",
     "requiredStar",
     "tooltipLine",
+    "tooltipRoot",
+    "tooltipBody",
     "response"
   ]
 
@@ -46,7 +48,7 @@ export default class extends Controller {
     const currentEntries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
     if (currentEntries.length) return
 
-    const pairs = Array(this.readInitialOptionPairs() || [])
+    const pairs = this.readInitialOptionPairs() || []
     if (!pairs.length) return
 
     const entries = pairs
@@ -79,7 +81,7 @@ export default class extends Controller {
   }
 
   entriesFromInitialPairsForRender() {
-    const pairs = Array(this.readInitialOptionPairs() || [])
+    const pairs = this.readInitialOptionPairs() || []
     if (!pairs.length) return []
 
     return pairs
@@ -125,16 +127,44 @@ export default class extends Controller {
   }
 
   updateTooltip() {
-    if (!this.hasTooltipLineTarget) return
     const raw = (this.tooltipInputTarget?.value || "").trim()
-    if (!raw.length) {
-      this.tooltipLineTarget.classList.add("hidden")
-      this.tooltipLineTarget.textContent = ""
-      return
+
+    if (this.hasTooltipRootTarget) {
+      this.tooltipRootTarget.classList.toggle("hidden", !raw.length)
     }
 
-    this.tooltipLineTarget.classList.remove("hidden")
-    this.tooltipLineTarget.textContent = `Tooltip: ${raw}`
+    if (this.hasTooltipBodyTarget) {
+      if (!raw.length) {
+        this.tooltipBodyTarget.innerHTML = '<span class="text-slate-400">Add tooltip</span>'
+      } else {
+        this.tooltipBodyTarget.innerHTML = this.escapeHtml(raw).replace(/\r?\n/g, "<br>")
+      }
+    }
+    if (this.hasTooltipLineTarget) {
+      if (!raw.length) {
+        this.tooltipLineTarget.classList.add("hidden")
+        this.tooltipLineTarget.textContent = ""
+      } else {
+        this.tooltipLineTarget.classList.remove("hidden")
+        this.tooltipLineTarget.textContent = `Tooltip: ${raw}`
+      }
+    }
+  }
+
+  editTooltip(event) {
+    event?.preventDefault()
+    event?.stopPropagation()
+
+    // Ensure the tooltip panel stays open while editing.
+    const root = event?.currentTarget?.closest?.("[data-standard-tooltip]")
+    if (root) root.dataset.tooltipOpen = "true"
+
+    this.startInlineEditor({
+      inputEl: this.tooltipInputTarget,
+      displayEl: this.tooltipBodyTarget,
+      placeholder: "Add tooltip",
+      multiline: true
+    })
   }
 
   updateRequired() {
@@ -428,7 +458,7 @@ export default class extends Controller {
   setOptionEntries(entries) {
     if (!this.hasAnswerOptionsInputTarget) return
 
-    const normalized = Array(entries || [])
+    const normalized = (entries || [])
       .map((e) => ({
         label: this.normalizeOptionString(e?.label),
         value: this.normalizeOptionString(e?.value ?? e?.label)
@@ -534,7 +564,7 @@ export default class extends Controller {
     // Merge wrapped/continuation lines and drop value-only duplicates.
     const out = []
 
-    for (const e of Array(entries || [])) {
+    for (const e of (entries || [])) {
       const label = this.normalizeOptionString(e?.label)
       const value = this.normalizeOptionString(e?.value ?? label)
       if (!label.length) continue
@@ -612,7 +642,7 @@ export default class extends Controller {
   }
 
   suggestNextOptionValue(entries, nextLabel) {
-    const values = Array(entries || [])
+    const values = (entries || [])
       .map((e) => String(e?.value ?? "").trim())
       .filter((v) => v.length)
 

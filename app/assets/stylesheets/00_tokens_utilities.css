@@ -59,16 +59,16 @@
   
   /* Typography */
   --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-base: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
-  --font-size-3xl: 28px;
-  --font-size-4xl: 32px;
-  --font-size-5xl: 40px;
-  --font-size-6xl: 48px;
+  --font-size-xs: 13px;
+  --font-size-sm: 15px;
+  --font-size-base: 17px;
+  --font-size-lg: 19px;
+  --font-size-xl: 21px;
+  --font-size-2xl: 25px;
+  --font-size-3xl: 29px;
+  --font-size-4xl: 33px;
+  --font-size-5xl: 41px;
+  --font-size-6xl: 49px;
   
   --font-weight-normal: 400;
   --font-weight-medium: 500;

@@ -15,9 +15,6 @@ class Admin::SurveysController < Admin::BaseController
   def index
     @search_query = params[:q].to_s.strip
     @selected_track = params[:track].presence
-    @program_semesters = ProgramSemester.ordered
-    @current_program_semester = ProgramSemester.current
-    @new_program_semester = ProgramSemester.new
 
     allowed_sort_columns = {
       "title" => "surveys.title",
@@ -66,7 +63,7 @@ class Admin::SurveysController < Admin::BaseController
     @active_surveys = active_scope.preload(:track_assignments).load
 
     @track_filter_options = (
-      Survey::TRACK_OPTIONS +
+      Survey.track_options +
       SurveyTrackAssignment.distinct.pluck(:track)
     ).compact.map(&:to_s).reject(&:blank?).uniq.sort
     @unassigned_track_token = unassigned_track_token
@@ -205,32 +202,12 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    scope = @survey.categories.includes(:section, :questions)
-    @category_groups = if Category.column_names.include?("position")
-                         scope.order(:position, :id)
-    else
-                         scope.order(:id)
-    end
-    @categories = @category_groups
-    @questions = @survey.questions.includes(:category).order(:question_order)
-    @category_names = @category_groups.map(&:name)
-    @track_list = @survey.track_list
-    @computed_required = {}
-
-    @category_groups.each do |category|
-      category.questions.each do |question|
-        required = question.is_required?
-
-        if !required && question.choice_question?
-          options = question.answer_option_values.map(&:strip).map(&:downcase)
-          is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
-                                 question.question_text.to_s.downcase.include?("flexible")
-          required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
-        end
-
-        @computed_required[question.id] = required
-      end
-    end
+    preview_student = OpenStruct.new(student_id: 0, advisor: nil, user: nil)
+    @preview_survey_response = SurveyResponse.new(
+      student: preview_student,
+      survey: @survey,
+      answers_override: {}
+    )
     @survey.log_change!(admin: current_user, action: "preview", description: "Previewed from admin panel")
   end
 
@@ -325,7 +302,7 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def prepare_supporting_data
-    @available_tracks = Survey::TRACK_OPTIONS
+    @available_tracks = Survey.track_options
     @question_types = Question.question_types.keys
     @program_semester_options = ProgramSemester.ordered.pluck(:name)
   end

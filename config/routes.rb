@@ -54,8 +54,12 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resource :maintenance, only: %i[show update]
+    get "program_setup", to: "program_setups#show", as: :program_setup
     get "target_levels", to: "target_levels#index", as: :target_levels
     patch "target_levels", to: "target_levels#update"
+    resources :program_tracks, only: %i[create update destroy]
+    resources :majors, only: %i[create update destroy]
+    resources :program_years, only: %i[create update destroy]
     resources :surveys do
       member do
         get :preview
@@ -65,7 +69,7 @@ Rails.application.routes.draw do
     end
     resources :questions
     resources :survey_change_logs, only: :index
-    resources :program_semesters, only: %i[create destroy] do
+    resources :program_semesters, only: %i[create update destroy] do
       member do
         patch :make_current
       end

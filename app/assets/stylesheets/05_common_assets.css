@@ -342,6 +342,90 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* === Stats / summary tiles ==============================================
+ * Reusable “metrics grid” used across admin pages.
+ * Mirrors the visual hierarchy used in reports summary cards.
+ * ======================================================================= */
+
+.c-stats-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 640px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.c-stat {
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+}
+
+.c-stat--info {
+  border-color: rgba(0, 102, 204, 0.25);
+  background-color: rgba(0, 102, 204, 0.08);
+}
+
+.c-stat--success {
+  border-color: rgba(40, 167, 69, 0.25);
+  background-color: rgba(40, 167, 69, 0.08);
+}
+
+.c-stat--warning {
+  border-color: rgba(255, 107, 53, 0.25);
+  background-color: rgba(255, 107, 53, 0.08);
+}
+
+.c-stat--muted {
+  border-color: var(--gray-200);
+  background-color: rgba(15, 23, 42, 0.03);
+}
+
+.c-stat__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.c-stat--info .c-stat__label { color: var(--info-color); }
+.c-stat--success .c-stat__label { color: var(--success-color); }
+.c-stat--warning .c-stat__label { color: var(--warning-color); }
+.c-stat--muted .c-stat__label { color: var(--gray-600); }
+
+.c-stat__value {
+  margin-top: var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+  line-height: var(--line-height-tight);
+  font-size: var(--font-size-3xl);
+}
+
+.c-stat__value--lg { font-size: var(--font-size-4xl); }
+.c-stat__value--md { font-size: var(--font-size-2xl); }
+
+.c-stat__subtext {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
 /* === Toolbars (action rows) ============================================= */
 
 .c-toolbar {
@@ -370,6 +454,256 @@
  * For now, use those directly in markup:
  *   class="btn btn-primary" | "btn btn-secondary" | "btn btn-danger" | "btn btn-ghost" | "btn btn-subtle"
  */
+
+/* === Popovers / menus ==================================================== */
+
+/* Anchor for absolutely-positioned popovers (dropdown panels). */
+.c-popover-anchor {
+  position: relative;
+}
+
+/* Base popover surface (dropdown panel). */
+.c-popover {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.c-popover--menu {
+  width: 320px;
+  z-index: 40;
+}
+
+/* Hover-open dropdown utility (profile-like behavior).
+   Opt-in: add .u-hover-dropdown to the container and .u-hover-dropdown__panel to the panel.
+   Uses !important so it can override inline display toggles (e.g., translation panel). */
+.u-hover-dropdown > .u-hover-dropdown__panel {
+  display: none !important;
+}
+
+.u-hover-dropdown:hover > .u-hover-dropdown__panel,
+.u-hover-dropdown:focus-within > .u-hover-dropdown__panel {
+  display: block !important;
+}
+
+/* <details> may keep its content non-rendered unless [open] is set.
+   If JS sets [open] for hover/focus, ensure the panel becomes visible. */
+details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
+  display: block !important;
+}
+
+/* Position helpers for popovers */
+.u-popover-down-right {
+  position: absolute;
+  top: calc(100% + var(--spacing-sm));
+  right: 0;
+}
+
+/* Compact icon-only button (used in header toolbars). */
+.c-icon-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.c-icon-button--frosted {
+  background-color: rgba(255, 255, 255, 0.6);
+  color: var(--gray-700);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-icon-button--frosted:hover {
+  background-color: var(--white);
+}
+
+/* Navbar icon button variant (match translate toggle layout). */
+.app-header .c-icon-button--nav {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.app-header .c-icon-button--nav:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.c-icon-button:focus-visible {
+  outline: 3px solid rgba(255, 191, 0, 0.8);
+  outline-offset: 3px;
+}
+
+.c-icon-button::-webkit-details-marker {
+  display: none;
+}
+
+.c-icon-button::marker {
+  content: "";
+}
+
+.c-icon-button__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Navbar icon sizing for icon-only buttons.
+   Scope to .app-header so we don't unintentionally resize icons elsewhere. */
+.app-header .c-icon-button__icon > img,
+.app-header .c-icon-button__icon > svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* SVG icons should inherit the button's color in all modes (including high-contrast). */
+.app-header .c-icon-button__icon > svg {
+  fill: currentColor;
+}
+
+/* Notification PNG is a colored glyph; render it like the translate icon on the maroon header. */
+.app-header .notification-icon-img {
+  filter: brightness(0) invert(1);
+}
+
+/* Small count badge (unread notifications). */
+.c-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.c-badge--count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+/* Menu list (used inside popovers). */
+.c-menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-menu__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-700);
+}
+
+.c-menu__item-wrap + .c-menu__item-wrap {
+  border-top: 1px solid var(--gray-100);
+}
+
+.c-menu__item {
+  display: block;
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-decoration: none;
+  color: var(--gray-700);
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+.c-menu__item:hover {
+  background-color: var(--gray-50);
+}
+
+.c-menu__item:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: -3px;
+}
+
+.c-menu__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.c-menu__item-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-800);
+}
+
+.c-menu__item:hover .c-menu__item-title {
+  color: var(--primary-color);
+}
+
+.c-menu__meta {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.c-menu__message {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--gray-600);
+  line-height: var(--line-height-relaxed);
+}
+
+.c-menu__footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.c-menu__empty {
+  margin: 0;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+}
+
+/* === Icons ============================================================== */
+
+.c-icon--survey {
+  width: 40px;
+  height: 40px;
+  background: var(--gray-50) url('survey-icon.png') no-repeat center;
+  background-size: 18px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
 
 /* === Forms =============================================================== */
 
@@ -581,4 +915,9 @@ body.high-contrast .c-page-title,
 body.high-contrast .c-section-title,
 body.high-contrast .c-label {
   color: #000000;
+}
+
+/* Notifications: strengthen icon in high contrast. */
+body.high-contrast .app-header .c-icon-button__icon > img {
+  filter: brightness(0) invert(1);
 }

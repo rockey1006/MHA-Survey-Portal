@@ -8,7 +8,7 @@ class CompetencyTargetLevel < ApplicationRecord
   validates :competency_title, presence: true
   validates :target_level, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 5 }
 
-  validates :track, inclusion: { in: Student.tracks.values }, allow_blank: true
+  validates :track, inclusion: { in: ->(_record) { ProgramTrack.names } }, allow_blank: true
 
   validates :competency_title, uniqueness: { scope: %i[program_semester_id track program_year] }
 end

@@ -1,12 +1,6 @@
 # Survey definition composed of categories and questions, with track-based
 # assignments and change logging.
 class Survey < ApplicationRecord
-  # Predefined track labels administrators can assign.
-  TRACK_OPTIONS = [
-    "Residential",
-    "Executive"
-  ].freeze
-
   belongs_to :program_semester
   belongs_to :creator, class_name: "User", foreign_key: :created_by_id, optional: true
 
@@ -63,10 +57,15 @@ class Survey < ApplicationRecord
   end
 
   def self.canonical_track(value)
-    text = value.to_s.strip
-    return if text.blank?
+    key = ProgramTrack.canonical_key(value)
+    return if key.blank?
 
-    TRACK_OPTIONS.find { |option| option.casecmp?(text) }
+    ProgramTrack.name_for_key(key)
+  end
+
+  # @return [Array<String>] canonical track labels
+  def self.track_options
+    ProgramTrack.names
   end
 
   # Replaces the survey's track assignments with the provided list.

@@ -375,8 +375,11 @@ class SurveysController < ApplicationController
 
       Rails.logger.info "[SUBMIT] Enqueueing notification job"
       begin
-        SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
         SurveyNotificationJob.perform_later(event: :response_submitted, survey_assignment_id: assignment.id)
+
+        if was_completed && Feedback.exists?(student_id: student.student_id, survey_id: @survey.id)
+          SurveyNotificationJob.perform_later(event: :student_revised_after_feedback, survey_assignment_id: assignment.id)
+        end
       rescue StandardError => job_error
         # Don't fail submission if job enqueue fails
         Rails.logger.warn "[SUBMIT] Failed to enqueue notification job: #{job_error.class}: #{job_error.message}"

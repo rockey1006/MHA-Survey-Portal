@@ -91,6 +91,29 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.index :name, unique: true
     end
 
+  # Entity table: program tracks (seeded catalog of tracks).
+  create_table :program_tracks do |t|
+      t.string :key, null: false
+      t.string :name, null: false
+      t.integer :position, null: false, default: 0
+      t.boolean :active, null: false, default: true
+
+      t.timestamps
+    end
+    add_index :program_tracks, "LOWER(key)", unique: true, name: "index_program_tracks_on_lower_key"
+    add_index :program_tracks, "LOWER(name)", unique: true, name: "index_program_tracks_on_lower_name"
+
+  # Entity table: program years (e.g., Year 1, Year 2).
+  create_table :program_years do |t|
+      t.integer :value, null: false
+      t.integer :position, null: false, default: 0
+      t.boolean :active, null: false, default: true
+      t.timestamps
+
+      t.index :value, unique: true
+      t.index :active
+    end
+
   # Entity table: in-app notification records per user.
   create_table :notifications do |t|
       t.references :user, null: false, foreign_key: { to_table: :users, on_delete: :cascade }

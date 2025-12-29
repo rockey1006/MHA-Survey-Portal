@@ -34,6 +34,23 @@ if ActiveRecord::Base.connection.data_source_exists?("majors")
   Major.find_or_create_by!(name: "Health Administration")
 end
 
+# Program tracks
+if ActiveRecord::Base.connection.data_source_exists?("program_tracks")
+  ProgramTrack.seed_defaults!
+end
+
+# Program years
+if ActiveRecord::Base.connection.data_source_exists?("program_years")
+  ProgramYear.seed_defaults!
+
+  # Keep seed environments deterministic: only Year 1 and Year 2.
+  # (Admins can add more years in production if needed.)
+  if Rails.env.development? || Rails.env.test?
+    allowed_years = ProgramYear::DEFAULT_YEARS.map { |attrs| attrs.fetch(:value) }
+    ProgramYear.where.not(value: allowed_years).delete_all
+  end
+end
+
 previous_queue_adapter = ActiveJob::Base.queue_adapter
 seed_async_adapter = nil
 

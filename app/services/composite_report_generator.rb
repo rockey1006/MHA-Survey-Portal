@@ -10,6 +10,7 @@ class CompositeReportGenerator
 
   CACHE_TTL = 6.hours
   MAX_EVIDENCE_HISTORY = Integer(ENV.fetch("COMPOSITE_REPORT_MAX_EVIDENCE_HISTORY", 5))
+  PDF_RENDER_VERSION = 2
   # Lightweight value object so callers can ensure temporary files are cleaned up.
   class Result
     attr_reader :path, :size_bytes
@@ -77,6 +78,7 @@ class CompositeReportGenerator
     feedback_created = feedback_entries.filter_map { |f| f.created_at&.to_i }
 
     components = [
+      PDF_RENDER_VERSION,
       @survey_response.student_id,
       student.updated_at&.to_i,
       student.user&.updated_at&.to_i,
@@ -192,9 +194,10 @@ class CompositeReportGenerator
       print_media_type: true,
       quiet: true,
       extra: [
-        "--dpi", "96",
-        "--image-dpi", "96",
-        "--image-quality", "60",
+        "--enable-local-file-access",
+        "--dpi", "192",
+        "--image-dpi", "300",
+        "--image-quality", "95",
         "--no-outline",
         "--javascript-delay", "500"
       ],

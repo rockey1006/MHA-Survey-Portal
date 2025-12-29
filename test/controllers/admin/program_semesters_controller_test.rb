@@ -13,7 +13,7 @@ class Admin::ProgramSemestersControllerTest < ActionDispatch::IntegrationTest
       post admin_program_semesters_path, params: { program_semester: { name: "Summer 2027", current: "1" } }
     end
 
-    assert_redirected_to admin_surveys_path(anchor: "semester-manager")
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
 
     new_semester = ProgramSemester.order(:created_at).last
     assert_equal "Summer 2027", new_semester.name
@@ -26,7 +26,7 @@ class Admin::ProgramSemestersControllerTest < ActionDispatch::IntegrationTest
       post admin_program_semesters_path, params: { program_semester: { name: "" } }
     end
 
-    assert_redirected_to admin_surveys_path(anchor: "semester-manager")
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
     assert_match "can't be blank", flash[:alert]
   end
 
@@ -34,7 +34,7 @@ class Admin::ProgramSemestersControllerTest < ActionDispatch::IntegrationTest
     refute @spring.current?
 
     patch make_current_admin_program_semester_path(@spring)
-    assert_redirected_to admin_surveys_path(anchor: "semester-manager")
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
 
     assert @spring.reload.current?
     refute @fall.reload.current?
@@ -45,14 +45,14 @@ class Admin::ProgramSemestersControllerTest < ActionDispatch::IntegrationTest
       delete admin_program_semester_path(@spring)
     end
 
-    assert_redirected_to admin_surveys_path(anchor: "semester-manager")
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
   end
 
   test "destroying the current semester assigns a fallback" do
     assert @fall.current?
 
     delete admin_program_semester_path(@fall)
-    assert_redirected_to admin_surveys_path(anchor: "semester-manager")
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
 
     assert ProgramSemester.current.present?, "fallback semester should become current"
     assert_not_equal @fall.id, ProgramSemester.current.id

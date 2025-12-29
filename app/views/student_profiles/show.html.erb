@@ -4,7 +4,7 @@
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
 <% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
-<% program_year = @student.program_year.presence || "Not set" %>
+<% program_year = @student.program_year.present? ? "Year #{@student.program_year}" : "Not set" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>

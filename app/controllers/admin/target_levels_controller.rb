@@ -74,11 +74,7 @@ class Admin::TargetLevelsController < Admin::BaseController
   def load_selector_options
     @semesters = ProgramSemester.order(Arel.sql("current DESC"), Arel.sql("LOWER(name) ASC"))
     @tracks = Student.tracks.values
-    @program_year_options = [
-      [ "All years", "" ],
-      [ "Year 1", "1" ],
-      [ "Year 2", "2" ]
-    ]
+    @program_year_options = [["All years", ""]] + ProgramYear.options_for_select.map { |label, value| [label, value.to_s] }
 
     requested_semester_id = params[:program_semester_id].to_s.presence
     @selected_semester_id = requested_semester_id&.to_i

@@ -5,7 +5,7 @@
 
 <%= form_with(model: [:admin, survey],
               local: true,
-              class: "survey-container survey-show mx-auto w-full space-y-8",
+              class: "survey-form w-full space-y-8",
               data: { controller: "survey-autosave", "survey-autosave-debounce-value": 4000 }) do |form| %>
   <% if survey.errors.any? %>
     <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -50,10 +50,10 @@
                           options_for_select(@program_semester_options, survey.semester.presence || @program_semester_options.first),
                           { include_blank: "Select semester" },
                           class: input_classes %>
-          <p class="text-xs text-slate-500">Manage semesters from the Survey Builder page.</p>
+          <p class="text-xs text-slate-500">Manage semesters from Program Setup.</p>
         <% else %>
           <%= form.text_field :semester, required: true, class: input_classes, placeholder: "Fall 2025" %>
-          <p class="text-xs text-amber-600">Add program semesters from the admin panel to unlock the dropdown selector.</p>
+          <p class="text-xs text-amber-600">Add program semesters in Program Setup to unlock the dropdown selector.</p>
         <% end %>
       </div>
 
@@ -219,9 +219,13 @@
         </div>
       </section>
 
-      <div class="flex flex-wrap items-center gap-3">
-        <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: tailwind_button_classes(:primary)) %>
-        <%= link_to "Cancel", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
+      <div class="c-toolbar c-toolbar--spaced">
+        <div class="c-toolbar__row justify-end w-full">
+          <div class="flex flex-wrap items-center gap-3">
+            <%= link_to "Cancel", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
+            <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: tailwind_button_classes(:primary)) %>
+          </div>
+        </div>
       </div>
     </div>
 

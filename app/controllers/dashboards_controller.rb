@@ -147,6 +147,8 @@ class DashboardsController < ApplicationController
   #
   # @return [void]
   def admin
+    return unless ensure_admin!
+
     @role_counts = {
       student: User.students.count,
       advisor: User.advisors.count,

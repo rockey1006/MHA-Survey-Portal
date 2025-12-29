@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_26_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -119,6 +119,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_26_120000) do
     t.datetime "updated_at", null: false
     t.index ["current"], name: "index_program_semesters_on_current", where: "(current = true)"
     t.index ["name"], name: "index_program_semesters_on_name", unique: true
+  end
+
+  create_table "program_tracks", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((key)::text)", name: "index_program_tracks_on_lower_key", unique: true
+    t.index "lower((name)::text)", name: "index_program_tracks_on_lower_name", unique: true
+  end
+
+  create_table "program_years", force: :cascade do |t|
+    t.integer "value", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_program_years_on_active"
+    t.index ["value"], name: "index_program_years_on_value", unique: true
   end
 
   create_table "questions", force: :cascade do |t|

@@ -14,6 +14,7 @@ class StudentProfilesController < ApplicationController
     @student = current_student
     @advisors = Advisor.joins(:user).order("users.name ASC")
     @majors = Major.order(:name)
+    @program_year_options = ProgramYear.options_for_select
   end
 
   # Update profile information
@@ -21,6 +22,7 @@ class StudentProfilesController < ApplicationController
     @student = current_student
     @advisors = Advisor.joins(:user).order("users.name ASC")
     @majors = Major.order(:name)
+    @program_year_options = ProgramYear.options_for_select
 
     # Update student attributes
     @student.assign_attributes(student_params)

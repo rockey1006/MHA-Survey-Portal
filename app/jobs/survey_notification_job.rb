@@ -9,12 +9,13 @@ class SurveyNotificationJob < ApplicationJob
 
   # @param event [Symbol, String]
   # @param survey_assignment_id [Integer, nil]
+  # @param feedback_id [Integer, nil]
   # @param survey_id [Integer, nil]
   # @param question_id [Integer, nil]
   # @param user_id [Integer, nil]
   # @param metadata [Hash]
   # @return [void]
-  def perform(event:, survey_assignment_id: nil, survey_id: nil, question_id: nil, user_id: nil, metadata: {})
+  def perform(event:, survey_assignment_id: nil, feedback_id: nil, survey_id: nil, question_id: nil, user_id: nil, metadata: {})
     event_key = event.to_sym
     metadata = metadata.present? ? metadata.with_indifferent_access : {}
 
@@ -25,10 +26,12 @@ class SurveyNotificationJob < ApplicationJob
       handle_due_soon_notification(survey_assignment_id)
     when :past_due
       handle_past_due_notification(survey_assignment_id)
-    when :completed
-      handle_completed_notification(survey_assignment_id)
     when :response_submitted
       handle_response_submitted_notification(survey_assignment_id)
+    when :feedback_received
+      handle_feedback_received_notification(feedback_id)
+    when :student_revised_after_feedback
+      handle_student_revised_after_feedback_notification(survey_assignment_id)
     when :survey_updated
       handle_survey_updated_notification(survey_id, metadata)
     when :survey_archived
@@ -84,18 +87,6 @@ class SurveyNotificationJob < ApplicationJob
     )
   end
 
-  def handle_completed_notification(survey_assignment_id)
-    assignment = assignment_scope.includes(:survey, advisor: :user, student: :user).find(survey_assignment_id)
-    return unless (advisor_user = assignment.advisor_user)
-
-    Notification.deliver!(
-      user: advisor_user,
-      title: "Student Survey Completed",
-      message: "#{assignment.student.full_name} completed '#{assignment.survey.title}'.",
-      notifiable: assignment
-    )
-  end
-
   def handle_response_submitted_notification(survey_assignment_id)
     assignment = assignment_scope.includes(:survey, student: :user).find(survey_assignment_id)
     student_user = assignment.recipient_user
@@ -107,6 +98,44 @@ class SurveyNotificationJob < ApplicationJob
       message: "Thanks! Your responses for '#{assignment.survey.title}' were received.",
       notifiable: assignment
     )
+  end
+
+  def handle_feedback_received_notification(feedback_id)
+    return if feedback_id.blank?
+
+    feedback = Feedback.includes(:survey, student: :user, advisor: :user).find(feedback_id)
+    assignment = assignment_scope.find_by(student_id: feedback.student_id, survey_id: feedback.survey_id)
+    return unless assignment
+
+    student_user = assignment.recipient_user
+    return unless student_user
+
+    advisor_name = feedback.advisor&.user&.display_name || "Your advisor"
+
+    Notification.deliver!(
+      user: student_user,
+      title: "Advisor Feedback Received",
+      message: "#{advisor_name} left feedback on '#{feedback.survey.title}'.",
+      notifiable: assignment
+    )
+  end
+
+  def handle_student_revised_after_feedback_notification(survey_assignment_id)
+    assignment = assignment_scope.includes(:survey, advisor: :user, student: :user).find(survey_assignment_id)
+    return unless Feedback.exists?(student_id: assignment.student_id, survey_id: assignment.survey_id)
+
+    recipients = {}
+    collect_user(recipients, assignment.advisor_user)
+    User.admins.find_each { |admin_user| collect_user(recipients, admin_user) }
+
+    recipients.values.each do |user|
+      Notification.deliver!(
+        user: user,
+        title: "Survey Updated After Feedback",
+        message: "#{assignment.student.full_name} updated '#{assignment.survey.title}' after feedback was provided.",
+        notifiable: assignment
+      )
+    end
   end
 
   def handle_survey_updated_notification(survey_id, metadata)

@@ -1,6 +1,52 @@
 require "test_helper"
 
 class FeedbackTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  setup do
+    clear_enqueued_jobs
+    clear_performed_jobs
+  end
+
+  teardown do
+    clear_enqueued_jobs
+    clear_performed_jobs
+  end
+
+  test "saving score/comments enqueues feedback notification job" do
+    student_user = User.create!(email: "stu-notify@example.com", name: "Student Notify", role: "student")
+    student = student_user.student_profile
+
+    advisor_user = User.create!(email: "adv-notify@example.com", name: "Advisor Notify", role: "advisor")
+    advisor = advisor_user.advisor_profile
+
+    survey = Survey.new(title: "Notify Survey", semester: "Fall 2025")
+    category = survey.categories.build(name: "C")
+    category.questions.build(question_text: "Q1", question_order: 1, question_type: "short_answer")
+    survey.save!
+
+    SurveyAssignment.create!(
+      survey: survey,
+      student: student,
+      advisor: advisor,
+      assigned_at: Time.current
+    )
+
+    fb = nil
+    assert_enqueued_jobs 1, only: SurveyNotificationJob do
+      fb = Feedback.create!(
+        student_id: student.student_id,
+        advisor_id: advisor.advisor_id,
+        survey_id: survey.id,
+        category_id: survey.categories.first.id,
+        average_score: 4,
+        comments: "Nice work"
+      )
+    end
+
+    assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :feedback_received, feedback_id: fb.id } ])
+  end
+
   test "can create multiple feedback rows and accept numeric average_score" do
     user = User.create!(email: "stu@example.com", name: "Student One", role: "student")
     # User creation auto-creates a student profile via after_commit; use it.

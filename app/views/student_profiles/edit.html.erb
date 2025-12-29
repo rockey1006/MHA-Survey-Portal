@@ -4,7 +4,7 @@
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
 <% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
-<% program_year = @student.program_year.presence || "Not set" %>
+<% program_year = @student.program_year.present? ? "Year #{@student.program_year}" : "Not set" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
@@ -125,10 +125,7 @@
                   <div class="c-field">
                     <%= form.label :program_year, "Program year", class: "c-label" %>
                     <%= form.select :program_year,
-                        options_for_select([
-                          ["Year 1", 1],
-                          ["Year 2", 2]
-                        ], @student.program_year),
+                        options_for_select(@program_year_options, @student.program_year),
                         { prompt: "Select your year" },
                         { required: true, class: "c-input" } %>
                     <small class="c-help">Used to determine which surveys to assign.</small>
@@ -151,11 +148,9 @@
                 <div class="c-kv c-kv--compact">
                   <div class="c-field">
                     <%= form.label :track, "Program track", class: "c-label" %>
+                    <% track_options = Student.tracks.map { |key, label| [label, key] } %>
                     <%= form.select :track,
-                        options_for_select([
-                          ["Residential", "residential"],
-                          ["Executive", "executive"]
-                        ], @student.track.to_s),
+                        options_for_select(track_options, @student.track.to_s),
                         { prompt: "Select your track" },
                         { required: true, class: "c-input" } %>
                     <small class="c-help">Pick the cohort you belong to</small>

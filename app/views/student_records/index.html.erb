@@ -161,7 +161,7 @@
 
                               <td class="px-4 py-3 text-sm text-slate-700">
                                 <% if student.program_year.present? %>
-                                  <div class="font-semibold text-slate-900"><%= student.program_year %></div>
+                                  <div class="font-semibold text-slate-900">Year <%= student.program_year %></div>
                                 <% else %>
                                   <div class="font-semibold text-slate-400">—</div>
                                 <% end %>
@@ -195,12 +195,12 @@
                                 <% end %>
                               </td>
 
-                              <td class="px-4 py-3 text-right text-sm">
+                              <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
                                 <% admin_can_open = current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
                                 <% advisor_can_open = current_advisor_profile&.advisor_id.present? && student.advisor_id.present? && current_advisor_profile.advisor_id == student.advisor_id %>
                                 <% can_open = admin_can_open || advisor_can_open %>
                                 <% show_actions = has_completed && can_open %>
-                                <div class="flex flex-wrap justify-end gap-2">
+                                <div class="flex flex-nowrap items-center justify-end gap-2">
                                   <% if show_actions %>
                                     <%= link_to survey_label,
                                                 survey_link,

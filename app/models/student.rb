@@ -5,8 +5,6 @@ class Student < ApplicationRecord
 
   UIN_FORMAT = /\A\d{9}\z/.freeze
 
-  enum :track, { residential: "Residential", executive: "Executive" }, prefix: true
-
   belongs_to :user, foreign_key: :student_id, primary_key: :id, inverse_of: :student_profile
   belongs_to :advisor, optional: true
   has_many :student_questions, dependent: :destroy
@@ -23,8 +21,16 @@ class Student < ApplicationRecord
   validates :uin, format: { with: UIN_FORMAT, message: "must be exactly 9 digits" }, allow_nil: true
   validates :major, presence: true, on: :profile_completion
   validates :track, presence: true, on: :profile_completion
+  validates :track,
+            inclusion: { in: ->(_student) { ProgramTrack.keys } },
+            allow_blank: true,
+            on: :profile_completion
   validates :program_year, presence: true, on: :profile_completion
-  validates :program_year, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 10 }, allow_nil: true
+  validates :program_year, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :program_year,
+            inclusion: { in: ->(_student) { ProgramYear.values } },
+            allow_blank: true,
+            on: :profile_completion
 
   after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? || saved_change_to_program_year? }
 
@@ -38,6 +44,26 @@ class Student < ApplicationRecord
   # @return [String] the student's preferred full name
   def full_name
     user.full_name
+  end
+
+  # Database stores the track label (e.g., "Residential").
+  # Public API returns the canonical key (e.g., "residential") to preserve
+  # behavior previously provided by the enum.
+  def track
+    ProgramTrack.canonical_key(self[:track])
+  end
+
+  # Accepts either a key ("residential") or label ("Residential") and stores
+  # the canonical label in the DB.
+  def track=(value)
+    key = ProgramTrack.canonical_key(value)
+    self[:track] = key.present? ? ProgramTrack.name_for_key(key) : value.to_s.strip.presence
+  end
+
+  # Compatibility shim for code that used the enum mapping.
+  # @return [Hash{String=>String}] key => label
+  def self.tracks
+    ProgramTrack.tracks_hash
   end
 
   # Saves the student and any pending user changes.

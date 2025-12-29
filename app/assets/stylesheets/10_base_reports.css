@@ -11,6 +11,7 @@ body {
   font-family: var(--font-family);
   background-color: var(--gray-100);
   color: var(--gray-700);
+  font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
 }
 

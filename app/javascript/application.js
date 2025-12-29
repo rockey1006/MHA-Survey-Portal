@@ -549,6 +549,52 @@ function initDisableSubmitIfUnchanged() {
 
 
 // -----------------------------
+// Hover dropdown support for <details>
+// -----------------------------
+
+function initHoverDropdownDetails() {
+  // Some browsers effectively keep <details> content non-rendered unless [open] is set.
+  // For hover-based dropdowns implemented with <details>/<summary>, keep [open]
+  // in sync with hover/focus so menus behave like the profile dropdown.
+  document.querySelectorAll("details.u-hover-dropdown").forEach((details) => {
+    if (details.dataset.hoverDropdownInitialized === "true") return
+    details.dataset.hoverDropdownInitialized = "true"
+
+    let closeTimer = null
+
+    const openNow = () => {
+      if (closeTimer) {
+        window.clearTimeout(closeTimer)
+        closeTimer = null
+      }
+      details.open = true
+    }
+
+    const closeSoon = () => {
+      if (closeTimer) window.clearTimeout(closeTimer)
+      closeTimer = window.setTimeout(() => {
+        if (details.matches(":focus-within")) return
+        details.open = false
+      }, 75)
+    }
+
+    details.addEventListener("mouseenter", openNow)
+    details.addEventListener("mouseleave", closeSoon)
+    details.addEventListener("focusin", openNow)
+    details.addEventListener("focusout", closeSoon)
+
+    // If a click toggles [open] off while still hovered/focused, immediately restore it.
+    details.addEventListener("toggle", () => {
+      if (details.open) return
+      if (details.matches(":hover") || details.matches(":focus-within")) {
+        details.open = true
+      }
+    })
+  })
+}
+
+
+// -----------------------------
 // Hook into Turbo / DOM load
 // -----------------------------
 
@@ -561,6 +607,7 @@ function initAccessibilityFeatures() {
   initComboboxes()
   initImpersonationReadOnlyUI()
   initDisableSubmitIfUnchanged()
+  initHoverDropdownDetails()
 }
 
 document.addEventListener("turbo:load", initAccessibilityFeatures)

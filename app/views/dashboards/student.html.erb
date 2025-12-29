@@ -16,7 +16,7 @@
             <% @pending_surveys.each do |entry| %>
               <% survey = entry[:survey] %>
               <div class="todo-item">
-                <div class="survey-icon"></div>
+                <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
@@ -69,7 +69,7 @@
               <% due_date = entry[:due_date] %>
               <% can_edit = due_date.blank? || due_date >= Time.current %>
               <div class="completed-item">
-                <div class="survey-icon"></div>
+                <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">

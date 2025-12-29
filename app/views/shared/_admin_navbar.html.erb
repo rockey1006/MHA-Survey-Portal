@@ -2,13 +2,10 @@
 <header class="app-header" role="banner">
   <div class="header-content">
     <div class="header-left">
-      <div class="logo" aria-label="Texas A&amp;M University">
+      <%= link_to admin_dashboard_path, class: "logo", aria: { label: "Texas A&M University home" } do %>
         <div class="logo-icon" aria-hidden="true"></div>
-        <div class="logo-text">
-          TEXAS A&M<br>
-          UNIVERSITY
-        </div>
-      </div>
+        <span class="sr-only">Texas A&amp;M University</span>
+      <% end %>
       
       <nav class="nav-links" aria-label="Primary">
         <a href="<%= admin_dashboard_path %>"

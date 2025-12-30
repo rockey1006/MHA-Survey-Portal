@@ -16,6 +16,20 @@
 
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
+
+  <% cancel_path = @return_to.presence || student_dashboard_path %>
+  <% due_date_for_edit = @survey_assignment&.due_date %>
+  <% can_edit_by_due_date = due_date_for_edit.blank? || due_date_for_edit >= Time.current %>
+  <% editing_mode = @return_to.present? || (@survey_assignment&.completed_at? && can_edit_by_due_date) %>
+
+  <% if editing_mode %>
+    <div class="c-toolbar c-toolbar--spaced">
+      <div class="c-toolbar__row">
+        <%= link_to "Cancel", cancel_path, class: tailwind_button_classes(:secondary) %>
+      </div>
+    </div>
+  <% end %>
+
   <header class="c-card survey-header mb-8">
     <div class="space-y-2">
       <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><%= @survey.title %></h1>
@@ -268,10 +282,8 @@
       </div>
     <% end %>
 
-    <% cancel_path = @return_to.presence || student_dashboard_path %>
-
     <% allow_save_progress = !(@survey_assignment&.completed_at?) %>
-    <div class="c-toolbar mt-8">
+    <div class="c-toolbar c-toolbar--spaced">
       <div class="c-toolbar__row justify-between w-full">
         <div class="flex items-center gap-2">
           <%= link_to "Cancel", cancel_path, class: tailwind_button_classes(:secondary) %>

@@ -2,6 +2,14 @@
 <main class="main-content main-content--dashboard">
   <%= render "shared/role_switcher" %>
 
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <div class="shrink-0">
+        <%= link_to "Back", dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
+      </div>
+    </div>
+  </div>
+
   <section class="c-card dashboard-section">
     <div class="section-header">
       <h1 class="section-title">Advisor Dashboard</h1>

@@ -114,6 +114,57 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal new_due_date, assignment.due_date.to_date
   end
 
+  test "warns when target levels change for surveys with submitted students" do
+    completed_assignment = survey_assignments(:completed_residential_assignment)
+    assert_equal @survey.id, completed_assignment.survey_id
+    assert completed_assignment.completed_at?
+
+    question = questions(:fall_q1)
+    category = categories(:clinical_skills)
+    assert_equal @survey.id, category.survey_id
+    assert_equal category.id, question.category_id
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => { id: question.id, program_target_level: "3" }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+    assert flash[:warning].present?
+    assert_match(/Target levels changed/i, flash[:warning].to_s)
+  end
+
+  test "does not warn when target levels change but no one has submitted" do
+    SurveyAssignment.where(survey_id: @survey.id).update_all(completed_at: nil)
+
+    question = questions(:fall_q1)
+    category = categories(:clinical_skills)
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => { id: question.id, program_target_level: "4" }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+    assert flash[:warning].blank?
+  end
+
   # === Index Action ===
 
   test "index displays surveys successfully" do

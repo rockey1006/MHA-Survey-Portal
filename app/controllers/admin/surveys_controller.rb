@@ -123,12 +123,55 @@ class Admin::SurveysController < Admin::BaseController
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
+    before_target_levels = if Question.column_names.include?("program_target_level")
+                             @survey.questions.pluck(:id, :program_target_level).to_h
+    else
+                             {}
+    end
+
     previous_due_date = @survey.due_date
 
     @survey.assign_attributes(survey_params)
     resolve_category_sections(@survey)
 
     if @survey.save
+      if before_target_levels.present?
+        after_target_levels = @survey.questions.reload.pluck(:id, :program_target_level).to_h
+
+        touched_question_ids = []
+
+        before_target_levels.each do |question_id, before_level|
+          after_level = after_target_levels[question_id]
+          next if before_level == after_level
+          next if before_level.blank? && after_level.blank?
+
+          touched_question_ids << question_id
+        end
+
+        before_target_levels.each do |question_id, before_level|
+          next if after_target_levels.key?(question_id)
+          next if before_level.blank?
+
+          touched_question_ids << question_id
+        end
+
+        after_target_levels.each do |question_id, after_level|
+          next if before_target_levels.key?(question_id)
+          next if after_level.blank?
+
+          touched_question_ids << question_id
+        end
+
+        touched_question_ids.uniq!
+
+        if touched_question_ids.present?
+          completed_count = SurveyAssignment.where(survey_id: @survey.id).where.not(completed_at: nil).count
+          if completed_count.positive?
+            flash[:warning] = "Target levels changed for #{touched_question_ids.size} question(s). #{completed_count} student(s) have already submitted this survey; reports and exports may reflect the updated targets."
+          end
+        end
+      end
+
       if previous_due_date != @survey.due_date
         SurveyAssignment
           .where(survey_id: @survey.id, completed_at: nil)

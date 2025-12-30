@@ -21,8 +21,6 @@ class DashboardsController < ApplicationController
     else
       redirect_to student_dashboard_path
     end
-
-       # ...existing code...
   end
 
   # Renders the student dashboard with survey completion summaries and
@@ -167,7 +165,12 @@ class DashboardsController < ApplicationController
   # @return [void]
   def manage_members
     ensure_admin!
-    @users = User.order(:name, :email)
+    if params[:q].present?
+      q = params[:q].strip
+      @users = User.where("name ILIKE :q OR email ILIKE :q OR uid::text ILIKE :q", q: "%#{q}%").order(:name, :email)
+    else
+      @users = User.order(:name, :email)
+    end
     @role_counts = {
       student: User.students.count,
       advisor: User.advisors.count,
@@ -309,6 +312,13 @@ class DashboardsController < ApplicationController
   # @return [void]
   def manage_students
     @students = load_students
+    if params[:q].present?
+      q = params[:q].strip
+      @students = @students.where(
+        "users.name ILIKE :q OR users.email ILIKE :q OR users.uid::text ILIKE :q OR students.student_id::text ILIKE :q",
+        q: "%#{q}%"
+      )
+    end
     @advisors = Advisor.left_joins(:user).includes(:user).order(Arel.sql("LOWER(users.name) ASC"))
     @advisor_select_options = [ [ "Unassigned", "" ] ] + @advisors.map { |advisor| [ advisor.display_name, advisor.advisor_id.to_s ] }
     @track_select_options = Student.tracks.keys.map { |key| [ key.titleize, key ] }

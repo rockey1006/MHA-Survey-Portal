@@ -5,8 +5,10 @@
 # (matching existing admin controllers) rather than `module Admin`.
 class Admin::TargetLevelsController < Admin::BaseController
   def index
+    @post_save_warning = session.delete(:target_levels_post_save_warning)
     load_selector_options
     load_targets
+    @submitted_students_count = submitted_students_count_for_selected_context
   end
 
   def update
@@ -16,6 +18,18 @@ class Admin::TargetLevelsController < Admin::BaseController
       redirect_to admin_target_levels_path, alert: "Select a semester and track before updating target levels."
       return
     end
+
+    competency_titles = Reports::DataAggregator::COMPETENCY_TITLES
+
+    before_targets = CompetencyTargetLevel
+      .where(
+        program_semester_id: @selected_semester_id,
+        track: @selected_track,
+        program_year: @selected_program_year,
+        competency_title: competency_titles
+      )
+      .pluck(:competency_title, :target_level)
+      .to_h
 
     targets_payload = params[:targets]
 
@@ -55,6 +69,25 @@ class Admin::TargetLevelsController < Admin::BaseController
         )
         record.target_level = level
         record.save!
+      end
+    end
+
+    after_targets = CompetencyTargetLevel
+      .where(
+        program_semester_id: @selected_semester_id,
+        track: @selected_track,
+        program_year: @selected_program_year,
+        competency_title: competency_titles
+      )
+      .pluck(:competency_title, :target_level)
+      .to_h
+
+    if before_targets != after_targets
+      submitted_students = submitted_students_count_for_selected_context
+
+      if submitted_students.positive?
+        semester_label = @semesters.find { |s| s.id == @selected_semester_id }&.name || "selected semester"
+        session[:target_levels_post_save_warning] = "Target levels changed. #{submitted_students} student(s) have already submitted surveys for #{@selected_track} (#{semester_label}); reports may reflect the updated targets."
       end
     end
 
@@ -105,5 +138,23 @@ class Admin::TargetLevelsController < Admin::BaseController
     @targets_by_title = @competencies.index_with do |title|
       (exact[title] || fallback[title])&.target_level
     end
+  end
+
+  def submitted_students_count_for_selected_context
+    return 0 unless @selected_semester_id.present? && @selected_track.present?
+
+    submitted_scope = SurveyAssignment
+      .joins(:student)
+      .joins(survey: :track_assignments)
+      .where(surveys: { program_semester_id: @selected_semester_id })
+      .where(survey_track_assignments: { track: @selected_track })
+      .where(students: { track: @selected_track })
+      .where.not(completed_at: nil)
+
+    if @selected_program_year.present?
+      submitted_scope = submitted_scope.where(students: { program_year: @selected_program_year })
+    end
+
+    submitted_scope.select(:student_id).distinct.count
   end
 end

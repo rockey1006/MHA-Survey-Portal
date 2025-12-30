@@ -16,6 +16,8 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Target Levels", response.body
     assert_match @competency_title, response.body
+    assert_match(/data-controller=\"confirm-submit\"/, response.body)
+    assert_match(/submit-(&gt;|>?)confirm-submit#confirm/, response.body)
   end
 
   test "non-admin is redirected" do
@@ -48,6 +50,53 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
     assert_nil record.program_year
     assert_equal @competency_title, record.competency_title
     assert_equal 4, record.target_level
+  end
+
+  test "warns when updating target levels after students submitted surveys" do
+    sign_in @admin
+
+    survey_assignments(:completed_residential_assignment)
+
+    patch admin_target_levels_path, params: {
+      program_semester_id: @semester.id,
+      track: "Residential",
+      program_year: "",
+      targets: {
+        "0" => {
+          competency_title: @competency_title,
+          target_level: "4"
+        }
+      }
+    }
+
+    assert_redirected_to admin_target_levels_path(program_semester_id: @semester.id, track: "Residential")
+
+    follow_redirect!
+    assert_response :success
+    assert_match(/Warning:/i, response.body)
+    assert_match(/Target levels changed/i, response.body)
+  end
+
+  test "does not warn when updating target levels and no one has submitted" do
+    sign_in @admin
+
+    patch admin_target_levels_path, params: {
+      program_semester_id: @semester.id,
+      track: "Executive",
+      program_year: "",
+      targets: {
+        "0" => {
+          competency_title: @competency_title,
+          target_level: "4"
+        }
+      }
+    }
+
+    assert_redirected_to admin_target_levels_path(program_semester_id: @semester.id, track: "Executive")
+
+    follow_redirect!
+    assert_response :success
+    assert_no_match(/Target levels changed/i, response.body)
   end
 
   test "editor renders previously saved target levels" do

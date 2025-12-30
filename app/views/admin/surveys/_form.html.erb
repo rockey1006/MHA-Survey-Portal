@@ -57,6 +57,12 @@
         <% end %>
       </div>
 
+      <div class="space-y-2">
+        <%= form.label :due_date, "Default due date", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.date_field :due_date, class: input_classes %>
+        <p class="text-xs text-slate-500">Optional. Used as the default due date when this survey is auto-assigned to students.</p>
+      </div>
+
       <div class="md:col-span-2 space-y-2">
         <%= form.label :description, "Summary", class: "block text-sm font-medium text-slate-700" %>
         <%= form.text_area :description, class: textarea_classes, placeholder: "Explain where this survey fits in the advising process." %>

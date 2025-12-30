@@ -3,6 +3,7 @@ fall_2025:
   program_semester: fall_2025
   description: Baseline residential survey
   is_active: true
+  due_date: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -11,6 +12,7 @@ spring_2025:
   program_semester: spring_2025
   description: Executive program check-in
   is_active: true
+  due_date: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -19,6 +21,7 @@ fall_2025_executive:
   program_semester: fall_2025
   description: Executive track focus
   is_active: true
+  due_date: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 

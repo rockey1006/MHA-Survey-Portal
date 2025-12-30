@@ -98,6 +98,22 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
+  test "updating survey due date updates existing assignments and reconciles auto assignments" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    new_due_date = 10.days.from_now.to_date
+
+    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+      patch admin_survey_path(@survey), params: { survey: { due_date: new_due_date.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_equal new_due_date, assignment.due_date.to_date
+  end
+
   # === Index Action ===
 
   test "index displays surveys successfully" do

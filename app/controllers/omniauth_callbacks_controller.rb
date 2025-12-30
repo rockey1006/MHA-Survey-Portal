@@ -67,7 +67,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
   #
   # @return [String]
   def after_omniauth_failure_path_for(_scope)
-    root_path
+    new_user_session_path
   end
 
   # Determines the path after a successful sign in, defaulting to the

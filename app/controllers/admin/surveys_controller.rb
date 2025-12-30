@@ -123,10 +123,20 @@ class Admin::SurveysController < Admin::BaseController
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
+    previous_due_date = @survey.due_date
+
     @survey.assign_attributes(survey_params)
     resolve_category_sections(@survey)
 
     if @survey.save
+      if previous_due_date != @survey.due_date
+        SurveyAssignment
+          .where(survey_id: @survey.id, completed_at: nil)
+          .update_all(due_date: @survey.due_date, updated_at: Time.current)
+
+        ReconcileSurveyAssignmentsJob.perform_later(survey_id: @survey.id)
+      end
+
       persist_category_section_links
       @survey.assign_tracks!(tracks)
       description = change_summary(before_snapshot, survey_snapshot(@survey), tracks)
@@ -263,6 +273,7 @@ class Admin::SurveysController < Admin::BaseController
       :title,
       :description,
       :semester,
+      :due_date,
       :is_active,
       categories_attributes: [
         :id,
@@ -364,6 +375,7 @@ class Admin::SurveysController < Admin::BaseController
       title: survey.title,
       semester: survey.semester,
       description: survey.description,
+      due_date: survey.due_date&.to_date,
       is_active: survey.is_active,
       tracks: survey.track_list,
       categories: survey.categories.map do |category|
@@ -384,7 +396,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [String]
   def change_summary(before, after, tracks)
     diffs = []
-    %i[title semester description is_active].each do |attribute|
+    %i[title semester description due_date is_active].each do |attribute|
       before_value = before[attribute]
       after_value = after[attribute]
       next if before_value == after_value

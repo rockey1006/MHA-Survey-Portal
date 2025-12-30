@@ -36,7 +36,38 @@ module SurveyAssignments
       assert_not_nil assignment
       assert_equal @student.advisor_id, assignment.advisor_id
       assert_not_nil assignment.assigned_at
+      assert_equal surveys(:fall_2025).due_date.to_date, assignment.due_date.to_date
       refute_includes @student.survey_assignments.pluck(:survey_id), surveys(:spring_2025).id
+    end
+
+    test "does not auto-assign surveys without due dates" do
+      ProgramSemester.find_or_create_by!(name: "Spring 2026").update!(current: true)
+      ProgramSemester.where.not(name: "Spring 2026").update_all(current: false)
+
+      @student.update_columns(track: "Residential", program_year: 1)
+
+      assert_no_difference -> { @student.survey_assignments.count } do
+        AutoAssigner.call(student: @student)
+      end
+    ensure
+      ProgramSemester.find_or_create_by!(name: "Fall 2025").update!(current: true)
+      ProgramSemester.where.not(name: "Fall 2025").update_all(current: false)
+    end
+
+    test "does not auto-assign surveys that are overdue" do
+      survey = surveys(:fall_2025)
+      original_due_date = survey.due_date
+      survey.update!(due_date: 1.day.ago.change(hour: 23, min: 59, sec: 0))
+
+      @student.update_columns(track: "Residential", program_year: 1)
+
+      assert_no_difference -> { @student.survey_assignments.count } do
+        AutoAssigner.call(student: @student)
+      end
+    ensure
+      survey.update!(due_date: original_due_date)
+      ProgramSemester.find_or_create_by!(name: "Fall 2025").update!(current: true)
+      ProgramSemester.where.not(name: "Fall 2025").update_all(current: false)
     end
 
     test "replaces assignments when the track changes" do

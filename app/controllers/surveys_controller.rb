@@ -352,6 +352,10 @@ class SurveysController < ApplicationController
 
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.current
+
+        if assignment.respond_to?(:due_date) && @survey.respond_to?(:due_date) && @survey.due_date.present?
+          assignment.due_date ||= @survey.due_date
+        end
         assignment.save! if assignment.changed?
 
         was_completed = assignment.completed_at?

@@ -72,16 +72,20 @@ module SurveyAssignments
     def assign_missing_surveys!(surveys)
       existing = assignment_scope.index_by(&:survey_id)
 
-      surveys.each do |survey|
+      today = Time.zone.today
+      assignable = surveys.select do |survey|
+        next false if survey.due_date.blank?
+
+        survey.due_date.to_date >= today
+      end
+
+      assignable.each do |survey|
         assignment = existing[survey.id] || SurveyAssignment.new(student_id: student.student_id, survey: survey)
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.zone.now
-        if assignment.respond_to?(:due_date) && survey.respond_to?(:due_date)
-          desired_due_date = survey.due_date
 
-          if desired_due_date.present?
-            assignment.due_date = desired_due_date if assignment.due_date.blank? || assignment.due_date.to_date != desired_due_date.to_date
-          end
+        if assignment.respond_to?(:due_date) && survey.respond_to?(:due_date)
+          assignment.due_date = survey.due_date
         end
 
         assignment.save! if assignment.new_record? || assignment.changed?

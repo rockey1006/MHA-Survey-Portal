@@ -161,6 +161,8 @@ module Advisors
 
       if (due_date = parsed_due_date)
         assignment.due_date = due_date
+      elsif assignment.respond_to?(:due_date) && assignment.due_date.blank? && @survey.respond_to?(:due_date) && @survey.due_date.present?
+        assignment.due_date = @survey.due_date
       end
 
       assignment.completed_at = nil if created

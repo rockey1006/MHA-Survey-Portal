@@ -57,7 +57,7 @@ class NotificationTest < ActiveSupport::TestCase
   end
 
   test "target_path_for routes survey notifications by viewer role" do
-    survey = surveys(:survey_1)
+    survey = surveys(:fall_2025)
     student = users(:student)
     advisor = users(:advisor)
     admin = users(:admin)

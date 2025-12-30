@@ -99,36 +99,43 @@
     </div>
 
     <% if @recent_activity.present? %>
-      <div class="space-y-3">
+      <ul class="c-timeline">
         <% @recent_activity.each do |entry| %>
-          <div class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl"><%= entry[:icon] || "📌" %></div>
-            <div class="flex-1 space-y-1">
-              <div class="font-semibold text-slate-900">
+          <li class="c-timeline__item c-list-item" style="align-items: stretch;">
+            <div aria-hidden="true" style="width: 48px; height: 48px; border-radius: 999px; background: var(--gray-50); border: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: var(--font-size-xl); flex-shrink: 0;">
+              <%= entry[:icon] || "📌" %>
+            </div>
+
+            <div class="u-stack u-stack--sm" style="flex: 1; min-width: 0;">
+              <p class="c-value" style="word-break: break-word;">
                 <% if entry[:url].present? %>
-                  <%= link_to entry[:title], entry[:url], class: "text-[#500000] hover:underline" %>
+                  <%= link_to entry[:title], entry[:url], class: "u-text-primary", style: "text-decoration: none;" %>
                 <% else %>
                   <%= entry[:title] %>
                 <% end %>
-              </div>
+              </p>
+
               <% if entry[:subtitle].present? %>
-                <div class="text-sm text-slate-600"><%= entry[:subtitle] %></div>
+                <p class="c-lede" style="margin-top: 0;"><%= entry[:subtitle] %></p>
               <% end %>
             </div>
-            <div class="text-xs text-slate-500 whitespace-nowrap">
-              <% if entry[:timestamp].present? %>
-                <span title="<%= l(entry[:timestamp], format: :long) %>"><%= time_ago_in_words(entry[:timestamp]) %> ago</span>
-              <% else %>
-                <span>n/a</span>
-              <% end %>
+
+            <div class="u-text-right" style="white-space: nowrap;">
+              <p class="c-help" style="margin: 0;">
+                <% if entry[:timestamp].present? %>
+                  <span title="<%= l(entry[:timestamp], format: :long) %>"><%= time_ago_in_words(entry[:timestamp]) %> ago</span>
+                <% else %>
+                  <span>n/a</span>
+                <% end %>
+              </p>
             </div>
-          </div>
+          </li>
         <% end %>
-      </div>
+      </ul>
     <% else %>
-      <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-        <span class="text-4xl" aria-hidden="true">✨</span>
-        <p class="text-sm text-slate-600">No recent activity logged yet.</p>
+      <div class="c-card c-card--tight c-card--dashed u-text-center u-stack u-stack--sm">
+        <p class="c-value c-value--xl" aria-hidden="true">✨</p>
+        <p class="c-lede">No recent activity logged yet.</p>
       </div>
     <% end %>
   </section>

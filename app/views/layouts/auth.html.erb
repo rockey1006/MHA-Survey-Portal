@@ -27,6 +27,31 @@
           "data-turbo-track": "reload"
         ) %>
     <%= javascript_importmap_tags %>
+
+    <%# App-wide text scaling: scales BOTH Tailwind rem units and our design-token font-size variables. %>
+    <% font_scale = (user_signed_in? ? (current_user.text_scale_percent || 100) : 100).to_f / 100.0 %>
+    <style>
+      :root {
+        --app-font-scale: <%= format("%.2f", font_scale) %>;
+
+        /* Scale token-based font sizes (these are used all over our custom CSS). */
+        --font-size-xs: calc(13px * var(--app-font-scale));
+        --font-size-sm: calc(15px * var(--app-font-scale));
+        --font-size-base: calc(17px * var(--app-font-scale));
+        --font-size-lg: calc(19px * var(--app-font-scale));
+        --font-size-xl: calc(21px * var(--app-font-scale));
+        --font-size-2xl: calc(25px * var(--app-font-scale));
+        --font-size-3xl: calc(29px * var(--app-font-scale));
+        --font-size-4xl: calc(33px * var(--app-font-scale));
+        --font-size-5xl: calc(41px * var(--app-font-scale));
+        --font-size-6xl: calc(49px * var(--app-font-scale));
+      }
+
+      /* Scale rem-based sizing (Tailwind, spacing, etc.) */
+      html { font-size: calc(16px * var(--app-font-scale)); }
+
+      body { line-height: 1.45; }
+    </style>
   </head>
 
   <body class="<%= ["min-h-screen bg-slate-100 text-slate-800 antialiased", (content_for?(:body_class) ? yield(:body_class) : nil)].compact.join(" ") %>">

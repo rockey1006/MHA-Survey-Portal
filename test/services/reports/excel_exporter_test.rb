@@ -62,7 +62,6 @@ module Reports
             }
           ]
         },
-        course_summary: [],
         track_summary: []
       }
 
@@ -93,6 +92,44 @@ module Reports
       assert_includes detail_header_values, "Program Target Level"
       assert_includes detail_header_values, "Student % Meeting Target"
       assert_includes detail_header_values, "Advisor % Meeting Target"
+    end
+
+    test "track section export includes Tracks sheet and excludes Courses sheet" do
+      payload = {
+        generated_at: Time.zone.parse("2025-12-01 10:00"),
+        filters: { track: "All tracks" },
+        benchmark: { cards: [], timeline: [] },
+        competency_summary: [],
+        competency_detail: { items: [] },
+        track_summary: [
+          {
+            track: "Executive",
+            student_average: 4.0,
+            advisor_average: 4.2,
+            gap: 0.2,
+            submissions: 2,
+            achieved_count: 2,
+            not_met_count: 0,
+            not_assessed_count: 0,
+            achieved_percent: 100.0,
+            not_met_percent: 0.0,
+            not_assessed_percent: 0.0
+          }
+        ]
+      }
+
+      package = Reports::ExcelExporter.new(payload, section: "track").generate
+      sheet_names = package.workbook.worksheets.map(&:name)
+      assert_includes sheet_names, "Tracks"
+      assert_equal false, sheet_names.include?("Courses")
+
+      tracks_sheet = package.workbook.worksheets.find { |ws| ws.name == "Tracks" }
+      assert tracks_sheet
+      header_values = tracks_sheet.rows.first.cells.map(&:value)
+      assert_equal "Track", header_values.first
+      assert_includes header_values, "Achieved %"
+      assert_includes header_values, "Not Met %"
+      assert_includes header_values, "Not Assessed %"
     end
   end
 end

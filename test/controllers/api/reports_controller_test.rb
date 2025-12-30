@@ -53,10 +53,10 @@ module Api
       assert_equal "Access denied", json_response["error"]
     end
 
-    test "course_summary denies access to students" do
+    test "track_summary denies access to students" do
       sign_in @student
 
-      get api_reports_course_summary_path, as: :json
+      get api_reports_track_summary_path, as: :json
 
       assert_response :forbidden
       json_response = JSON.parse(@response.body)
@@ -115,10 +115,10 @@ module Api
       assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
     end
 
-    test "course_summary allows admin access" do
+    test "track_summary allows admin access" do
       sign_in @admin
 
-      get api_reports_course_summary_path, as: :json
+      get api_reports_track_summary_path, as: :json
 
       assert_response :success
       assert_not_nil @response.body
@@ -172,10 +172,10 @@ module Api
       assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
     end
 
-    test "course_summary allows advisor access" do
+    test "track_summary allows advisor access" do
       sign_in @advisor
 
-      get api_reports_course_summary_path, as: :json
+      get api_reports_track_summary_path, as: :json
 
       assert_response :success
       assert_not_nil @response.body
@@ -287,17 +287,6 @@ module Api
       assert_response :success
     end
 
-    test "course_summary accepts filter parameters" do
-      sign_in @admin
-
-      get api_reports_course_summary_path, params: {
-        semester: "Fall 2025",
-        advisor_id: 1
-      }, as: :json
-
-      assert_response :success
-    end
-
 
     # Response format tests
     test "filters returns JSON response" do
@@ -331,15 +320,6 @@ module Api
       sign_in @admin
 
       get api_reports_competency_detail_path, as: :json
-
-      assert_response :success
-      assert_equal "application/json; charset=utf-8", @response.content_type
-    end
-
-    test "course_summary returns JSON response" do
-      sign_in @admin
-
-      get api_reports_course_summary_path, as: :json
 
       assert_response :success
       assert_equal "application/json; charset=utf-8", @response.content_type
@@ -407,16 +387,6 @@ module Api
       sign_in @admin
 
       get api_reports_competency_detail_path, as: :json
-
-      assert_response :success
-      json_response = JSON.parse(@response.body)
-      assert (json_response.is_a?(Hash) || json_response.is_a?(Array))
-    end
-
-    test "course_summary works with no parameters" do
-      sign_in @admin
-
-      get api_reports_course_summary_path, as: :json
 
       assert_response :success
       json_response = JSON.parse(@response.body)
@@ -538,22 +508,6 @@ module Api
       assert_response :success
     end
 
-    test "course_summary accepts full parameter set" do
-      sign_in @admin
-
-      get api_reports_course_summary_path, params: {
-        track: "MPH",
-        semester: "Fall 2025",
-        survey_id: 1,
-        category_id: 2,
-        student_id: 3,
-        advisor_id: 4,
-        competency: "Public Health"
-      }, as: :json
-
-      assert_response :success
-    end
-
 
     # Additional security tests
     test "unauthenticated user cannot access filters" do
@@ -576,12 +530,6 @@ module Api
 
     test "unauthenticated user cannot access competency_detail" do
       get api_reports_competency_detail_path, as: :json
-
-      assert_response :unauthorized
-    end
-
-    test "unauthenticated user cannot access course_summary" do
-      get api_reports_course_summary_path, as: :json
 
       assert_response :unauthorized
     end

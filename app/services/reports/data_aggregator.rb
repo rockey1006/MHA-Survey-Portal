@@ -111,11 +111,6 @@ module Reports
       @competency_detail ||= build_competency_detail
     end
 
-    # Survey-level achievement details for the course performance section.
-    def course_summary
-      @course_summary ||= build_course_summary
-    end
-
     # Track-level aggregate details used by exports.
     def track_summary
       @track_summary ||= build_track_summary
@@ -134,7 +129,6 @@ module Reports
         benchmark: benchmark,
         competency_summary: competency_summary,
         competency_detail: competency_detail,
-        course_summary: course_summary,
         track_summary: track_summary
       }
     end
@@ -711,45 +705,6 @@ module Reports
       }
       Rails.logger.debug "Generated competency detail: #{detail.inspect}"
       detail
-    end
-
-    def build_course_summary
-      surveys = dataset_rows.group_by { |row| row[:survey_id] }
-
-      surveys.map do |_survey_id, rows|
-        survey_meta = rows.first
-        course_total_students = assigned_student_count_for_survey(survey_meta[:survey_id])
-        student_rows = rows.reject { |row| row[:advisor_entry] }
-        advisor_rows = rows.select { |row| row[:advisor_entry] }
-
-        student_avg = average(student_rows.map { |row| row[:score] })
-        advisor_avg = average(advisor_rows.map { |row| row[:score] })
-
-        student_by_person = group_student_rows(student_rows)
-        attainment_counts = attainment_counts_for_group(student_by_person, total_students: course_total_students)
-        attainment_percentages = attainment_percentages(attainment_counts)
-        competency_breakdown = build_course_competency_breakdown(rows)
-
-        {
-          id: survey_meta[:survey_id],
-          title: survey_meta[:survey_title],
-          semester: survey_meta[:survey_semester],
-          track: survey_meta[:track],
-          student_average: student_avg,
-          advisor_average: advisor_avg,
-          submissions: student_by_person.size,
-          on_track_percent: attainment_percentages[:achieved_percent],
-          achieved_count: attainment_counts[:achieved_count],
-          not_met_count: attainment_counts[:not_met_count],
-          not_assessed_count: attainment_counts[:not_assessed_count],
-          achieved_percent: attainment_percentages[:achieved_percent],
-          not_met_percent: attainment_percentages[:not_met_percent],
-          not_assessed_percent: attainment_percentages[:not_assessed_percent],
-          total_students: attainment_counts[:total_students],
-          gap: advisor_avg && student_avg ? (advisor_avg - student_avg) : nil,
-          competencies: competency_breakdown
-        }
-      end.compact.sort_by { |entry| -(entry[:student_average] || 0.0) }
     end
 
     def build_track_summary

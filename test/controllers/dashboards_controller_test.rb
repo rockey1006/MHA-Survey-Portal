@@ -63,6 +63,15 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_nil flash[:alert]
   end
 
+  test "manage_members shows an alert for advisors" do
+    sign_in @advisor
+
+    get manage_members_path
+
+    assert_redirected_to dashboard_path
+    assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
   test "manage_members lists users for admin" do
     sign_in @admin
     get manage_members_path
@@ -204,6 +213,45 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     student.update!(track: original_track)
   end
 
+  test "update_student_advisors rejects invalid track selection" do
+    sign_in @admin
+
+    student = students(:student)
+
+    patch update_student_advisors_path, params: { track_updates: { student.student_id => "not-a-track" } }
+
+    assert_redirected_to manage_students_path
+    follow_redirect!
+    assert_match(/track update errors/i, flash[:alert].to_s)
+    assert_match(/invalid track selection/i, flash[:alert].to_s)
+  end
+
+  test "update_student_advisors rejects blank track selection when currently assigned" do
+    sign_in @admin
+
+    student = students(:student)
+
+    patch update_student_advisors_path, params: { track_updates: { student.student_id => "" } }
+
+    assert_redirected_to manage_students_path
+    follow_redirect!
+    assert_match(/track update errors/i, flash[:alert].to_s)
+    assert_match(/track selection is required/i, flash[:alert].to_s)
+  end
+
+  test "update_student_advisors reports advisor not found" do
+    sign_in @admin
+
+    student = students(:student)
+
+    patch update_student_advisors_path, params: { advisor_updates: { student.student_id => "999999" } }
+
+    assert_redirected_to manage_students_path
+    follow_redirect!
+    assert_match(/advisor update errors/i, flash[:alert].to_s)
+    assert_match(/advisor not found/i, flash[:alert].to_s)
+  end
+
   test "student dashboard recreates missing profile" do
     user = users(:student)
     Student.where(student_id: user.id).delete_all
@@ -243,6 +291,15 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assignment = survey_assignments(:residential_assignment)
     expected_due = ApplicationController.helpers.survey_due_note(assignment.due_date)
     assert_includes response.body, expected_due
+  end
+
+  test "student dashboard renders even when auto-assigner raises" do
+    sign_in @student
+
+    SurveyAssignments::AutoAssigner.stub(:call, ->(student:) { raise "boom" }) do
+      get student_dashboard_path
+      assert_response :success
+    end
   end
 
   test "advisor dashboard handles admin impersonation" do

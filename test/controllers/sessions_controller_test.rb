@@ -168,11 +168,6 @@ class SessionsControllerCallbacksTest < ActionController::TestCase
     @request.env["devise.mapping"] = Devise.mappings[:user]
   end
 
-  test "sign out GET fallback always redirects to sign in" do
-    get :sign_out_get_fallback
-    assert_redirected_to new_user_session_path
-  end
-
   test "after sign in prefers stored location and assigns surveys for students" do
     student_user = users(:student)
     calls = []

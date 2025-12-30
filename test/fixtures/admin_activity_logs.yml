@@ -1,0 +1,6 @@
+# Intentionally empty.
+#
+# Rails validates foreign keys after fixture loading.
+# If a table has FK constraints but no fixture file, old rows can remain
+# across runs (especially when reusing the test DB), causing FK violations.
+# Providing this empty fixture ensures the table is truncated during setup.

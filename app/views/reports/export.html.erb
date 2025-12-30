@@ -285,7 +285,6 @@
     <section class="report-export__section">
       <h2>Track Achievement</h2>
       <% tracks = Array(payload[:track_summary]) %>
-      <% courses = Array(payload[:course_summary]) %>
       <% if tracks.any? %>
         <div class="chart-block" style="display: flex; flex-direction: column; gap: 1rem;">
           <h3>% All Competency Achieved by Track</h3>
@@ -375,50 +374,6 @@
           </table>
         </div>
       <% end %>
-
-      <h3>Survey Detail</h3>
-      <div class="c-table-wrapper">
-        <table class="c-table report-export__table">
-        <thead>
-          <tr>
-            <th>Survey</th>
-            <th>Semester</th>
-            <th>Track</th>
-            <th>Student Avg</th>
-            <th>Advisor Avg</th>
-            <th>Gap</th>
-            <th>On Track %</th>
-            <th>Submissions</th>
-            <th>Achieved</th>
-            <th>Not Met</th>
-            <th>Not Assessed</th>
-            <th>Achieved %</th>
-            <th>Not Met %</th>
-            <th>Not Assessed %</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% courses.each do |entry| %>
-            <tr>
-              <td><%= entry[:title] %></td>
-              <td><%= entry[:semester] %></td>
-              <td><%= entry[:track] %></td>
-              <td><%= number_with_precision(entry[:student_average], precision: 2) %></td>
-              <td><%= number_with_precision(entry[:advisor_average], precision: 2) %></td>
-              <td><%= number_with_precision(entry[:gap], precision: 2) %></td>
-              <td><%= entry[:on_track_percent].present? ? number_to_percentage(entry[:on_track_percent], precision: 1) : "—" %></td>
-              <td><%= entry[:submissions] %></td>
-              <td><%= entry[:achieved_count] %></td>
-              <td><%= entry[:not_met_count] %></td>
-              <td><%= entry[:not_assessed_count] %></td>
-              <td><%= entry[:achieved_percent].present? ? number_to_percentage(entry[:achieved_percent], precision: 1) : "—" %></td>
-              <td><%= entry[:not_met_percent].present? ? number_to_percentage(entry[:not_met_percent], precision: 1) : "—" %></td>
-              <td><%= entry[:not_assessed_percent].present? ? number_to_percentage(entry[:not_assessed_percent], precision: 1) : "—" %></td>
-            </tr>
-          <% end %>
-        </tbody>
-        </table>
-      </div>
     </section>
   <% end %>
 

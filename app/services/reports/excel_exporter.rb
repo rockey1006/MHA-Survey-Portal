@@ -12,7 +12,7 @@ module Reports
       "competency_summary" => %i[add_competency_sheet],
       "competency" => %i[add_competency_detail_sheet],
       "competency_detail" => %i[add_competency_detail_sheet],
-      "track" => %i[add_track_sheet add_course_sheet]
+      "track" => %i[add_track_sheet]
     }.freeze
     DEFAULT_SHEETS = SECTION_SHEETS.values.flatten.uniq.freeze
 
@@ -171,49 +171,6 @@ module Reports
             format_number(item[:achieved_percent], 1, suffix: "%"),
             format_number(item[:not_met_percent], 1, suffix: "%"),
             format_number(item[:not_assessed_percent], 1, suffix: "%")
-          ]
-        end
-      end
-    end
-
-    def add_course_sheet(workbook)
-      courses = Array(payload[:course_summary])
-      return if courses.blank?
-
-      workbook.add_worksheet(name: "Courses") do |sheet|
-        sheet.add_row [
-          "Survey",
-          "Semester",
-          "Track",
-          "Student Avg",
-          "Advisor Avg",
-          "Gap",
-          "On Track %",
-          "Submissions",
-          "Achieved",
-          "Not Met",
-          "Not Assessed",
-          "Achieved %",
-          "Not Met %",
-          "Not Assessed %"
-        ]
-
-        courses.each do |entry|
-          sheet.add_row [
-            entry[:title],
-            entry[:semester],
-            entry[:track],
-            format_number(entry[:student_average], 2),
-            format_number(entry[:advisor_average], 2),
-            format_number(entry[:gap], 2),
-            format_number(entry[:on_track_percent], 1, suffix: "%"),
-            entry[:submissions],
-            entry[:achieved_count],
-            entry[:not_met_count],
-            entry[:not_assessed_count],
-            format_number(entry[:achieved_percent], 1, suffix: "%"),
-            format_number(entry[:not_met_percent], 1, suffix: "%"),
-            format_number(entry[:not_assessed_percent], 1, suffix: "%")
           ]
         end
       end

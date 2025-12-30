@@ -1,17 +1,23 @@
 <main class="main-content space-y-12">
-  <header class="toolbar">
-    <div class="space-y-2">
-      <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Program Setup</h1>
-      <p class="text-sm text-slate-600">Manage program tracks, majors, years, and semesters.</p>
+  <header class="c-toolbar c-toolbar--spaced">
+    <div class="c-toolbar__row justify-between w-full items-end">
+              <%= link_to "← Back",
+                    admin_dashboard_path,
+                    class: tailwind_button_classes(:secondary),
+                    data: { turbo: false } %>
+      
     </div>
 
     <div class="flex flex-wrap items-center justify-end gap-3">
-      <%= link_to "← Back",
-                  admin_dashboard_path,
-                  class: tailwind_button_classes(:secondary),
-                  data: { turbo: false } %>
-    </div>
+                                    <div class="space-y-2">
+        <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Program Setup</h1>
+        <p class="text-sm text-slate-600">Manage program tracks, majors, years, and semesters.</p>
+      </div>
+      </div>
+
   </header>
+
+
 
   <nav class="flex flex-wrap gap-2" aria-label="Program setup tabs">
     <% tabs = [

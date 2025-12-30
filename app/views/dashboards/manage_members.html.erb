@@ -7,29 +7,20 @@
       </div>
 
       <!-- Role Summary Cards -->
-      <div class="role-summary-grid">
-        <div class="c-card role-summary-card">
-          <div class="role-summary-icon student">👨‍🎓</div>
-          <div class="role-summary-info">
-            <div class="role-summary-count"><%= @role_counts[:student] %></div>
-            <div class="role-summary-label">Students</div>
-          </div>
+      <div class="c-stats-grid">
+        <div class="c-stat c-stat--info">
+          <div class="c-stat__label">👨‍🎓 Students</div>
+          <div class="c-stat__value c-stat__value--md"><%= @role_counts[:student] %></div>
         </div>
-        
-        <div class="c-card role-summary-card">
-          <div class="role-summary-icon advisor">👨‍🏫</div>
-          <div class="role-summary-info">
-            <div class="role-summary-count"><%= @role_counts[:advisor] %></div>
-            <div class="role-summary-label">Advisors</div>
-          </div>
+
+        <div class="c-stat c-stat--success">
+          <div class="c-stat__label">👨‍🏫 Advisors</div>
+          <div class="c-stat__value c-stat__value--md"><%= @role_counts[:advisor] %></div>
         </div>
-        
-        <div class="c-card role-summary-card">
-          <div class="role-summary-icon admin">👨‍💼</div>
-          <div class="role-summary-info">
-            <div class="role-summary-count"><%= @role_counts[:admin] %></div>
-            <div class="role-summary-label">Admins</div>
-          </div>
+
+        <div class="c-stat c-stat--warning">
+          <div class="c-stat__label">👨‍💼 Admins</div>
+          <div class="c-stat__value c-stat__value--md"><%= @role_counts[:admin] %></div>
         </div>
       </div>
 
@@ -50,9 +41,9 @@
             </thead>
             <tbody>
               <% @users.each do |user| %>
-                <tr class="user-row <%= 'current-user' if user == current_user %>">
+                <tr class="c-table-row <%= 'current-user' if user == current_user %>">
                   <td class="user-avatar-cell">
-                    <div class="user-table-avatar"
+                    <div class="c-table-avatar"
                          <% if user.avatar_url.present? %>
                            style="background-image: url('<%= user.avatar_url %>');"
                          <% end %>>
@@ -61,14 +52,14 @@
                   </td>
                   
                   <td class="user-name-cell">
-                    <div class="user-name"><%= user.full_name || "N/A" %></div>
+                    <div class="c-value"><%= user.full_name || "N/A" %></div>
                     <% if user == current_user %>
-                      <span class="current-user-badge">You</span>
+                      <span class="c-help">You</span>
                     <% end %>
                   </td>
                   
-                  <td class="user-email-cell">
-                    <%= user.email %>
+                  <td>
+                    <span class="c-help"><%= user.email %></span>
                   </td>
                   
                   <td class="user-current-role-cell">
@@ -79,7 +70,7 @@
                   
                   <td class="user-new-role-cell">
                     <% if user == current_user %>
-                      <span class="role-locked">Role Locked</span>
+                      <span class="c-help">Role Locked</span>
                     <% else %>
                       <div class="c-select-wrapper">
                         <%= select_tag "role_updates[#{user.id}]", 
@@ -99,7 +90,7 @@
                   
                   <td class="user-actions-cell">
                     <% if user == current_user %>
-                      <span class="action-disabled">-</span>
+                      <span class="c-help">-</span>
                     <% else %>
                       <span class="c-change-indicator" data-user-id="<%= user.id %>">
                         No changes
@@ -115,7 +106,7 @@
         <!-- Action Buttons -->
         <div class="c-card c-card--tight mt-6 flex flex-col gap-4">
           <div class="text-sm text-slate-600" id="changes-summary" style="display: none;">
-            <span class="changes-count font-semibold">0 changes pending</span>
+            <span id="role-changes-count" class="c-change-indicator changed">0 changes pending</span>
           </div>
 
           <div class="flex flex-wrap items-center justify-end gap-3">
@@ -141,7 +132,7 @@
 
         const saveButton = document.getElementById('save-changes-btn');
         const changesSummary = document.getElementById('changes-summary');
-        const changesCount = changesSummary ? changesSummary.querySelector('.changes-count') : null;
+        const changesCount = document.getElementById('role-changes-count');
 
         if (!saveButton || !changesSummary || !changesCount) {
           return;
@@ -185,8 +176,8 @@
 
           select.addEventListener('change', function() {
             const newRole = this.value;
-            const userRow = this.closest('.user-row');
-            const userName = userRow ? userRow.querySelector('.user-name').textContent.trim() : `User ${userId}`;
+            const userRow = this.closest('.c-table-row');
+            const userName = userRow ? userRow.querySelector('.c-value').textContent.trim() : `User ${userId}`;
 
             if (newRole !== originalRole) {
               pendingChanges[userId] = {
@@ -199,7 +190,7 @@
               indicator.className = 'c-change-indicator changed';
 
               if (userRow) {
-                userRow.classList.add('has-changes');
+                userRow.classList.add('c-table-row--changed');
               }
             } else {
               delete pendingChanges[userId];
@@ -207,7 +198,7 @@
               indicator.className = 'c-change-indicator';
 
               if (userRow) {
-                userRow.classList.remove('has-changes');
+                userRow.classList.remove('c-table-row--changed');
               }
             }
 

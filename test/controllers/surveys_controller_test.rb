@@ -7,6 +7,35 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     @survey = surveys(:fall_2025)
   end
 
+  test "show renders multiple choice and dropdown options" do
+    sign_in @student_user
+
+    category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
+
+    mc = category.questions.create!(
+      question_text: "Test MC",
+      question_order: 9991,
+      question_type: "multiple_choice",
+      is_required: true,
+      answer_options: %w[Yes No].to_json
+    )
+
+    dd = category.questions.create!(
+      question_text: "Test DD",
+      question_order: 9992,
+      question_type: "dropdown",
+      is_required: true,
+      answer_options: [ [ "Beginner (1)", "1" ], [ "Mastery (5)", "5" ] ].to_json
+    )
+
+    get survey_path(@survey)
+    assert_response :success
+
+    assert_select "input[type=radio][name=?]", "answers[#{mc.id}]", minimum: 2
+    assert_select "select[name=?] option", "answers[#{dd.id}]", text: "Beginner (1)"
+    assert_select "select[name=?] option", "answers[#{dd.id}]", text: "Mastery (5)"
+  end
+
   test "submit redirects when student missing" do
     # no signed in user -> Devise redirects to sign_in
     post submit_survey_path(@survey), params: { answers: {} }

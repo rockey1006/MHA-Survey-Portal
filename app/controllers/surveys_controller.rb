@@ -78,7 +78,7 @@ class SurveysController < ApplicationController
         if ans.is_a?(Hash)
           if response.question.question_type == "evidence" && ans["link"].present?
             @existing_answers[response.question_id.to_s] = ans["link"]
-          elsif response.question.choice_question? && ans["answer"].present?
+          elsif %w[multiple_choice dropdown].include?(response.question.question_type) && ans["answer"].present?
             @existing_answers[response.question_id.to_s] = ans["answer"]
             if ans["text"].present? || response.question.answer_option_requires_text?(ans["answer"].to_s)
               @other_answers[response.question_id.to_s] = ans["text"].to_s
@@ -104,7 +104,7 @@ class SurveysController < ApplicationController
       category.questions.each do |question|
         required = question.is_required?
 
-        if !required && question.choice_question?
+        if !required && %w[multiple_choice dropdown].include?(question.question_type)
           option_values = question.answer_option_values
           options = option_values.map(&:strip).map(&:downcase)
           # Exception: flexibility scale questions (1-5) should remain optional

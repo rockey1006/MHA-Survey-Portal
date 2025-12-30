@@ -44,13 +44,6 @@
   flex-shrink: 0;
 }
 
-.logo-text {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
-  letter-spacing: 0.5px;
-}
-
 /* Navigation */
 .nav-links {
   display: flex;

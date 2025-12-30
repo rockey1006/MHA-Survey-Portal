@@ -174,6 +174,10 @@ def collect_class_tokens_from_css(text, classes_to_css_files, css_rel_path)
     prelude_no_comments.scan(CLASS_TOKEN_REGEX).each do |match|
       class_name = match.delete_prefix(".")
       next if class_name.empty?
+      # Ignore invalid/partial tokens like ".c-" that can arise from
+      # comments/patterns (e.g., ".c-*" in documentation) or malformed selectors.
+      # A trailing hyphen is not a valid unescaped class token in our codebase.
+      next if class_name.end_with?("-")
       classes_to_css_files[class_name] << css_rel_path
     end
   end

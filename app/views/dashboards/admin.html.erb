@@ -10,83 +10,83 @@
     
     <div class="dashboard-grid dashboard-grid-4">
       <!-- Students Records -->
-      <div class="feature-item">
-        <%= link_to student_records_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">👨‍🎓</div>
-          <div class="feature-title">Students Records</div>
-          <div class="feature-description"><%= @role_counts[:student] || 0 %> registered</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to student_records_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">👨‍🎓</div>
+          <div class="c-tile__title">Students Records</div>
+          <div class="c-tile__description"><%= @role_counts[:student] || 0 %> registered</div>
         <% end %>
       </div>
 
       <!-- Target Levels -->
-      <div class="feature-item">
-        <%= link_to admin_target_levels_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">🎯</div>
-          <div class="feature-title">Target Levels</div>
-          <div class="feature-description">Configure competency targets</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to admin_target_levels_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🎯</div>
+          <div class="c-tile__title">Target Levels</div>
+          <div class="c-tile__description">Configure competency targets</div>
         <% end %>
       </div>
 
       <!-- Surveys -->
-      <div class="feature-item">
-        <%= link_to admin_surveys_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">📄</div>
-          <div class="feature-title">Surveys</div>
-          <div class="feature-description"><%= @total_surveys || 0 %> active</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to admin_surveys_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">📄</div>
+          <div class="c-tile__title">Surveys</div>
+          <div class="c-tile__description"><%= @total_surveys || 0 %> active</div>
         <% end %>
       </div>
 
       <!-- Reports -->
-      <div class="feature-item">
-        <%= link_to reports_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">📊</div>
-          <div class="feature-title">Reports</div>
-          <div class="feature-description"><%= @total_reports || 0 %> generated</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to reports_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">📊</div>
+          <div class="c-tile__title">Reports</div>
+          <div class="c-tile__description"><%= @total_reports || 0 %> generated</div>
         <% end %>
       </div>
 
       <!-- Manage Students -->
-      <div class="feature-item">
-        <%= link_to manage_students_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">⚙️</div>
-          <div class="feature-title">Manage Students</div>
-          <div class="feature-description"><%= pluralize(@advisee_count, "assigned student") %></div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to manage_students_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">⚙️</div>
+          <div class="c-tile__title">Manage Students</div>
+          <div class="c-tile__description"><%= pluralize(@advisee_count, "assigned student") %></div>
         <% end %>
       </div>
 
       <!-- Members -->
-      <div class="feature-item admin-feature">
-        <%= link_to manage_members_path, class: "feature-link" do %>
-          <div class="feature-icon admin-icon">🧑‍💼</div>
-          <div class="feature-title admin-title">Member Management</div>
-          <div class="feature-description"><%= @role_counts[:advisor] || 0 %> advisors</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to manage_members_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon c-tile__icon--warning">🧑‍💼</div>
+          <div class="c-tile__title c-tile__title--warning">Member Management</div>
+          <div class="c-tile__description"><%= @role_counts[:advisor] || 0 %> advisors</div>
         <% end %>
       </div>
 
       <!-- Maintenance Mode -->
-      <div class="feature-item admin-feature">
-        <%= link_to admin_maintenance_path, class: "feature-link" do %>
-          <div class="feature-icon admin-icon">🛠️</div>
-          <div class="feature-title admin-title">Maintenance Mode</div>
-          <div class="feature-description"><%= @maintenance_enabled ? "Enabled" : "Disabled" %></div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to admin_maintenance_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon c-tile__icon--warning">🛠️</div>
+          <div class="c-tile__title c-tile__title--warning">Maintenance Mode</div>
+          <div class="c-tile__description"><%= @maintenance_enabled ? "Enabled" : "Disabled" %></div>
         <% end %>
       </div>
 
       <!-- View as Student -->
-      <div class="feature-item admin-feature">
-        <%= link_to new_impersonation_path, class: "feature-link" do %>
-          <div class="feature-icon admin-icon">🕵️</div>
-          <div class="feature-title admin-title">View as Student/Advisor</div>
-          <div class="feature-description">Read-only preview</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to new_impersonation_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon c-tile__icon--warning">🕵️</div>
+          <div class="c-tile__title c-tile__title--warning">View as Student/Advisor</div>
+          <div class="c-tile__description">Read-only preview</div>
         <% end %>
       </div>
 
       <!-- Program Setup -->
-      <div class="feature-item admin-feature">
-        <%= link_to admin_program_setup_path, class: "feature-link" do %>
-          <div class="feature-icon admin-icon">🧩</div>
-          <div class="feature-title admin-title">Program Setup</div>
-          <div class="feature-description">Tracks, majors, years, semesters</div>
+      <div class="c-card c-card--interactive c-card--lift c-tile">
+        <%= link_to admin_program_setup_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon c-tile__icon--warning">🧩</div>
+          <div class="c-tile__title c-tile__title--warning">Program Setup</div>
+          <div class="c-tile__description">Tracks, majors, years, semesters</div>
         <% end %>
       </div>
     </div>

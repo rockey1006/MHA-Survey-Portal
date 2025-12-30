@@ -5,17 +5,17 @@
   <div class="dashboard-grid dashboard-grid-2">
     <div class="dashboard-column">
       <!-- To-Do Section -->
-      <section class="c-card dashboard-card">
+      <section class="c-card c-card--hover">
         <h2 class="section-title">
           <div class="section-icon"></div>
           To-do
         </h2>
         
-        <div class="todo-list">
+        <div class="u-stack u-stack--md">
           <% if @pending_surveys.present? %>
             <% @pending_surveys.each do |entry| %>
               <% survey = entry[:survey] %>
-              <div class="todo-item">
+              <div class="c-list-item">
                 <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
                 <% if survey.semester.present? %>
@@ -48,13 +48,13 @@
               </div>
             <% end %>
           <% else %>
-            <div class="todo-item empty">No pending surveys</div>
+            <div class="c-list-item c-list-item--empty">No pending surveys</div>
           <% end %>
         </div>
       </section>
 
       <!-- Completed Surveys Section -->
-      <section class="c-card dashboard-card">
+      <section class="c-card c-card--hover">
         <h2 class="section-title">
           <div class="section-icon"></div>
           Completed Surveys
@@ -124,7 +124,7 @@
     </div>
 
     <!-- Notifications Section -->
-    <section class="c-card dashboard-card">
+    <section class="c-card c-card--hover">
       <h2 class="section-title">
         <div class="section-icon"></div>
         Notifications

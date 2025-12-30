@@ -194,6 +194,38 @@
   background-color: rgba(255, 255, 255, 0.85);
 }
 
+/* Role badges (small caps chips in nav + admin tables) */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.student {
+  background-color: rgba(0, 102, 204, 0.1);
+  color: var(--info-color);
+}
+
+.role-badge.advisor {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.role-badge.admin {
+  background-color: rgba(255, 107, 53, 0.1);
+  color: var(--warning-color);
+}
+
+.role-badge.track {
+  background-color: rgba(108, 117, 125, 0.12);
+  color: var(--gray-700);
+}
+
 /* Dots / markers (token-driven)
  * Use for timelines, status indicators, etc.
  */
@@ -332,6 +364,16 @@
 .c-card--muted { background-color: var(--gray-50); }
 .c-card--dashed { border-style: dashed; }
 
+/* Hover polish for non-clickable panels (no pointer cursor). */
+.c-card--hover {
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.c-card--hover:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+}
+
 .c-card--interactive {
   cursor: pointer;
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
@@ -340,6 +382,93 @@
 .c-card--interactive:hover {
   border-color: var(--primary-color);
   box-shadow: var(--shadow-lg);
+}
+
+/* Optional "lift" hover (used by dashboard tiles/cards) */
+.c-card--lift {
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.c-card--lift:hover {
+  transform: translateY(-2px);
+}
+
+/* === Tiles ==============================================================
+ * Clickable dashboard tiles that wrap a single link.
+ * Use: <div class="c-card c-card--interactive c-card--lift c-tile"><a class="c-tile__link" ...>...</a></div>
+ * ======================================================================= */
+
+.c-tile {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.c-tile__link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.c-tile__link:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.c-tile__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  margin: 0 auto var(--spacing-md);
+  background-color: var(--primary-color);
+  color: var(--white);
+}
+
+.c-tile__icon--warning {
+  background-color: var(--warning-color);
+}
+
+.c-tile__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
+}
+
+.c-tile__title--warning {
+  color: var(--warning-color);
+}
+
+.c-tile__description {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  line-height: var(--line-height-relaxed);
+}
+
+/* === List items =========================================================
+ * Simple list row surface used in dashboards.
+ * ======================================================================= */
+
+.c-list-item {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-md);
+  background-color: var(--white);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.c-list-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-list-item--empty {
+  color: var(--gray-600);
 }
 
 /* === Stats / summary tiles ==============================================
@@ -751,6 +880,52 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   box-shadow: 0 0 0 3px var(--error-light);
 }
 
+/* Generic select styling used across dashboards.
+ * Keep this in common assets so pages can migrate off page-specific CSS.
+ */
+.c-select-wrapper {
+  position: relative;
+}
+
+.c-select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  background-color: var(--white);
+  cursor: pointer;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  appearance: menulist;
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+}
+
+.c-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-hover);
+}
+
+.c-select option {
+  background-color: var(--white);
+  color: var(--text-color);
+  padding: var(--spacing-sm);
+}
+
+/* Common "pending changes" indicator used across admin dashboards */
+.c-change-indicator {
+  font-size: var(--font-size-xs);
+  color: var(--gray-400);
+  transition: color var(--transition-normal);
+}
+
+.c-change-indicator.changed {
+  color: #ffc107;
+  font-weight: var(--font-weight-medium);
+}
+
 /* Form action rows
  * Use with: class="c-form-actions u-actions"
  * (u-actions supplies the base flex layout.)
@@ -812,6 +987,36 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   background-color: var(--gray-50);
 }
 
+/* Table helpers
+ * Use these for generic “management” tables rendered with .c-table.
+ */
+
+.c-table-row {
+  transition: background-color var(--transition-normal);
+}
+
+.c-table-row--changed {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-left: 4px solid #ffc107;
+}
+
+.c-table-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--gray-300);
+  border: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+  font-size: var(--font-size-lg);
+  overflow: hidden;
+}
+
 /* === Version navigation ================================================== */
 
 .c-version-nav {
@@ -846,6 +1051,8 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
 .u-actions--split { justify-content: space-between; }
 
 .u-text-primary { color: var(--primary-color); }
+
+.u-text-center { text-align: center; }
 
 .u-text-right { text-align: right; }
 

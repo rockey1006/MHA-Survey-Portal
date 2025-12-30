@@ -6,29 +6,20 @@
             <p class="section-subtitle">Review advisees and assign advisors across the program.</p>
         </div>
 
-        <div class="role-summary-grid">
-            <div class="c-card role-summary-card">
-                <div class="role-summary-icon student">👥</div>
-                <div class="role-summary-info">
-                    <div class="role-summary-count"><%= @assignment_stats[:total] %></div>
-                    <div class="role-summary-label">Total Students</div>
-                </div>
+        <div class="c-stats-grid">
+            <div class="c-stat c-stat--info">
+                <div class="c-stat__label">👥 Total Students</div>
+                <div class="c-stat__value c-stat__value--md"><%= @assignment_stats[:total] %></div>
             </div>
 
-            <div class="c-card role-summary-card">
-                <div class="role-summary-icon advisor">✅</div>
-                <div class="role-summary-info">
-                    <div class="role-summary-count"><%= @assignment_stats[:assigned] %></div>
-                    <div class="role-summary-label">Assigned</div>
-                </div>
+            <div class="c-stat c-stat--success">
+                <div class="c-stat__label">✅ Assigned</div>
+                <div class="c-stat__value c-stat__value--md"><%= @assignment_stats[:assigned] %></div>
             </div>
 
-            <div class="c-card role-summary-card">
-                <div class="role-summary-icon admin">📋</div>
-                <div class="role-summary-info">
-                    <div class="role-summary-count"><%= @assignment_stats[:unassigned] %></div>
-                    <div class="role-summary-label">Unassigned</div>
-                </div>
+            <div class="c-stat c-stat--warning">
+                <div class="c-stat__label">📋 Unassigned</div>
+                <div class="c-stat__value c-stat__value--md"><%= @assignment_stats[:unassigned] %></div>
             </div>
         </div>
 
@@ -65,9 +56,9 @@
                                 <% track_key = student.track.presence || "" %>
                                 <% track_label = track_key.present? ? track_key.titleize : "Unassigned" %>
 
-                                <tr class="user-row" data-student-row="<%= student.student_id %>">
+                                <tr class="c-table-row" data-student-row="<%= student.student_id %>">
                                     <td class="user-avatar-cell">
-                                        <div class="user-table-avatar"
+                                        <div class="c-table-avatar"
                                                  <% if user&.avatar_url.present? %>
                                                      style="background-image: url('<%= user.avatar_url %>');"
                                                  <% end %>>
@@ -76,11 +67,11 @@
                                     </td>
 
                                     <td class="user-name-cell" style="min-width: 15rem;">
-                                        <div class="user-name"><%= user&.name || "Unknown Student" %></div>
+                                        <div class="c-value"><%= user&.name || "Unknown Student" %></div>
                                     </td>
 
-                                    <td class="user-email-cell" style="min-width: 16rem;">
-                                        <%= user&.email || "—" %>
+                                    <td style="min-width: 16rem;">
+                                        <span class="c-help"><%= user&.email || "—" %></span>
                                     </td>
 
                                     <td class="user-track-cell" style="min-width: 8rem;">
@@ -134,7 +125,7 @@
 
                 <div class="c-card c-card--tight mt-6 flex flex-col gap-4">
                     <div class="text-sm text-slate-600" id="student-changes-summary" style="display: none;">
-                        <span class="changes-count font-semibold">0 changes pending</span>
+                        <span id="student-changes-count" class="c-change-indicator changed">0 changes pending</span>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-end gap-3">
@@ -159,9 +150,9 @@
                         <% @students.each do |student| %>
                             <% user = student.user %>
                             <% current_advisor = student.advisor %>
-                            <tr class="user-row">
+                            <tr class="c-table-row">
                                 <td class="user-avatar-cell">
-                                    <div class="user-table-avatar"
+                                    <div class="c-table-avatar"
                                              <% if user&.avatar_url.present? %>
                                                  style="background-image: url('<%= user.avatar_url %>');"
                                              <% end %>>
@@ -169,10 +160,10 @@
                                     </div>
                                 </td>
                                 <td class="user-name-cell" style="min-width: 15rem;">
-                                    <div class="user-name"><%= user&.name || "Unknown Student" %></div>
+                                    <div class="c-value"><%= user&.name || "Unknown Student" %></div>
                                 </td>
-                                <td class="user-email-cell" style="min-width: 16rem;">
-                                    <%= user&.email || "—" %>
+                                <td style="min-width: 16rem;">
+                                    <span class="c-help"><%= user&.email || "—" %></span>
                                 </td>
                                 <td class="user-track-cell" style="min-width: 8rem;">
                                     <span class="role-badge track"><%= student.track.present? ? student.track.titleize : "Unassigned" %></span>
@@ -208,7 +199,7 @@
 
             const saveButton = document.getElementById('advisor-save-btn');
             const changesSummary = document.getElementById('student-changes-summary');
-            const changesCount = changesSummary ? changesSummary.querySelector('.changes-count') : null;
+            const changesCount = document.getElementById('student-changes-count');
 
             if (!saveButton || !changesSummary || !changesCount) {
                 return;
@@ -221,7 +212,7 @@
             }
 
             function rowFor(studentId) {
-                return form.querySelector(`.user-row[data-student-row="${studentId}"]`);
+                return form.querySelector(`.c-table-row[data-student-row="${studentId}"]`);
             }
 
             function updateIndicator(studentId) {
@@ -246,13 +237,13 @@
                     indicator.textContent = messages.join(' | ');
                     indicator.className = 'c-change-indicator changed';
                     if (row) {
-                        row.classList.add('has-changes');
+                        row.classList.add('c-table-row--changed');
                     }
                 } else {
                     indicator.textContent = 'No changes';
                     indicator.className = 'c-change-indicator';
                     if (row) {
-                        row.classList.remove('has-changes');
+                        row.classList.remove('c-table-row--changed');
                     }
                 }
             }

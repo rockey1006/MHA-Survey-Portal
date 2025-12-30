@@ -298,9 +298,11 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   def extract_feature_description(html, title)
     doc = Nokogiri::HTML.parse(html)
-    node = doc.css(".feature-item").find do |feature|
-      feature.at_css(".feature-title")&.text&.strip == title
+
+    # Current dashboard tile markup
+    tile_node = doc.css(".c-tile").find do |tile|
+      tile.at_css(".c-tile__title")&.text&.strip == title
     end
-    node&.at_css(".feature-description")&.text&.strip
+    tile_node&.at_css(".c-tile__description")&.text&.strip
   end
 end

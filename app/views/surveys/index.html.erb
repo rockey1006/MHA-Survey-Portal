@@ -73,6 +73,7 @@
               <% survey_response = SurveyResponse.build(student: @student, survey: survey) %>
               <% can_edit = assignment.due_date.blank? || assignment.due_date >= Time.current %>
               <%= link_to "View Submission", survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
+              <%= link_to "Download PDF", download_survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
               <% if can_edit %>
                 <%= link_to "Edit", survey_path(survey), class: tailwind_button_classes(:primary) %>
               <% else %>

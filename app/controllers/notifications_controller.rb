@@ -22,6 +22,9 @@ class NotificationsController < ApplicationController
   # @return [void]
   def show
     mark_notification_read(@notification)
+
+    target = @notification.target_path_for(current_user)
+    redirect_to(target.presence || notifications_path)
   end
 
   # Marks a notification as read.

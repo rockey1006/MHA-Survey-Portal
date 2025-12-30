@@ -188,6 +188,39 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated", existing.comments
   end
 
+  test "batch create returns conflict when feedback was updated concurrently" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
+
+    existing = Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      question_id: q1.id,
+      category_id: @cat1.id,
+      advisor_id: @advisor.advisor_id,
+      average_score: 3,
+      comments: "Initial"
+    )
+
+    stale_lock_version = existing.lock_version
+
+    # Simulate a concurrent save that happens after the form was rendered.
+    existing.update!(comments: "Concurrent update")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { id: existing.id, lock_version: stale_lock_version.to_s, average_score: "5", comments: "My update" }
+      }
+    }
+
+    post feedbacks_path, params: params
+    assert_response :unprocessable_entity
+
+    existing.reload
+    assert_equal "Concurrent update", existing.comments
+  end
+
   test "batch create saves confidential advisor note when present" do
     q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
 

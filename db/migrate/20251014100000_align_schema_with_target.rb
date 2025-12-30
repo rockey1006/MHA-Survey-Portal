@@ -220,6 +220,31 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     add_index :questions, :question_type
     add_index :questions, %i[parent_question_id sub_question_order], name: "index_questions_on_parent_and_sub_order"
 
+  # Entity table: advisor-only confidential notes scoped to student + survey + advisor.
+  create_table :confidential_advisor_notes do |t|
+      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
+      t.text :body, null: false
+      t.integer :lock_version, null: false, default: 0
+      t.timestamps
+    end
+    add_index :confidential_advisor_notes, %i[student_id survey_id advisor_id], unique: true, name: "index_confidential_notes_on_student_survey_advisor"
+
+  # Entity table: per-question advisor feedback rows.
+  create_table :feedback do |t|
+      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
+      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
+      t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.float :average_score
+      t.string :comments
+      t.bigint :question_id
+      t.integer :lock_version, null: false, default: 0
+      t.timestamps
+    end
+    add_index :feedback, :question_id
+
   # Join table: links surveys to named program tracks.
   create_table :survey_track_assignments do |t|
       t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
@@ -330,32 +355,6 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.timestamps
     end
     add_index :admin_activity_logs, %i[subject_type subject_id], name: "index_admin_activity_logs_on_subject"
-
-  # Entity table: advisor feedback summaries for students.
-  create_table :feedback do |t|
-      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
-      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
-      t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
-      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
-      t.references :question, foreign_key: { to_table: :questions }, index: true
-      t.float :average_score
-      t.string :comments
-      t.timestamps
-    end
-    add_index :feedback, :survey_id
-
-  # Entity table: advisor-only confidential notes per student+survey.
-  create_table :confidential_advisor_notes do |t|
-      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
-      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
-      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
-      t.text :body, null: false
-      t.timestamps
-    end
-    add_index :confidential_advisor_notes,
-              %i[student_id survey_id advisor_id],
-              unique: true,
-              name: "index_confidential_notes_on_student_survey_advisor"
 
     backfill_mha_competency_sections
     backfill_mha_competency_tooltips

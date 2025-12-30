@@ -55,4 +55,16 @@ class NotificationTest < ActiveSupport::TestCase
     expected_response = SurveyResponse.build(student: assignment.student, survey: assignment.survey)
     assert_equal survey_response_path(expected_response), notification.target_path_for(user)
   end
+
+  test "target_path_for routes survey notifications by viewer role" do
+    survey = surveys(:survey_1)
+    student = users(:student)
+    advisor = users(:advisor)
+    admin = users(:admin)
+    notification = Notification.create!(user: student, title: "Survey Updated", message: "Review changes", notifiable: survey)
+
+    assert_equal survey_path(survey), notification.target_path_for(student)
+    assert_equal advisors_survey_path(survey), notification.target_path_for(advisor)
+    assert_equal admin_survey_path(survey), notification.target_path_for(admin)
+  end
 end

@@ -753,11 +753,11 @@ module Reports
     end
 
     def build_track_summary
-      tracks = dataset_rows.group_by { |row| row[:track] }
+      rows_by_track = dataset_rows
+                       .group_by { |row| row[:track].to_s.strip }
 
-      tracks.map do |track_name, rows|
-        next if rows.blank?
-
+      program_track_names.map do |track_name|
+        rows = rows_by_track[track_name] || []
         track_total_students = assigned_student_count_for_track(track_name)
 
         student_rows = rows.reject { |row| row[:advisor_entry] }
@@ -771,8 +771,7 @@ module Reports
         attainment_percentages = attainment_percentages(attainment_counts)
 
         {
-          id: track_name.parameterize(separator: "_")
-            .presence || "track_#{track_name.object_id}",
+          id: ProgramTrack.canonical_key(track_name).presence || track_name.parameterize(separator: "_").presence || "track_#{track_name.object_id}",
           track: track_name,
           student_average: student_avg,
           advisor_average: advisor_avg,
@@ -786,7 +785,7 @@ module Reports
           not_assessed_percent: attainment_percentages[:not_assessed_percent],
           total_students: attainment_counts[:total_students]
         }
-      end.compact.sort_by { |entry| entry[:track].to_s }
+      end
     end
 
     def completion_stats
@@ -818,8 +817,19 @@ module Reports
     end
 
     def available_tracks
-      raw_tracks = accessible_student_relation.where.not(track: [ nil, "" ]).pluck(:track)
-      sanitize_tracks(raw_tracks)
+      program_track_names
+    end
+
+    def program_track_names
+      return @program_track_names if defined?(@program_track_names)
+
+      names = if ProgramTrack.data_source_ready?
+        ProgramTrack.active.ordered.pluck(:name)
+      else
+        ProgramTrack.names
+      end
+
+      @program_track_names = Array(names).map { |name| name.to_s.strip }.reject(&:blank?).uniq
     end
 
     def normalized_track_name(value)

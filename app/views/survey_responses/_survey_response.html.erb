@@ -430,6 +430,7 @@
 
                     <% if existing_q %>
                       <input type="hidden" name="ratings[<%= feedback_question_id %>][id]" value="<%= existing_q.id %>" />
+                      <input type="hidden" name="ratings[<%= feedback_question_id %>][lock_version]" value="<%= existing_q.lock_version %>" />
                     <% end %>
                   </article>
                     <% end %>

@@ -94,6 +94,9 @@
                               name="confidential_advisor_note[body]"
                               rows="4"
                               class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"><%= note&.body.to_s %></textarea>
+                    <% if note&.persisted? %>
+                      <input type="hidden" name="confidential_advisor_note[lock_version]" value="<%= note.lock_version %>" />
+                    <% end %>
                   </div>
                 <% else %>
                   <div>

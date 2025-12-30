@@ -55,7 +55,7 @@ class Notification < ApplicationRecord
 
     case notifiable
     when Survey
-      survey_path(notifiable)
+      resolve_survey_path(notifiable, viewer)
     when SurveyAssignment
       resolve_assignment_path(notifiable, viewer)
     when Question
@@ -83,6 +83,19 @@ class Notification < ApplicationRecord
       admin_survey_path(assignment.survey_id)
     else
       survey_response_path_for_assignment(assignment) || survey_path(assignment.survey_id)
+    end
+  end
+
+  def resolve_survey_path(survey, viewer)
+    return survey_path(survey) unless viewer
+
+    case viewer.role
+    when "advisor"
+      advisors_survey_path(survey)
+    when "admin"
+      admin_survey_path(survey)
+    else
+      survey_path(survey)
     end
   end
 

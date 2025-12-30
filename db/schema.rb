@@ -65,6 +65,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.bigint "survey_id", null: false
     t.bigint "advisor_id", null: false
     t.text "body", null: false
+    t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["advisor_id"], name: "index_confidential_advisor_notes_on_advisor_id"
@@ -80,6 +81,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.bigint "survey_id", null: false
     t.float "average_score"
     t.string "comments"
+    t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "question_id"

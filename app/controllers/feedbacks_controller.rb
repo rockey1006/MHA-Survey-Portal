@@ -42,9 +42,9 @@ class FeedbacksController < ApplicationController
       raw_ratings = params.require(:ratings)
       ratings = raw_ratings.to_unsafe_h.each_with_object({}) do |(cat_id, values), memo|
         allowed = if values.respond_to?(:permit)
-                    values.permit(:id, :average_score, :comments).to_h
+                    values.permit(:id, :lock_version, :average_score, :comments).to_h
         else
-                    values.to_h.slice("id", "average_score", "comments")
+                    values.to_h.slice("id", "lock_version", "average_score", "comments")
         end
         memo[cat_id] = allowed
       end
@@ -87,17 +87,30 @@ class FeedbacksController < ApplicationController
           fb.advisor_id = @advisor&.advisor_id
           fb.question_id = qid
 
-          unless fb.save
-            batch_errors[qid] = fb.errors.full_messages
-          else
-            saved_feedbacks << fb
+          if attrs["lock_version"].present?
+            fb.lock_version = attrs["lock_version"].to_i
+          end
+
+          begin
+            unless fb.save
+              batch_errors[qid] = fb.errors.full_messages
+            else
+              saved_feedbacks << fb
+            end
+          rescue ActiveRecord::StaleObjectError
+            batch_errors[qid] = [ "This feedback was updated by someone else. Refresh and try again." ]
           end
         end
 
         if batch_errors.any?
           raise ActiveRecord::Rollback
         else
-          save_confidential_advisor_note_from_params!
+          begin
+            save_confidential_advisor_note_from_params!
+          rescue ActiveRecord::StaleObjectError
+            batch_errors[:confidential_advisor_note] = [ "This note was updated by someone else. Refresh and try again." ]
+            raise ActiveRecord::Rollback
+          end
         end
       end
 
@@ -116,7 +129,18 @@ class FeedbacksController < ApplicationController
       if saved_feedbacks.empty?
         # Allow note-only saves so the single Save action persists all page content.
         if params[:confidential_advisor_note].present?
-          save_confidential_advisor_note_from_params!
+          begin
+            save_confidential_advisor_note_from_params!
+          rescue ActiveRecord::StaleObjectError
+            @feedback = Feedback.new
+            load_feedback_new_context
+            flash.now[:alert] = "This note was updated by someone else. Refresh and try again."
+            respond_to do |format|
+              format.html { render :new, status: :conflict }
+              format.json { render json: { error: "conflict" }, status: :conflict }
+            end
+            return
+          end
           respond_to do |format|
             format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
             format.json { render json: { ok: true }, status: :created }
@@ -177,7 +201,15 @@ class FeedbacksController < ApplicationController
 
     respond_to do |format|
       if @feedback.save
-        save_confidential_advisor_note_from_params!
+        begin
+          save_confidential_advisor_note_from_params!
+        rescue ActiveRecord::StaleObjectError
+          load_feedback_new_context
+          flash.now[:alert] = "This note was updated by someone else. Refresh and try again."
+          format.html { render :new, status: :conflict }
+          format.json { render json: { error: "conflict" }, status: :conflict }
+          return
+        end
         format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
         format.json { render json: @feedback, status: :created, location: @feedback }
       else
@@ -232,7 +264,7 @@ class FeedbacksController < ApplicationController
   #
   # @return [ActionController::Parameters]
   def feedback_params
-    params.require(:feedback).permit(:advisor_id, :category_id, :survey_id, :student_id, :comments, :average_score)
+    params.require(:feedback).permit(:advisor_id, :category_id, :survey_id, :student_id, :comments, :average_score, :lock_version)
   end
 
   def load_feedback_new_context
@@ -327,6 +359,7 @@ class FeedbacksController < ApplicationController
     return unless advisor_id
 
     body = params.dig(:confidential_advisor_note, :body).to_s
+    submitted_lock_version = params.dig(:confidential_advisor_note, :lock_version)
 
     note = ConfidentialAdvisorNote.find_or_initialize_by(
       student_id: @student.student_id,
@@ -340,6 +373,9 @@ class FeedbacksController < ApplicationController
     end
 
     note.body = body
+    if submitted_lock_version.present?
+      note.lock_version = submitted_lock_version.to_i
+    end
     note.save!
   end
 

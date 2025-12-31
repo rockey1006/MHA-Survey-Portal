@@ -34,9 +34,9 @@
                     student_records_path,
                     class: "nav-link #{'active' if local_assigns[:active_page] == 'students'}" %>
 
-        <%= link_to "Surveys",
-                    advisors_surveys_path,
-                    class: "nav-link #{'active' if local_assigns[:active_page] == 'surveys'}" %>
+          <%= link_to "Surveys",
+                      assignments_surveys_path,
+                      class: "nav-link #{'active' if local_assigns[:active_page] == 'surveys'}" %>
       </nav>
     </div>
 

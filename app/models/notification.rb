@@ -78,9 +78,9 @@ class Notification < ApplicationRecord
 
     case viewer.role
     when "advisor"
-      advisors_survey_path(assignment.survey_id)
+      assignments_survey_path(assignment.survey_id)
     when "admin"
-      admin_survey_path(assignment.survey_id)
+      assignments_survey_path(assignment.survey_id)
     else
       survey_response_path_for_assignment(assignment) || survey_path(assignment.survey_id)
     end
@@ -91,9 +91,9 @@ class Notification < ApplicationRecord
 
     case viewer.role
     when "advisor"
-      advisors_survey_path(survey)
+      assignments_survey_path(survey)
     when "admin"
-      admin_survey_path(survey)
+      assignments_survey_path(survey)
     else
       survey_path(survey)
     end

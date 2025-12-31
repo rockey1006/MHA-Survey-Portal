@@ -298,10 +298,6 @@
   align-items: start;
 }
 
-.dashboard-grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
 .dashboard-grid-4 {
   grid-template-columns: repeat(4, 1fr);
 }
@@ -351,7 +347,6 @@
 @media (max-width: 768px) {
   .dashboard-grid,
   .dashboard-grid-2,
-  .dashboard-grid-3,
   .dashboard-grid-4 {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
@@ -364,8 +359,5 @@
   .dashboard-section {
     padding: var(--spacing-lg);
   }
-}
-
-@media (max-width: 480px) {
 }
 

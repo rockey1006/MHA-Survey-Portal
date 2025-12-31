@@ -116,15 +116,22 @@ Rails.application.routes.draw do
     end
   end
 
-  # Evidence helpers
-  get "evidence/check_access", to: "evidence#check_access", as: :evidence_check_access, defaults: { format: :json }
-
-  namespace :advisors do
+  # Survey assignment hub shared by advisors and admins.
+  namespace :assignments do
     resources :surveys, only: %i[index show] do
       post   :assign,     on: :member
       post   :assign_all, on: :member
       delete :unassign,   on: :member
     end
+  end
+
+  # Evidence helpers
+  get "evidence/check_access", to: "evidence#check_access", as: :evidence_check_access, defaults: { format: :json }
+
+  namespace :advisors do
+    # Kept for backwards-compatible bookmarks.
+    get "surveys", to: redirect("/assignments/surveys")
+    get "surveys/:id", to: redirect("/assignments/surveys/%{id}")
     resources :students, only: %i[show update]
   end
 

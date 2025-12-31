@@ -13,8 +13,17 @@
       <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_surveys_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">📄</div>
-          <div class="c-tile__title">Surveys</div>
-          <div class="c-tile__description"><%= @total_surveys || 0 %> active</div>
+          <div class="c-tile__title">Survey Builder</div>
+          <div class="c-tile__description">Create & manage surveys</div>
+        <% end %>
+      </div>
+
+      <!-- Survey Assignment -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to assignments_surveys_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🧾</div>
+          <div class="c-tile__title">Assign Surveys</div>
+          <div class="c-tile__description">Assign/unassign surveys to students</div>
         <% end %>
       </div>
 

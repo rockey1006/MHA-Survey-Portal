@@ -335,18 +335,6 @@
 .main-content--dashboard {
   max-width: var(--dashboard-container-max-width);
 }
-
-/* Student dashboard: extra breathing room without impacting other dashboards */
-
-.main-content--student-dashboard {
-  padding: var(--spacing-4xl);
-}
-
-@media (max-width: 768px) {
-  .main-content--student-dashboard {
-    padding: var(--spacing-xl);
-  }
-}
 /* Maintenance page */
 .maintenance-card {
   max-width: 40rem;

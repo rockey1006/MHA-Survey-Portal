@@ -9,13 +9,13 @@
     </div>
 
     <div class="dashboard-grid dashboard-grid-4">
-      <!-- Surveys -->
+      <!-- Assign Surveys -->
       <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
-        <%= link_to advisors_surveys_path, class: "c-tile__link" do %>
-          <div class="c-tile__icon">📄</div>
-          <div class="c-tile__title">Surveys</div>
-          <div class="c-tile__description"><%= pluralize(@active_survey_count, "active survey") %></div>
-        <% end %>
+        <a class="c-tile__link" href="/assignments/surveys">
+          <div class="c-tile__icon">🧾</div>
+          <div class="c-tile__title">Assign Surveys</div>
+          <div class="c-tile__description">Assign/unassign surveys to students</div>
+        </a>
       </div>
 
       <!-- Reports -->

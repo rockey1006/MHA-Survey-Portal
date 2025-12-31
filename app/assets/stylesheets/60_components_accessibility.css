@@ -163,8 +163,6 @@
   border-color: var(--primary-color);
 }
 
-/* Legacy/special button class aliases -> shared .btn variants for consistency */
-
 /* Admin survey layouts */
 .survey-form-layout {
   display: grid;
@@ -466,17 +464,6 @@
   gap: var(--spacing-md);
 }
 
-.btn-ghost {
-  background-color: transparent;
-  color: var(--gray-600);
-  border: 1px solid transparent;
-}
-
-.btn-ghost:hover {
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
 @media (max-width: 768px) {
   .survey-card__header {
     flex-direction: column;
@@ -721,17 +708,6 @@ body.high-contrast .c-avatar-tile--inverse {
 /* ============================================================
    High-contrast interactive elements (WCAG 2.1 AA)
    ============================================================ */
-
-body.high-contrast {
-  background-color: #ffffff;
-  color: #000000;
-}
-
-/* Header / nav */
-body.high-contrast .app-header {
-  background-color: #000000;
-  color: #ffffff;
-}
 
 /* Top nav links */
 body.high-contrast .nav-link,

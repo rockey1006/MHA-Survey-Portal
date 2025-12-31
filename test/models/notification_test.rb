@@ -64,7 +64,7 @@ class NotificationTest < ActiveSupport::TestCase
     notification = Notification.create!(user: student, title: "Survey Updated", message: "Review changes", notifiable: survey)
 
     assert_equal survey_path(survey), notification.target_path_for(student)
-    assert_equal advisors_survey_path(survey), notification.target_path_for(advisor)
-    assert_equal admin_survey_path(survey), notification.target_path_for(admin)
+    assert_equal assignments_survey_path(survey), notification.target_path_for(advisor)
+    assert_equal assignments_survey_path(survey), notification.target_path_for(admin)
   end
 end

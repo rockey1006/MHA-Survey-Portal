@@ -3,8 +3,8 @@
 module ApplicationHelper
   DEFAULT_SCALE_LABELS = %w[1 2 3 4 5].freeze
 
-  # Base Tailwind utility classes applied to flash messages.
-  FLASH_BASE_CLASSES = "mb-4 flex items-start gap-3 rounded-lg border-l-4 px-4 py-3 shadow-sm".freeze
+  # Base CSS class applied to all flash notifications.
+  FLASH_BASE_CLASSES = "flash".freeze
   # Query string keys that should be preserved when building sortable headers.
   SURVEY_SORTABLE_KEYS = %w[q track semester].freeze
 
@@ -17,15 +17,15 @@ module ApplicationHelper
 
     case tone
     when :notice, :info
-      "#{FLASH_BASE_CLASSES} border-blue-500 bg-blue-50 text-blue-900"
+      "#{FLASH_BASE_CLASSES} flash__notice"
     when :success
-      "#{FLASH_BASE_CLASSES} border-emerald-500 bg-emerald-50 text-emerald-900"
+      "#{FLASH_BASE_CLASSES} flash__success"
     when :alert, :error
-      "#{FLASH_BASE_CLASSES} border-red-500 bg-red-50 text-red-900"
+      "#{FLASH_BASE_CLASSES} flash__alert"
     when :warning
-      "#{FLASH_BASE_CLASSES} border-amber-500 bg-amber-50 text-amber-900"
+      "#{FLASH_BASE_CLASSES} flash__warning"
     else
-      "#{FLASH_BASE_CLASSES} border-slate-400 bg-white text-slate-700"
+      FLASH_BASE_CLASSES
     end
   end
 
@@ -98,13 +98,45 @@ module ApplicationHelper
     variant = case status.to_s.downcase
     when "completed"
       "border-emerald-200 bg-emerald-50 text-emerald-700"
-    when "pending"
+    when "assigned"
       "border-amber-200 bg-amber-50 text-amber-700"
+    when "unassigned"
+      "border-slate-200 bg-slate-100 text-slate-600"
     else
       "border-slate-200 bg-slate-100 text-slate-600"
     end
 
     "#{base} #{variant}"
+  end
+
+  # Returns a human-friendly due date label for survey summaries.
+  #
+  # @param due_date [Time, Date, nil]
+  # @return [String]
+  def survey_due_note(due_date)
+    return "No due date" if due_date.blank?
+
+    date = due_date.to_date
+    today = Time.zone.today
+
+    formatted_date = format_calendar_date(date)
+
+    if date < today
+      "Overdue · #{formatted_date}"
+    elsif date == today
+      "Due today"
+    else
+      "Due #{formatted_date}"
+    end
+  end
+
+  # Formats a date like "January 9, 2026" (no leading zero).
+  #
+  # @param value [Time, Date]
+  # @return [String]
+  def format_calendar_date(value)
+    date = value.to_date
+    "#{date.strftime('%B')} #{date.day}, #{date.year}"
   end
 
   # Generates a concise summary string from survey audit metadata.

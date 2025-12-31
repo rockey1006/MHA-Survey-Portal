@@ -1,5 +1,5 @@
 <main class="main-content">
-  <section class="dashboard-section">
+  <section class="c-card dashboard-section">
     <div class="section-header">
       <div>
         <h1 class="section-title">Question Bank</h1>
@@ -11,12 +11,12 @@
       </div>
     </div>
 
-    <div class="survey-list-card">
+    <div class="c-card survey-list-card">
       <% if @questions.blank? %>
         <p class="empty-state">No questions have been created yet.</p>
       <% else %>
-        <div class="survey-table-wrapper">
-          <table class="survey-table">
+        <div class="c-table-wrapper">
+          <table class="c-table survey-table">
             <thead>
               <tr>
                 <th>Order</th>

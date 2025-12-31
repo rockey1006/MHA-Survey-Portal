@@ -1,103 +1,12 @@
 <main class="main-content">
-  <section class="dashboard-section advisor-surveys-section">
+  <section class="c-card dashboard-section u-stack u-stack--xl">
     <div class="section-header">
-      <h1 class="section-title">Available Surveys</h1>
-      <p class="section-subtitle">
-        Quickly review the surveys you can assign to advisees. Current semester: <strong><%= ProgramSemester.current_name || "Not set" %></strong>
-      </p>
+      <h1 class="section-title">Surveys</h1>
+      <p class="section-subtitle">This page has moved to Survey Assignments.</p>
     </div>
 
-    <% if @surveys.present? %>
-      <div class="advisor-surveys-summary">
-        <div class="advisor-surveys-metrics">
-          <div class="advisor-surveys-metric">
-            <p class="advisor-surveys-metric__label">Total surveys</p>
-            <p class="advisor-surveys-metric__value"><%= @surveys.size %></p>
-          </div>
-          <div class="advisor-surveys-metric">
-            <p class="advisor-surveys-metric__label">Tracks covered</p>
-            <p class="advisor-surveys-metric__value">
-              <%= @surveys.flat_map(&:track_list).uniq.sort.presence&.join(", ") || "—" %>
-            </p>
-          </div>
-          <div class="advisor-surveys-metric">
-            <p class="advisor-surveys-metric__label">Last updated</p>
-            <p class="advisor-surveys-metric__value">
-              <%= l(@surveys.max_by(&:updated_at).updated_at, format: :long) rescue "Unknown" %>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="advisor-surveys-grid">
-        <% @surveys.each do |survey| %>
-          <% track_labels = survey.track_list %>
-          <% description = survey.try(:description) || survey.categories.limit(3).map(&:name).join(", ") %>
-          <% cleaned_title = survey.title.to_s.sub(/^survey\s*#?:\s*/i, '').gsub('#', '').squish %>
-          <% display_title = cleaned_title.presence || survey.title %>
-          <article class="advisor-survey-card">
-            <header class="advisor-survey-card__header">
-              <div>
-                <p class="advisor-survey-card__semester">Semester <%= survey.semester.presence || "N/A" %></p>
-                <h2 class="advisor-survey-card__title"><%= display_title %></h2>
-              </div>
-              <% if survey.is_active? %>
-                <span class="advisor-survey-status advisor-survey-status--active">Active</span>
-              <% else %>
-                <span class="advisor-survey-status advisor-survey-status--archived">Archived</span>
-              <% end %>
-            </header>
-
-            <% if description.present? %>
-              <p class="advisor-survey-description"><%= description %></p>
-            <% end %>
-
-            <dl class="advisor-survey-metadata">
-              <div class="advisor-survey-metadata__item">
-                <dt class="advisor-survey-metadata__label">Categories</dt>
-                <dd class="advisor-survey-metadata__value"><%= survey.categories.size %></dd>
-              </div>
-              <div class="advisor-survey-metadata__item">
-                <dt class="advisor-survey-metadata__label">Questions</dt>
-                <dd class="advisor-survey-metadata__value"><%= survey.questions.size %></dd>
-              </div>
-              <div class="advisor-survey-metadata__item">
-                <dt class="advisor-survey-metadata__label">Updated</dt>
-                <dd class="advisor-survey-metadata__value"><%= l(survey.updated_at, format: :short) rescue "—" %></dd>
-              </div>
-            </dl>
-
-            <% if track_labels.present? %>
-              <div class="advisor-survey-tracks">
-                <% track_labels.each do |track| %>
-                  <span class="advisor-survey-track-chip"><%= track %></span>
-                <% end %>
-              </div>
-            <% end %>
-
-            <div class="advisor-survey-card__footer">
-              <div class="advisor-survey-id">
-                <span class="advisor-survey-id__label">ID:</span>&nbsp;<%= survey.id %>
-              </div>
-              <%= link_to "Assign to Students", advisors_survey_path(survey), class: tailwind_button_classes(:secondary), data: { turbo: false } %>
-            </div>
-          </article>
-        <% end %>
-      </div>
-    <% else %>
-      <div class="feature-item" style="max-width: 560px; margin: 0 auto;">
-        <div class="feature-icon" aria-hidden="true">📭</div>
-        <div class="feature-title">No surveys available</div>
-        <div class="feature-description">Create a survey first to begin assigning it to students.</div>
-      </div>
-    <% end %>
-
-    <!-- Back button row -->
-    <div class="advisor-back-row">
-      <%= link_to "← Back",
-                  advisor_dashboard_path,
-                  class: tailwind_button_classes(:secondary),
-                  data: { turbo: false } %>
+    <div class="u-actions u-actions--start">
+      <%= link_to "Go to Survey Assignments", assignments_surveys_path, class: tailwind_button_classes(:primary), data: { turbo: false } %>
     </div>
   </section>
 </main>

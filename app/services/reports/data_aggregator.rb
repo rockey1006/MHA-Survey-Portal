@@ -50,8 +50,10 @@ module Reports
       "questions.program_target_level AS program_target_level",
       "surveys.id AS survey_id",
       "surveys.title AS survey_title",
+      "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
     ].freeze
@@ -68,8 +70,10 @@ module Reports
       "questions.program_target_level AS program_target_level",
       "surveys.id AS survey_id",
       "surveys.title AS survey_title",
+      "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
     ].freeze
@@ -107,11 +111,6 @@ module Reports
       @competency_detail ||= build_competency_detail
     end
 
-    # Survey-level achievement details for the course performance section.
-    def course_summary
-      @course_summary ||= build_course_summary
-    end
-
     # Track-level aggregate details used by exports.
     def track_summary
       @track_summary ||= build_track_summary
@@ -130,7 +129,6 @@ module Reports
         benchmark: benchmark,
         competency_summary: competency_summary,
         competency_detail: competency_detail,
-        course_summary: course_summary,
         track_summary: track_summary
       }
     end
@@ -611,7 +609,11 @@ module Reports
           total_students: attainment_counts[:total_students],
           courses: course_breakdown
         }
-      end.compact.select { |entry| REPORT_DOMAINS.include?(entry[:name]) }.sort_by { |entry| -(entry[:student_average] || 0.0) }
+      end.compact
+
+      summary = summary.select { |entry| REPORT_DOMAINS.include?(entry[:name]) }
+      order_lookup = domain_order_names.each_with_index.to_h
+      summary = summary.sort_by { |entry| order_lookup.fetch(entry[:name], Float::INFINITY) }
 
       Rails.logger.debug "Generated competency summary: #{summary.inspect}"
       summary
@@ -709,51 +711,12 @@ module Reports
       detail
     end
 
-    def build_course_summary
-      surveys = dataset_rows.group_by { |row| row[:survey_id] }
-
-      surveys.map do |_survey_id, rows|
-        survey_meta = rows.first
-        course_total_students = assigned_student_count_for_survey(survey_meta[:survey_id])
-        student_rows = rows.reject { |row| row[:advisor_entry] }
-        advisor_rows = rows.select { |row| row[:advisor_entry] }
-
-        student_avg = average(student_rows.map { |row| row[:score] })
-        advisor_avg = average(advisor_rows.map { |row| row[:score] })
-
-        student_by_person = group_student_rows(student_rows)
-        attainment_counts = attainment_counts_for_group(student_by_person, total_students: course_total_students)
-        attainment_percentages = attainment_percentages(attainment_counts)
-        competency_breakdown = build_course_competency_breakdown(rows)
-
-        {
-          id: survey_meta[:survey_id],
-          title: survey_meta[:survey_title],
-          semester: survey_meta[:survey_semester],
-          track: survey_meta[:track],
-          student_average: student_avg,
-          advisor_average: advisor_avg,
-          submissions: student_by_person.size,
-          on_track_percent: attainment_percentages[:achieved_percent],
-          achieved_count: attainment_counts[:achieved_count],
-          not_met_count: attainment_counts[:not_met_count],
-          not_assessed_count: attainment_counts[:not_assessed_count],
-          achieved_percent: attainment_percentages[:achieved_percent],
-          not_met_percent: attainment_percentages[:not_met_percent],
-          not_assessed_percent: attainment_percentages[:not_assessed_percent],
-          total_students: attainment_counts[:total_students],
-          gap: advisor_avg && student_avg ? (advisor_avg - student_avg) : nil,
-          competencies: competency_breakdown
-        }
-      end.compact.sort_by { |entry| -(entry[:student_average] || 0.0) }
-    end
-
     def build_track_summary
-      tracks = dataset_rows.group_by { |row| row[:track] }
+      rows_by_track = dataset_rows
+                       .group_by { |row| row[:track].to_s.strip }
 
-      tracks.map do |track_name, rows|
-        next if rows.blank?
-
+      program_track_names.map do |track_name|
+        rows = rows_by_track[track_name] || []
         track_total_students = assigned_student_count_for_track(track_name)
 
         student_rows = rows.reject { |row| row[:advisor_entry] }
@@ -767,8 +730,7 @@ module Reports
         attainment_percentages = attainment_percentages(attainment_counts)
 
         {
-          id: track_name.parameterize(separator: "_")
-            .presence || "track_#{track_name.object_id}",
+          id: ProgramTrack.canonical_key(track_name).presence || track_name.parameterize(separator: "_").presence || "track_#{track_name.object_id}",
           track: track_name,
           student_average: student_avg,
           advisor_average: advisor_avg,
@@ -782,7 +744,7 @@ module Reports
           not_assessed_percent: attainment_percentages[:not_assessed_percent],
           total_students: attainment_counts[:total_students]
         }
-      end.compact.sort_by { |entry| entry[:track].to_s }
+      end
     end
 
     def completion_stats
@@ -814,8 +776,19 @@ module Reports
     end
 
     def available_tracks
-      raw_tracks = accessible_student_relation.where.not(track: [ nil, "" ]).pluck(:track)
-      sanitize_tracks(raw_tracks)
+      program_track_names
+    end
+
+    def program_track_names
+      return @program_track_names if defined?(@program_track_names)
+
+      names = if ProgramTrack.data_source_ready?
+        ProgramTrack.active.ordered.pluck(:name)
+      else
+        ProgramTrack.names
+      end
+
+      @program_track_names = Array(names).map { |name| name.to_s.strip }.reject(&:blank?).uniq
     end
 
     def normalized_track_name(value)
@@ -828,11 +801,33 @@ module Reports
     end
 
     def available_categories
-      category_group_lookup
+      entries = category_group_lookup
         .values
         .select { |entry| REPORT_DOMAINS.include?(entry[:name]) }
         .map { |entry| { id: entry[:id], name: entry[:name], category_ids: entry[:ids] } }
-        .sort_by { |entry| entry[:name].to_s.downcase }
+
+      order_lookup = domain_order_names.each_with_index.to_h
+      entries.sort_by do |entry|
+        [ order_lookup.fetch(entry[:name], Float::INFINITY), entry[:name].to_s.downcase ]
+      end
+    end
+
+    def domain_order_names
+      return @domain_order_names if defined?(@domain_order_names)
+
+      @domain_order_names = if filters[:survey_id]
+        categories = Category.where(survey_id: filters[:survey_id]).select(:id, :name)
+        categories = if Category.column_names.include?("position")
+          categories.order(:position, :id)
+        else
+          categories.order(:id)
+        end
+
+        ordered_names = categories.map { |category| category.name.to_s.strip }.reject(&:blank?)
+        ordered_names & REPORT_DOMAINS
+      else
+        REPORT_DOMAINS
+      end
     end
 
     def available_surveys
@@ -1034,6 +1029,8 @@ module Reports
       value = parse_numeric(record.response_value)
       return nil unless value
 
+      effective_target_level = competency_target_level_for_record(record)
+
       {
         id: record.student_question_id,
         score: value,
@@ -1042,7 +1039,7 @@ module Reports
         category_id: record.category_id,
         category_name: record.category_name,
         question_text: record.question_text,
-        program_target_level: record.respond_to?(:program_target_level) ? record.program_target_level : nil,
+        program_target_level: effective_target_level,
         survey_id: record.survey_id,
         survey_title: record.survey_title,
         survey_semester: record.survey_semester,
@@ -1050,6 +1047,62 @@ module Reports
         student_id: record.student_primary_id,
         advisor_id: record.owning_advisor_id || record.advisor_id
       }
+    end
+
+    def competency_target_level_for_record(record)
+      fallback = record.respond_to?(:program_target_level) ? record.program_target_level : nil
+      return fallback unless record.respond_to?(:program_semester_id) && record.respond_to?(:student_track)
+
+      semester_id = record.program_semester_id
+      track = record.student_track.to_s.strip
+      title = normalized_competency_title(record.question_text)
+      program_year = record.respond_to?(:student_program_year) ? record.student_program_year : nil
+
+      exact_lookup = competency_target_level_lookup
+
+      exact_lookup[[ semester_id, track, program_year, title ]] ||
+        exact_lookup[[ semester_id, track, nil, title ]] ||
+        (program_year.nil? ? competency_target_level_any_year_lookup[[ semester_id, track, title ]] : nil) ||
+        fallback
+    end
+
+    def competency_target_level_lookup
+      competency_target_level_lookup_bundle[:exact]
+    end
+
+    def competency_target_level_any_year_lookup
+      competency_target_level_lookup_bundle[:any_year]
+    end
+
+    def competency_target_level_lookup_bundle
+      @competency_target_level_lookup_bundle ||= begin
+        exact = {}
+        any_year = {}
+
+        CompetencyTargetLevel
+          .select(:id, :program_semester_id, :track, :program_year, :competency_title, :target_level)
+          .find_each do |row|
+            semester_id = row.program_semester_id
+            track = row.track.to_s.strip
+            title = normalized_competency_title(row.competency_title)
+            program_year = row.program_year
+
+            exact[[ semester_id, track, program_year, title ]] = row.target_level
+
+            next if program_year.blank?
+
+            any_year_key = [ semester_id, track, title ]
+            existing = any_year[any_year_key]
+            if existing.nil? || program_year.to_i < existing[:year]
+              any_year[any_year_key] = { year: program_year.to_i, level: row.target_level }
+            end
+          end
+
+        {
+          exact: exact,
+          any_year: any_year.transform_values { |entry| entry[:level] }
+        }
+      end
     end
 
     def sanitize_tracks(values)

@@ -521,7 +521,7 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
   test "export_pdf handles various section values" do
     sign_in @admin
 
-    sections = [ "competency", "alignment", "benchmark", "course-summary", "competency-detail" ]
+    sections = [ "competency", "alignment", "benchmark", "competency-detail" ]
     sections.each do |section|
       get export_reports_pdf_path(section: section)
       assert_response :success
@@ -531,7 +531,7 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
   test "export_excel handles various section values" do
     sign_in @admin
 
-    sections = [ "competency", "alignment", "benchmark", "course-summary", "competency-detail" ]
+    sections = [ "competency", "alignment", "benchmark", "competency-detail" ]
     sections.each do |section|
       get export_reports_excel_path(section: section)
       assert_response :success

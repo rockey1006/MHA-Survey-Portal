@@ -15,7 +15,13 @@ class Admin::BaseController < ApplicationController
   def require_admin!
     return if current_user&.role_admin?
 
-    redirect_to dashboard_path, alert: "Access denied. Admin privileges required."
+    # Avoid showing admin-only warnings to students if they hit an admin URL
+    # accidentally (stale link, bookmark, etc.).
+    if current_user&.role_student?
+      redirect_to dashboard_path
+    else
+      redirect_to dashboard_path, alert: "Access denied. Admin privileges required."
+    end
   end
 
   # @return [Admin, nil] the admin profile for the logged-in user, if present.

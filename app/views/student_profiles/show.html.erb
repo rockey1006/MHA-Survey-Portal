@@ -4,149 +4,136 @@
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
 <% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
+<% program_year = @student.program_year.present? ? "Year #{@student.program_year}" : "Not set" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
 <% updated_text = @student.updated_at ? time_ago_in_words(@student.updated_at) + " ago" : "Just now" %>
 <% initials = full_name.split.first(2).map { |part| part.first&.upcase }.join.presence || "ST" %>
+<% avatar_url = @student.avatar_url.presence %>
 
-<main class="student-profile-page px-4 py-10">
-  <div class="student-profile-container mx-auto max-w-6xl space-y-10">
-    <section class="student-profile-hero">
-      <div class="student-profile-hero__content">
-        <div>
-          <p class="student-profile-hero__eyebrow">Your student profile</p>
-          <h1 class="student-profile-hero__title"><%= full_name %></h1>
-          <p class="student-profile-hero__subtitle">Track your program status, advisor, and key milestones.</p>
-          <div class="student-profile-hero__badges">
-            <span class="hero-badge">
-              <span class="hero-badge__dot"></span>
+<div class="py-6 sm:py-8">
+  <div class="u-stack u-stack--lg">
+    <section class="c-hero c-hero--maroon c-hero--compact">
+      <div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+        <div class="space-y-8">
+          <div class="space-y-4">
+            <p class="c-eyebrow c-eyebrow--inverse">Your student profile</p>
+            <h1 class="c-h1 c-h1--inverse"><%= full_name %></h1>
+            <p class="c-lede c-lede--inverse max-w-2xl">Track your program status, advisor, and key milestones.</p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <span class="c-pill c-pill--inverse">
+              <span class="c-pill__dot c-pill__dot--inverse"></span>
               Track · <%= track %>
             </span>
-            <span class="hero-badge">
+            <span class="c-pill c-pill--inverse">
               Cohort member since <%= member_since %>
             </span>
-            <span class="hero-badge">
+            <span class="c-pill c-pill--inverse">
               Updated <%= updated_text %>
             </span>
           </div>
         </div>
-        <div class="student-profile-hero__meta">
-          <div>
-            <p class="meta-label">Primary email</p>
-            <p class="meta-value"><%= email %></p>
-            <p class="meta-label">Advisor</p>
-            <p class="meta-value"><%= advisor_name %></p>
+
+        <div class="flex flex-col gap-8 sm:flex-row sm:items-start lg:flex-col lg:items-end">
+          <div class="space-y-5">
+            <div>
+              <p class="c-eyebrow c-eyebrow--inverse">Primary email</p>
+              <p class="c-value c-value--xl c-value--inverse"><%= email %></p>
+            </div>
+            <div>
+              <p class="c-eyebrow c-eyebrow--inverse">Advisor</p>
+              <p class="c-value c-value--xl c-value--inverse"><%= advisor_name %></p>
+            </div>
           </div>
-          <div class="student-profile-hero__avatar">
-            <span><%= initials %></span>
+          <div class="c-avatar-tile c-avatar-tile--inverse h-24 w-24 text-xl" <%= "role=\"img\" aria-label=\"#{avatar_aria_label(@student.user)}\"" unless avatar_url %>>
+            <% if avatar_url %>
+              <img src="<%= avatar_url %>" alt="<%= avatar_aria_label(@student.user) %>" loading="lazy">
+            <% else %>
+              <span aria-hidden="true"><%= initials %></span>
+              <span class="sr-only"><%= avatar_aria_label(@student.user) %></span>
+            <% end %>
           </div>
         </div>
       </div>
-      <div class="student-profile-hero__stats">
-        <article>
-          <p class="stat-label">Major / Program</p>
-          <p class="stat-value"><%= major %></p>
+
+      <div class="mt-6 grid gap-4 md:grid-cols-3">
+        <article class="c-kv c-kv--inverse c-kv--compact">
+          <p class="c-eyebrow c-eyebrow--inverse">Major / Program</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= major %></p>
         </article>
-        <article>
-          <p class="stat-label">UIN</p>
-          <p class="stat-value"><%= uin %></p>
+        <article class="c-kv c-kv--inverse c-kv--compact">
+          <p class="c-eyebrow c-eyebrow--inverse">UIN</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= uin %></p>
         </article>
-        <article>
-          <p class="stat-label">Advisor status</p>
-          <p class="stat-value"><%= advisor_name %></p>
+        <article class="c-kv c-kv--inverse c-kv--compact">
+          <p class="c-eyebrow c-eyebrow--inverse">Program year</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= program_year %></p>
         </article>
       </div>
     </section>
 
-    <div class="student-profile-grid">
-      <section class="student-card student-card--personal">
-        <header>
-          <p class="eyebrow">Personal details</p>
-          <h2>Student identity</h2>
+    <div>
+      <section class="c-card c-card--tight space-y-8">
+        <header class="space-y-2">
+          <p class="c-eyebrow">Overview</p>
+          <h2 class="c-h2">Profile details</h2>
         </header>
-        <dl>
-          <div>
-            <dt>Full name</dt>
-            <dd><%= full_name %></dd>
-          </div>
-          <div>
-            <dt>Email</dt>
-            <dd><%= email %></dd>
-          </div>
-          <div>
-            <dt>UIN</dt>
-            <dd><%= uin %></dd>
-          </div>
-        </dl>
-      </section>
 
-      <section class="student-card student-card--academic">
-        <header>
-          <p class="eyebrow">Academic journey</p>
-          <h2>Program snapshot</h2>
-        </header>
-        <dl>
-          <div>
-            <dt>Major / Program</dt>
-            <dd><%= major %></dd>
+        <div class="space-y-8">
+          <div class="space-y-4">
+            <p class="c-h3">Personal</p>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div class="c-kv c-kv--compact">
+                <dt class="c-eyebrow">Full name</dt>
+                <dd class="c-value c-value--lg"><%= full_name %></dd>
+              </div>
+              <div class="c-kv c-kv--compact">
+                <dt class="c-eyebrow">UIN</dt>
+                <dd class="c-value c-value--lg"><%= uin %></dd>
+              </div>
+              <div class="c-kv c-kv--compact sm:col-span-2">
+                <dt class="c-eyebrow">Email</dt>
+                <dd class="c-value c-value--lg"><%= email %></dd>
+              </div>
+            </dl>
           </div>
-          <div>
-            <dt>Program track</dt>
-            <dd><%= track %></dd>
-          </div>
-          <div>
-            <dt>Advisor</dt>
-            <dd><%= advisor_name %></dd>
-          </div>
-        </dl>
-      </section>
 
-      <section class="student-card student-card--timeline">
-        <header>
-          <p class="eyebrow">Timeline</p>
-          <h2>Key milestones</h2>
-        </header>
-        <ul>
-          <li>
-            <span class="timeline-dot"></span>
-            <div>
-              <p>Profile created</p>
-              <small><%= @student.created_at&.strftime("%B %d, %Y") || "Awaiting" %></small>
-            </div>
-          </li>
-          <li>
-            <span class="timeline-dot"></span>
-            <div>
-              <p>Last updated</p>
-              <small><%= @student.updated_at&.strftime("%B %d, %Y") || "Recently" %></small>
-            </div>
-          </li>
-          <li>
-            <span class="timeline-dot timeline-dot--ghost"></span>
-            <div>
-              <p>Next survey assignment</p>
-              <small>Assigned automatically after advisor review</small>
-            </div>
-          </li>
-        </ul>
-      </section>
+          <div class="space-y-4 border-t border-slate-100 pt-6">
+            <p class="c-h3">Academic</p>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div class="c-kv c-kv--compact">
+                <dt class="c-eyebrow">Major / Program</dt>
+                <dd class="c-value c-value--lg"><%= major %></dd>
+              </div>
+              <div class="c-kv c-kv--compact">
+                <dt class="c-eyebrow">Program year</dt>
+                <dd class="c-value c-value--lg"><%= program_year %></dd>
+              </div>
+              <div class="c-kv c-kv--compact">
+                <dt class="c-eyebrow">Program track</dt>
+                <dd class="c-value c-value--lg"><%= track %></dd>
+              </div>
+              <div class="c-kv c-kv--compact sm:col-span-2">
+                <dt class="c-eyebrow">Advisor</dt>
+                <dd class="c-value c-value--lg"><%= advisor_name %></dd>
+              </div>
+            </dl>
+          </div>
+        </div>
 
-      <section class="student-card student-card--support">
-        <header>
-          <p class="eyebrow">Need adjustments?</p>
-          <h2>Keep your profile current</h2>
-        </header>
-        <p>Update your profile when you change tracks, switch advisors, or need to refresh your contact information. Accurate info keeps survey assignments on track.</p>
-        <div class="support-actions">
-          <%= link_to edit_student_profile_path, class: tailwind_button_classes(:primary) do %>
-            Edit profile
-          <% end %>
+        <div class="u-actions u-actions--split border-t border-slate-100 pt-6">
           <%= link_to student_dashboard_path, class: tailwind_button_classes(:secondary) do %>
             Back to dashboard
+          <% end %>
+
+          <%= link_to edit_student_profile_path, class: tailwind_button_classes(:primary) do %>
+            Edit profile
           <% end %>
         </div>
       </section>
     </div>
   </div>
-</main>
+</div>

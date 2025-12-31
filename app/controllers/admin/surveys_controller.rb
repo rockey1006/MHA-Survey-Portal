@@ -15,9 +15,6 @@ class Admin::SurveysController < Admin::BaseController
   def index
     @search_query = params[:q].to_s.strip
     @selected_track = params[:track].presence
-    @program_semesters = ProgramSemester.ordered
-    @current_program_semester = ProgramSemester.current
-    @new_program_semester = ProgramSemester.new
 
     allowed_sort_columns = {
       "title" => "surveys.title",
@@ -66,7 +63,7 @@ class Admin::SurveysController < Admin::BaseController
     @active_surveys = active_scope.preload(:track_assignments).load
 
     @track_filter_options = (
-      Survey::TRACK_OPTIONS +
+      Survey.track_options +
       SurveyTrackAssignment.distinct.pluck(:track)
     ).compact.map(&:to_s).reject(&:blank?).uniq.sort
     @unassigned_track_token = unassigned_track_token
@@ -126,10 +123,63 @@ class Admin::SurveysController < Admin::BaseController
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
+    before_target_levels = if Question.column_names.include?("program_target_level")
+                             @survey.questions.pluck(:id, :program_target_level).to_h
+    else
+                             {}
+    end
+
+    previous_due_date = @survey.due_date
+
     @survey.assign_attributes(survey_params)
     resolve_category_sections(@survey)
 
     if @survey.save
+      if before_target_levels.present?
+        after_target_levels = @survey.questions.reload.pluck(:id, :program_target_level).to_h
+
+        touched_question_ids = []
+
+        before_target_levels.each do |question_id, before_level|
+          after_level = after_target_levels[question_id]
+          next if before_level == after_level
+          next if before_level.blank? && after_level.blank?
+
+          touched_question_ids << question_id
+        end
+
+        before_target_levels.each do |question_id, before_level|
+          next if after_target_levels.key?(question_id)
+          next if before_level.blank?
+
+          touched_question_ids << question_id
+        end
+
+        after_target_levels.each do |question_id, after_level|
+          next if before_target_levels.key?(question_id)
+          next if after_level.blank?
+
+          touched_question_ids << question_id
+        end
+
+        touched_question_ids.uniq!
+
+        if touched_question_ids.present?
+          completed_count = SurveyAssignment.where(survey_id: @survey.id).where.not(completed_at: nil).count
+          if completed_count.positive?
+            flash[:warning] = "Target levels changed for #{touched_question_ids.size} question(s). #{completed_count} student(s) have already submitted this survey; reports and exports may reflect the updated targets."
+          end
+        end
+      end
+
+      if previous_due_date != @survey.due_date
+        SurveyAssignment
+          .where(survey_id: @survey.id, completed_at: nil)
+          .update_all(due_date: @survey.due_date, updated_at: Time.current)
+
+        ReconcileSurveyAssignmentsJob.perform_later(survey_id: @survey.id)
+      end
+
       persist_category_section_links
       @survey.assign_tracks!(tracks)
       description = change_summary(before_snapshot, survey_snapshot(@survey), tracks)
@@ -205,32 +255,12 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    scope = @survey.categories.includes(:section, :questions)
-    @category_groups = if Category.column_names.include?("position")
-                         scope.order(:position, :id)
-    else
-                         scope.order(:id)
-    end
-    @categories = @category_groups
-    @questions = @survey.questions.includes(:category).order(:question_order)
-    @category_names = @category_groups.map(&:name)
-    @track_list = @survey.track_list
-    @computed_required = {}
-
-    @category_groups.each do |category|
-      category.questions.each do |question|
-        required = question.is_required?
-
-        if !required && question.choice_question?
-          options = question.answer_option_values.map(&:strip).map(&:downcase)
-          is_flexibility_scale = (options == %w[1 2 3 4 5]) &&
-                                 question.question_text.to_s.downcase.include?("flexible")
-          required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
-        end
-
-        @computed_required[question.id] = required
-      end
-    end
+    preview_student = OpenStruct.new(student_id: 0, advisor: nil, user: nil)
+    @preview_survey_response = SurveyResponse.new(
+      student: preview_student,
+      survey: @survey,
+      answers_override: {}
+    )
     @survey.log_change!(admin: current_user, action: "preview", description: "Previewed from admin panel")
   end
 
@@ -286,6 +316,7 @@ class Admin::SurveysController < Admin::BaseController
       :title,
       :description,
       :semester,
+      :due_date,
       :is_active,
       categories_attributes: [
         :id,
@@ -325,7 +356,7 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def prepare_supporting_data
-    @available_tracks = Survey::TRACK_OPTIONS
+    @available_tracks = Survey.track_options
     @question_types = Question.question_types.keys
     @program_semester_options = ProgramSemester.ordered.pluck(:name)
   end
@@ -387,6 +418,7 @@ class Admin::SurveysController < Admin::BaseController
       title: survey.title,
       semester: survey.semester,
       description: survey.description,
+      due_date: survey.due_date&.to_date,
       is_active: survey.is_active,
       tracks: survey.track_list,
       categories: survey.categories.map do |category|
@@ -407,7 +439,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [String]
   def change_summary(before, after, tracks)
     diffs = []
-    %i[title semester description is_active].each do |attribute|
+    %i[title semester description due_date is_active].each do |attribute|
       before_value = before[attribute]
       after_value = after[attribute]
       next if before_value == after_value

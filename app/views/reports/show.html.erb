@@ -1,17 +1,29 @@
-<main class="reports-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-  <header class="reports-header space-y-3">
-    <h1 class="text-3xl font-semibold text-slate-900">Program Reports</h1>
-    <p class="max-w-3xl text-base text-slate-600">Monitor cohort progress, advisor alignment, and competency trends in real time.</p>
-  </header>
+<main class="main-content">
+  <div class="c-toolbar c-toolbar--spaced">
+    <div class="c-toolbar__row">
+      <% if current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
+        <%= link_to "← Back", admin_dashboard_path, class: tailwind_button_classes(:secondary), data: { turbo: false } %>
+      <% else %>
+        <%= link_to "← Back", advisor_dashboard_path, class: tailwind_button_classes(:secondary), data: { turbo: false } %>
+      <% end %>
+    </div>
+  </div>
 
-  <div
-    class="reports-app-root card card--flush"
-    data-controller="reports"
-    data-reports-pdf-url-value="<%= export_reports_pdf_path("dashboard") %>"
-    data-reports-excel-url-value="<%= export_reports_excel_path %>"
-  ></div>
+  <section class="c-card dashboard-section u-stack u-stack--xl">
+    <div class="section-header">
+      <h1 class="section-title">Program Reports</h1>
+      <p class="section-subtitle">Monitor cohort progress, advisor alignment, and competency trends in real time.</p>
+    </div>
 
-  <noscript>
-    <p class="reports-noscript rounded-md bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900">Analytics require JavaScript. Please enable it to view the interactive dashboard.</p>
-  </noscript>
+    <div
+      class="reports-app-root c-card c-card--flush"
+      data-controller="reports"
+      data-reports-pdf-url-value="<%= export_reports_pdf_path("dashboard") %>"
+      data-reports-excel-url-value="<%= export_reports_excel_path %>"
+    ></div>
+
+    <noscript>
+      <p class="reports-noscript rounded-md bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900">Analytics require JavaScript. Please enable it to view the interactive dashboard.</p>
+    </noscript>
+  </section>
 </main>

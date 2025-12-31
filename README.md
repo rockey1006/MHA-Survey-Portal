@@ -116,7 +116,11 @@ docker compose up --build
 
 - Repository mounts to `/csce431/501_health` in the container for live reloads.
 - Run tests with `docker compose run --rm web ruby run_tests.rb`.
-- `docker compose down --volumes` resets the DB.
+- Postgres data persists across restarts via the named Docker volume `db-data`.
+   - To guarantee a completely clean DB (no leftover/non-seeded records): `docker compose down --volumes --remove-orphans`.
+   - Then re-run: `docker compose run --rm -T web bin/rails db:prepare`.
+- Seeding behavior: in non-production, `db/seeds.rb` may generate demo/sample data unless disabled.
+   - To seed ONLY baseline data (no demo/sample generated responses/users): `docker compose run --rm -T -e SEED_DEMO_DATA=0 web bin/rails db:prepare`.
 - OneDrive tip: exclude `vendor/bundle` to prevent sync conflicts during builds.
 
 ## Usage

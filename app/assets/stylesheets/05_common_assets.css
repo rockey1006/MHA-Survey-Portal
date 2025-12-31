@@ -1,0 +1,1213 @@
+/*
+ * Common, reusable “design system” building blocks.
+ *
+ * Goal: give you a stable set of classes you can migrate pages onto gradually,
+ * while continuing to rely on the existing token variables in 00_tokens_utilities.css
+ * and the high-contrast overrides in 60_components_accessibility.css.
+ *
+ * Naming:
+ * - c-*  component classes (semantic building blocks)
+ * - u-*  small utilities (layout/spacing helpers)
+ */
+
+/* === Page layout ========================================================= */
+
+.c-container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.c-container--wide {
+  max-width: none;
+}
+
+.c-container--dashboard {
+  max-width: var(--dashboard-container-max-width);
+}
+
+.c-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+.c-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.c-page-title {
+  margin: 0;
+  color: var(--gray-800);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.c-page-title--brand {
+  color: var(--primary-color);
+}
+
+.c-page-subtitle {
+  margin: var(--spacing-sm) 0 0;
+  color: var(--gray-600);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.c-section-title {
+  margin: 0;
+  color: var(--gray-800);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* === Typography ========================================================== */
+
+.c-eyebrow {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+}
+
+.c-eyebrow--inverse {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.c-h1,
+.c-h2,
+.c-h3 {
+  margin: 0;
+  color: var(--gray-900);
+  line-height: var(--line-height-tight);
+}
+
+.c-h1 {
+  font-size: var(--font-size-6xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.c-h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.c-h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.c-h1--inverse,
+.c-h2--inverse {
+  color: var(--white);
+}
+
+.c-lede {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--gray-600);
+}
+
+.c-lede--inverse {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.c-value {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+}
+
+.c-value--lg { font-size: var(--font-size-lg); }
+.c-value--xl { font-size: var(--font-size-xl); }
+
+.c-value--inverse {
+  color: var(--white);
+}
+
+/* Small key/value container (label + value blocks)
+ * Use for dense info grids: <div class="c-kv"><dt ...><dd ...></div>
+ */
+.c-kv {
+  border: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.c-kv--compact {
+  padding: var(--spacing-md);
+}
+
+.c-kv--inverse {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Pills / chips (token-driven)
+ * For inline metadata like Track / Updated / etc.
+ */
+.c-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--gray-200);
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.c-pill--inverse {
+  border-color: rgba(255, 255, 255, 0.18);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+}
+
+.c-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex: none;
+  background-color: var(--gray-400);
+}
+
+.c-pill__dot--brand {
+  background-color: var(--primary-color);
+}
+
+.c-pill__dot--inverse {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Role badges (small caps chips in nav + admin tables) */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.student {
+  background-color: rgba(0, 102, 204, 0.1);
+  color: var(--info-color);
+}
+
+.role-badge.advisor {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.role-badge.admin {
+  background-color: rgba(255, 107, 53, 0.1);
+  color: var(--warning-color);
+}
+
+.role-badge.track {
+  background-color: rgba(108, 117, 125, 0.12);
+  color: var(--gray-700);
+}
+
+/* Dots / markers (token-driven)
+ * Use for timelines, status indicators, etc.
+ */
+.c-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.c-dot--brand {
+  background-color: var(--primary-color);
+  box-shadow: 0 0 0 4px var(--primary-hover);
+}
+
+.c-dot--muted {
+  background-color: var(--gray-200);
+}
+
+/* Avatar tile (for initials badges) */
+.c-avatar-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-lg);
+  border: 2px solid var(--gray-200);
+  background-color: var(--gray-50);
+
+  color: var(--gray-900);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+/* === Toggle switch ====================================================== */
+
+.c-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.c-toggle__input {
+  /* Visually hidden but accessible */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.c-toggle__track {
+  width: 52px;
+  height: 32px;
+  border-radius: 999px;
+  background-color: var(--gray-300);
+  border: 1px solid var(--gray-200);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.c-toggle__thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  transform: translateX(0);
+  transition: transform var(--transition-fast);
+}
+
+.c-toggle__input:checked + .c-toggle__track {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.c-toggle__input:checked + .c-toggle__track .c-toggle__thumb {
+  transform: translateX(20px);
+}
+
+.c-toggle__input:disabled + .c-toggle__track {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.c-toggle__input:focus-visible + .c-toggle__track {
+  outline: 3px solid rgba(255, 191, 0, 0.8);
+  outline-offset: 2px;
+}
+
+.c-toggle__label {
+  color: var(--gray-700);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.c-avatar-tile--inverse {
+  border-color: rgba(255, 255, 255, 0.55);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+}
+
+.c-avatar-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+/* === Surfaces (cards/panels) ============================================ */
+
+.c-surface {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+}
+
+.c-card {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-card--tight { padding: var(--spacing-xl); }
+.c-card--spacious { padding: var(--spacing-4xl); }
+.c-card--flush { padding: 0; }
+.c-card--muted { background-color: var(--gray-50); }
+.c-card--dashed { border-style: dashed; }
+
+/* Hover polish for non-clickable panels (no pointer cursor). */
+.c-card--hover {
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.c-card--hover:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+}
+
+.c-card--interactive {
+  cursor: pointer;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.c-card--interactive:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Optional "lift" hover (used by dashboard tiles/cards) */
+.c-card--lift {
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.c-card--lift:hover {
+  transform: translateY(-2px);
+}
+
+/* === Tiles ==============================================================
+ * Clickable dashboard tiles that wrap a single link.
+ * Use: <div class="c-card c-card--interactive c-card--lift c-tile"><a class="c-tile__link" ...>...</a></div>
+ * ======================================================================= */
+
+.c-tile {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.c-tile__link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.c-tile__link:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.c-tile__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  margin: 0 auto var(--spacing-md);
+  background-color: var(--primary-color);
+  color: var(--white);
+}
+
+.c-tile__icon--warning {
+  background-color: var(--warning-color);
+}
+
+.c-tile__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
+}
+
+.c-tile__title--warning {
+  color: var(--warning-color);
+}
+
+.c-tile__description {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  line-height: var(--line-height-relaxed);
+}
+
+/* === List items =========================================================
+ * Simple list row surface used in dashboards.
+ * ======================================================================= */
+
+.c-list-item {
+  padding: var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-md);
+  background-color: var(--white);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.c-list-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-list-item--empty {
+  color: var(--gray-600);
+}
+
+/* === States + small utilities ===========================================
+ * Keep these general so other features can reuse them.
+ * ======================================================================= */
+
+/* Unread / attention accent (usable on both .c-card and .c-list-item). */
+.is-unread {
+  border-color: var(--primary-color);
+  background-color: var(--primary-hover);
+}
+
+/* Simple scroll utility: opt-in max height + scroll (used on dashboards). */
+.u-max-h-70vh {
+  max-height: 70vh;
+}
+
+.u-scroll-y {
+  overflow-y: auto;
+}
+
+/* Media / row layout helper: icon + content (used for list rows). */
+.c-media {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.c-media__content {
+  flex: 1;
+}
+
+.c-media__title-link {
+  color: var(--info-color);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.c-media__title-link:hover {
+  color: var(--info-hover);
+  text-decoration: underline;
+}
+
+/* Icon circle helper for inline SVG chips (index/show, etc). */
+.c-icon-circle {
+  background-color: var(--gray-100);
+  color: var(--gray-500);
+}
+
+.is-unread .c-icon-circle {
+  background-color: var(--primary-active);
+  color: var(--primary-color);
+}
+
+/* When a list-item is used as a media row, opt-in with .c-media. */
+.c-list-item.c-media {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+/* === Stats / summary tiles ==============================================
+ * Reusable “metrics grid” used across admin pages.
+ * Mirrors the visual hierarchy used in reports summary cards.
+ * ======================================================================= */
+
+.c-stats-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 640px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .c-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.c-stat {
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+}
+
+.c-stat--info {
+  border-color: rgba(0, 102, 204, 0.25);
+  background-color: rgba(0, 102, 204, 0.08);
+}
+
+.c-stat--success {
+  border-color: rgba(40, 167, 69, 0.25);
+  background-color: rgba(40, 167, 69, 0.08);
+}
+
+.c-stat--warning {
+  border-color: rgba(255, 107, 53, 0.25);
+  background-color: rgba(255, 107, 53, 0.08);
+}
+
+.c-stat--muted {
+  border-color: var(--gray-200);
+  background-color: rgba(15, 23, 42, 0.03);
+}
+
+.c-stat__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.c-stat--info .c-stat__label { color: var(--info-color); }
+.c-stat--success .c-stat__label { color: var(--success-color); }
+.c-stat--warning .c-stat__label { color: var(--warning-color); }
+.c-stat--muted .c-stat__label { color: var(--gray-600); }
+
+.c-stat__value {
+  margin-top: var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-900);
+  line-height: var(--line-height-tight);
+  font-size: var(--font-size-3xl);
+}
+
+.c-stat__value--lg { font-size: var(--font-size-4xl); }
+.c-stat__value--md { font-size: var(--font-size-2xl); }
+
+.c-stat__subtext {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+/* === Toolbars (action rows) ============================================= */
+
+.c-toolbar {
+  width: 100%;
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.c-toolbar--spaced {
+  margin-bottom: var(--spacing-2xl);
+}
+
+/* === Buttons / links =====================================================
+ *
+ * NOTE: Core .btn styles and variants already live in 60_components_accessibility.css.
+ * For now, use those directly in markup:
+ *   class="btn btn-primary" | "btn btn-secondary" | "btn btn-danger" | "btn btn-ghost" | "btn btn-subtle"
+ */
+
+/* === Popovers / menus ==================================================== */
+
+/* Anchor for absolutely-positioned popovers (dropdown panels). */
+.c-popover-anchor {
+  position: relative;
+}
+
+/* Base popover surface (dropdown panel). */
+.c-popover {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.c-popover--menu {
+  width: 320px;
+  z-index: 40;
+}
+
+/* Hover-open dropdown utility (profile-like behavior).
+   Opt-in: add .u-hover-dropdown to the container and .u-hover-dropdown__panel to the panel.
+   Uses !important so it can override inline display toggles (e.g., translation panel). */
+.u-hover-dropdown > .u-hover-dropdown__panel {
+  display: none !important;
+}
+
+.u-hover-dropdown:hover > .u-hover-dropdown__panel,
+.u-hover-dropdown:focus-within > .u-hover-dropdown__panel {
+  display: block !important;
+}
+
+/* <details> may keep its content non-rendered unless [open] is set.
+   If JS sets [open] for hover/focus, ensure the panel becomes visible. */
+details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
+  display: block !important;
+}
+
+/* Position helpers for popovers */
+.u-popover-down-right {
+  position: absolute;
+  top: calc(100% + var(--spacing-sm));
+  right: 0;
+}
+
+/* Compact icon-only button (used in header toolbars). */
+.c-icon-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.c-icon-button--frosted {
+  background-color: rgba(255, 255, 255, 0.6);
+  color: var(--gray-700);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-icon-button--frosted:hover {
+  background-color: var(--white);
+}
+
+/* Navbar icon button variant (match translate toggle layout). */
+.app-header .c-icon-button--nav {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.app-header .c-icon-button--nav:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.c-icon-button:focus-visible {
+  outline: 3px solid rgba(255, 191, 0, 0.8);
+  outline-offset: 3px;
+}
+
+.c-icon-button::-webkit-details-marker {
+  display: none;
+}
+
+.c-icon-button::marker {
+  content: "";
+}
+
+.c-icon-button__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Navbar icon sizing for icon-only buttons.
+   Scope to .app-header so we don't unintentionally resize icons elsewhere. */
+.app-header .c-icon-button__icon > img,
+.app-header .c-icon-button__icon > svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* SVG icons should inherit the button's color in all modes (including high-contrast). */
+.app-header .c-icon-button__icon > svg {
+  fill: currentColor;
+}
+
+/* Notification PNG is a colored glyph; render it like the translate icon on the maroon header. */
+.app-header .notification-icon-img {
+  filter: brightness(0) invert(1);
+}
+
+/* Notification glyph sizing when used outside the header (e.g., dashboards). */
+.notification-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Small count badge (unread notifications). */
+.c-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.c-badge--count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background-color: var(--primary-color);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+/* Menu list (used inside popovers). */
+.c-menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-menu__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-700);
+}
+
+.c-menu__item-wrap + .c-menu__item-wrap {
+  border-top: 1px solid var(--gray-100);
+}
+
+.c-menu__item {
+  display: block;
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-decoration: none;
+  color: var(--gray-700);
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+.c-menu__item:hover {
+  background-color: var(--gray-50);
+}
+
+.c-menu__item:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: -3px;
+}
+
+.c-menu__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.c-menu__item-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-800);
+}
+
+.c-menu__item:hover .c-menu__item-title {
+  color: var(--primary-color);
+}
+
+.c-menu__meta {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.c-menu__message {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--gray-600);
+  line-height: var(--line-height-relaxed);
+}
+
+.c-menu__footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.c-menu__empty {
+  margin: 0;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+}
+
+/* === Icons ============================================================== */
+
+.c-icon--survey {
+  width: 40px;
+  height: 40px;
+  background: var(--gray-50) url('survey-icon.png') no-repeat center;
+  background-size: 18px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+
+/* === Forms =============================================================== */
+
+.c-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.c-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-700);
+}
+
+.c-help {
+  font-size: var(--font-size-xs);
+  color: var(--gray-500);
+}
+
+.c-input {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  background-color: var(--white);
+  color: var(--gray-800);
+}
+
+.c-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-hover);
+}
+
+.c-input[aria-invalid="true"] {
+  border-color: var(--error-color);
+}
+
+.c-input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px var(--error-light);
+}
+
+/* Generic select styling used across dashboards.
+ * Keep this in common assets so pages can migrate off page-specific CSS.
+ */
+.c-select-wrapper {
+  position: relative;
+}
+
+.c-select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  background-color: var(--white);
+  cursor: pointer;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  appearance: menulist;
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+}
+
+.c-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-hover);
+}
+
+.c-select option {
+  background-color: var(--white);
+  color: var(--text-color);
+  padding: var(--spacing-sm);
+}
+
+/* Common "pending changes" indicator used across admin dashboards */
+.c-change-indicator {
+  font-size: var(--font-size-xs);
+  color: var(--gray-400);
+  transition: color var(--transition-normal);
+}
+
+.c-change-indicator.changed {
+  color: #ffc107;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Form action rows
+ * Use with: class="c-form-actions u-actions"
+ * (u-actions supplies the base flex layout.)
+ */
+
+@media (max-width: 600px) {
+  .c-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .c-h1 {
+    font-size: var(--font-size-5xl);
+  }
+}
+
+/* === Tables ============================================================= */
+
+.c-table-wrapper { width: 100%; overflow-x: auto; }
+
+.c-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--white);
+}
+
+.c-table--sm {
+  font-size: var(--font-size-sm);
+}
+
+.c-table--divide tbody td {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-table--divide tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.c-table th,
+.c-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  vertical-align: top;
+}
+
+.c-table thead th {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray-700);
+  background-color: var(--gray-100);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-table tbody tr:hover td {
+  background-color: var(--gray-50);
+}
+
+/* Table helpers
+ * Use these for generic “management” tables rendered with .c-table.
+ */
+
+.c-table-row {
+  transition: background-color var(--transition-normal);
+}
+
+.c-table-row--changed {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-left: 4px solid #ffc107;
+}
+
+.c-table-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--gray-300);
+  border: 2px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+  font-size: var(--font-size-lg);
+  overflow: hidden;
+}
+
+/* === Version navigation ================================================== */
+
+.c-version-nav {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.c-version-nav__label {
+  white-space: nowrap;
+}
+
+.c-version-nav__arrow {
+  min-width: 40px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
+/* === Utilities =========================================================== */
+
+.u-stack { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.u-stack--sm { gap: var(--spacing-sm); }
+.u-stack--md { gap: var(--spacing-md); }
+.u-stack--lg { gap: var(--spacing-xl); }
+.u-stack--xl { gap: var(--spacing-2xl); }
+
+.u-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-md); align-items: center; justify-content: flex-end; }
+.u-actions--start { justify-content: flex-start; }
+.u-actions--split { justify-content: space-between; }
+
+.u-text-primary { color: var(--primary-color); }
+
+.u-text-center { text-align: center; }
+
+.u-text-right { text-align: right; }
+
+/* Responsive grid utility
+ * Default min column width: 220px
+ * Override per-instance with inline style: style="--u-grid-min: 240px"
+ */
+.u-grid {
+  display: grid;
+  gap: var(--spacing-2xl);
+  grid-template-columns: repeat(auto-fit, minmax(var(--u-grid-min, 220px), 1fr));
+}
+
+/* === Heroes ============================================================== */
+
+.c-hero {
+  border-radius: 32px;
+  color: var(--white);
+  padding: var(--spacing-4xl);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.c-hero--compact {
+  padding: var(--spacing-3xl);
+}
+
+.c-hero--maroon {
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.15), transparent 45%),
+    linear-gradient(135deg, #350306, #6f0e19 45%, #9b1c2a);
+  box-shadow: 0 20px 60px rgba(53, 3, 6, 0.3);
+}
+
+@media (max-width: 640px) {
+  .c-hero {
+    padding: var(--spacing-3xl);
+  }
+}
+
+/* === Timelines =========================================================== */
+
+.c-timeline {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.c-timeline__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+}
+
+/* === High contrast support ===============================================
+ * Most colors flow through variables which are already strengthened in
+ * body.high-contrast (see 60_components_accessibility.css).
+ */
+
+body.high-contrast .c-surface,
+body.high-contrast .c-card,
+body.high-contrast .c-input,
+body.high-contrast .c-table {
+  border-color: #000000;
+}
+
+body.high-contrast .c-page-title,
+body.high-contrast .c-section-title,
+body.high-contrast .c-label {
+  color: #000000;
+}
+
+/* Notifications: strengthen icon in high contrast. */
+body.high-contrast .app-header .c-icon-button__icon > img {
+  filter: brightness(0) invert(1);
+}
+
+/* Icon primitives: ensure icon chips stay readable. */
+body.high-contrast .c-icon--survey {
+  border-color: #000000;
+}
+
+body.high-contrast .c-icon-circle {
+  background-color: var(--white);
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+body.high-contrast .is-unread .c-icon-circle {
+  background-color: #000000;
+  color: var(--white);
+}

@@ -25,14 +25,19 @@
 
   <div>
     <%= form.label :average_score, "Proficiency", style: "display: block" %>
-    <%= form.select :average_score,
-                    options_for_select(advisor_proficiency_option_pairs_for(nil), normalize_proficiency_value(feedback.average_score)),
-                    { include_blank: true } %>
+    <%= render "shared/proficiency_select",
+               id: "#{form.object_name}_average_score",
+               name: "#{form.object_name}[average_score]",
+               selected: normalize_proficiency_value(feedback.average_score) %>
   </div>
 
-  <div>
-    <%= form.label :comments, style: "display: block" %>
-    <%= form.text_area :comments, rows: 3 %>
+  <div data-controller="character-counter">
+    <%= form.label :comments, "Feedback (optional)", style: "display: block" %>
+    <%= form.text_area :comments,
+                       rows: 3,
+                       maxlength: Feedback::COMMENTS_MAX_LENGTH,
+                       data: { "character-counter-target": "input", action: "input->character-counter#input" } %>
+    <div style="margin-top: 4px; font-size: 12px; color: #64748b" data-character-counter-target="counter"><%= feedback.comments.to_s.length %>/<%= Feedback::COMMENTS_MAX_LENGTH %> characters</div>
   </div>
 
   <div>

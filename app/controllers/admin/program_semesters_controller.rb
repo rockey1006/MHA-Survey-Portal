@@ -2,7 +2,7 @@
 # Allows admins to add upcoming terms, delete obsolete ones, and mark which
 # semester should be considered "current" throughout the app.
 class Admin::ProgramSemestersController < Admin::BaseController
-  before_action :set_program_semester, only: %i[destroy make_current]
+  before_action :set_program_semester, only: %i[update destroy make_current]
 
   # POST /admin/program_semesters
   def create
@@ -35,6 +35,15 @@ class Admin::ProgramSemestersController < Admin::BaseController
     end
   end
 
+  # PATCH /admin/program_semesters/:id
+  def update
+    if @program_semester.update(program_semester_params)
+      redirect_back_to_manager notice: "Semester '#{@program_semester.name}' updated."
+    else
+      redirect_back_to_manager alert: @program_semester.errors.full_messages.to_sentence
+    end
+  end
+
   private
 
   def program_semester_params
@@ -46,6 +55,6 @@ class Admin::ProgramSemestersController < Admin::BaseController
   end
 
   def redirect_back_to_manager(**flash)
-    redirect_to admin_surveys_path(anchor: "semester-manager"), **flash
+    redirect_back fallback_location: admin_program_setup_path(tab: "semesters"), **flash
   end
 end

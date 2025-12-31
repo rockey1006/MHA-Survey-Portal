@@ -46,7 +46,20 @@ Rails.application.routes.draw do
   patch "update_roles", to: "dashboards#update_roles", as: :update_roles
   get "debug_users", to: "dashboards#debug_users", as: :debug_users
 
+  # Admin-only: start impersonating a student; while impersonating, allow exit.
+  resource :impersonation, only: %i[new create destroy]
+
+  # Admin-only: start impersonating an advisor; while impersonating, allow exit.
+  resource :advisor_impersonation, only: %i[new create destroy]
+
   namespace :admin do
+    resource :maintenance, only: %i[show update]
+    get "program_setup", to: "program_setups#show", as: :program_setup
+    get "target_levels", to: "target_levels#index", as: :target_levels
+    patch "target_levels", to: "target_levels#update"
+    resources :program_tracks, only: %i[create update destroy]
+    resources :majors, only: %i[create update destroy]
+    resources :program_years, only: %i[create update destroy]
     resources :surveys do
       member do
         get :preview
@@ -56,7 +69,7 @@ Rails.application.routes.draw do
     end
     resources :questions
     resources :survey_change_logs, only: :index
-    resources :program_semesters, only: %i[create destroy] do
+    resources :program_semesters, only: %i[create update destroy] do
       member do
         patch :make_current
       end
@@ -96,6 +109,19 @@ Rails.application.routes.draw do
     member do
       get :download
       get :composite_report
+      get :edit
+      patch :update
+      patch :confidential_advisor_note, to: "confidential_advisor_notes#update"
+      delete :destroy
+    end
+  end
+
+  # Survey assignment hub shared by advisors and admins.
+  namespace :assignments do
+    resources :surveys, only: %i[index show] do
+      post   :assign,     on: :member
+      post   :assign_all, on: :member
+      delete :unassign,   on: :member
     end
   end
 
@@ -103,11 +129,9 @@ Rails.application.routes.draw do
   get "evidence/check_access", to: "evidence#check_access", as: :evidence_check_access, defaults: { format: :json }
 
   namespace :advisors do
-    resources :surveys, only: %i[index show] do
-      post   :assign,     on: :member
-      post   :assign_all, on: :member
-      delete :unassign,   on: :member
-    end
+    # Kept for backwards-compatible bookmarks.
+    get "surveys", to: redirect("/assignments/surveys")
+    get "surveys/:id", to: redirect("/assignments/surveys/%{id}")
     resources :students, only: %i[show update]
   end
 
@@ -115,7 +139,7 @@ Rails.application.routes.draw do
     get "reports/filters", to: "reports#filters"
     get "reports/competency-summary", to: "reports#competency_summary"
     get "reports/competency-detail", to: "reports#competency_detail"
-    get "reports/course-summary", to: "reports#course_summary"
+    get "reports/track-summary", to: "reports#track_summary"
     get "reports/benchmark", to: "reports#benchmark"
   end
 

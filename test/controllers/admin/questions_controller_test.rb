@@ -48,6 +48,24 @@ class Admin::QuestionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "create accepts legacy category_ids when category_id missing" do
+    params = {
+      question: {
+        question_text: "New prompt via category_ids",
+        question_type: "short_answer",
+        question_order: Question.maximum(:question_order).to_i + 1,
+        category_ids: [ "", @category.id.to_s ]
+      }
+    }
+
+    assert_difference "Question.count", 1 do
+      post admin_questions_path, params: params
+    end
+
+    created = Question.order(:id).last
+    assert_equal @category.id, created.category_id
+  end
+
   test "update saves changes" do
     patch admin_question_path(@question), params: {
       question: {
@@ -61,6 +79,20 @@ class Admin::QuestionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_questions_path
   assert_equal "Question updated successfully.", flash[:notice]
     assert_equal "Updated text", @question.reload.question_text
+  end
+
+  test "update renders edit on invalid data" do
+    patch admin_question_path(@question), params: {
+      question: {
+        question_text: "",
+        question_type: @question.question_type,
+        question_order: @question.question_order,
+        category_id: @category.id
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_select "form"
   end
 
   test "destroy removes question" do

@@ -1,0 +1,32 @@
+<main class="main-content">
+  <div class="mx-auto w-full max-w-3xl">
+    <section class="c-card dashboard-section">
+      <div class="section-header text-center">
+        <h1 class="section-title">View as advisor</h1>
+        <p class="section-subtitle">Read-only preview of the advisor experience.</p>
+      </div>
+
+      <% if @advisors.present? %>
+        <div class="mx-auto w-full max-w-xl">
+          <%= form_with scope: :advisor_impersonation, url: advisor_impersonation_path, method: :post, class: "space-y-4" do %>
+            <%= render SearchableSelectComponent.new(
+              id: "advisor-impersonation-user-id",
+              name: "advisor_impersonation[user_id]",
+              label: "Advisor",
+              placeholder: "Search by name or email...",
+              options: @advisors.map { |u| { value: u.id, label: u.full_name, description: u.email } }
+            ) %>
+
+            <div class="pt-2">
+              <%= submit_tag "View as", class: tailwind_button_classes(:primary) %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          <p class="text-sm text-slate-600">No advisors found.</p>
+        </div>
+      <% end %>
+    </section>
+  </div>
+</main>

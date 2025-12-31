@@ -1,14 +1,28 @@
 <!-- Student Navigation Header -->
 <header class="app-header" role="banner">
+  <% if impersonating? %>
+    <div class="flash flash__warning impersonation-banner" role="status">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          Viewing as <strong><%= current_user&.display_name %></strong> (read-only)
+          <% if impersonator_user.present? %>
+            <span class="opacity-80">— signed in as <%= impersonator_user.display_name %></span>
+          <% end %>
+        </div>
+        <%= link_to "Exit view",
+                    impersonation_path,
+                    method: :delete,
+                    class: "underline whitespace-nowrap" %>
+      </div>
+    </div>
+  <% end %>
+
   <div class="header-content">
     <div class="header-left">
-      <div class="logo" aria-label="Texas A&amp;M University">
+      <%= link_to student_dashboard_path, class: "logo", aria: { label: "Texas A&M University home" } do %>
         <div class="logo-icon" aria-hidden="true"></div>
-        <div class="logo-text">
-          TEXAS A&M<br>
-          UNIVERSITY
-        </div>
-      </div>
+        <span class="sr-only">Texas A&amp;M University</span>
+      <% end %>
 
       <nav class="nav-links" aria-label="Primary">
         <%= link_to "Home",
@@ -22,29 +36,25 @@
     </div>
 
     <div class="user-section">
-      <!-- High contrast toggle -->
-      <button
-        type="button"
-        class="<%= tailwind_button_classes(:secondary) %>"
-        data-high-contrast-toggle="true"
-        aria-pressed="false"
-        aria-label="Toggle high contrast mode">
-        High Contrast: Off
-      </button>
+      <%= render ToggleSwitchComponent.new(
+        id: "high-contrast-toggle",
+        checked: false,
+        label: "High Contrast",
+        data: { high_contrast_toggle: true }
+      ) %>
 
-      <!-- Text-to-speech toggle -->
-      <button
-        type="button"
-        class="<%= tailwind_button_classes(:secondary) %>"
-        data-tts-toggle="true"
-        aria-pressed="false"
-        aria-label="Read this page aloud">
-        Read Page Aloud
-      </button>
+      <%= render ToggleSwitchComponent.new(
+        id: "tts-toggle",
+        checked: false,
+        label: "Read Aloud",
+        data: { tts_toggle: true }
+      ) %>
+
+      <%= render "shared/translate_toggle" %>
 
       <span class="role-badge student">STUDENT</span>
 
-      <div class="notification-area">
+      <div>
         <%= render "shared/notification_menu" %>
       </div>
 

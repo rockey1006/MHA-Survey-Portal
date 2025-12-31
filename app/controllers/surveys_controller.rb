@@ -37,6 +37,7 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def show
+    @return_to = safe_return_to_param
   Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
       scope = @survey.categories.includes(:section, :questions)
       @category_groups = if Category.column_names.include?("position")
@@ -48,6 +49,18 @@ class SurveysController < ApplicationController
     @other_answers = {}
     @computed_required = {}
     student = current_student
+
+    if student
+      @survey_assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+
+      if @survey_assignment&.completed_at?
+        due_date = @survey_assignment.due_date
+        can_revise = due_date.blank? || due_date >= Time.current
+        if can_revise
+          flash.now[:notice] ||= "You’re editing a submitted survey. Previous submissions are still visible in your submission history."
+        end
+      end
+    end
 
     Rails.logger.info "[SHOW DEBUG] Student ID: #{student&.student_id}"
     Rails.logger.info "[SHOW DEBUG] Survey ID: #{@survey.id}"
@@ -65,12 +78,9 @@ class SurveysController < ApplicationController
         if ans.is_a?(Hash)
           if response.question.question_type == "evidence" && ans["link"].present?
             @existing_answers[response.question_id.to_s] = ans["link"]
-          elsif response.question.choice_question? && ans["answer"].present?
+          elsif %w[multiple_choice dropdown].include?(response.question.question_type) && ans["answer"].present?
             @existing_answers[response.question_id.to_s] = ans["answer"]
-            option_pairs = response.question.answer_option_pairs
-            other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
-            other_value = other_pair ? other_pair[1].to_s : "Other"
-            if ans["answer"].to_s == other_value || ans["answer"].to_s == "Other"
+            if ans["text"].present? || response.question.answer_option_requires_text?(ans["answer"].to_s)
               @other_answers[response.question_id.to_s] = ans["text"].to_s
             end
           else
@@ -94,7 +104,7 @@ class SurveysController < ApplicationController
       category.questions.each do |question|
         required = question.is_required?
 
-        if !required && question.choice_question?
+        if !required && %w[multiple_choice dropdown].include?(question.question_type)
           option_values = question.answer_option_values
           options = option_values.map(&:strip).map(&:downcase)
           # Exception: flexibility scale questions (1-5) should remain optional
@@ -122,6 +132,13 @@ class SurveysController < ApplicationController
 
     unless student
       redirect_to student_dashboard_path, alert: "Student record not found for current user."
+      return
+    end
+
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    if assignment&.completed_at? && assignment.due_date.present? && assignment.due_date < Time.current
+      survey_response = SurveyResponse.build(student: student, survey: @survey)
+      redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed."
       return
     end
 
@@ -170,22 +187,14 @@ class SurveysController < ApplicationController
     questions_map.each_value do |question|
       submitted_value = answers[question.id.to_s]
 
-      if question.question_type == "multiple_choice"
-        option_pairs = question.answer_option_pairs
-        other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
-        other_value = other_pair ? other_pair[1].to_s : "Other"
-
-        if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
+      if question.choice_question?
+        selected_value = submitted_value.to_s
+        if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
           submitted_value = {
-            "answer" => other_value,
+            "answer" => selected_value,
             "text" => other_answers[question.id.to_s].to_s
           }
         end
-      elsif submitted_value.to_s == "Other"
-        submitted_value = {
-          "answer" => "Other",
-          "text" => other_answers[question.id.to_s].to_s
-        }
       end
 
       # Apply the same required logic as in show action
@@ -275,16 +284,11 @@ class SurveysController < ApplicationController
           submitted_value = answers[question_id.to_s]
 
           question = questions_map[question_id]
-          if question&.question_type == "multiple_choice"
-            option_pairs = question.answer_option_pairs
-            other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
-            other_value = other_pair ? other_pair[1].to_s : "Other"
-
-            if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
-              submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+          if question&.choice_question?
+            selected_value = submitted_value.to_s
+            if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
+              submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
             end
-          elsif submitted_value.to_s == "Other"
-            submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
           end
 
           record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
@@ -306,16 +310,11 @@ class SurveysController < ApplicationController
         submitted_value = answers[question_id.to_s]
 
         question = questions_map[question_id]
-        if question&.question_type == "multiple_choice"
-          option_pairs = question.answer_option_pairs
-          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
-          other_value = other_pair ? other_pair[1].to_s : "Other"
-
-          if submitted_value.to_s == other_value || submitted_value.to_s == "Other"
-            submitted_value = { "answer" => other_value, "text" => other_answers[question_id.to_s].to_s }
+        if question&.choice_question?
+          selected_value = submitted_value.to_s
+          if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
+            submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
           end
-        elsif submitted_value.to_s == "Other"
-          submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
         end
 
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
@@ -331,19 +330,60 @@ class SurveysController < ApplicationController
     end
 
     begin
-      Rails.logger.info "[SUBMIT] Creating/updating assignment for survey #{@survey.id}, student #{student.student_id}"
-      assignment = SurveyAssignment.find_or_initialize_by(survey_id: @survey.id, student_id: student.student_id)
-      assignment.advisor_id ||= student.advisor_id
-      assignment.assigned_at ||= Time.current
-      assignment.save! if assignment.new_record? || assignment.changed?
+      assignment = nil
+      was_completed = nil
 
-      Rails.logger.info "[SUBMIT] Marking assignment #{assignment.id} as completed"
-      assignment.mark_completed!
+      ActiveRecord::Base.transaction do
+        Rails.logger.info "[SUBMIT] Creating/updating assignment for survey #{@survey.id}, student #{student.student_id}"
+
+        assignment = SurveyAssignment.lock.find_by(survey_id: @survey.id, student_id: student.student_id)
+        unless assignment
+          begin
+            assignment = SurveyAssignment.create!(
+              survey_id: @survey.id,
+              student_id: student.student_id,
+              advisor_id: student.advisor_id,
+              assigned_at: Time.current
+            )
+          rescue ActiveRecord::RecordNotUnique
+            assignment = SurveyAssignment.lock.find_by!(survey_id: @survey.id, student_id: student.student_id)
+          end
+        end
+
+        assignment.advisor_id ||= student.advisor_id
+        assignment.assigned_at ||= Time.current
+
+        if assignment.respond_to?(:due_date) && @survey.respond_to?(:due_date) && @survey.due_date.present?
+          assignment.due_date ||= @survey.due_date
+        end
+        assignment.save! if assignment.changed?
+
+        was_completed = assignment.completed_at?
+
+        Rails.logger.info "[SUBMIT] Marking assignment #{assignment.id} as completed"
+        assignment.mark_completed!
+
+        begin
+          SurveyResponseVersion.capture_current!(
+            student: student,
+            survey: @survey,
+            assignment: assignment,
+            actor_user: current_user,
+            event: (was_completed ? :revised : :submitted),
+            skip_if_unchanged: true
+          )
+        rescue StandardError => version_error
+          Rails.logger.warn "[SUBMIT] Failed to capture survey response version: #{version_error.class}: #{version_error.message}"
+        end
+      end
 
       Rails.logger.info "[SUBMIT] Enqueueing notification job"
       begin
-        SurveyNotificationJob.perform_later(event: :completed, survey_assignment_id: assignment.id)
         SurveyNotificationJob.perform_later(event: :response_submitted, survey_assignment_id: assignment.id)
+
+        if was_completed && Feedback.exists?(student_id: student.student_id, survey_id: @survey.id)
+          SurveyNotificationJob.perform_later(event: :student_revised_after_feedback, survey_assignment_id: assignment.id)
+        end
       rescue StandardError => job_error
         # Don't fail submission if job enqueue fails
         Rails.logger.warn "[SUBMIT] Failed to enqueue notification job: #{job_error.class}: #{job_error.message}"
@@ -388,6 +428,17 @@ class SurveysController < ApplicationController
       return
     end
 
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    if assignment&.completed_at?
+      if assignment.due_date.present? && assignment.due_date < Time.current
+        survey_response = SurveyResponse.build(student: student, survey: @survey)
+        redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed."
+      else
+        redirect_to survey_path(@survey), alert: "This survey has already been submitted. Use Submit Survey to update your answers."
+      end
+      return
+    end
+
     raw_answers = params[:answers]
     answers = case raw_answers
     when ActionController::Parameters
@@ -410,7 +461,8 @@ class SurveysController < ApplicationController
     end
     other_answers = other_answers.stringify_keys
 
-    allowed_question_ids = @survey.questions.pluck(:id)
+    questions_map = @survey.questions.index_by(&:id)
+    allowed_question_ids = questions_map.keys
 
     Rails.logger.info "[SAVE_PROGRESS DEBUG] Student ID: #{student.student_id}"
     Rails.logger.info "[SAVE_PROGRESS DEBUG] Answers received: #{answers.inspect}"
@@ -420,15 +472,19 @@ class SurveysController < ApplicationController
     ActiveRecord::Base.transaction do
       allowed_question_ids.each do |question_id|
         submitted_value = answers[question_id.to_s]
-        if submitted_value.to_s == "Other"
-          submitted_value = { "answer" => "Other", "text" => other_answers[question_id.to_s].to_s }
+        question = questions_map[question_id]
+
+        if question&.choice_question?
+          selected_value = submitted_value.to_s
+          if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
+            submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
+          end
         end
         Rails.logger.info "[SAVE_PROGRESS DEBUG] Question #{question_id}: value=#{submitted_value.inspect}"
 
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
-        question = @survey.questions.find { |q| q.id == question_id }
         if submitted_value.present?
           record.answer = submitted_value
           # Skip validations when saving progress; validations happen on submit
@@ -505,8 +561,13 @@ class SurveysController < ApplicationController
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
     return unless assignment&.completed_at?
 
+    # Allow unlimited revisions if no due date exists, or when the due date
+    # hasn't passed yet.
+    return if assignment.due_date.blank?
+    return if assignment.due_date >= Time.current
+
     survey_response = SurveyResponse.build(student: student, survey: @survey)
-    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and can only be viewed." and return
+    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed." and return
   end
 
   # Checks if a Google-hosted link (Drive/Docs/Sites) is publicly accessible.

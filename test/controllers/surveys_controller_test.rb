@@ -7,6 +7,35 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     @survey = surveys(:fall_2025)
   end
 
+  test "show renders multiple choice and dropdown options" do
+    sign_in @student_user
+
+    category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
+
+    mc = category.questions.create!(
+      question_text: "Test MC",
+      question_order: 9991,
+      question_type: "multiple_choice",
+      is_required: true,
+      answer_options: %w[Yes No].to_json
+    )
+
+    dd = category.questions.create!(
+      question_text: "Test DD",
+      question_order: 9992,
+      question_type: "dropdown",
+      is_required: true,
+      answer_options: [ [ "Beginner (1)", "1" ], [ "Mastery (5)", "5" ] ].to_json
+    )
+
+    get survey_path(@survey)
+    assert_response :success
+
+    assert_select "input[type=radio][name=?]", "answers[#{mc.id}]", minimum: 2
+    assert_select "select[name=?] option", "answers[#{dd.id}]", text: "Beginner (1)"
+    assert_select "select[name=?] option", "answers[#{dd.id}]", text: "Mastery (5)"
+  end
+
   test "submit redirects when student missing" do
     # no signed in user -> Devise redirects to sign_in
     post submit_survey_path(@survey), params: { answers: {} }
@@ -69,7 +98,9 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     @survey.questions.limit(2).each do |q|
       answers[q.id.to_s] = "Sample answer #{q.id}"
     end
-    post submit_survey_path(@survey), params: { answers: answers }
+    assert_difference "SurveyResponseVersion.count", 1 do
+      post submit_survey_path(@survey), params: { answers: answers }
+    end
     # SurveyResponse.build returns a PORO; ensure redirect goes to a survey_response id path
     assert response.redirect?
     location = response.location || headers["Location"]
@@ -82,7 +113,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show redirects students with completed surveys to survey response" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
 
     get survey_path(@survey)
@@ -95,7 +126,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "save_progress redirects when survey already submitted" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
 
     post save_progress_survey_path(@survey), params: { answers: { "1" => "data" } }
@@ -103,15 +134,47 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to survey_response_path(survey_response)
   end
 
+  test "save_progress is blocked after submission even before due date" do
+    sign_in @student_user
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(completed_at: Time.current, due_date: 2.days.from_now)
+
+    post save_progress_survey_path(@survey), params: { answers: { "1" => "data" } }
+
+    assert_redirected_to survey_path(@survey)
+    follow_redirect!
+    assert_match /already been submitted/i, response.body
+  end
+
   test "submit redirects when survey already submitted" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
 
     post submit_survey_path(@survey), params: { answers: {} }
 
     assert_redirected_to survey_response_path(survey_response)
+  end
+
+  test "show allows revisions before due date" do
+    sign_in @student_user
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(completed_at: Time.current, due_date: 2.days.from_now)
+
+    get survey_path(@survey)
+
+    assert_response :success
+  end
+
+  test "show allows revisions when due date is not set" do
+    sign_in @student_user
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(completed_at: Time.current, due_date: nil)
+
+    get survey_path(@survey)
+
+    assert_response :success
   end
 
   test "index shows only surveys assigned to the student" do
@@ -171,6 +234,36 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, Time.zone.now.strftime("%B %Y")
   end
 
+  test "show displays effective competency target level from CompetencyTargetLevel" do
+    sign_in @student_user
+
+    @student.update!(program_year: 1)
+    competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
+    category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
+
+    question = category.questions.create!(
+      question_text: competency_title,
+      question_order: 999,
+      question_type: "dropdown",
+      answer_options: %w[1 2 3 4 5].to_json,
+      program_target_level: 1
+    )
+
+    CompetencyTargetLevel.create!(
+      program_semester: @survey.program_semester,
+      track: @student.track_before_type_cast,
+      program_year: 1,
+      competency_title: competency_title,
+      target_level: 4
+    )
+
+    get survey_path(@survey)
+    assert_response :success
+
+    assert_match(/#{Regexp.escape(competency_title)}.*Target Level: 4\/5/m, response.body)
+    refute_match(/#{Regexp.escape(competency_title)}.*Target Level: 1\/5/m, response.body)
+  end
+
   # Authentication Tests
   test "index requires authentication" do
     get surveys_path
@@ -194,6 +287,39 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     post save_progress_survey_path(@survey), params: { answers: {} }
 
     assert_redirected_to new_user_session_path
+  end
+
+  test "save_progress persists other text for custom other option values" do
+    sign_in @student_user
+
+    category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
+    question = category.questions.create!(
+      question_text: "Pick one",
+      question_order: 9999,
+      question_type: "multiple_choice",
+      answer_options: [
+        { label: "Option A", value: "A" },
+        { label: "Other (please specify)", value: "other_custom" }
+      ].to_json,
+      is_required: false
+    )
+
+    post save_progress_survey_path(@survey), params: {
+      answers: { question.id.to_s => "other_custom" },
+      other_answers: { question.id.to_s => "My custom other" }
+    }
+
+    assert_redirected_to student_dashboard_path
+
+    record = StudentQuestion.find_by(student_id: @student.student_id, question_id: question.id)
+    assert record, "Expected saved StudentQuestion record"
+    assert_kind_of Hash, record.answer
+    assert_equal "other_custom", record.answer["answer"]
+    assert_equal "My custom other", record.answer["text"]
+
+    get survey_path(@survey)
+    assert_response :success
+    assert_includes response.body, "My custom other"
   end
 
   # Show Action Tests
@@ -464,7 +590,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
 
     get survey_path(@survey)
 
@@ -480,7 +606,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
 
     post submit_survey_path(@survey), params: { answers: {} }
 
@@ -496,7 +622,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
 
     post save_progress_survey_path(@survey), params: { answers: {} }
 
@@ -668,13 +794,8 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "submit preserves existing assigned_at" do
     sign_in @student_user
     old_time = 2.days.ago
-    assignment = SurveyAssignment.find_or_create_by!(
-      survey_id: @survey.id,
-      student_id: @student.student_id
-    ) do |a|
-      a.advisor_id = @student.advisor_id
-      a.assigned_at = old_time
-    end
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: @survey.id, student_id: @student.student_id)
+    assignment.update!(advisor_id: @student.advisor_id, assigned_at: old_time)
 
     # Provide answers for required questions
     answers = {}
@@ -815,7 +936,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current)
+    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
 
     get survey_path(@survey)
 

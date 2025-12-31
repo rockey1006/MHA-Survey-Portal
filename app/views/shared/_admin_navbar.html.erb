@@ -2,13 +2,10 @@
 <header class="app-header" role="banner">
   <div class="header-content">
     <div class="header-left">
-      <div class="logo" aria-label="Texas A&amp;M University">
+      <%= link_to admin_dashboard_path, class: "logo", aria: { label: "Texas A&M University home" } do %>
         <div class="logo-icon" aria-hidden="true"></div>
-        <div class="logo-text">
-          TEXAS A&M<br>
-          UNIVERSITY
-        </div>
-      </div>
+        <span class="sr-only">Texas A&amp;M University</span>
+      <% end %>
       
       <nav class="nav-links" aria-label="Primary">
         <a href="<%= admin_dashboard_path %>"
@@ -23,36 +20,28 @@
         <%= link_to "Surveys",
                     admin_surveys_path,
                     class: "nav-link #{'active' if local_assigns[:active_page] == 'surveys'}" %>
-
-        <%= link_to "Reports",
-                    reports_path,
-                    class: "nav-link #{'active' if local_assigns[:active_page] == 'reports'}" %>
       </nav>
     </div>
 
     <div class="user-section">
-      <!-- High contrast toggle -->
-      <button
-        type="button"
-        class="<%= tailwind_button_classes(:secondary) %>"
-        data-high-contrast-toggle="true"
-        aria-pressed="false"
-        aria-label="Toggle high contrast mode">
-        High Contrast: Off
-      </button>
+      <%= render ToggleSwitchComponent.new(
+        id: "high-contrast-toggle",
+        checked: false,
+        label: "High Contrast",
+        data: { high_contrast_toggle: true }
+      ) %>
 
-      <!-- Text-to-speech toggle -->
-      <button
-        type="button"
-        class="<%= tailwind_button_classes(:secondary) %>"
-        data-tts-toggle="true"
-        aria-pressed="false"
-        aria-label="Read this page aloud">
-        Read Page Aloud
-      </button>
+      <%= render ToggleSwitchComponent.new(
+        id: "tts-toggle",
+        checked: false,
+        label: "Read Aloud",
+        data: { tts_toggle: true }
+      ) %>
+
+      <%= render "shared/translate_toggle" %>
 
       <span class="role-badge admin">ADMIN</span>
-      <div class="notification-area">
+      <div>
         <%= render "shared/notification_menu" %>
       </div>
 

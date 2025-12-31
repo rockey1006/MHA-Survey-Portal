@@ -1,0 +1,8 @@
+<%= form_with url: url, method: :get, local: true, class: "flex w-full items-center gap-2" do %>
+  <%= label_tag param_name, "Search", class: "sr-only" %>
+  <%= text_field_tag param_name,
+                     query,
+                     placeholder: placeholder,
+                     class: "flex-1 min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+  <%= button_tag "Search", type: :submit, class: helpers.tailwind_button_classes(:secondary) %>
+<% end %>

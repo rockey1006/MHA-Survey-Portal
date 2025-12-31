@@ -2,26 +2,28 @@
 
 module SurveyAssignments
   # Ensures a student's survey assignments mirror the surveys associated with
-  # their current track selection. When the student has not selected a track,
+  # their current track selection and program year. When either value is blank,
   # the auto assigner leaves the assignment list untouched so that a first-time
   # login does not receive surveys prematurely.
   class AutoAssigner
     # @param student [Student]
     # @param track [String, nil]
+    # @param program_year [Integer, String, nil]
     # @return [void]
-    def self.call(student:, track: nil)
-      new(student:, track:).call
+    def self.call(student:, track: nil, program_year: nil)
+      new(student:, track:, program_year:).call
     end
 
-    def initialize(student:, track: nil)
+    def initialize(student:, track: nil, program_year: nil)
       @student = student
       @track = (track.presence || student&.track).to_s.strip
+      @program_year = program_year.presence || student&.program_year
     end
 
     def call
       return unless student
 
-      if track.blank?
+      if track.blank? || program_year.blank?
         # Track selection not available yet; remove any outdated managed
         # assignments so that onboarding students start with a clean slate.
         remove_managed_assignments!(allowed_ids: [])
@@ -42,7 +44,7 @@ module SurveyAssignments
 
     private
 
-    attr_reader :student, :track
+    attr_reader :student, :track, :program_year
 
     def surveys_for_track
       current_semester = ProgramSemester.current&.name.to_s.strip
@@ -70,11 +72,21 @@ module SurveyAssignments
     def assign_missing_surveys!(surveys)
       existing = assignment_scope.index_by(&:survey_id)
 
-      surveys.each do |survey|
+      today = Time.zone.today
+      assignable = surveys.select do |survey|
+        next false if survey.due_date.blank?
+
+        survey.due_date.to_date >= today
+      end
+
+      assignable.each do |survey|
         assignment = existing[survey.id] || SurveyAssignment.new(student_id: student.student_id, survey: survey)
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.zone.now
-        assignment.due_date ||= 2.weeks.from_now if assignment.respond_to?(:due_date)
+
+        if assignment.respond_to?(:due_date) && survey.respond_to?(:due_date)
+          assignment.due_date = survey.due_date
+        end
 
         assignment.save! if assignment.new_record? || assignment.changed?
       end

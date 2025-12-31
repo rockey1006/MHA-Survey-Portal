@@ -25,6 +25,27 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
     assert_includes response.body, "No students currently in this track are assigned to you."
+
+    # Advisors can view Student Records but should not see admin-only edit/delete actions.
+    assert_not_includes response.body, 'aria-label="More actions"'
+    assert_not_includes response.body, "Delete this student's survey responses?"
+  end
+
+  test "admin can filter students by search query" do
+    sign_in @admin
+
+    get student_records_path(q: users(:student).name)
+    assert_response :success
+    assert_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
+  end
+
+  test "advisor search stays within assigned scope" do
+    sign_in @advisor
+
+    get student_records_path(q: users(:other_student).email)
+    assert_response :success
+    assert_not_includes response.body, users(:other_student).name
   end
 
   test "unauthenticated user redirected" do
@@ -32,7 +53,16 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "student record status remains pending until submission completed" do
+  test "student users are redirected away" do
+    sign_in users(:student)
+
+    get student_records_path
+
+    assert_redirected_to dashboard_path
+    assert_match "Advisor or admin access required", flash[:alert]
+  end
+
+  test "student record status remains assigned until submission completed" do
     student = students(:student)
     survey = surveys(:fall_2025)
     question = survey.questions.first || survey.categories.first.questions.create!(
@@ -49,10 +79,12 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     records = controller.send(:build_student_records, [ student ])
     row = find_row(records, student, survey)
     assert_not_nil row, "Expected to find a student row in records"
-    assert_equal "Pending", row[:status]
+    assert_equal "Assigned", row[:status]
     assert_nil row[:completed_at]
 
     assignment = survey_assignments(:residential_assignment)
+    assert_not_nil row[:due_date]
+    assert_in_delta assignment.due_date.to_i, row[:due_date].to_i, 1
     completion_time = Time.current
     assignment.update!(completed_at: completion_time)
 
@@ -62,6 +94,19 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil row_after, "Expected to find updated student row"
     assert_equal "Completed", row_after[:status]
     assert_in_delta completion_time.to_i, row_after[:completed_at].to_i, 1
+  end
+
+  test "student record status is unassigned when no assignment exists" do
+    student = students(:student)
+    survey = surveys(:spring_2025)
+
+    controller = StudentRecordsController.new
+    records = controller.send(:build_student_records, [ student ])
+    row = find_row(records, student, survey)
+    assert_not_nil row, "Expected to find a student row for an unassigned survey"
+    assert_equal "Unassigned", row[:status]
+    assert_nil row[:completed_at]
+    assert_nil row[:due_date]
   end
 
   private

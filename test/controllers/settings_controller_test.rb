@@ -57,6 +57,20 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "edit includes scaled typography tokens when user sets text size" do
+    sign_in @admin
+    original_scale = @admin.text_scale_percent
+    @admin.update!(text_scale_percent: 200)
+
+    get settings_path
+
+    assert_response :success
+    assert_includes @response.body, "--app-font-scale: 2.00"
+    assert_includes @response.body, "--font-size-base: calc(17px * var(--app-font-scale))"
+  ensure
+    @admin.update!(text_scale_percent: original_scale)
+  end
+
   # Update Action Tests - Language
   test "update allows admin to change language" do
     sign_in @admin

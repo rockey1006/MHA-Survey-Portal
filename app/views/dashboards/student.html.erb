@@ -5,18 +5,18 @@
   <div class="dashboard-grid dashboard-grid-2">
     <div class="dashboard-column">
       <!-- To-Do Section -->
-      <section class="dashboard-card">
+      <section class="c-card c-card--hover">
         <h2 class="section-title">
           <div class="section-icon"></div>
           To-do
         </h2>
         
-        <div class="todo-list">
+        <div class="u-stack u-stack--md">
           <% if @pending_surveys.present? %>
             <% @pending_surveys.each do |entry| %>
               <% survey = entry[:survey] %>
-              <div class="todo-item">
-                <div class="survey-icon"></div>
+              <div class="c-list-item">
+                <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
@@ -26,6 +26,8 @@
                 <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
                   Status: <%= entry[:status] %>
+                  &bull;
+                  <%= survey_due_note(entry[:due_date]) %>
                   <% total_questions = progress[:total_questions].to_i %>
                   <% answered_total = progress[:answered_total].to_i %>
                   <% if total_questions.positive? %>
@@ -46,13 +48,13 @@
               </div>
             <% end %>
           <% else %>
-            <div class="todo-item empty">No pending surveys</div>
+            <div class="c-list-item c-list-item--empty">No pending surveys</div>
           <% end %>
         </div>
       </section>
 
       <!-- Completed Surveys Section -->
-      <section class="dashboard-card">
+      <section class="c-card c-card--hover">
         <h2 class="section-title">
           <div class="section-icon"></div>
           Completed Surveys
@@ -64,8 +66,10 @@
               <% survey = entry[:survey] %>
               <% survey_response = entry[:survey_response] %>
               <% download_token = entry[:download_token] %>
+              <% due_date = entry[:due_date] %>
+              <% can_edit = due_date.blank? || due_date >= Time.current %>
               <div class="completed-item">
-                <div class="survey-icon"></div>
+                <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
@@ -74,12 +78,24 @@
                 <% end %>
                 <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
-                  Completed on <%= entry[:completed_at]&.to_date || 'N/A' %>
+                  <% submitted_at = entry[:completed_at] %>
+                  <% admin_updated_at = entry[:admin_updated_at] %>
+                  <% if admin_updated_at.present? %>
+                    Submitted on <%= submitted_at&.to_date || 'N/A' %>
+                    &bull;
+                    Admin updated on <%= admin_updated_at.to_date %>
+                  <% else %>
+                    Completed on <%= submitted_at&.to_date || 'N/A' %>
+                  <% end %>
+                  &bull;
+                  <%= survey_due_note(due_date) %>
+                </div>
+
+                <div class="survey-meta">
                   <% total_questions = progress[:total_questions].to_i %>
                   <% answered_total = progress[:answered_total].to_i %>
                   <% if total_questions.positive? %>
                     <span class="survey-progress">
-                      &bull;
                       <%= answered_total %>/<%= total_questions %> answered
                       <% if progress[:total_required].to_i.positive? %>
                         <span class="survey-progress-detail">(required <%= progress[:answered_required].to_i %>/<%= progress[:total_required].to_i %>)</span>
@@ -90,6 +106,11 @@
                 <div class="survey-actions">
                   <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                     <%= link_to 'Review', survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
+                    <% if can_edit %>
+                      <%= link_to 'Edit', survey_path(survey), class: tailwind_button_classes(:secondary) %>
+                    <% else %>
+                        <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
+                    <% end %>
                     <%= link_to 'Download PDF', download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
                   </div>
                 </div>
@@ -103,43 +124,54 @@
     </div>
 
     <!-- Notifications Section -->
-    <section class="dashboard-card">
+    <section class="c-card c-card--hover">
       <h2 class="section-title">
         <div class="section-icon"></div>
         Notifications
       </h2>
       
-      <div class="notification-list">
+      <div class="u-stack u-stack--md u-max-h-70vh u-scroll-y">
         <% if @dashboard_notifications.present? %>
           <% @dashboard_notifications.each do |notification| %>
-            <div class="notification<%= notification.read? ? '' : ' unread' %>">
-              <div class="notification-icon"></div>
-              <div class="notification-content">
-                <div class="notification-text">
-                  <%= link_to notification.title, notification_path(notification), class: "notification-title" %>
-                  <span>
-                    <%= truncate(notification.message, length: 120) %>
-                  </span>
-                </div>
-                <div class="notification-time">
-                  <time datetime="<%= notification.created_at.iso8601 %>"><%= time_ago_in_words(notification.created_at) %> ago</time>
-                </div>
+            <div class="c-list-item c-media<%= notification.read? ? '' : ' is-unread' %>">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full c-icon-circle" aria-hidden="true">
+                <span class="c-icon-button__icon">
+                  <span class="sr-only">Notification</span>
+                  <%= image_tag "notification-icon.png", alt: "", class: "notification-icon-img", aria: { hidden: true } %>
+                </span>
+              </div>
+              <div class="c-media__content">
+                <%= link_to notification.title, notification_path(notification), class: "c-media__title-link" %>
+
+                <p class="c-help" style="margin-top: var(--spacing-xs);">
+                  <%= truncate(notification.message, length: 120) %>
+                </p>
+
+                <time class="c-help" datetime="<%= notification.created_at.iso8601 %>">
+                  <%= time_ago_in_words(notification.created_at) %> ago
+                </time>
+
                 <% if (target = notification.target_path_for(current_user)).present? %>
-                  <div class="notification-actions" style="margin-top: 0.5rem;">
+                  <div style="margin-top: var(--spacing-md);">
                     <%= link_to "Open related record", target, class: tailwind_button_classes(:subtle) %>
                   </div>
                 <% end %>
               </div>
             </div>
           <% end %>
-          <div class="notification-footer">
+          <div style="display: flex; justify-content: flex-end;">
             <%= link_to "View all notifications", notifications_path, class: tailwind_button_classes(:secondary) %>
           </div>
         <% else %>
-          <div class="notification">
-            <div class="notification-icon"></div>
-            <div class="notification-content">
-              <div class="notification-text">You're all caught up! New notifications will appear here.</div>
+          <div class="c-list-item c-media">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full c-icon-circle" aria-hidden="true">
+              <span class="c-icon-button__icon">
+                <span class="sr-only">Notification</span>
+                <%= image_tag "notification-icon.png", alt: "", class: "notification-icon-img", aria: { hidden: true } %>
+              </span>
+            </div>
+            <div class="c-media__content">
+              <p class="c-help">You're all caught up! New notifications will appear here.</p>
             </div>
           </div>
         <% end %>

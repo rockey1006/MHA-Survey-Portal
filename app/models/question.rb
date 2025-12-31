@@ -101,20 +101,28 @@ class Question < ApplicationRecord
 
     parsed = JSON.parse(raw) rescue nil
     if parsed.is_a?(Array)
-      parsed.map do |entry|
+      list = parsed.map do |entry|
         case entry
         when String
-          entry
+          entry.to_s.squish
         when Array
-          entry[0].to_s
+          entry[0].to_s.squish
         when Hash
-          (entry["label"] || entry[:label] || entry["value"] || entry[:value]).to_s
+          (entry["label"] || entry[:label] || entry["value"] || entry[:value]).to_s.squish
         else
-          entry.to_s
+          entry.to_s.squish
         end
       end
+      list
     else
-      raw.gsub(/[\[\]\"“”]/, "").split(",").map(&:strip).reject(&:empty?)
+      # Legacy fallback: accept comma-separated and newline-separated lists.
+      list = raw
+        .gsub(/[\[\]\"“”]/, "")
+        .split(/[\r\n,]+/)
+        .map { |token| token.to_s.squish }
+        .reject(&:empty?)
+
+      list
     end
   end
 
@@ -133,29 +141,89 @@ class Question < ApplicationRecord
     parsed = JSON.parse(raw) rescue nil
     list = parsed.is_a?(Array) ? parsed : answer_options_list
 
-    Array(list).filter_map do |entry|
+    pairs = Array(list).filter_map do |entry|
       case entry
       when Array
         next unless entry.size >= 2
 
-        label = entry[0].to_s.strip
-        value = entry[1].to_s.strip
+        label = entry[0].to_s.squish
+        value = entry[1].to_s.squish
         next if label.blank? || value.blank?
 
         [ label, value ]
       when Hash
-        label = (entry["label"] || entry[:label]).to_s.strip
-        value = (entry["value"] || entry[:value] || label).to_s.strip
+        label = (entry["label"] || entry[:label]).to_s.squish
+        value = (entry["value"] || entry[:value] || label).to_s.squish
         next if label.blank? || value.blank?
 
         [ label, value ]
       else
-        str = entry.to_s.strip
+        str = entry.to_s.squish
         next if str.blank?
 
         [ str, str ]
       end
     end
+
+    pairs
+  end
+
+  # Returns a normalized list of answer option definitions including metadata.
+  #
+  # Supports answer_options stored as:
+  # - ["Yes", "No"]
+  # - [["Mastery (5)", "5"], ...]
+  # - [{"label":"Other — Please describe...","value":"0","requires_text":true}, ...]
+  #
+  # @return [Array<Hash>] list of {label:, value:, requires_text:}
+  def answer_option_definitions
+    raw = answer_options.to_s
+    return [] if raw.blank?
+
+    parsed = JSON.parse(raw) rescue nil
+    list = parsed.is_a?(Array) ? parsed : answer_options_list
+
+    Array(list).filter_map do |entry|
+      case entry
+      when Array
+        next unless entry.size >= 2
+        label = entry[0].to_s.squish
+        value = entry[1].to_s.squish
+        next if label.blank? || value.blank?
+        { label: label, value: value, requires_text: label.downcase.start_with?("other") }
+      when Hash
+        label = (entry["label"] || entry[:label]).to_s.squish
+        value = (entry["value"] || entry[:value] || label).to_s.squish
+        next if label.blank? || value.blank?
+
+        requires_text = entry.key?("requires_text") || entry.key?(:requires_text) ? !!(entry["requires_text"] || entry[:requires_text]) : nil
+        requires_text = entry.key?("other_text") || entry.key?(:other_text) ? !!(entry["other_text"] || entry[:other_text]) : requires_text
+        requires_text = entry.key?("other") || entry.key?(:other) ? !!(entry["other"] || entry[:other]) : requires_text
+        requires_text = label.downcase.start_with?("other") if requires_text.nil?
+
+        { label: label, value: value, requires_text: requires_text }
+      else
+        str = entry.to_s.squish
+        next if str.blank?
+        { label: str, value: str, requires_text: str.downcase.start_with?("other") }
+      end
+    end
+  end
+
+  # Whether a given submitted value corresponds to an option that requires
+  # accompanying free-text ("Other"-style).
+  #
+  # @param value [String]
+  # @return [Boolean]
+  def answer_option_requires_text?(value)
+    candidate = value.to_s
+    return false if candidate.blank?
+
+    defs = answer_option_definitions
+    entry = defs.find { |opt| opt[:value].to_s == candidate }
+    return entry[:requires_text] if entry
+
+    candidate.strip.downcase.start_with?("other")
   end
 
   # @return [Array<String>] values for choice-style questions.

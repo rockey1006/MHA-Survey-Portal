@@ -1,6 +1,10 @@
 <%# Render a read-only survey layout similar to app/views/surveys/show.html.erb %>
 <% sr = local_assigns[:survey_response] || (defined?(@survey_response) && @survey_response) %>
 <% survey = sr&.survey %>
+<% editable = local_assigns.key?(:editable) ? !!local_assigns[:editable] : false %>
+<% answer_param_key = editable ? "answers" : "readonly_answers" %>
+<% other_param_key = editable ? "other_answers" : "readonly_other_answers" %>
+<% input_disabled = !editable %>
 
 <div class="space-y-8">
   <style>
@@ -18,7 +22,7 @@
 
   <% survey_name = survey&.title.presence || "Survey ##{survey&.id}" %>
 
-  <header class="survey-header mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <header class="c-card survey-header mb-6">
     <div class="space-y-2">
       <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><%= survey_name %></h1>
       <p class="text-sm text-slate-600">
@@ -30,7 +34,8 @@
     </div>
   </header>
 
-  <% existing_answers = sr&.answers || {} %>
+  <% existing_answers = (local_assigns[:existing_answers].presence || sr&.answers || {}) %>
+  <% other_answers = (local_assigns[:other_answers] || {}).transform_keys(&:to_s) %>
   <% evidence_history = sr&.evidence_history_by_category || {} %>
 
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
@@ -75,7 +80,7 @@
         <% section = category.section %>
         <% if section.present? && !rendered_section_ids.include?(section.id) %>
           <% section_anchor_id = "survey-section-#{section.id}" %>
-          <div class="survey-section-card space-y-2 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-left shadow-sm">
+          <div class="c-card survey-section-card space-y-2 text-left border-amber-200 bg-amber-50/60">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
             <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
             <% if section.description.present? %>
@@ -85,7 +90,7 @@
           <% rendered_section_ids << section.id %>
         <% end %>
         <div class="survey-block">
-        <section id="survey-category-<%= category.id %>" class="survey-category-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+        <section id="survey-category-<%= category.id %>" class="c-card survey-category-card space-y-6">
           <header class="space-y-2">
             <h2 class="text-xl font-semibold tracking-tight text-slate-900"><%= category.name %></h2>
             <% category_desc = category.description.to_s.strip.presence %>
@@ -99,19 +104,17 @@
               <% number_key = section&.id || category.id %>
                 <% ordered_questions = category.questions.ordered.to_a %>
                 <% questions_by_id = ordered_questions.index_by(&:id) %>
+                <% branch_parent_ids = ordered_questions.select(&:sub_question?).map(&:parent_question_id).compact.uniq %>
                 <% ordered_questions.each_with_index do |question, q_index| %>
                   <% is_sub_question = question.sub_question? %>
                   <% next_question = ordered_questions[q_index + 1] %>
 
-                  <%# Hide conditional subquestions (e.g. Employment follow-ups) unless parent is answered "Yes" %>
-                  <% if is_sub_question %>
-                    <% parent = questions_by_id[question.parent_question_id] %>
-                    <% parent_raw = parent ? (existing_answers[parent.id] || existing_answers[parent.id.to_s]) : nil %>
-                    <% parent_value = parent_raw.is_a?(Hash) ? (parent_raw["answer"] || parent_raw[:answer] || parent_raw["value"] || parent_raw[:value] || parent_raw["text"] || parent_raw[:text] || parent_raw["link"] || parent_raw[:link]).to_s : parent_raw.to_s %>
-                    <% parent_options = parent ? parent.answer_options_list.map { |opt| opt.to_s.strip.downcase } : [] %>
-                    <% conditional_yes_no = parent.present? && parent.question_type == "multiple_choice" && parent_options.include?("yes") && parent_options.include?("no") %>
-                    <% next if conditional_yes_no && !parent_value.casecmp?("Yes") %>
-                  <% end %>
+                  <% parent = is_sub_question ? questions_by_id[question.parent_question_id] : nil %>
+                  <% parent_raw = parent ? (existing_answers[parent.id] || existing_answers[parent.id.to_s]) : nil %>
+                  <% parent_value = parent_raw.is_a?(Hash) ? (parent_raw["answer"] || parent_raw[:answer] || parent_raw["value"] || parent_raw[:value] || parent_raw["text"] || parent_raw[:text] || parent_raw["link"] || parent_raw[:link]).to_s : parent_raw.to_s %>
+                  <% parent_options = parent ? parent.answer_options_list.map { |opt| opt.to_s.strip.downcase } : [] %>
+                  <% conditional_yes_no_child = parent.present? && parent.question_type == "multiple_choice" && parent_options.include?("yes") && parent_options.include?("no") %>
+                  <% hide_branch_child = is_sub_question && conditional_yes_no_child && !parent_value.casecmp?("Yes") %>
 
                   <% question_number = section_question_numbers[number_key] %>
                   <% question_number = (section_question_numbers[number_key] += 1) unless is_sub_question %>
@@ -147,7 +150,23 @@
                   <% required = !(is_yes_no || is_flexibility_scale) %>
                 <% end %>
 
-                <article class="question-block rounded-lg border border-slate-100 bg-slate-50/40 p-4 space-y-4 <%= question.sub_question? ? 'ml-6' : '' %>">
+                <% is_branch_parent = !is_sub_question && question.question_type == "multiple_choice" && branch_parent_ids.include?(question.id) %>
+                <% if is_branch_parent %>
+                  <% option_values = question.answer_options_list.map { |opt| opt.to_s.strip.downcase } %>
+                  <% is_branch_parent = option_values.include?("yes") && option_values.include?("no") %>
+                <% end %>
+                <% branch_target_value = is_branch_parent ? "Yes" : nil %>
+                <% branch_child_of = is_sub_question ? question.parent_question_id : nil %>
+
+                <article class="question-block rounded-lg border border-slate-100 bg-slate-50/40 p-4 space-y-4 <%= question.sub_question? ? 'ml-6' : '' %> <%= hide_branch_child ? 'hidden' : '' %>"
+                         <% if is_branch_parent %>
+                           data-branch-parent="true"
+                           data-branch-parent-id="<%= question.id %>"
+                           data-branch-target-value="<%= branch_target_value %>"
+                         <% end %>
+                         <% if branch_child_of.present? %>
+                           data-branch-child-of="<%= branch_child_of %>"
+                         <% end %>>
                   <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
 
                   <label class="flex w-full items-start justify-between gap-3 text-sm font-medium text-slate-900" for="question-<%= question.id %>">
@@ -181,47 +200,56 @@
                       </span>
                     </span>
 
-                    <% if question.question_type_dropdown? && question.program_target_level.present? %>
+                    <% effective_target_level = effective_competency_target_level(question: question, survey: survey, student: sr&.student) %>
+                    <% if question.question_type_dropdown? && effective_target_level.present? %>
                       <span class="shrink-0 ml-auto text-right">
-                        <span class="target-level-badge">Target Level: <%= question.program_target_level %>/5</span>
+                        <span class="target-level-badge">Target Level: <%= effective_target_level %>/5</span>
                       </span>
                     <% end %>
                   </label>
 
                   <% case question.question_type %>
                   <% when "short_answer" %>
-                    <%= text_area_tag "readonly_answers[#{question.id}]",
+                    <%= text_area_tag "#{answer_param_key}[#{question.id}]",
                                       (answer_text || ""),
                                       rows: 3,
                                       id: "question-#{question.id}",
                                       class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                      disabled: true %>
+                                        disabled: input_disabled %>
                   <% when "multiple_choice" %>
                     <% option_pairs = question.answer_option_pairs.presence || [] %>
                     <% selected = answer_value.to_s %>
                     <div class="flex flex-col gap-2" role="radiogroup">
                       <% option_pairs.each do |label, value| %>
                         <label class="flex items-center gap-2 text-sm text-slate-800">
-                          <%= radio_button_tag "readonly_answers[#{question.id}]",
+                            <%= radio_button_tag "#{answer_param_key}[#{question.id}]",
                                                value,
                                                (selected == value.to_s || selected.casecmp?(label.to_s)),
                                                id: "question-#{question.id}-#{label.parameterize}",
                                                class: "h-4 w-4 text-blue-600",
-                                               disabled: true %>
+                                                 disabled: input_disabled %>
                           <span><%= label %></span>
                         </label>
 
-                        <% is_other_option = label.to_s.strip.downcase.start_with?("other") %>
-                        <% if is_other_option %>
-                          <% other_text = raw_answer.is_a?(Hash) ? raw_answer["text"].to_s : "" %>
-                          <% show_other = (selected == value.to_s) || selected.casecmp?("Other") %>
-                          <div class="ml-6" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" <%= show_other ? "" : "hidden" %>>
-                            <%= text_field_tag "readonly_other_answers[#{question.id}]",
+                        <% requires_text = question.answer_option_requires_text?(value) %>
+                        <% if requires_text %>
+                          <% other_text = if editable
+                                            other_answers[question.id.to_s].to_s
+                                          else
+                                            if raw_answer.is_a?(Hash)
+                                              (raw_answer["text"] || raw_answer[:text] || raw_answer["other_text"] || raw_answer[:other_text]).to_s
+                                            else
+                                              ""
+                                            end
+                                          end %>
+                          <% show_other = (selected == value.to_s) || selected.casecmp?(label.to_s) || selected.casecmp?("Other") || other_text.present? %>
+                          <div class="ml-6 <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
+                            <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                                other_text,
                                                id: "question-#{question.id}-other",
                                                placeholder: "Please describe...",
                                                class: "w-full max-w-xl rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                               disabled: true %>
+                                               disabled: (input_disabled || !show_other) %>
                           </div>
                         <% end %>
                       <% end %>
@@ -229,12 +257,34 @@
                   <% when "dropdown" %>
                     <% option_pairs = question.answer_option_pairs %>
                     <% selected_value = answer_value.to_s %>
-                    <%= select_tag nil,
+                    <%= select_tag "#{answer_param_key}[#{question.id}]",
                                    options_for_select(option_pairs.map { |label, value| [label, value] }, selected_value),
                                    include_blank: true,
-                                   disabled: true,
+                                   disabled: input_disabled,
                                    id: "question-#{question.id}",
                                    class: "w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+
+                    <% option_pairs.each do |label, value| %>
+                      <% next unless question.answer_option_requires_text?(value) %>
+                      <% other_text = if editable
+                                        other_answers[question.id.to_s].to_s
+                                      else
+                                        if raw_answer.is_a?(Hash)
+                                          (raw_answer["text"] || raw_answer[:text] || raw_answer["other_text"] || raw_answer[:other_text]).to_s
+                                        else
+                                          ""
+                                        end
+                                      end %>
+                      <% show_other = (selected_value.to_s == value.to_s) || selected_value.casecmp?(label.to_s) || selected_value.casecmp?("Other") || other_text.present? %>
+                      <div class="mt-2 max-w-xl <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
+                        <%= text_field_tag "#{other_param_key}[#{question.id}]",
+                                           other_text,
+                                           id: "question-#{question.id}-other-#{value.to_s.parameterize}",
+                                           placeholder: "Please describe...",
+                                           class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                           disabled: (input_disabled || !show_other) %>
+                      </div>
+                    <% end %>
                   <% when "scale" %>
                     <% scale_labels = scale_labels_for(question) %>
                     <% scale_steps = [scale_labels.size, 1].max %>
@@ -243,14 +293,14 @@
                     <div class="survey-scale-input space-y-1">
                       <div class="flex items-center gap-3">
                         <span class="text-xs text-slate-500"><%= scale_labels.first || "Low" %></span>
-                        <%= range_field_tag "readonly_answers[#{question.id}]",
+                        <%= range_field_tag "#{answer_param_key}[#{question.id}]",
                                             slider_value,
                                             min: 1,
                                             max: scale_steps,
                                             step: 1,
                                             id: "question-#{question.id}",
                                             class: "w-full",
-                                            disabled: true %>
+                                            disabled: input_disabled %>
                         <span class="text-xs text-slate-500"><%= scale_labels.last || "High" %></span>
                       </div>
                       <div class="flex justify-between text-[0.7rem] text-slate-500">
@@ -264,26 +314,33 @@
                     </div>
                   <% when "evidence" %>
                     <% link_value = answer_text.to_s.strip.presence %>
-                    <% if link_value.present? %>
+                    <% if editable %>
+                      <%= text_field_tag "#{answer_param_key}[#{question.id}]",
+                                         link_value.to_s,
+                                         id: "question-#{question.id}",
+                                         placeholder: "https://drive.google.com/...",
+                                         class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                         disabled: input_disabled %>
+                    <% elsif link_value.present? %>
                       <%= link_to link_value,
                                   link_value,
                                   class: "block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 break-all",
                                   target: "_blank",
                                   rel: "noopener noreferrer" %>
                     <% else %>
-                      <%= text_field_tag "readonly_answers[#{question.id}]",
+                      <%= text_field_tag "#{answer_param_key}[#{question.id}]",
                                          "",
                                          id: "question-#{question.id}",
                                          placeholder: "https://drive.google.com/...",
                                          class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                         disabled: true %>
+                                         disabled: input_disabled %>
                     <% end %>
                   <% else %>
-                    <%= text_field_tag "readonly_answers[#{question.id}]",
+                    <%= text_field_tag "#{answer_param_key}[#{question.id}]",
                                        (answer_text || ""),
                                        id: "question-#{question.id}",
                                        class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                       disabled: true %>
+                                       disabled: input_disabled %>
                   <% end %>
 
                 </article>
@@ -340,39 +397,50 @@
                     <article class="question-block mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm ring-1 ring-amber-200/40 space-y-3">
                     <div class="flex items-center justify-between gap-3">
                       <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
-                      <p class="text-xs text-slate-500">Score 0–5, comment optional</p>
+                      <p class="text-xs text-slate-500">Score 1–5, feedback optional</p>
                     </div>
 
                       <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (0–5)</label>
-                          <select id="ratings_<%= feedback_question_id %>_average_score"
-                                  name="ratings[<%= feedback_question_id %>][average_score]"
-                                  data-advisor-feedback-score="true"
-                                  data-program-target-level="<%= feedback_question&.program_target_level %>"
-                                  class="w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value=""></option>
-                            <%= options_for_select(advisor_proficiency_option_pairs_for(feedback_question), normalize_proficiency_value(existing_q&.average_score)) %>
-                          </select>
+                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (1–5)</label>
+                        <%= render "shared/proficiency_select",
+                                   id: "ratings_#{feedback_question_id}_average_score",
+                                   name: "ratings[#{feedback_question_id}][average_score]",
+                                   question: feedback_question,
+                                   selected: normalize_proficiency_value(existing_q&.average_score),
+                                   data: {
+                                     advisor_feedback_score: true,
+                                     program_target_level: effective_competency_target_level(question: feedback_question, survey: survey, student: sr&.student)
+                                   },
+                                   class_name: "w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
                       </div>
 
-                      <div class="md:col-span-2">
-                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_comments">Comment (optional)</label>
+                      <div class="md:col-span-2" data-controller="character-counter">
+                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_comments">Feedback (optional)</label>
                         <textarea id="ratings_<%= feedback_question_id %>_comments"
                                   name="ratings[<%= feedback_question_id %>][comments]"
                                   rows="3"
+                                  maxlength="<%= Feedback::COMMENTS_MAX_LENGTH %>"
+                                  data-character-counter-target="input"
+                                  data-action="input->character-counter#input"
                                   class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"><%= existing_q&.comments.to_s %></textarea>
+                        <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= existing_q&.comments.to_s.length %>/<%= Feedback::COMMENTS_MAX_LENGTH %> characters</div>
                       </div>
                     </div>
 
                     <% if existing_q %>
                       <input type="hidden" name="ratings[<%= feedback_question_id %>][id]" value="<%= existing_q.id %>" />
+                      <input type="hidden" name="ratings[<%= feedback_question_id %>][lock_version]" value="<%= existing_q.lock_version %>" />
                     <% end %>
                   </article>
                     <% end %>
                   <% end %>
                 <% end %>
-                  <div class="h-6" aria-hidden="true"></div>
+                  <% if branch_child_of.present? && conditional_yes_no_child %>
+                    <div class="h-6 <%= hide_branch_child ? 'hidden' : '' %>" aria-hidden="true" data-branch-child-of="<%= branch_child_of %>"></div>
+                  <% else %>
+                    <div class="h-6" aria-hidden="true"></div>
+                  <% end %>
               <% end %>
             </div>
           <% else %>

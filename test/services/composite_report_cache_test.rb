@@ -40,17 +40,32 @@ class CompositeReportCacheTest < ActiveSupport::TestCase
   end
 
   test "evicts least recently used entries" do
-    max = CompositeReportCache::MAX_ENTRIES
-    max.times do |idx|
-      CompositeReportCache.fetch("key-#{idx}", "fingerprint") { build_pdf("value-#{idx}") }
+    original_max = CompositeReportCache::MAX_ENTRIES
+    CompositeReportCache.send(:remove_const, :MAX_ENTRIES)
+    CompositeReportCache.const_set(:MAX_ENTRIES, 3)
+    CompositeReportCache.reset!
+
+    travel_to Time.zone.local(2025, 1, 1, 0, 0, 0) do
+      CompositeReportCache.fetch("key-0", "fingerprint") { build_pdf("value-0") }
+      travel 1.second
+      CompositeReportCache.fetch("key-1", "fingerprint") { build_pdf("value-1") }
+      travel 1.second
+      CompositeReportCache.fetch("key-2", "fingerprint") { build_pdf("value-2") }
+      travel 1.second
+
+      CompositeReportCache.fetch("key-0", "fingerprint") { build_pdf("stale") }
+      travel 1.second
+
+      CompositeReportCache.fetch("key-new", "fingerprint") { build_pdf("value-new") }
+      travel 1.second
+
+      regenerated = CompositeReportCache.fetch("key-1", "fingerprint") { build_pdf("regenerated") }
+      assert_equal "regenerated", File.binread(regenerated.path)
     end
-
-    CompositeReportCache.fetch("key-0", "fingerprint") { build_pdf("stale") }
-
-    CompositeReportCache.fetch("key-new", "fingerprint") { build_pdf("value-new") }
-
-    regenerated = CompositeReportCache.fetch("key-1", "fingerprint") { build_pdf("regenerated") }
-    assert_equal "regenerated", File.binread(regenerated.path)
+  ensure
+    CompositeReportCache.send(:remove_const, :MAX_ENTRIES)
+    CompositeReportCache.const_set(:MAX_ENTRIES, original_max)
+    CompositeReportCache.reset!
   end
 
   private

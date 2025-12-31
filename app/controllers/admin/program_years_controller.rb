@@ -1,0 +1,48 @@
+# Manages the list of program year options (e.g., Year 1, Year 2) from the admin dashboard.
+class Admin::ProgramYearsController < Admin::BaseController
+  before_action :set_program_year, only: %i[update destroy]
+
+  def create
+    @program_year = ProgramYear.new(program_year_params)
+
+    if @program_year.save
+      redirect_back fallback_location: admin_program_setup_path(tab: "years"),
+                    notice: "Program year #{@program_year.value} created."
+    else
+      redirect_back fallback_location: admin_program_setup_path(tab: "years"),
+                    alert: @program_year.errors.full_messages.to_sentence
+    end
+  end
+
+  def update
+    if @program_year.update(program_year_params)
+      redirect_back fallback_location: admin_program_setup_path(tab: "years"),
+                    notice: "Program year #{@program_year.value} updated."
+    else
+      redirect_back fallback_location: admin_program_setup_path(tab: "years"),
+                    alert: @program_year.errors.full_messages.to_sentence
+    end
+  end
+
+  def destroy
+    value = @program_year.value
+
+    if @program_year.destroy
+      redirect_back fallback_location: admin_program_setup_path(tab: "years"),
+                    notice: "Program year #{value} deleted."
+    else
+      redirect_back fallback_location: admin_program_setup_path(tab: "years"),
+                    alert: @program_year.errors.full_messages.to_sentence
+    end
+  end
+
+  private
+
+  def program_year_params
+    params.require(:program_year).permit(:value, :position, :active)
+  end
+
+  def set_program_year
+    @program_year = ProgramYear.find(params[:id])
+  end
+end

@@ -9,7 +9,6 @@ require "stringio"
 _seed_original_stdout = $stdout
 _seed_silence_stdout = Rails.env.test? || ENV["QUIET_SEEDS"].present?
 $stdout = StringIO.new if _seed_silence_stdout
-
 begin
 
 puts "\n== Seeding =="
@@ -30,6 +29,28 @@ end
 
 ensure_schema_loaded!
 
+# Majors
+if ActiveRecord::Base.connection.data_source_exists?("majors")
+  Major.find_or_create_by!(name: "Health Administration")
+end
+
+# Program tracks
+if ActiveRecord::Base.connection.data_source_exists?("program_tracks")
+  ProgramTrack.seed_defaults!
+end
+
+# Program years
+if ActiveRecord::Base.connection.data_source_exists?("program_years")
+  ProgramYear.seed_defaults!
+
+  # Keep seed environments deterministic: only Year 1 and Year 2.
+  # (Admins can add more years in production if needed.)
+  if Rails.env.development? || Rails.env.test?
+    allowed_years = ProgramYear::DEFAULT_YEARS.map { |attrs| attrs.fetch(:value) }
+    ProgramYear.where.not(value: allowed_years).delete_all
+  end
+end
+
 previous_queue_adapter = ActiveJob::Base.queue_adapter
 seed_async_adapter = nil
 
@@ -44,7 +65,36 @@ unless Rails.env.test?
   end
 end
 
-Rails.cache.clear
+begin
+  connection = ActiveRecord::Base.connection
+  has_solid_cache = connection.data_source_exists?("solid_cache_entries")
+
+  if has_solid_cache
+    Rails.cache.clear
+  else
+    puts "• Skipping cache clear (solid_cache_entries table not present)"
+  end
+rescue ActiveRecord::StatementInvalid => e
+  warn "• Skipping cache clear (cache schema not loaded yet): #{e.message}"
+end
+
+# Demo/test seed data (sample users + generated responses) is intentionally
+# disabled in production unless explicitly enabled.
+# - Default: enabled in non-production, disabled in production.
+# - Override: set SEED_DEMO_DATA=1 (or true/yes) to enable even in production.
+#             set SEED_DEMO_DATA=0 (or false/no) to force-disable.
+seed_demo_data = !Rails.env.production?
+if ENV.key?("SEED_DEMO_DATA")
+  raw = ENV["SEED_DEMO_DATA"].to_s.strip.downcase
+  seed_demo_data = %w[1 true yes y on].include?(raw)
+end
+puts "• Skipping demo/test seed data" unless seed_demo_data
+
+admin_users = []
+advisors = []
+students = []
+pending_student_ids = []
+multi_semester_student_ids = []
 
 seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   role_value = User.normalize_role(role) || role.to_s
@@ -58,60 +108,74 @@ seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   user
 end
 
-puts "• Creating administrative accounts"
-admin_accounts = [
-  # { email: "health-admin1@tamu.edu", name: "Health Admin One" }
-]
+if seed_demo_data
+  puts "• Creating administrative accounts"
+  admin_accounts = [
+    # { email: "health-admin1@tamu.edu", name: "Health Admin One" }
+  ]
 
-admin_users = admin_accounts.map do |attrs|
-  seed_user.call(email: attrs[:email], name: attrs[:name], role: :admin)
+  admin_users = admin_accounts.map do |attrs|
+    seed_user.call(email: attrs[:email], name: attrs[:name], role: :admin)
+  end
+
+  if admin_users.empty?
+    admin_users << seed_user.call(email: "admin@tamu.edu", name: "MHA Admin", role: :admin)
+  end
+
+  puts "• Creating advisor accounts"
+  advisor_users = [
+    seed_user.call(email: "rainsuds@tamu.edu", name: "Tee Li", role: :advisor),
+    seed_user.call(email: "advisor.clark@tamu.edu", name: "Jordan Clark", role: :advisor)
+  ]
+
+  advisors = advisor_users.map(&:advisor_profile)
+  advisors_by_email = advisor_users.index_by { |user| user.email.to_s.downcase }
+
+  puts "• Creating sample students"
+  students_data_path = Rails.root.join("db", "data", "sample_students.yml")
+  unless File.exist?(students_data_path)
+    raise "Sample students data file not found: #{students_data_path}."
+  end
+
+  students_seed = Array(YAML.safe_load_file(students_data_path))
+  students_with_metadata = students_seed.map do |attrs|
+    data = attrs.is_a?(Hash) ? attrs : {}
+    email = data.fetch("email")
+    name = data.fetch("name")
+    track = data.fetch("track")
+    advisor_email = data.fetch("advisor_email")
+    pending = data.fetch("pending", false)
+    program_year = data.fetch("program_year", 1)
+    multi_semester = if data.key?("multi_semester")
+      data.fetch("multi_semester")
+    else
+      program_year.to_i == 2
+    end
+
+    advisor_user = advisors_by_email[advisor_email.to_s.downcase]
+    raise "Unknown advisor_email #{advisor_email} for student #{email}" unless advisor_user
+
+    user = seed_user.call(email: email, name: name, role: :student)
+    profile = user.student_profile || Student.new(student_id: user.id)
+    profile.assign_attributes(track: track, advisor: advisor_user.advisor_profile, program_year: program_year)
+    # Bypass validations for seed data; first-login flow will collect required fields
+    profile.save!(validate: false)
+
+    { profile: profile, pending: pending, multi_semester: multi_semester }
+  end
+
+  students = students_with_metadata.map { |entry| entry[:profile] }
+  pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
+  multi_semester_student_ids = students_with_metadata.select { |entry| entry[:multi_semester] }.map { |entry| entry[:profile].student_id }
+
+  high_performer_emails = %w[
+    nova.mitchell25@tamu.edu
+    emery.walsh24@tamu.edu
+    kiara.hughes25@tamu.edu
+  ]
+  high_performers = students.select { |student| high_performer_emails.include?(student.user.email) }
+  high_performer_ids = high_performers.map(&:student_id)
 end
-
-puts "• Creating advisor accounts"
-advisor_users = [
-  seed_user.call(email: "rainsuds@tamu.edu", name: "Tee Li", role: :advisor),
-  seed_user.call(email: "advisor.clark@tamu.edu", name: "Jordan Clark", role: :advisor)
-]
-
-advisors = advisor_users.map(&:advisor_profile)
-
-puts "• Creating sample students"
-# Set :pending to true for any student who should appear with an incomplete survey assignment
-students_seed = [
-  { email: "avery.harrison25@tamu.edu", name: "Avery Harrison", track: "Residential", advisor: advisors.first },
-  { email: "liam.daniels25@tamu.edu", name: "Liam Daniels", track: "Residential", advisor: advisors.first },
-  { email: "zoe.elliott24@tamu.edu", name: "Zoe Elliott", track: "Residential", advisor: advisors.first },
-  { email: "mila.perez25@tamu.edu", name: "Mila Perez", track: "Executive", advisor: advisors.last },
-  { email: "carter.andrews25@tamu.edu", name: "Carter Andrews", track: "Executive", advisor: advisors.last },
-  { email: "sloan.reese24@tamu.edu", name: "Sloan Reese", track: "Executive", advisor: advisors.last },
-  { email: "nova.mitchell25@tamu.edu", name: "Nova Mitchell", track: "Residential", advisor: advisors.first },
-  { email: "emery.walsh24@tamu.edu", name: "Emery Walsh", track: "Residential", advisor: advisors.first },
-  { email: "kiara.hughes25@tamu.edu", name: "Kiara Hughes", track: "Executive", advisor: advisors.last },
-  { email: "judah.nguyen24@tamu.edu", name: "Judah Nguyen", track: "Executive", advisor: advisors.last },
-  { email: "logan.ramsey25@tamu.edu", name: "Logan Ramsey", track: "Residential", advisor: advisors.first, pending: true },
-  { email: "isla.merritt25@tamu.edu", name: "Isla Merritt", track: "Executive", advisor: advisors.last, pending: true }
-]
-
-students_with_metadata = students_seed.map do |attrs|
-  pending = attrs.delete(:pending) { false }
-  user = seed_user.call(email: attrs[:email], name: attrs[:name], role: :student)
-  profile = user.student_profile || Student.new(student_id: user.id)
-  profile.assign_attributes(track: attrs[:track], advisor: attrs[:advisor])
-  # Bypass validations for seed data; first-login flow will collect required fields
-  profile.save!(validate: false)
-  { profile: profile, pending: pending }
-end
-
-students = students_with_metadata.map { |entry| entry[:profile] }
-pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
-
-high_performer_emails = %w[
-  nova.mitchell25@tamu.edu
-  emery.walsh24@tamu.edu
-  kiara.hughes25@tamu.edu
-]
-high_performers = students.select { |student| high_performer_emails.include?(student.user.email) }
-high_performer_ids = high_performers.map(&:student_id)
 
 puts "• Loading program survey templates"
 survey_template_path = Rails.root.join("db", "data", "program_surveys.yml")
@@ -131,9 +195,17 @@ if semester_names.blank?
 end
 
 existing_current_semester = ProgramSemester.current_name.to_s.strip.presence
-target_current_semester = existing_current_semester ||
-                          semester_names.find { |name| name.casecmp?(preferred_seed_current_semester) } ||
-                          semester_names.last
+# Seed behavior: in non-production environments, prefer the newest semester so
+# newly created accounts get the newest surveys assigned automatically.
+target_current_semester = if Rails.env.production? && !seed_demo_data
+  existing_current_semester ||
+    semester_names.find { |name| name.casecmp?(preferred_seed_current_semester) } ||
+    semester_names.last
+else
+  semester_names.find { |name| name.casecmp?("Spring 2026") } ||
+    semester_names.last ||
+    existing_current_semester
+end
 
 target_current_semester ||= semester_names.first
 
@@ -150,6 +222,52 @@ ProgramSemester.transaction do
 
   ProgramSemester.where.not(name: target_current_semester).update_all(current: false)
   ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
+end
+
+if ActiveRecord::Base.connection.data_source_exists?("competency_target_levels")
+  defaults_path = Rails.root.join("db", "data", "default_target_levels.yml")
+  if File.exist?(defaults_path)
+    puts "• Seeding default competency target levels"
+
+    defaults = YAML.safe_load_file(defaults_path)
+    semesters_to_seed = Array(defaults["semesters"]).map { |name| name.to_s.strip }.reject(&:blank?)
+    program_years_to_seed = Array(defaults["program_years"]).map { |val| val.to_i }.uniq
+    track_defaults = defaults["tracks"].is_a?(Hash) ? defaults["tracks"] : {}
+
+    competency_titles = Reports::DataAggregator::COMPETENCY_TITLES
+    now = Time.current
+    rows = []
+
+    semesters_to_seed.each do |semester_name|
+      program_semester = ProgramSemester.find_or_create_by!(name: semester_name)
+
+      track_defaults.each do |track_name, track_config|
+        levels = Array(track_config.is_a?(Hash) ? track_config["levels"] : nil).map(&:to_i)
+        if levels.size != competency_titles.size
+          warn "• Skipping target levels for #{track_name} (#{semester_name}): expected #{competency_titles.size} levels, got #{levels.size}"
+          next
+        end
+
+        program_years_to_seed.each do |program_year|
+          competency_titles.each_with_index do |title, idx|
+            rows << {
+              program_semester_id: program_semester.id,
+              track: track_name,
+              program_year: program_year,
+              competency_title: title,
+              target_level: levels[idx],
+              created_at: now,
+              updated_at: now
+            }
+          end
+        end
+      end
+    end
+
+    if rows.any?
+      CompetencyTargetLevel.upsert_all(rows, unique_by: :index_competency_targets_unique)
+    end
+  end
 end
 
 answer_options_for = lambda do |options|
@@ -172,7 +290,13 @@ answer_options_for = lambda do |options|
       value = (entry["value"] || entry[:value] || label).to_s.strip
       next if label.blank? || value.blank?
 
-      { "label" => label, "value" => value }
+      requires_text = entry.key?("requires_text") || entry.key?(:requires_text) ? !!(entry["requires_text"] || entry[:requires_text]) : nil
+      requires_text = entry.key?("other_text") || entry.key?(:other_text) ? !!(entry["other_text"] || entry[:other_text]) : requires_text
+      requires_text = entry.key?("other") || entry.key?(:other) ? !!(entry["other"] || entry[:other]) : requires_text
+
+      definition = { "label" => label, "value" => value }
+      definition["requires_text"] = true if requires_text
+      definition
     else
       entry.to_s.strip.presence
     end
@@ -182,7 +306,7 @@ answer_options_for = lambda do |options|
 end
 
 created_surveys = []
-surveys_by_track = Hash.new { |hash, key| hash[key] = [] }
+survey_due_dates = nil
 
 legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
 question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
@@ -198,7 +322,7 @@ survey_templates.each do |definition|
 
   Survey.transaction do
     survey = Survey.find_or_initialize_by(title: title, program_semester: program_semester)
-    survey.creator ||= admin_users.first
+    survey.creator ||= admin_users.first || User.admins.first
     survey.description = definition["description"]
     survey.is_active = definition.fetch("is_active", true)
 
@@ -366,24 +490,22 @@ survey_templates.each do |definition|
       end
     end
 
-    seed_auto_assign_students = definition.fetch("seed_auto_assign_students", true)
     tracks = Array(definition.fetch("tracks", [])).map(&:to_s)
     survey.assign_tracks!(tracks)
 
-    created_surveys << survey
-
-    semester_matches_current = target_current_semester.present? && semester.to_s.casecmp?(target_current_semester)
-
-    if seed_auto_assign_students && semester_matches_current
-      tracks.each do |track|
-        normalized_track = track.to_s.strip.downcase
-        surveys_by_track[normalized_track] << survey
+    raw_due_date = definition["due_date"].to_s.strip
+    if raw_due_date.present?
+      begin
+        parsed_due_date = Time.zone.parse(raw_due_date)
+        survey.due_date = parsed_due_date.end_of_day if parsed_due_date
+      rescue StandardError
+        # Ignore invalid due dates; we will fall back to default assignment logic.
       end
-    elsif seed_auto_assign_students
-      puts "     ↳ Skipping student auto-assignment during seeding (#{semester} is not the current semester #{target_current_semester})"
-    else
-      puts "     ↳ Skipping student auto-assignment during seeding"
     end
+
+    survey.save! if survey.changed?
+
+    created_surveys << survey
   end
 end
 
@@ -458,8 +580,22 @@ students.each do |student|
   normalized_student_track = track_value.to_s.strip.downcase
   next if normalized_student_track.blank?
   pending_student = pending_student_ids.include?(student.student_id)
+  program_year_value = student.program_year.to_i
 
-  Array(surveys_by_track[normalized_student_track]).each do |survey|
+  surveys_to_seed = created_surveys.select do |survey|
+    survey.program_semester&.name.to_s.strip.casecmp?(target_current_semester.to_s.strip) &&
+      survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
+  end
+  if multi_semester_student_ids.include?(student.student_id) || program_year_value == 2
+    multi_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
+    extra_surveys = created_surveys.select do |survey|
+      multi_semesters.include?(survey.program_semester.name.to_s.strip) &&
+        survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
+    end
+    surveys_to_seed = (surveys_to_seed + extra_surveys).uniq
+  end
+
+  surveys_to_seed.each do |survey|
     latest_response_timestamp = nil
 
     unless pending_student
@@ -491,6 +627,8 @@ students.each do |student|
                            high_performer ? drive_links.first : drive_links.sample(random: response_rng)
                          when "multiple_choice"
                            options = choice_values_for.call(question)
+                           other_pair = question.answer_option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+                           other_value = other_pair ? other_pair[1].to_s : "Other"
 
                            if is_competency_question
                              rating_value = competency_rating_value.call(high_performer: high_performer)
@@ -503,6 +641,8 @@ students.each do |student|
                            end
                          when "dropdown"
                            options = choice_values_for.call(question)
+                           other_pair = question.answer_option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+                           other_value = other_pair ? other_pair[1].to_s : "Other"
 
                            if is_competency_question
                              rating_value = competency_rating_value.call(high_performer: high_performer)
@@ -519,6 +659,28 @@ students.each do |student|
                          else
                            high_performer ? "Completed with distinction." : sample_text.call(question)
                          end
+
+        if %w[multiple_choice dropdown].include?(question.question_type)
+          serialized = response_value.to_s
+          option_pairs = question.answer_option_pairs
+          other_pair = option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
+          other_value = other_pair ? other_pair[1].to_s : "Other"
+          other_selected = serialized == other_value || serialized.casecmp?("Other") || serialized.strip.downcase.start_with?("other")
+
+          if other_selected
+            other_label = other_pair ? other_pair[0].to_s.downcase : ""
+            question_text = question.question_text.to_s.downcase
+
+            other_text = if other_label.include?("work schedule") || (question_text.include?("work") && question_text.include?("hours"))
+              "My schedule varies week-to-week; I can usually adjust shifts with some notice."
+            else
+              sample_text.call(question)
+            end
+
+            answer_for_storage = other_pair ? other_value : (serialized.presence || "Other")
+            response_value = { "answer" => answer_for_storage, "text" => other_text.to_s }.to_json
+          end
+        end
 
         record.advisor_id ||= advisor_profile&.advisor_id if high_performer && !is_competency_question
 
@@ -540,26 +702,72 @@ students.each do |student|
       puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
       puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
       puts "     ↳ Track auto-assign will create survey tasks on next profile update"
+
+      # Seed completion history for most Year-1 students on the Spring 2026 survey.
+      # This helps exercise UI states that depend on completed assignments.
+      if survey.program_semester&.name.to_s.strip.casecmp?("Spring 2026") && program_year_value == 1
+        incomplete_seed_email = "zoe.elliott24@tamu.edu"
+        completion_timestamp = latest_response_timestamp || Time.current
+
+        assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
+          record.advisor_id = student.advisor_id
+          record.assigned_at = completion_timestamp
+          record.due_date = survey.due_date if survey.respond_to?(:due_date)
+        end
+
+        assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
+        assignment.update!(due_date: survey.due_date) if assignment.due_date.blank? && survey.respond_to?(:due_date) && survey.due_date.present?
+        assignment.update!(completed_at: nil) if student.user.email.to_s.downcase == incomplete_seed_email
+
+        unless student.user.email.to_s.downcase == incomplete_seed_email
+          assignment.mark_completed!(completion_timestamp)
+
+          SurveyResponseVersion.capture_current!(
+            student: student,
+            survey: survey,
+            assignment: assignment,
+            actor_user: student.user,
+            event: :submitted,
+            skip_if_unchanged: true
+          )
+        end
+      end
+
+      # Seed Year-2 students with multi-semester completions so confidential
+      # notes history and version navigation have realistic data.
+      if program_year_value == 2
+        completion_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
+        if completion_semesters.include?(survey.program_semester&.name.to_s.strip)
+          completion_timestamp = latest_response_timestamp || Time.current
+
+          assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
+            record.advisor_id = student.advisor_id
+            record.assigned_at = completion_timestamp
+            record.due_date = survey.due_date if survey.respond_to?(:due_date)
+          end
+
+          assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
+          assignment.update!(due_date: survey.due_date) if assignment.due_date.blank? && survey.respond_to?(:due_date) && survey.due_date.present?
+          assignment.mark_completed!(completion_timestamp)
+
+          SurveyResponseVersion.capture_current!(
+            student: student,
+            survey: survey,
+            assignment: assignment,
+            actor_user: student.user,
+            event: :submitted,
+            skip_if_unchanged: true
+          )
+        end
+      end
     else
       puts "   • Assigned #{survey.title} to #{student.user.name} (#{track_value}) — awaiting completion"
     end
 
-    completion_time = nil
-    if pending_student
-      assigned_time = Time.zone.now - response_rng.rand(3..10).days
-      due_time = assigned_time + 14.days
-    else
-      completion_time = latest_response_timestamp || Time.zone.now
-      assigned_time = completion_time - 10.days
-      due_time = assigned_time + 14.days
-    end
-
-    assignment = SurveyAssignment.find_or_initialize_by(student_id: student.student_id, survey_id: survey.id)
-    assignment.advisor_id ||= student.advisor_id
-    assignment.assigned_at ||= assigned_time
-    assignment.due_date ||= due_time
-    assignment.save!
-    assignment.mark_completed!(completion_time) if completion_time.present?
+    # Survey assignments are intentionally not created here.
+    # We rely on SurveyAssignments::AutoAssigner (triggered by student profile
+    # updates) to assign the newest surveys so assignment behavior is exercised
+    # consistently in dev/test.
   end
 end
 

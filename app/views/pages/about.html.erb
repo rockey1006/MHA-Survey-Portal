@@ -4,184 +4,202 @@
   <%= render "shared/login_navbar" %>
 <% end %>
 
-<main class="about-page px-4 py-16">
-  <div class="about-container container-md stack stack--xl">
-    <section class="about-hero">
-      <div class="about-hero__content">
-        <p class="eyebrow">Texas A&M · Master of Health Administration</p>
-        <h1>MHA Program Portal</h1>
-        <p>
+<div class="c-page container-md">
+  <section class="c-hero c-hero--maroon">
+    <div class="u-grid" style="--u-grid-min: 320px">
+      <div class="u-stack u-stack--lg">
+        <p class="c-eyebrow c-eyebrow--inverse">Texas A&M · Master of Health Administration</p>
+        <h1 class="c-h1 c-h1--inverse">MHA Program Portal</h1>
+        <p class="c-lede c-lede--inverse">
           A unified workspace for survey workflows, feedback loops, and role-aware insights. Each dashboard in the portal is designed
-          around the needs called out in the <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Project-Overview" target="_blank" rel="noopener" class="about-link">Project Overview</a> and
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features" target="_blank" rel="noopener" class="about-link">Features</a> wiki pages—so the UI mirrors the documentation.
+          around the needs documented in the wiki—so the UI mirrors the documentation.
         </p>
-        <div class="about-hero__badges">
-          <span>
-            <strong>3</strong>
-            Roles, each with guided dashboards
-          </span>
-          <span>
-            <strong>12+</strong>
-            Surveys & feedback automations
-          </span>
-          <span>
-            <strong>100%</strong>
-            TAMU SSO coverage and audit trails
-          </span>
+
+        <div class="u-actions u-actions--start">
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Project-Overview" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Project Overview</a>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Features</a>
+        </div>
+
+        <div class="u-grid" style="--u-grid-min: 180px">
+          <div class="c-kv c-kv--inverse c-kv--compact">
+            <p class="c-eyebrow c-eyebrow--inverse">Roles</p>
+            <p class="c-value c-value--xl c-value--inverse">3</p>
+            <p class="c-lede c-lede--inverse">Guided dashboards</p>
+          </div>
+          <div class="c-kv c-kv--inverse c-kv--compact">
+            <p class="c-eyebrow c-eyebrow--inverse">Automation</p>
+            <p class="c-value c-value--xl c-value--inverse">12+</p>
+            <p class="c-lede c-lede--inverse">Surveys & feedback workflows</p>
+          </div>
+          <div class="c-kv c-kv--inverse c-kv--compact">
+            <p class="c-eyebrow c-eyebrow--inverse">Security</p>
+            <p class="c-value c-value--xl c-value--inverse">100%</p>
+            <p class="c-lede c-lede--inverse">TAMU SSO + audit trails</p>
+          </div>
         </div>
       </div>
-      <div class="about-hero__card">
-        <p class="eyebrow">Quick jumps</p>
-        <a href="#student-view">🎓 Student experience</a>
-        <a href="#advisor-view">🧑‍🏫 Advisor workspace</a>
-        <a href="#admin-view">🛠️ Admin controls</a>
-        <div class="about-hero__cta">
-          <p>New to the stack?</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started" target="_blank" rel="noopener">Read Getting Started →</a>
+
+      <div class="c-card c-card--muted u-stack u-stack--md">
+        <p class="c-eyebrow">Quick jumps</p>
+        <a href="#student-view" class="btn btn-subtle btn-block">🎓 Student experience</a>
+        <a href="#advisor-view" class="btn btn-subtle btn-block">🧑‍🏫 Advisor workspace</a>
+        <a href="#admin-view" class="btn btn-subtle btn-block">🛠️ Admin controls</a>
+
+        <div class="u-stack u-stack--sm">
+          <p class="c-eyebrow">New to the stack?</p>
+          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Read Getting Started →</a>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="about-pillars">
-      <header>
-        <p class="eyebrow">Why the portal exists</p>
-        <h2>Program pillars lifted from the wiki</h2>
-        <p>Everything here ties directly to the goals described in <em>Project Overview</em>: centralized data, streamlined surveys, and actionable analytics.</p>
-      </header>
-      <div class="about-pillars__grid">
-        <article>
-          <p class="eyebrow">Centralized data</p>
-          <h3>Student health + survey history</h3>
-          <p>Rails + PostgreSQL keep student records, survey assignments, and evidence attachments cohesive for advisors and admins.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Architecture" target="_blank" rel="noopener" class="about-link">See wiki › Architecture</a>
-        </article>
-        <article>
-          <p class="eyebrow">Track-aware surveys</p>
-          <h3>Residential & Executive cohorts</h3>
-          <p>Survey builder, track assignments, and notifications (see <em>Features › Surveys</em>) ensure each cohort receives the right cadence.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features#surveys-feedback--evidence" target="_blank" rel="noopener" class="about-link">See wiki › Features → Surveys</a>
-        </article>
-        <article>
-          <p class="eyebrow">Analytics & reporting</p>
-          <h3>Reports hub + exports</h3>
-          <p>`Reports::DataAggregator` powers KPI cards, PDF/Excel exports, and adviser-ready snapshots documented in the Analytics wiki section.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features#analytics--reporting" target="_blank" rel="noopener" class="about-link">See wiki › Features → Analytics</a>
-        </article>
-      </div>
-    </section>
+  <section class="c-card c-card--spacious u-stack u-stack--xl">
+    <header class="u-stack u-stack--sm">
+      <p class="c-eyebrow">Why the portal exists</p>
+      <h2 class="c-h2">Program pillars lifted from the wiki</h2>
+      <p class="c-lede">Everything here ties directly to the goals described in <em>Project Overview</em>: centralized data, streamlined surveys, and actionable analytics.</p>
+    </header>
 
-    <section class="about-roles">
-      <header>
-        <p class="eyebrow">Role playbooks</p>
-        <h2>Dashboards aligned to each persona</h2>
-        <p>Borrowed from the “Authentication & Access Control” and role sections of the wiki: dashboards are scoped but share a design language.</p>
-      </header>
-      <div class="about-roles__grid">
-        <article id="student-view" class="about-role-card">
-          <div class="about-role-card__icon">🎓</div>
-          <h3>Student view</h3>
-          <p>Focus on assignments, completion progress, and advisor feedback.</p>
-          <ul>
-            <li>Pending & completed surveys with PDF exports.</li>
-            <li>Evidence uploads validated via the evidence checker.</li>
-            <li>Notifications mirroring Survey Notification Jobs.</li>
-          </ul>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Student-Experience" target="_blank" rel="noopener" class="about-role-card__hint">See wiki › Student Experience</a>
-        </article>
+    <div class="u-grid" style="--u-grid-min: 240px">
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <p class="c-eyebrow">Centralized data</p>
+        <h3 class="c-h3">Student health + survey history</h3>
+        <p class="c-lede">Rails + PostgreSQL keep student records, survey assignments, and evidence attachments cohesive for advisors and admins.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Architecture" target="_blank" rel="noopener">See wiki › Architecture</a>
+      </article>
 
-        <article id="advisor-view" class="about-role-card">
-          <div class="about-role-card__icon">🧑‍🏫</div>
-          <h3>Advisor view</h3>
-          <p>Progress dashboards for advisees plus quick assignment tools.</p>
-          <ul>
-            <li>Roster management with “Review” & “Edit feedback” flows.</li>
-            <li>Assign/unassign surveys, including bulk actions.</li>
-            <li>Real-time notifications for due dates and updates.</li>
-          </ul>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Advisor-Experience" target="_blank" rel="noopener" class="about-role-card__hint">See wiki › Advisor Experience</a>
-        </article>
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <p class="c-eyebrow">Track-aware surveys</p>
+        <h3 class="c-h3">Residential & Executive cohorts</h3>
+        <p class="c-lede">Survey builder, track assignments, and notifications (see <em>Features › Surveys</em>) ensure each cohort receives the right cadence.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features#surveys-feedback--evidence" target="_blank" rel="noopener">See wiki › Features → Surveys</a>
+      </article>
 
-        <article id="admin-view" class="about-role-card">
-          <div class="about-role-card__icon">🛠️</div>
-          <h3>Admin view</h3>
-          <p>Configuration for surveys, membership, and compliance.</p>
-          <ul>
-            <li>Survey builder with lifecycle controls + audit logs.</li>
-            <li>Role & membership management to balance cohorts.</li>
-            <li>System overview dashboard with counts and activity.</li>
-          </ul>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Administrator-Tooling" target="_blank" rel="noopener" class="about-role-card__hint">See wiki › Administrator Tooling</a>
-        </article>
-      </div>
-    </section>
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <p class="c-eyebrow">Analytics & reporting</p>
+        <h3 class="c-h3">Reports hub + exports</h3>
+        <p class="c-lede">`Reports::DataAggregator` powers KPI cards, PDF/Excel exports, and adviser-ready snapshots documented in the Analytics wiki section.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features#analytics--reporting" target="_blank" rel="noopener">See wiki › Features → Analytics</a>
+      </article>
+    </div>
+  </section>
 
-    <section class="about-resources">
-      <header>
-        <p class="eyebrow">Documentation map</p>
-        <h2>Start with these wiki entries</h2>
-        <p>Use the wiki as the source of truth for environment setup, deployment, and day-to-day administration.</p>
-      </header>
-      <div class="about-resources__grid">
-        <article>
-          <h3>Getting Started</h3>
-          <p>Local setup, Docker stack, and credential tips for new contributors.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started" target="_blank" rel="noopener">Open wiki › Getting-Started</a>
-        </article>
-        <article>
-          <h3>Development Guide</h3>
-          <p>Branch strategy, lint/test commands, and UI conventions used across the portal.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Development-Guide" target="_blank" rel="noopener">Open wiki › Development-Guide</a>
-        </article>
-        <article>
-          <h3>System Administration</h3>
-          <p>Deployment, environment variables, and Heroku transfer checklists.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/System-Administration" target="_blank" rel="noopener">Open wiki › System-Administration</a>
-        </article>
-        <article>
-          <h3>Features deep dive</h3>
-          <p>End-to-end walk through of authentication, surveys, analytics, and automation.</p>
-          <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features" target="_blank" rel="noopener">Open wiki › Features</a>
-        </article>
-      </div>
-      <div class="about-resources__footer">
-        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki" target="_blank" rel="noopener" class="<%= tailwind_button_classes(:primary) %>">Browse full wiki</a>
-        <button type="button" onclick="window.history.back()" class="<%= tailwind_button_classes(:secondary) %>">← Back to previous page</button>
-      </div>
-    </section>
+  <section class="c-card c-card--spacious u-stack u-stack--xl">
+    <header class="u-stack u-stack--sm">
+      <p class="c-eyebrow">Role playbooks</p>
+      <h2 class="c-h2">Dashboards aligned to each persona</h2>
+      <p class="c-lede">Borrowed from the “Authentication & Access Control” and role sections of the wiki: dashboards are scoped but share a design language.</p>
+    </header>
 
-    <!-- Hidden SSO forms to allow top nav "Students" / "Advisors" to act like the main page buttons -->
-    <%= form_with url: user_google_oauth2_omniauth_authorize_path,
-                  method: :post,
-                  data: { turbo: "false" },
-                  id: "hidden-student-signin",
-                  html: { style: "display:none" } do |f| %>
-      <%= f.hidden_field :role, value: "student" %>
-    <% end %>
+    <div class="u-grid" style="--u-grid-min: 260px">
+      <article id="student-view" class="c-card u-stack u-stack--md">
+        <div class="text-3xl">🎓</div>
+        <h3 class="c-h3">Student view</h3>
+        <p class="c-lede">Focus on assignments, completion progress, and advisor feedback.</p>
+        <ul>
+          <li>Pending & completed surveys with PDF exports.</li>
+          <li>Evidence uploads validated via the evidence checker.</li>
+          <li>Notifications mirroring Survey Notification Jobs.</li>
+        </ul>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Student-Experience" target="_blank" rel="noopener">See wiki › Student Experience</a>
+      </article>
 
-    <%= form_with url: user_google_oauth2_omniauth_authorize_path,
-                  method: :post,
-                  data: { turbo: "false" },
-                  id: "hidden-advisor-signin",
-                  html: { style: "display:none" } do |f| %>
-      <%= f.hidden_field :role, value: "advisor" %>
-    <% end %>
+      <article id="advisor-view" class="c-card u-stack u-stack--md">
+        <div class="text-3xl">🧑‍🏫</div>
+        <h3 class="c-h3">Advisor view</h3>
+        <p class="c-lede">Progress dashboards for advisees plus quick assignment tools.</p>
+        <ul>
+          <li>Roster management with “Review” & “Edit feedback” flows.</li>
+          <li>Assign/unassign surveys, including bulk actions.</li>
+          <li>Real-time notifications for due dates and updates.</li>
+        </ul>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Advisor-Experience" target="_blank" rel="noopener">See wiki › Advisor Experience</a>
+      </article>
 
-    <script>
-      (function () {
-        const studentTab = document.querySelector('[data-signin-role="student"]');
-        const advisorTab = document.querySelector('[data-signin-role="advisor"]');
-        const studentForm = document.getElementById('hidden-student-signin');
-        const advisorForm = document.getElementById('hidden-advisor-signin');
+      <article id="admin-view" class="c-card u-stack u-stack--md">
+        <div class="text-3xl">🛠️</div>
+        <h3 class="c-h3">Admin view</h3>
+        <p class="c-lede">Configuration for surveys, membership, and compliance.</p>
+        <ul>
+          <li>Survey builder with lifecycle controls + audit logs.</li>
+          <li>Role & membership management to balance cohorts.</li>
+          <li>System overview dashboard with counts and activity.</li>
+        </ul>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Administrator-Tooling" target="_blank" rel="noopener">See wiki › Administrator Tooling</a>
+      </article>
+    </div>
+  </section>
 
-        function wire(link, form) {
-          if (!link || !form) return;
-          link.addEventListener('click', function (e) {
-            e.preventDefault();
-            form.submit();
-          });
-        }
+  <section class="c-card c-card--spacious u-stack u-stack--xl">
+    <header class="u-stack u-stack--sm">
+      <p class="c-eyebrow">Documentation map</p>
+      <h2 class="c-h2">Start with these wiki entries</h2>
+      <p class="c-lede">Use the wiki as the source of truth for environment setup, deployment, and day-to-day administration.</p>
+    </header>
 
-        wire(studentTab, studentForm);
-        wire(advisorTab, advisorForm);
-      })();
-    </script>
+    <div class="u-grid" style="--u-grid-min: 240px">
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <h3 class="c-h3">Getting Started</h3>
+        <p class="c-lede">Local setup, Docker stack, and credential tips for new contributors.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started" target="_blank" rel="noopener">Open wiki › Getting-Started</a>
+      </article>
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <h3 class="c-h3">Development Guide</h3>
+        <p class="c-lede">Branch strategy, lint/test commands, and UI conventions used across the portal.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Development-Guide" target="_blank" rel="noopener">Open wiki › Development-Guide</a>
+      </article>
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <h3 class="c-h3">System Administration</h3>
+        <p class="c-lede">Deployment, environment variables, and Heroku transfer checklists.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/System-Administration" target="_blank" rel="noopener">Open wiki › System-Administration</a>
+      </article>
+      <article class="c-card c-card--tight u-stack u-stack--sm">
+        <h3 class="c-h3">Features deep dive</h3>
+        <p class="c-lede">End-to-end walk through of authentication, surveys, analytics, and automation.</p>
+        <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Features" target="_blank" rel="noopener">Open wiki › Features</a>
+      </article>
+    </div>
+
+    <div class="u-actions u-actions--start">
+      <a href="https://github.com/FaqiangMei/MHA-Survey-Portal/wiki" target="_blank" rel="noopener" class="<%= tailwind_button_classes(:primary) %>">Browse full wiki</a>
+      <button type="button" onclick="window.history.back()" class="<%= tailwind_button_classes(:secondary) %>">← Back to previous page</button>
+    </div>
+  </section>
+
+  <!-- Hidden SSO forms to allow top nav "Students" / "Advisors" to act like the main page buttons -->
+  <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                method: :post,
+                data: { turbo: "false" },
+                id: "hidden-student-signin",
+                html: { style: "display:none" } do |f| %>
+    <%= f.hidden_field :role, value: "student" %>
+  <% end %>
+
+  <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                method: :post,
+                data: { turbo: "false" },
+                id: "hidden-advisor-signin",
+                html: { style: "display:none" } do |f| %>
+    <%= f.hidden_field :role, value: "advisor" %>
+  <% end %>
+
+  <script>
+    (function () {
+      const studentTab = document.querySelector('[data-signin-role="student"]');
+      const advisorTab = document.querySelector('[data-signin-role="advisor"]');
+      const studentForm = document.getElementById('hidden-student-signin');
+      const advisorForm = document.getElementById('hidden-advisor-signin');
+
+      function wire(link, form) {
+        if (!link || !form) return;
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          form.submit();
+        });
+      }
+
+      wire(studentTab, studentForm);
+      wire(advisorTab, advisorForm);
+    })();
+  </script>
+</div>

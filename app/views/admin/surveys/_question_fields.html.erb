@@ -5,9 +5,15 @@
 <% can_add_sub_questions = supports_sub_questions && !is_sub_question %>
 <% wrapper_classes = ["question-block", "rounded-lg", "border", "border-slate-100", "bg-slate-50/40", "p-4", "space-y-4"] %>
 <% wrapper_classes << "ml-6" if is_sub_question %>
+<% option_pairs = question.respond_to?(:answer_option_pairs) ? question.answer_option_pairs : [] %>
+<% if option_pairs.blank? && question.respond_to?(:answer_options_list) %>
+  <% option_pairs = question.answer_options_list.map { |opt| [opt.to_s, opt.to_s] } %>
+<% end %>
 <div id="<%= question_uid %>"
   class="<%= wrapper_classes.join(' ') %>"
   data-question-fields-target="item"
+  data-controller="question-preview"
+  data-question-preview-initial-option-pairs-value='<%= option_pairs.to_json %>'
   data-builder-kind="question"
   data-builder-label="<%= question.question_text.to_s.strip.presence || 'Untitled question' %>">
   <%= question_fields.hidden_field :id %>
@@ -28,24 +34,6 @@
           <span>Question</span>
         </span>
       </div>
-      <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
-      <%= question_fields.text_area :question_text,
-            class: textarea_classes,
-            placeholder: "Describe the competency being assessed." %>
-      <% if supports_description %>
-        <%= question_fields.label :description, "Question description (optional)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-        <%= question_fields.text_area :description, class: textarea_classes, placeholder: "Shown under the prompt for everyone completing the survey." %>
-      <% end %>
-
-      <%= question_fields.label :tooltip_text, "Tooltip text (optional)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-      <%= question_fields.text_area :tooltip_text, class: textarea_classes, placeholder: "Appears inside the tooltip icon when defined." %>
-      <% tooltip_preview = question_fields.object.tooltip_text.to_s.strip.presence %>
-      <% if tooltip_preview.present? %>
-        <div class="flex items-center gap-2 text-xs text-slate-500">
-          <span>Tooltip preview:</span>
-          <%= render 'shared/question_tooltip', text: tooltip_preview %>
-        </div>
-      <% end %>
     </div>
 
     <div class="flex flex-wrap items-center justify-end gap-2">
@@ -78,58 +66,193 @@
     </div>
   </div>
 
-  <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
-    <div class="flex min-w-[12rem] flex-col gap-1">
-      <%= question_fields.label :question_type, "Response type", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-      <%= question_fields.select :question_type,
-                options_for_select(@question_types.map { |type| [type.humanize, type] }, question_fields.object.question_type),
-                {},
-                class: input_classes %>
+  <% preview_prompt = question_fields.object.question_text.to_s.squish.presence || "Untitled question" %>
+  <% preview_desc = supports_description ? question_fields.object.description.to_s.strip.presence : nil %>
+  <% tooltip_preview = question_fields.object.tooltip_text.to_s.strip.presence %>
+  <% required_preview = question_fields.object.respond_to?(:is_required) ? question_fields.object.is_required : false %>
+  <% response_type_preview = question_fields.object.question_type.to_s %>
+
+  <div class="space-y-3">
+    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
+
+    <div class="flex w-full items-start justify-between gap-3 text-sm font-medium text-slate-900">
+      <span class="flex min-w-0 items-start gap-2">
+        <% if is_sub_question %>
+          <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" aria-label="Sub-question">↳</span>
+        <% else %>
+          <% order_label = question_fields.object.question_order.to_i.nonzero? || 1 %>
+          <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200/70 text-xs font-semibold text-slate-700">Q<%= order_label %></span>
+        <% end %>
+
+        <span class="min-w-0 flex flex-col gap-1">
+          <span class="flex min-w-0 flex-wrap items-center gap-2">
+            <span class="leading-snug cursor-text" data-question-preview-target="promptText" data-action="click->question-preview#editPrompt"><%= preview_prompt %></span>
+            <span class="inline-flex hidden" data-question-preview-target="tooltipRoot">
+              <div class="standard-tooltip" data-standard-tooltip>
+                <button type="button"
+                        class="standard-tooltip-trigger"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        aria-controls="tooltip-<%= question_uid %>"
+                        aria-label="Show additional context">
+                  <span aria-hidden="true">ⓘ</span>
+                </button>
+
+                <div id="tooltip-<%= question_uid %>"
+                     class="standard-tooltip-panel"
+                     role="dialog"
+                     aria-label="Additional context">
+                  <div class="cursor-text" data-question-preview-target="tooltipBody" data-action="click->question-preview#editTooltip"></div>
+                </div>
+              </div>
+            </span>
+            <span class="text-red-600 <%= required_preview ? '' : 'hidden' %>" aria-hidden="true" data-question-preview-target="requiredStar">*</span>
+          </span>
+          <div class="indented-description cursor-text text-xs leading-relaxed text-slate-600" data-question-preview-target="descriptionText" data-action="click->question-preview#editDescription"><%= preview_desc.present? ? preview_desc.gsub(/\r?\n/, '<br>').html_safe : "<span class='text-slate-400'>Add description</span>".html_safe %></div>
+        </span>
+      </span>
     </div>
 
-    <div class="flex items-center gap-2 text-sm text-slate-700">
-      <%= question_fields.check_box :is_required, class: checkbox_classes %>
-      <%= question_fields.label :is_required, "Required response", class: "cursor-pointer select-none" %>
-    </div>
-
-    <div class="flex items-center gap-2 text-sm text-slate-700">
-      <%= question_fields.check_box :has_evidence_field, class: checkbox_classes %>
-      <%= question_fields.label :has_evidence_field, "Include evidence field", class: "cursor-pointer select-none" %>
-    </div>
-
-    <% if question.respond_to?(:has_feedback) %>
-      <div class="flex items-center gap-2 text-sm text-slate-700">
-        <%= question_fields.check_box :has_feedback, class: checkbox_classes %>
-        <%= question_fields.label :has_feedback, "Collect advisor feedback", class: "cursor-pointer select-none" %>
+    <div class="space-y-2">
+      <div data-question-preview-target="response">
+        <% case response_type_preview %>
+        <% when "short_answer" %>
+          <textarea class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" rows="3" disabled></textarea>
+        <% when "multiple_choice" %>
+          <div class="flex flex-col gap-2" role="radiogroup" aria-disabled="true">
+            <% option_pairs.first(6).each do |label, value| %>
+              <label class="flex items-center gap-2 text-sm text-slate-800">
+                <input type="radio" disabled class="h-4 w-4 text-blue-600" name="preview-<%= question_uid %>" value="<%= value %>">
+                <span><%= label %></span>
+              </label>
+            <% end %>
+            <% if option_pairs.size > 6 %>
+              <p class="text-xs text-slate-500">+ <%= option_pairs.size - 6 %> more options</p>
+            <% end %>
+          </div>
+        <% when "dropdown" %>
+          <select class="w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm" disabled>
+            <option value="">Select…</option>
+            <% option_pairs.first(25).each do |label, value| %>
+              <option value="<%= value %>"><%= label %></option>
+            <% end %>
+          </select>
+        <% when "scale" %>
+          <% scale_labels = scale_labels_for(question_fields.object) rescue [] %>
+          <% scale_steps = [scale_labels.size, 5].max %>
+          <div class="space-y-1">
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-slate-500"><%= scale_labels.first || "Low" %></span>
+              <input type="range" class="w-full" min="1" max="<%= scale_steps %>" step="1" disabled>
+              <span class="text-xs text-slate-500"><%= scale_labels.last || "High" %></span>
+            </div>
+            <% if scale_labels.present? %>
+              <div class="flex justify-between text-[0.7rem] text-slate-500">
+                <% scale_labels.each do |label| %>
+                  <span><%= label %></span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% when "evidence" %>
+          <input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" placeholder="https://drive.google.com/..." disabled>
+        <% else %>
+          <input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" disabled>
+        <% end %>
       </div>
-    <% end %>
-
-    <% if question.respond_to?(:program_target_level) %>
-      <div class="flex min-w-[12rem] flex-col gap-1">
-        <%= question_fields.label :program_target_level, "Program target level", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-        <%= question_fields.select :program_target_level,
-                                   options_for_select([["None", ""]] + (1..5).map { |level| ["#{level}/5", level] }, question.program_target_level),
-                                   {},
-                                   class: input_classes %>
-      </div>
-    <% end %>
+    </div>
   </div>
 
-  <% if supports_sub_questions %>
-    <%= question_fields.hidden_field :sub_question_order %>
-    <% category = question.category %>
-    <% persisted_parent_candidates = if category.present?
-      category.questions.to_a.select do |candidate|
-        candidate != question &&
-          candidate.id.present? &&
-          (!candidate.respond_to?(:parent_question_id) || candidate.parent_question_id.blank?)
-      end
-    else
-      []
-    end %>
-    <% parent_options = [["(No parent — this is a parent question)", ""]] + persisted_parent_candidates.map { |candidate| [candidate.question_text.to_s.truncate(80), candidate.id] } %>
+  <div class="hidden">
+    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Edit question</p>
 
-    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <div class="space-y-2">
+      <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
+      <%= question_fields.text_area :question_text,
+            class: textarea_classes,
+          data: { question_preview_target: "promptInput" },
+            placeholder: "Describe the competency being assessed." %>
+    </div>
+
+    <% if supports_description %>
+      <div class="space-y-2">
+        <%= question_fields.label :description, "Question description (optional)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+        <%= question_fields.text_area :description, class: textarea_classes, data: { question_preview_target: "descriptionInput" }, placeholder: "Shown under the prompt for everyone completing the survey." %>
+      </div>
+    <% end %>
+
+    <div class="space-y-2">
+      <%= question_fields.label :tooltip_text, "Tooltip text (optional)", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+      <%= question_fields.text_area :tooltip_text, class: textarea_classes, data: { question_preview_target: "tooltipInput" }, placeholder: "Appears inside the tooltip icon when defined." %>
+      <% if tooltip_preview.present? %>
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <span>Tooltip preview:</span>
+          <%= render 'shared/question_tooltip', text: tooltip_preview %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="space-y-2" data-question-preview-target="answerOptionsBlock">
+      <%= question_fields.label :answer_options, "Answer options", class: "block text-sm font-medium text-slate-700" %>
+      <%= question_fields.text_area :answer_options, class: textarea_classes, data: { question_preview_target: "answerOptionsInput" }, placeholder: "Comma separated values for multiple choice questions." %>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Settings</p>
+
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
+      <div class="flex min-w-[12rem] flex-col gap-1">
+        <%= question_fields.label :question_type, "Response type", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+        <%= question_fields.select :question_type,
+                  options_for_select(@question_types.map { |type| [type.humanize, type] }, question_fields.object.question_type),
+                  {},
+                  class: input_classes,
+                  data: { question_preview_target: "typeSelect" } %>
+      </div>
+
+      <div class="flex items-center gap-2 text-sm text-slate-700">
+        <%= question_fields.check_box :is_required, class: checkbox_classes, data: { question_preview_target: "requiredInput" } %>
+        <%= question_fields.label :is_required, "Required response", class: "cursor-pointer select-none" %>
+      </div>
+
+      <div class="flex items-center gap-2 text-sm text-slate-700">
+        <%= question_fields.check_box :has_evidence_field, class: checkbox_classes %>
+        <%= question_fields.label :has_evidence_field, "Include evidence field", class: "cursor-pointer select-none" %>
+      </div>
+
+      <% if question.respond_to?(:has_feedback) %>
+        <div class="flex items-center gap-2 text-sm text-slate-700">
+          <%= question_fields.check_box :has_feedback, class: checkbox_classes %>
+          <%= question_fields.label :has_feedback, "Collect advisor feedback", class: "cursor-pointer select-none" %>
+        </div>
+      <% end %>
+
+      <% if question.respond_to?(:program_target_level) %>
+        <div class="flex min-w-[12rem] flex-col gap-1">
+          <%= question_fields.label :program_target_level, "Program target level", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+          <%= question_fields.select :program_target_level,
+                                     options_for_select([["None", ""]] + (1..5).map { |level| ["#{level}/5", level] }, question.program_target_level),
+                                     {},
+                                     class: input_classes %>
+        </div>
+      <% end %>
+    </div>
+
+    <% if supports_sub_questions %>
+      <%= question_fields.hidden_field :sub_question_order %>
+      <% category = question.category %>
+      <% persisted_parent_candidates = if category.present?
+        category.questions.to_a.select do |candidate|
+          candidate != question &&
+            candidate.id.present? &&
+            (!candidate.respond_to?(:parent_question_id) || candidate.parent_question_id.blank?)
+        end
+      else
+        []
+      end %>
+      <% parent_options = [["(No parent — this is a parent question)", ""]] + persisted_parent_candidates.map { |candidate| [candidate.question_text.to_s.truncate(80), candidate.id] } %>
+
       <div class="grid gap-4 md:grid-cols-2">
         <div class="space-y-1">
           <%= question_fields.label :parent_question_id, "Sub-question parent", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
@@ -150,11 +273,7 @@
           <p class="text-xs text-slate-500">Controlled by drag-and-drop when a parent is selected.</p>
         </div>
       </div>
-    </div>
-  <% end %>
-
-  <div class="space-y-2">
-    <%= question_fields.label :answer_options, "Answer options", class: "block text-sm font-medium text-slate-700" %>
-    <%= question_fields.text_area :answer_options, class: textarea_classes, placeholder: "Comma separated values for multiple choice questions." %>
+    <% end %>
   </div>
+
 </div>

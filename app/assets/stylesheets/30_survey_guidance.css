@@ -13,19 +13,10 @@
 
 .survey-show .survey-header {
   border-top: 4px solid var(--tamu-maroon);
-  padding: var(--spacing-2xl);
 }
 
 .survey-show .survey-section-title {
   color: var(--tamu-maroon);
-}
-
-.survey-show .survey-section-card {
-  padding: var(--spacing-2xl);
-}
-
-.survey-show .survey-category-card {
-  padding: var(--spacing-2xl);
 }
 
 .survey-show .question-block {
@@ -43,8 +34,17 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
-  color: var(--white);
-  background: var(--tamu-maroon);
+  color: var(--white, var(--gray-50));
+  background: var(--tamu-maroon, var(--gray-900));
+  border: 1px solid var(--tamu-maroon, var(--gray-900));
+}
+
+@media (forced-colors: active) {
+  .target-level-badge {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+  }
 }
 
 /* Deterministic vertical spacing between cards (avoid relying on Tailwind space-y) */
@@ -295,10 +295,7 @@
 
 .dashboard-grid-2 {
   grid-template-columns: 2fr 1fr;
-}
-
-.dashboard-grid-3 {
-  grid-template-columns: repeat(3, 1fr);
+  align-items: start;
 }
 
 .dashboard-grid-4 {
@@ -308,9 +305,6 @@
 /* Section Styles */
 
 /* Extra spacing between categories in survey views to improve readability */
-.category-section {
-  margin-bottom: var(--spacing-xl);
-}
 
 .section-header {
   display: flex;
@@ -336,35 +330,11 @@
   flex-shrink: 0;
 }
 
-.section-action {
-  color: var(--info-color);
-  text-decoration: none;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.section-action:hover {
-  color: var(--info-hover);
-  text-decoration: underline;
-}
-
 /* Empty State */
 .empty-state {
   text-align: center;
   padding: var(--spacing-3xl);
   color: var(--gray-400);
-}
-
-.empty-state-icon {
-  width: 48px;
-  height: 48px;
-  background-color: var(--gray-300);
-  border-radius: var(--border-radius-full);
-  margin: 0 auto var(--spacing-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-xl);
 }
 
 /* Responsive Design */
@@ -377,7 +347,6 @@
 @media (max-width: 768px) {
   .dashboard-grid,
   .dashboard-grid-2,
-  .dashboard-grid-3,
   .dashboard-grid-4 {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
@@ -390,8 +359,5 @@
   .dashboard-section {
     padding: var(--spacing-lg);
   }
-}
-
-@media (max-width: 480px) {
 }
 

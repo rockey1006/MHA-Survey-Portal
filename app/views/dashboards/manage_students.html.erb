@@ -1,34 +1,48 @@
 <!-- Student Advisor Management view -->
-<main class="main-content" style="display: flex; justify-content: center;">
-    <section class="dashboard-section" style="max-width: 1200px; width: 100%;">
+<main class="main-content main-content--dashboard">
+    <div class="c-toolbar">
+        <div class="c-toolbar__row items-center w-full gap-3">
+            <div class="shrink-0">
+                <%= link_to "← Back", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
+            </div>
+            <div class="flex-1">
+                <form class="flex w-full items-center gap-2" action="<%= manage_students_path %>" accept-charset="UTF-8" method="get">
+                    <label class="sr-only" for="q">Search</label>
+                    <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, UID, or student ID" class="flex-1 min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <button name="button" type="submit" class="btn btn-secondary">Search</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <section class="c-card dashboard-section">
         <div class="section-header">
-            <h1 class="section-title">🎓 Student Advisor Management</h1>
+            <div class="flex items-baseline justify-between gap-4">
+                <h1 class="section-title">🎓 Student Advisor Management</h1>
+                <div class="text-sm text-slate-500">
+                    <%= pluralize(@students.size, "student") %>
+                </div>
+            </div>
             <p class="section-subtitle">Review advisees and assign advisors across the program.</p>
         </div>
 
-        <div class="role-summary-grid">
-            <div class="role-summary-card">
-                <div class="role-summary-icon student">👥</div>
-                <div class="role-summary-info">
-                    <div class="role-summary-count"><%= @assignment_stats[:total] %></div>
-                    <div class="role-summary-label">Total Students</div>
-                </div>
+        <div class="c-stats-grid grid grid-cols-1 sm:grid-cols-3 gap-4 my-6 items-stretch">
+            <div class="c-stat c-stat--info bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl shadow p-5 flex flex-col !items-center !justify-center !text-center w-full h-full">
+                <div class="c-stat__icon mb-2 text-3xl">👥</div>
+                <div class="c-stat__label text-base font-semibold text-blue-800">Total Students</div>
+                <div class="c-stat__value c-stat__value--md text-4xl font-bold text-blue-900 mt-1"><%= @assignment_stats[:total] %></div>
             </div>
 
-            <div class="role-summary-card">
-                <div class="role-summary-icon advisor">✅</div>
-                <div class="role-summary-info">
-                    <div class="role-summary-count"><%= @assignment_stats[:assigned] %></div>
-                    <div class="role-summary-label">Assigned</div>
-                </div>
+            <div class="c-stat c-stat--success bg-gradient-to-br from-green-100 to-green-50 rounded-xl shadow p-5 flex flex-col !items-center !justify-center !text-center w-full h-full">
+                <div class="c-stat__icon mb-2 text-3xl">✅</div>
+                <div class="c-stat__label text-base font-semibold text-green-800">Assigned</div>
+                <div class="c-stat__value c-stat__value--md text-4xl font-bold text-green-900 mt-1"><%= @assignment_stats[:assigned] %></div>
             </div>
 
-            <div class="role-summary-card">
-                <div class="role-summary-icon admin">📋</div>
-                <div class="role-summary-info">
-                    <div class="role-summary-count"><%= @assignment_stats[:unassigned] %></div>
-                    <div class="role-summary-label">Unassigned</div>
-                </div>
+            <div class="c-stat c-stat--warning bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-xl shadow p-5 flex flex-col !items-center !justify-center !text-center w-full h-full">
+                <div class="c-stat__icon mb-2 text-3xl">📋</div>
+                <div class="c-stat__label text-base font-semibold text-yellow-800">Unassigned</div>
+                <div class="c-stat__value c-stat__value--md text-4xl font-bold text-yellow-900 mt-1"><%= @assignment_stats[:unassigned] %></div>
             </div>
         </div>
 
@@ -42,17 +56,24 @@
                 <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
                 <% track_select_options = [["Select track", ""]] + @track_select_options %>
 
-                <div class="users-table-container" style="overflow-x: auto;">
-                    <table class="users-table">
+                <div class="c-card c-card--flush c-table-wrapper">
+                    <table class="c-table">
                         <thead>
                             <tr>
                                 <th class="table-header-avatar">Avatar</th>
                                 <th class="table-header-name" style="min-width: 15rem;">Student</th>
-                                <th class="table-header-email" style="min-width: 16rem;">Email</th>
-                                <th class="table-header-track" style="min-width: 8rem;">Track</th>
-                                <th class="table-header-track min-w-[10rem]" style="min-width: 12rem;">New Track</th>
-                                <th class="table-header-current-role" style="min-width: 12rem;">Current Advisor</th>
-                                <th class="table-header-new-role" style="min-width: 12rem;">New Advisor</th>
+                                                                <th class="table-header-track" style="min-width: 14rem;">
+                                                                    Track
+                                                                    <div class="text-xs text-slate-500 font-normal">
+                                                                        Click a track tag to change.                                                                        
+                                                                    </div>
+                                                                </th>
+                                                                <th class="table-header-current-role" style="min-width: 16rem;">
+                                                                    Advisor
+                                                                    <div class="text-xs text-slate-500 font-normal">
+                                                                        Click an advisor tag to change.
+                                                                    </div>
+                                                                </th>
                                 <th class="table-header-actions" style="min-width: 12rem;">Changes</th>
                             </tr>
                         </thead>
@@ -65,9 +86,9 @@
                                 <% track_key = student.track.presence || "" %>
                                 <% track_label = track_key.present? ? track_key.titleize : "Unassigned" %>
 
-                                <tr class="user-row" data-student-row="<%= student.student_id %>">
+                                <tr class="c-table-row" data-student-row="<%= student.student_id %>">
                                     <td class="user-avatar-cell">
-                                        <div class="user-table-avatar"
+                                        <div class="c-table-avatar"
                                                  <% if user&.avatar_url.present? %>
                                                      style="background-image: url('<%= user.avatar_url %>');"
                                                  <% end %>>
@@ -76,22 +97,22 @@
                                     </td>
 
                                     <td class="user-name-cell" style="min-width: 15rem;">
-                                        <div class="user-name"><%= user&.name || "Unknown Student" %></div>
+                                        <div class="c-value"><%= user&.name || "Unknown Student" %></div>
+                                        <div class="mt-1 text-xs text-slate-500">
+                                            <% if user&.email.present? %>
+                                                Email: <%= user.email %>
+                                            <% else %>
+                                                Email: —
+                                            <% end %>
+                                        </div>
                                     </td>
 
-                                    <td class="user-email-cell" style="min-width: 16rem;">
-                                        <%= user&.email || "—" %>
-                                    </td>
-
-                                    <td class="user-track-cell" style="min-width: 8rem;">
-                                        <span class="role-badge track"><%= track_label %></span>
-                                    </td>
-
-                                    <td class="user-track-update-cell" style="min-width: 13rem;">
-                                        <div class="role-selector">
+                                    <td class="user-track-cell" style="min-width: 14rem;">
+                                        <div class="role-badge track inline-flex track-badge-clickable" id="track_badge_<%= student.student_id %>" tabindex="0" style="cursor:pointer;"><%= track_label %></div>
+                                        <div class="mt-2 c-select-wrapper" id="track_select_wrapper_<%= student.student_id %>" style="display:none;">
                                             <%= select_tag "track_updates[#{student.student_id}]",
                                                     options_for_select(track_select_options, track_key),
-                                                    class: "role-select track-select w-full",
+                                                    class: "c-select track-select w-full",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_track: track_key,
@@ -102,15 +123,12 @@
                                         </div>
                                     </td>
 
-                                    <td class="user-current-role-cell" style="min-width: 12rem;">
-                                        <span class="role-badge advisor"><%= current_advisor_name %></span>
-                                    </td>
-
-                                    <td class="user-new-role-cell" style="min-width: 12rem;">
-                                        <div class="role-selector">
+                                    <td class="user-current-role-cell" style="min-width: 16rem;">
+                                        <div class="role-badge advisor inline-flex advisor-badge-clickable" id="advisor_badge_<%= student.student_id %>" tabindex="0" style="cursor:pointer;"><%= current_advisor_name %></div>
+                                        <div class="mt-2 c-select-wrapper" id="advisor_select_wrapper_<%= student.student_id %>" style="display:none;">
                                             <%= select_tag "advisor_updates[#{student.student_id}]",
                                                     options_for_select(@advisor_select_options, current_advisor_id),
-                                                    class: "role-select advisor-select",
+                                                    class: "c-select advisor-select w-full",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_advisor: current_advisor_id,
@@ -122,7 +140,7 @@
                                     </td>
 
                                     <td class="user-actions-cell" style="min-width: 12rem;">
-                                        <span class="student-change-indicator" data-student-id="<%= student.student_id %>">
+                                        <span class="c-change-indicator" data-student-id="<%= student.student_id %>">
                                             No changes
                                         </span>
                                     </td>
@@ -132,25 +150,27 @@
                     </table>
                 </div>
 
-                <div class="mt-6 flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                    <div class="text-sm text-slate-600" id="student-changes-summary" style="display: none;">
-                        <span class="changes-count font-semibold">0 changes pending</span>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-end gap-3">
-                        <%= link_to "Cancel", admin_dashboard_path, class: tailwind_button_classes(:secondary) %>
-                        <%= form.submit "Save Changes", class: tailwind_button_classes(:primary), id: "advisor-save-btn", disabled: true %>
-                    </div>
-                </div>
+                                <div class="c-toolbar mt-6">
+                                    <div class="c-toolbar__row items-center w-full gap-3 justify-end">
+                                        <div class="flex-1">
+                                            <div class="text-sm text-slate-600" id="student-changes-summary" style="display: none;">
+                                                <span id="student-changes-count" class="c-change-indicator changed">0 changes pending</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-3">
+                                            <%= link_to "Cancel", admin_dashboard_path, class: tailwind_button_classes(:secondary) %>
+                                            <%= form.submit "Save Changes", class: tailwind_button_classes(:primary), id: "advisor-save-btn", disabled: true %>
+                                        </div>
+                                    </div>
+                                </div>
             <% end %>
         <% else %>
-            <div class="users-table-container" style="overflow-x: auto;">
-                <table class="users-table">
+            <div class="c-card c-card--flush c-table-wrapper">
+                <table class="c-table">
                     <thead>
                         <tr>
                             <th class="table-header-avatar">Avatar</th>
                             <th class="table-header-name" style="min-width: 15rem;">Student</th>
-                            <th class="table-header-email" style="min-width: 16rem;">Email</th>
                             <th class="table-header-track" style="min-width: 8rem;">Track</th>
                             <th class="table-header-current-role">Advisor</th>
                         </tr>
@@ -159,9 +179,9 @@
                         <% @students.each do |student| %>
                             <% user = student.user %>
                             <% current_advisor = student.advisor %>
-                            <tr class="user-row">
+                            <tr class="c-table-row">
                                 <td class="user-avatar-cell">
-                                    <div class="user-table-avatar"
+                                    <div class="c-table-avatar"
                                              <% if user&.avatar_url.present? %>
                                                  style="background-image: url('<%= user.avatar_url %>');"
                                              <% end %>>
@@ -169,10 +189,14 @@
                                     </div>
                                 </td>
                                 <td class="user-name-cell" style="min-width: 15rem;">
-                                    <div class="user-name"><%= user&.name || "Unknown Student" %></div>
-                                </td>
-                                <td class="user-email-cell" style="min-width: 16rem;">
-                                    <%= user&.email || "—" %>
+                                    <div class="c-value"><%= user&.name || "Unknown Student" %></div>
+                                    <div class="mt-1 text-xs text-slate-500">
+                                        <% if user&.email.present? %>
+                                            Email: <%= user.email %>
+                                        <% else %>
+                                            Email: —
+                                        <% end %>
+                                    </div>
                                 </td>
                                 <td class="user-track-cell" style="min-width: 8rem;">
                                     <span class="role-badge track"><%= student.track.present? ? student.track.titleize : "Unassigned" %></span>
@@ -186,13 +210,6 @@
                 </table>
             </div>
         <% end %>
-
-        <div class="mt-6 flex justify-start">
-            <%= link_to "← Back",
-                                    admin_dashboard_path,
-                                    class: tailwind_button_classes(:secondary),
-                                    data: { turbo: false } %>
-        </div>
     </section>
 </main>
 
@@ -208,7 +225,7 @@
 
             const saveButton = document.getElementById('advisor-save-btn');
             const changesSummary = document.getElementById('student-changes-summary');
-            const changesCount = changesSummary ? changesSummary.querySelector('.changes-count') : null;
+            const changesCount = document.getElementById('student-changes-count');
 
             if (!saveButton || !changesSummary || !changesCount) {
                 return;
@@ -217,11 +234,11 @@
             const changeRegistry = new Map();
 
             function indicatorFor(studentId) {
-                return form.querySelector(`.student-change-indicator[data-student-id="${studentId}"]`);
+                return form.querySelector(`.c-change-indicator[data-student-id="${studentId}"]`);
             }
 
             function rowFor(studentId) {
-                return form.querySelector(`.user-row[data-student-row="${studentId}"]`);
+                return form.querySelector(`.c-table-row[data-student-row="${studentId}"]`);
             }
 
             function updateIndicator(studentId) {
@@ -244,15 +261,15 @@
 
                 if (messages.length > 0) {
                     indicator.textContent = messages.join(' | ');
-                    indicator.className = 'student-change-indicator changed';
+                    indicator.className = 'c-change-indicator changed';
                     if (row) {
-                        row.classList.add('has-changes');
+                        row.classList.add('c-table-row--changed');
                     }
                 } else {
                     indicator.textContent = 'No changes';
-                    indicator.className = 'student-change-indicator';
+                    indicator.className = 'c-change-indicator';
                     if (row) {
-                        row.classList.remove('has-changes');
+                        row.classList.remove('c-table-row--changed');
                     }
                 }
             }
@@ -302,7 +319,33 @@
                 const originalName = select.dataset.originalAdvisorName || 'Unassigned';
                 const studentName = select.dataset.studentName || `Student ${studentId}`;
 
+                const badge = document.getElementById(`advisor_badge_${studentId}`);
+                const selectWrapper = document.getElementById(`advisor_select_wrapper_${studentId}`);
+
                 select.value = originalAdvisor;
+
+                if (badge && selectWrapper) {
+                    badge.addEventListener('click', function() {
+                        badge.style.display = 'none';
+                        selectWrapper.style.display = '';
+                        select.focus();
+                    });
+
+                    badge.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            badge.click();
+                            e.preventDefault();
+                        }
+                    });
+                }
+
+                function hideAdvisorSelectAndUpdateBadge() {
+                    if (!badge || !selectWrapper) return;
+                    const selectedOption = select.options[select.selectedIndex];
+                    badge.textContent = selectedOption ? selectedOption.text.trim() : 'Unassigned';
+                    badge.style.display = '';
+                    selectWrapper.style.display = 'none';
+                }
 
                 select.addEventListener('change', function() {
                     const newAdvisor = this.value || '';
@@ -319,6 +362,12 @@
                     } else {
                         setChange(studentId, 'advisor', null);
                     }
+
+                    hideAdvisorSelectAndUpdateBadge();
+                });
+
+                select.addEventListener('blur', function() {
+                    setTimeout(hideAdvisorSelectAndUpdateBadge, 100);
                 });
             });
 
@@ -328,7 +377,33 @@
                 const originalTrackName = select.dataset.originalTrackName || 'Unassigned';
                 const studentName = select.dataset.studentName || `Student ${studentId}`;
 
+                const badge = document.getElementById(`track_badge_${studentId}`);
+                const selectWrapper = document.getElementById(`track_select_wrapper_${studentId}`);
+
                 select.value = originalTrack;
+
+                if (badge && selectWrapper) {
+                    badge.addEventListener('click', function() {
+                        badge.style.display = 'none';
+                        selectWrapper.style.display = '';
+                        select.focus();
+                    });
+
+                    badge.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            badge.click();
+                            e.preventDefault();
+                        }
+                    });
+                }
+
+                function hideTrackSelectAndUpdateBadge() {
+                    if (!badge || !selectWrapper) return;
+                    const selectedOption = select.options[select.selectedIndex];
+                    badge.textContent = selectedOption ? selectedOption.text.trim() : 'Unassigned';
+                    badge.style.display = '';
+                    selectWrapper.style.display = 'none';
+                }
 
                 select.addEventListener('change', function() {
                     const newTrack = this.value || '';
@@ -345,6 +420,12 @@
                     } else {
                         setChange(studentId, 'track', null);
                     }
+
+                    hideTrackSelectAndUpdateBadge();
+                });
+
+                select.addEventListener('blur', function() {
+                    setTimeout(hideTrackSelectAndUpdateBadge, 100);
                 });
             });
 

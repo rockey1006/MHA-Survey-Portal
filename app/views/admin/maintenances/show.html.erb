@@ -1,0 +1,93 @@
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <div class="shrink-0">
+        <%= link_to "Cancel", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-container c-container--dashboard c-page">
+    <header class="c-page-header">
+      <div>
+        <p class="c-eyebrow">Admin tools</p>
+        <h1 class="c-page-title">Maintenance Mode</h1>
+        <p class="c-page-subtitle">Redirect the site to the public maintenance page for non-admin users.</p>
+      </div>
+
+      <div class="survey-card__status">
+        <span class="status-badge <%= @maintenance_enabled ? 'status-badge--success' : 'status-badge--muted' %>">
+          <%= @maintenance_enabled ? "Enabled" : "Disabled" %>
+        </span>
+        <span class="status-note">
+          <%= @maintenance_enabled ? "Students/advisors are redirected." : "Normal access is active." %>
+        </span>
+      </div>
+    </header>
+
+    <div class="u-grid" style="--u-grid-min: 340px">
+      <section class="c-card c-card--spacious u-stack u-stack--md">
+        <div class="u-actions u-actions--split">
+          <div class="u-stack u-stack--sm" style="max-width: 46rem;">
+            <h2 class="c-section-title">Site-wide redirect</h2>
+            <p class="c-lede">
+              When enabled, non-admin users are redirected to the public maintenance page.
+            </p>
+          </div>
+
+          <%= form_with url: admin_maintenance_path, method: :patch, data: { turbo: true } do %>
+            <%= hidden_field_tag :enabled, "0" %>
+            <%= render ToggleSwitchComponent.new(
+              id: "maintenance-mode-toggle",
+              name: "enabled",
+              checked: @maintenance_enabled,
+              label: nil,
+              confirm_on: "Turn ON maintenance mode? Non-admin users will be redirected to the maintenance page.",
+              confirm_off: "Turn OFF maintenance mode? Users will regain access immediately."
+            ) %>
+          <% end %>
+        </div>
+
+        <div class="c-card c-card--tight c-card--muted u-stack u-stack--sm">
+          <p class="c-lede">
+            Maintenance page:
+            <%= link_to maintenance_path, class: "u-text-primary" do %>
+              <strong>/maintenance</strong>
+            <% end %>
+          </p>
+          <p class="c-lede">Admins can continue to sign in and use admin pages.</p>
+        </div>
+      </section>
+
+      <section class="c-card c-card--spacious u-stack u-stack--md">
+        <h2 class="c-section-title">What stays available</h2>
+
+        <div class="c-timeline" role="list">
+          <div class="c-timeline__item" role="listitem">
+            <span class="c-dot c-dot--brand" aria-hidden="true"></span>
+            <div class="u-stack u-stack--sm">
+              <div class="c-h3">Admin access</div>
+              <p class="c-lede">Admins can browse and manage the portal normally.</p>
+            </div>
+          </div>
+
+          <div class="c-timeline__item" role="listitem">
+            <span class="c-dot c-dot--muted" aria-hidden="true"></span>
+            <div class="u-stack u-stack--sm">
+              <div class="c-h3">Sign-in flow</div>
+              <p class="c-lede">Authentication endpoints remain reachable so you can always get back in.</p>
+            </div>
+          </div>
+
+          <div class="c-timeline__item" role="listitem">
+            <span class="c-dot c-dot--muted" aria-hidden="true"></span>
+            <div class="u-stack u-stack--sm">
+              <div class="c-h3">Public maintenance page</div>
+              <p class="c-lede">Users will land on a friendly status page with support contact info.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>

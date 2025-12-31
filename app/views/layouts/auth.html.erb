@@ -17,6 +17,7 @@
     <%= tailwind_stylesheet_tag %>
     <%= stylesheet_link_tag(
           "00_tokens_utilities",
+          "05_common_assets",
           "10_base_reports",
           "20_header_layout",
           "30_survey_guidance",
@@ -26,6 +27,31 @@
           "data-turbo-track": "reload"
         ) %>
     <%= javascript_importmap_tags %>
+
+    <%# App-wide text scaling: scales BOTH Tailwind rem units and our design-token font-size variables. %>
+    <% font_scale = (user_signed_in? ? (current_user.text_scale_percent || 100) : 100).to_f / 100.0 %>
+    <style>
+      :root {
+        --app-font-scale: <%= format("%.2f", font_scale) %>;
+
+        /* Scale token-based font sizes (these are used all over our custom CSS). */
+        --font-size-xs: calc(13px * var(--app-font-scale));
+        --font-size-sm: calc(15px * var(--app-font-scale));
+        --font-size-base: calc(17px * var(--app-font-scale));
+        --font-size-lg: calc(19px * var(--app-font-scale));
+        --font-size-xl: calc(21px * var(--app-font-scale));
+        --font-size-2xl: calc(25px * var(--app-font-scale));
+        --font-size-3xl: calc(29px * var(--app-font-scale));
+        --font-size-4xl: calc(33px * var(--app-font-scale));
+        --font-size-5xl: calc(41px * var(--app-font-scale));
+        --font-size-6xl: calc(49px * var(--app-font-scale));
+      }
+
+      /* Scale rem-based sizing (Tailwind, spacing, etc.) */
+      html { font-size: calc(16px * var(--app-font-scale)); }
+
+      body { line-height: 1.45; }
+    </style>
   </head>
 
   <body class="<%= ["min-h-screen bg-slate-100 text-slate-800 antialiased", (content_for?(:body_class) ? yield(:body_class) : nil)].compact.join(" ") %>">
@@ -36,17 +62,18 @@
     </style>
 
     <div class="flex min-h-screen flex-col">
-      <!-- Compact Google Translate toggle (top-right under header). Click to open language selector panel. -->
-      <div id="gt-compact" aria-hidden="false">
-  <button id="gt-toggle" aria-label="Translate site" title="Translate site" style="position:fixed;right:1rem;top:7.5rem;z-index:1300;min-width:5.5rem;height:2.25rem;border-radius:0.5rem;background:#0b57d0;color:white;border:none;box-shadow:0 0.375rem 1.125rem rgba(11,87,208,0.14);cursor:pointer;font-weight:600;padding:0 0.75rem;">Translation</button>
-        <div id="gt-panel" style="display:none;position:fixed;right:1rem;top:7.5rem;z-index:1300;background:white;border-radius:0.5rem;padding:0.5rem;box-shadow:0 0.375rem 1.5rem rgba(0,0,0,0.12);">
-          <div id="google_translate_element" class="translate-widget" style="min-width:11.25rem;">Loading...</div>
-        </div>
-      </div>
       <% if content_for?(:header) %>
         <header class="w-full">
           <%= yield :header %>
         </header>
+      <% else %>
+        <div class="w-full px-4 pt-4">
+          <div class="layout-shell">
+            <div class="flex items-center justify-end">
+              <%= render "shared/translate_toggle" %>
+            </div>
+          </div>
+        </div>
       <% end %>
 
       <% if flash.any? %>

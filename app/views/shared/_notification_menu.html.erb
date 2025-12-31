@@ -1,36 +1,36 @@
-<details class="relative notifications-menu">
-  <summary class="flex cursor-pointer items-center gap-2 rounded-full bg-white/60 px-3 py-2 text-sm font-medium text-slate-700 shadow transition hover:bg-white focus:outline-none">
-    <span class="relative block">
-      <%= image_tag "notification-icon.png", alt: "Notifications", class: "h-5 w-5" %>
+<details class="notifications-menu c-popover-anchor u-hover-dropdown">
+  <summary class="c-icon-button c-icon-button--nav" aria-label="Notifications">
+    <span class="c-icon-button__icon">
+      <%= image_tag "notification-icon.png", alt: "", class: "notification-icon-img", aria: { hidden: true } %>
       <% if @unread_notification_count.to_i.positive? %>
-        <span class="absolute -right-1 -top-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold leading-none text-white">
+        <span class="c-badge c-badge--count" aria-label="<%= @unread_notification_count %> unread notifications">
           <%= @unread_notification_count %>
         </span>
       <% end %>
     </span>
-    <span class="hidden sm:inline">Notifications</span>
+    <span class="sr-only">Notifications</span>
   </summary>
 
-  <div class="absolute right-0 z-40 mt-3 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
-    <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
-      <span>Recent Notifications</span>
-      <%= link_to "View all", notifications_path, class: "text-xs font-medium text-blue-600 hover:text-blue-500" %>
+  <div class="c-popover c-popover--menu u-popover-down-right u-hover-dropdown__panel" role="menu">
+    <div class="c-menu__header">
+      <span class="c-menu__title">Recent Notifications</span>
+      <%= link_to "View all", notifications_path, class: tailwind_button_classes(:ghost, extra_classes: "btn-sm") %>
     </div>
 
     <% if @recent_notifications.blank? %>
-      <p class="px-4 py-6 text-center text-sm text-slate-500">No notifications yet.</p>
+      <p class="c-menu__empty">No notifications yet.</p>
     <% else %>
-      <ul class="divide-y divide-slate-100">
+      <ul class="c-menu">
         <% @recent_notifications.each do |notification| %>
-          <li class="bg-white hover:bg-slate-50">
-            <%= link_to(notification_path(notification), class: "block px-4 py-3") do %>
-              <p class="flex items-start justify-between text-sm font-medium text-slate-800">
-                <span><%= notification.title %></span>
-                <time class="ml-3 shrink-0 text-xs font-normal text-slate-500"><%= time_ago_in_words(notification.created_at) %> ago</time>
-              </p>
-              <p class="mt-1 text-xs text-slate-600"><%= truncate(notification.message, length: 80) %></p>
+          <li class="c-menu__item-wrap">
+            <%= link_to(notification_path(notification), class: "c-menu__item") do %>
+              <div class="c-menu__row">
+                <span class="c-menu__item-title"><%= notification.title %></span>
+                <time class="c-menu__meta" datetime="<%= notification.created_at.iso8601 %>"><%= time_ago_in_words(notification.created_at) %> ago</time>
+              </div>
+              <p class="c-menu__message"><%= truncate(notification.message, length: 80) %></p>
               <% unless notification.read? %>
-                <span class="mt-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-600">Unread</span>
+                <span class="pill pill--primary">Unread</span>
               <% end %>
             <% end %>
           </li>
@@ -39,8 +39,11 @@
     <% end %>
 
     <% if @unread_notification_count.to_i.positive? %>
-      <div class="border-t border-slate-100 bg-slate-50 px-4 py-3 text-right">
-        <%= button_to "Mark all as read", mark_all_read_notifications_path, method: :patch, class: "text-xs font-semibold text-blue-600 hover:text-blue-500" %>
+      <div class="c-menu__footer">
+        <%= button_to "Mark all as read",
+                    mark_all_read_notifications_path,
+                    method: :patch,
+                    class: tailwind_button_classes(:secondary, extra_classes: "btn-sm") %>
       </div>
     <% end %>
   </div>

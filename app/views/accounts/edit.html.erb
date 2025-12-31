@@ -1,4 +1,4 @@
-<% content_for :title, "Account Settings" %>
+<% content_for :title, "Account Information" %>
 
 <% role_label = if @user.respond_to?(:role_admin?) && @user.role_admin?
                   "Administrator"
@@ -10,149 +10,113 @@
                   "User"
                 end %>
 
-<% initials = @user.name.to_s.split.first(2).map { |p| p.first&.upcase }.join.presence || @user.email.first.upcase %>
-<% joined_on = @user.created_at ? @user.created_at.strftime("%b %-d, %Y") : "Recent" %>
-<% last_accessed = if @user.respond_to?(:current_sign_in_at) && @user.current_sign_in_at.present?
-                     time_ago_in_words(@user.current_sign_in_at)
-                   else
-                     "Recently"
-                   end %>
-<% support_email = "health-admin@tamu.edu" %>
+<% full_name = @user.name.presence || @user.email %>
+<% email = @user.email %>
+<% member_since = @user.created_at ? @user.created_at.strftime("%b %-d, %Y") : "Recently" %>
+<% updated_text = @user.updated_at ? time_ago_in_words(@user.updated_at) + " ago" : "Just now" %>
+<% initials = full_name.to_s.split.first(2).map { |part| part.first&.upcase }.join.presence || email.to_s.first&.upcase %>
+<% avatar_url = @user.avatar_url.presence if @user.respond_to?(:avatar_url) %>
 
-<main class="account-settings-page bg-slate-50 px-4 py-12">
-  <div class="account-settings-container mx-auto max-w-6xl space-y-10">
-    <section class="account-settings-hero relative overflow-hidden rounded-[32px] border border-white/20 bg-gradient-to-r from-[#5e0d13] via-[#750f23] to-[#b32c37] px-8 py-10 text-white shadow-2xl">
-      <div class="absolute inset-y-0 right-0 hidden w-1/2 rotate-6 rounded-[48px] bg-white/10 blur-3xl lg:block" aria-hidden="true"></div>
-      <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">Account overview</p>
-          <h1 class="mt-3 text-3xl font-semibold tracking-tight"><%= @user.name %></h1>
-          <div class="mt-5 flex flex-wrap gap-3 text-sm text-white/90">
-            <span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 font-medium">
-              <span class="h-2.5 w-2.5 rounded-full bg-emerald-300"></span>
-              <%= role_label %>
+<div class="py-6 sm:py-8">
+  <div class="u-stack u-stack--lg">
+    <section class="c-hero c-hero--maroon c-hero--compact">
+      <div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+        <div class="space-y-8">
+          <div class="space-y-4">
+            <p class="c-eyebrow c-eyebrow--inverse">Account settings</p>
+            <h1 class="c-h1 c-h1--inverse"><%= full_name %></h1>
+            <p class="c-lede c-lede--inverse max-w-2xl">Update your display name used across dashboards and exports.</p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <span class="c-pill c-pill--inverse">
+              <span class="c-pill__dot c-pill__dot--inverse" aria-hidden="true"></span>
+              Role · <%= role_label %>
             </span>
-            <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1">Member since <%= joined_on %></span>
-            <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1">Last active <%= last_accessed %> ago</span>
+            <span class="c-pill c-pill--inverse">Member since <%= member_since %></span>
+            <span class="c-pill c-pill--inverse">Updated <%= updated_text %></span>
           </div>
         </div>
 
-        <div class="flex items-center gap-5 text-sm text-white/80">
-          <div class="text-right">
-            <p class="text-xs uppercase tracking-wide text-white/60">Primary email</p>
-            <p class="text-base font-medium"><%= @user.email %></p>
+        <div class="flex flex-col gap-8 sm:flex-row sm:items-start lg:flex-col lg:items-end">
+          <div class="space-y-5">
+            <div>
+              <p class="c-eyebrow c-eyebrow--inverse">Primary email</p>
+              <p class="c-value c-value--xl c-value--inverse"><%= email %></p>
+            </div>
           </div>
-          <div class="flex h-24 w-24 items-center justify-center rounded-full bg-white/15 text-3xl font-semibold text-white ring-4 ring-white/20">
-            <%= initials %>
-          </div>
-        </div>
-      </div>
 
-      <div class="mt-8 grid gap-4 text-sm text-white/80 md:grid-cols-3">
-        <div class="rounded-2xl bg-white/10 px-4 py-3">
-          <p class="text-xs uppercase tracking-wide text-white/60">Notifications</p>
-          <p class="mt-1 text-base font-semibold text-white"><%= @user.notifications_enabled? ? "Enabled" : "Muted" %></p>
-        </div>
-        <div class="rounded-2xl bg-white/10 px-4 py-3">
-          <p class="text-xs uppercase tracking-wide text-white/60">Track</p>
-          <p class="mt-1 text-base font-semibold text-white"><%= @user.student_profile&.track.presence || "Not specified" %></p>
-        </div>
-        <div class="rounded-2xl bg-white/10 px-4 py-3">
-          <p class="text-xs uppercase tracking-wide text-white/60">Advisor</p>
-          <% advisor = @user.student_profile&.advisor || @user.advisor_profile %>
-          <p class="mt-1 text-base font-semibold text-white"><%= advisor&.user&.display_name || "Awaiting assignment" %></p>
+          <div class="c-avatar-tile c-avatar-tile--inverse h-24 w-24 text-xl" <%= "role=\"img\" aria-label=\"#{avatar_aria_label(@user)}\"" unless avatar_url %>>
+            <% if avatar_url %>
+              <img src="<%= avatar_url %>" alt="<%= avatar_aria_label(@user) %>" loading="lazy">
+            <% else %>
+              <span aria-hidden="true"><%= initials %></span>
+              <span class="sr-only"><%= avatar_aria_label(@user) %></span>
+            <% end %>
+          </div>
         </div>
       </div>
     </section>
 
-    <div class="account-settings-grid grid gap-6 lg:grid-cols-[1.8fr,1fr]">
-      <section class="account-details-card rounded-[30px] bg-white px-8 py-8 shadow-sm ring-1 ring-slate-200">
-        <div class="flex flex-col gap-3 border-b border-slate-100 pb-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#500000]">Profile details</p>
-            <h2 class="mt-2 text-2xl font-semibold text-slate-900">Make quick updates</h2>
-            <p class="mt-1 text-sm text-slate-600">Your name appears on dashboards, exports, and automated communications.</p>
-          </div>
-          <div class="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-            Changes save securely
-          </div>
-        </div>
+    <div>
+      <section class="c-card c-card--tight space-y-8">
+        <header>
+          <p class="c-eyebrow">Overview</p>
+          <h2 class="c-h2">Account Information</h2>
+        </header>
 
-        <%= form_with model: @user, url: account_path, method: :patch, local: true, class: "mt-8 space-y-7" do |f| %>
+        <%= form_with model: @user, url: account_path, method: :patch, local: true, class: "u-stack u-stack--lg" do |form| %>
           <% if @user.errors.any? %>
-            <div class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
-              <p class="font-semibold">Please fix the following:</p>
-              <ul class="mt-1 list-disc pl-5">
-                <% @user.errors.full_messages.each do |msg| %>
-                  <li><%= msg %></li>
+            <div class="c-card c-card--tight border border-rose-200 bg-rose-50 text-rose-800 shadow-none">
+              <h3 class="font-semibold text-rose-900">
+                <%= pluralize(@user.errors.count, "error") %> need your attention before saving
+              </h3>
+              <ul class="mt-2 list-disc pl-5">
+                <% @user.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
                 <% end %>
               </ul>
             </div>
           <% end %>
 
-          <div class="grid gap-6 md:grid-cols-2">
-            <div class="md:col-span-2">
-              <%= f.label :name, "Display name", class: "block text-sm font-semibold text-slate-700" %>
-              <%= f.text_field :name,
-                    placeholder: "e.g., Tee Li",
-                    class: "mt-2 block w-full rounded-2xl border border-slate-300 px-4 py-3 text-base text-slate-900 shadow-sm transition focus:border-[#500000] focus:outline-none focus:ring-2 focus:ring-[#500000]" %>
-            </div>
+          <div class="space-y-8">
+            <div class="space-y-4">
+              <p class="c-h3">Profile</p>
 
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Email</label>
-              <p class="mt-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-inner">
-                <%= @user.email %>
-              </p>
-            </div>
+              <div class="u-grid" style="--u-grid-min: 260px">
+                <div class="c-kv c-kv--compact" style="grid-column: 1 / -1;">
+                  <div class="c-field">
+                    <%= form.label :name, "Display name", class: "c-label" %>
+                    <%= form.text_field :name,
+                          placeholder: "John Doe",
+                          required: true,
+                          class: "c-input" %>
+                    <small class="c-help">Used on dashboards and communications.</small>
+                  </div>
+                </div>
 
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Role</label>
-              <p class="mt-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-inner">
-                <%= role_label %>
-              </p>
+                <div class="c-kv c-kv--compact">
+                  <dt class="c-eyebrow">Email</dt>
+                  <dd class="c-value c-value--lg"><%= email %></dd>
+                </div>
+
+                <div class="c-kv c-kv--compact">
+                  <dt class="c-eyebrow">Role</dt>
+                  <dd class="c-value c-value--lg"><%= role_label %></dd>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="rounded-2xl bg-slate-50 px-5 py-4 text-sm text-slate-600">
-            <p class="font-semibold text-slate-800">Why only the name?</p>
-            <p class="mt-1">Sensitive authentication details continue to live in the secure sign-in experience, so you can edit your display information here without impacting MFA or SSO.</p>
-          </div>
+          <div class="c-form-actions u-actions u-actions--split border-t border-slate-100 pt-6">
+            <%= link_to dashboard_path, class: tailwind_button_classes(:secondary) do %>
+              Cancel
+            <% end %>
 
-          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
-            <button type="button"
-                    onclick="window.history.back()"
-                    class="<%= tailwind_button_classes(:secondary) %>">
-              <span aria-hidden="true">←</span>
-              Back to previous page
-            </button>
-
-            <%= f.submit "Save changes",
-              class: tailwind_button_classes(:primary) %>
+            <%= form.submit "Save changes", class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
       </section>
-
-        <aside>
-          <section class="account-checklist-card rounded-[28px] bg-slate-900 px-6 py-6 text-white shadow-lg">
-            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">Checklist</p>
-            <h3 class="mt-2 text-lg font-semibold">Keep your account ready</h3>
-            <ul class="mt-4 space-y-3 text-sm text-white/90">
-              <li class="flex items-start gap-2">
-                <span class="mt-1 h-2 w-2 rounded-full bg-emerald-300"></span>
-                Confirm your display name before exporting reports.
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="mt-1 h-2 w-2 rounded-full bg-amber-300"></span>
-                Review advisor assignments so updates reach the right inbox.
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="mt-1 h-2 w-2 rounded-full bg-sky-300"></span>
-                Keep notifications enabled to catch survey reminders instantly.
-              </li>
-            </ul>
-          </section>
-        </aside>
     </div>
   </div>
-</main>
+</div>

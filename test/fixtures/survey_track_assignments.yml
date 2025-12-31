@@ -15,3 +15,15 @@ fall_2025_executive_track:
   track: Executive
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+spring_2026_residential_track:
+  survey: spring_2026_residential
+  track: Residential
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+spring_2026_executive_track:
+  survey: spring_2026_executive
+  track: Executive
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

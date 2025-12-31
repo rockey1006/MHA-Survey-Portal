@@ -11,32 +11,8 @@ body {
   font-family: var(--font-family);
   background-color: var(--gray-100);
   color: var(--gray-700);
+  font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
-}
-
-/* Reports dashboard styles */
-.reports-container {
-  width: 100%;
-  max-width: var(--container-max-width);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.reports-header {
-  background: linear-gradient(135deg, rgba(80, 0, 0, 0.04), rgba(255, 255, 255, 0.9));
-  border: 1px solid rgba(80, 0, 0, 0.08);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-3xl);
-  box-shadow: var(--shadow-sm);
-}
-
-.reports-header h1 {
-  margin-bottom: var(--spacing-sm);
-  color: var(--tamu-maroon);
-}
-
-.reports-header p {
-  color: var(--gray-500);
 }
 
 .reports-app-root {
@@ -68,13 +44,6 @@ body {
 .reports-panel__header p {
   color: var(--gray-500);
   font-size: var(--font-size-sm);
-}
-
-.reports-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-  justify-content: flex-end;
 }
 
 .reports-filters {
@@ -159,20 +128,6 @@ body {
   font-size: var(--font-size-sm);
 }
 
-.reports-summary__trend--up,
-.reports-summary__trend--positive {
-  color: var(--success-color);
-}
-
-.reports-summary__trend--down,
-.reports-summary__trend--negative {
-  color: var(--error-color);
-}
-
-.reports-summary__trend--flat {
-  color: var(--gray-400);
-}
-
 .reports-summary__description {
   font-size: var(--font-size-xs);
   color: var(--gray-500);
@@ -195,10 +150,6 @@ body {
 
 .reports-noscript {
   border: 1px solid rgba(251, 191, 36, 0.6);
-}
-
-.reports-actions .btn {
-  min-width: 130px;
 }
 
 .reports-tabs__list {
@@ -245,9 +196,4 @@ body {
   .reports-summary__value {
     font-size: var(--font-size-2xl);
   }
-
-  .reports-actions {
-    justify-content: flex-start;
-  }
 }
-

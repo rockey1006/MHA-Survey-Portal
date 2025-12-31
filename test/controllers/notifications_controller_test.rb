@@ -22,7 +22,8 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     assert_nil @student_notification.read_at
 
     get notification_path(@student_notification)
-    assert_response :success
+    expected_target = @student_notification.target_path_for(@student) || notifications_path
+    assert_redirected_to expected_target
     assert_not_nil @student_notification.reload.read_at
   end
 

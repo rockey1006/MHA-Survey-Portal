@@ -1,22 +1,25 @@
 <main class="main-content space-y-12">
 
-  <div class="mb-4">
-    <%= link_to "← Back",
-                admin_dashboard_path,
-                class: tailwind_button_classes(:secondary),
-                data: { turbo: false } %>
+  <div class="c-toolbar c-toolbar--spaced">
+    <div class="c-toolbar__row justify-between w-full">
+      <%= link_to "← Back",
+                  admin_dashboard_path,
+                  class: tailwind_button_classes(:secondary),
+                  data: { turbo: false } %>
+
+      <div class="flex flex-wrap gap-3">
+        <% if defined?(admin_survey_change_logs_path) %>
+          <%= link_to "View Change Log", admin_survey_change_logs_path, class: tailwind_button_classes(:secondary) %>
+        <% end %>
+        <%= link_to "Create Survey", new_admin_survey_path, class: tailwind_button_classes(:primary) %>
+      </div>
+    </div>
   </div>
 
   <section class="flex w-full flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
     <div class="space-y-2">
       <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Survey Builder</h1>
       <p class="text-sm text-slate-600">Launch new advisor surveys, monitor what is live, and review the audit trail of recent changes.</p>
-    </div>
-    <div class="flex flex-wrap gap-3">
-      <% if defined?(admin_survey_change_logs_path) %>
-        <%= link_to "View Change Log", admin_survey_change_logs_path, class: tailwind_button_classes(:secondary) %>
-      <% end %>
-      <%= link_to "Create Survey", new_admin_survey_path, class: tailwind_button_classes(:primary) %>
     </div>
   </section>
 
@@ -25,103 +28,31 @@
   <% total_questions = @active_surveys.sum { |survey| survey.respond_to?(:question_count) ? survey.question_count.to_i : survey.questions.size } %>
   <% latest_activity_at = (@recent_logs.first&.created_at || @active_surveys.map(&:updated_at).compact.max) %>
 
-  <section class="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-4">
-    <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-      <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Active surveys</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= active_count %></p>
-      <p class="text-xs text-slate-500">Currently visible to advisors</p>
+  <section class="c-stats-grid">
+    <div class="c-stat c-stat--info">
+      <p class="c-stat__label">Active surveys</p>
+      <p class="c-stat__value c-stat__value--lg"><%= active_count %></p>
+      <p class="c-stat__subtext">Currently visible to advisors</p>
     </div>
-    <div class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-      <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Question inventory</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= number_with_delimiter(total_questions) %></p>
-      <p class="text-xs text-slate-500">Across all active surveys</p>
+    <div class="c-stat c-stat--success">
+      <p class="c-stat__label">Question inventory</p>
+      <p class="c-stat__value c-stat__value--lg"><%= number_with_delimiter(total_questions) %></p>
+      <p class="c-stat__subtext">Across all active surveys</p>
     </div>
-    <div class="rounded-xl border border-amber-100 bg-amber-50/60 p-4">
-      <p class="text-xs font-semibold uppercase tracking-wide text-amber-600">Archived surveys</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= archived_count %></p>
-      <p class="text-xs text-slate-500">Ready to reactivate when needed</p>
+    <div class="c-stat c-stat--warning">
+      <p class="c-stat__label">Archived surveys</p>
+      <p class="c-stat__value c-stat__value--lg"><%= archived_count %></p>
+      <p class="c-stat__subtext">Ready to reactivate when needed</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Last change</p>
+    <div class="c-stat c-stat--muted">
+      <p class="c-stat__label">Last change</p>
       <% if latest_activity_at.present? %>
-        <p class="mt-2 text-2xl font-semibold text-slate-900"><%= time_ago_in_words(latest_activity_at) %></p>
-        <p class="text-xs text-slate-500">ago via admin activity</p>
+        <p class="c-stat__value c-stat__value--md"><%= time_ago_in_words(latest_activity_at) %></p>
+        <p class="c-stat__subtext">ago via admin activity</p>
       <% else %>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">—</p>
-        <p class="text-xs text-slate-500">No edits recorded yet</p>
+        <p class="c-stat__value c-stat__value--md">—</p>
+        <p class="c-stat__subtext">No edits recorded yet</p>
       <% end %>
-    </div>
-  </section>
-
-  <section id="semester-manager" class="w-full card stack">
-    <header class="toolbar">
-      <div>
-        <h2 class="text-xl font-semibold text-slate-900">Program semesters</h2>
-        <p class="text-sm text-slate-600">Add upcoming terms and choose which semester should appear across advisor and student pages.</p>
-      </div>
-      <% if @current_program_semester.present? %>
-        <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1 text-sm font-semibold text-indigo-700">
-          <span class="h-2 w-2 rounded-full bg-indigo-500" aria-hidden="true"></span>
-          Current: <%= @current_program_semester.name %>
-        </span>
-      <% else %>
-        <span class="inline-flex items-center rounded-full bg-amber-100 px-4 py-1 text-sm font-semibold text-amber-800">No current semester set</span>
-      <% end %>
-    </header>
-
-    <div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-      <div class="stack stack--md">
-        <% if @program_semesters.blank? %>
-          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
-            No semesters yet. Use the form to create your first entry.
-          </div>
-        <% else %>
-          <ul class="space-y-3">
-            <% @program_semesters.each do |semester| %>
-              <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div>
-                  <p class="text-base font-semibold text-slate-900"><%= semester.name %></p>
-                  <p class="text-xs text-slate-500">Added <%= time_ago_in_words(semester.created_at) %> ago</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <% if semester.current? %>
-                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Current</span>
-                  <% else %>
-                    <%= button_to "Make current",
-                                  make_current_admin_program_semester_path(semester),
-                                  method: :patch,
-                                  class: tailwind_button_classes(:subtle, extra_classes: "btn-sm") %>
-                  <% end %>
-                  <%= button_to "Delete",
-                                admin_program_semester_path(semester),
-                                method: :delete,
-                                data: { turbo_confirm: "Delete #{semester.name}?" },
-                                class: tailwind_button_classes(:danger) %>
-                </div>
-              </li>
-            <% end %>
-          </ul>
-        <% end %>
-      </div>
-
-      <div class="card card--tight card--muted">
-        <h3 class="text-base font-semibold text-slate-900">Add semester</h3>
-        <p class="mb-4 text-sm text-slate-600">Name semesters consistently (e.g., "Fall 2025").</p>
-        <%= form_with model: [:admin, @new_program_semester], url: admin_program_semesters_path, local: true, class: "space-y-4" do |form| %>
-          <div class="space-y-1">
-            <%= form.label :name, "Semester name", class: "text-sm font-medium text-slate-700" %>
-            <%= form.text_field :name, required: true, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500", placeholder: "Fall 2026" %>
-          </div>
-          <div class="flex items-start gap-2 text-sm text-slate-600">
-            <%= form.check_box :current, class: "mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" %>
-            <label for="program_semester_current" class="space-y-1">
-              <span class="font-medium text-slate-700">Set as current semester</span>
-              <p>Existing current semester will be turned off automatically.</p>
-            </label>
-          </div>
-          <%= form.submit "Save semester", class: tailwind_button_classes(:primary) %>
-        <% end %>
-      </div>
     </div>
   </section>
 
@@ -136,7 +67,7 @@
       <% end %>
     </header>
 
-    <div class="w-full card card--flush">
+    <div class="w-full c-card c-card--flush">
       <div class="border-b border-slate-200 p-5">
         <%= form_with url: admin_surveys_path, method: :get, local: true, class: "flex w-full flex-wrap items-center gap-3 md:flex-nowrap" do %>
           <%= hidden_field_tag :sort, @sort_column %>
@@ -181,8 +112,8 @@
       <% if @active_surveys.blank? %>
         <div class="p-6 text-center text-sm text-slate-500">No surveys match the current search or filter criteria.</div>
       <% else %>
-        <div class="table-wrapper">
-          <table class="table min-w-full w-full divide-y divide-slate-200 text-sm">
+        <div class="c-table-wrapper">
+          <table class="c-table min-w-full w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Title", "title") %></th>
@@ -250,9 +181,9 @@
     <% if @archived_surveys.blank? %>
       <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">No archived surveys yet.</div>
     <% else %>
-      <div class="w-full card card--flush">
-        <div class="table-wrapper">
-          <table class="table min-w-full w-full divide-y divide-slate-200 text-sm">
+      <div class="w-full c-card c-card--flush">
+        <div class="c-table-wrapper">
+          <table class="c-table min-w-full w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Title</th>

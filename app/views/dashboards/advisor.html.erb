@@ -2,37 +2,37 @@
 <main class="main-content main-content--dashboard">
   <%= render "shared/role_switcher" %>
 
-  <section class="dashboard-section">
+  <section class="c-card c-card--hover dashboard-section">
     <div class="section-header">
       <h1 class="section-title">Advisor Dashboard</h1>
       <p class="section-subtitle">Student guidance for the MHA Program</p>
     </div>
 
     <div class="dashboard-grid dashboard-grid-4">
-      <!-- Students Records -->
-      <div class="feature-item">
-        <%= link_to student_records_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">👨‍🎓</div>
-          <div class="feature-title">Students Records</div>
-          <div class="feature-description"><%= pluralize(@advisee_count, "assigned student") %></div>
-        <% end %>
-      </div>
-
-      <!-- Surveys -->
-      <div class="feature-item">
-        <%= link_to advisors_surveys_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">📄</div>
-          <div class="feature-title">Surveys</div>
-          <div class="feature-description"><%= pluralize(@active_survey_count, "active survey") %></div>
-        <% end %>
+      <!-- Assign Surveys -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <a class="c-tile__link" href="/assignments/surveys">
+          <div class="c-tile__icon">🧾</div>
+          <div class="c-tile__title">Assign Surveys</div>
+          <div class="c-tile__description">Assign/unassign surveys to students</div>
+        </a>
       </div>
 
       <!-- Reports -->
-      <div class="feature-item">
-        <%= link_to reports_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">📊</div>
-          <div class="feature-title">Reports</div>
-          <div class="feature-description"><%= @total_reports || 0 %> generated</div>
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to reports_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">📊</div>
+          <div class="c-tile__title">Reports</div>
+          <div class="c-tile__description"><%= @total_reports || 0 %> generated</div>
+        <% end %>
+      </div>
+
+      <!-- Students Records -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to student_records_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">👨‍🎓</div>
+          <div class="c-tile__title">Students Records</div>
+          <div class="c-tile__description"><%= pluralize(@advisee_count, "assigned student") %></div>
         <% end %>
       </div>
     </div>

@@ -46,6 +46,14 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.index :role
     end
 
+  # Entity table: site-wide configuration settings.
+  create_table :site_settings do |t|
+      t.string :key, null: false
+      t.string :value
+      t.timestamps
+    end
+    add_index :site_settings, :key, unique: true
+
   # Entity table: admin role profile (1:1 with users).
   create_table :admins, primary_key: :admin_id do |t|
       t.timestamps
@@ -63,15 +71,48 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.string :uin
       t.bigint :advisor_id
       t.string :major
+      t.integer :program_year
       t.enum :track, enum_type: :student_tracks, null: false, default: "Residential"
       t.enum :classification, enum_type: :student_classifications, null: false, default: "G1"
       t.timestamps
 
       t.index :advisor_id
+      t.index :program_year
       t.index :uin, unique: true, where: "uin IS NOT NULL"
     end
     add_foreign_key :students, :users, column: :student_id, on_delete: :cascade
     add_foreign_key :students, :advisors, column: :advisor_id, primary_key: :advisor_id, on_delete: :nullify
+
+  # Entity table: majors (available options for student major/program).
+  create_table :majors do |t|
+      t.string :name, null: false
+      t.timestamps
+
+      t.index :name, unique: true
+    end
+
+  # Entity table: program tracks (seeded catalog of tracks).
+  create_table :program_tracks do |t|
+      t.string :key, null: false
+      t.string :name, null: false
+      t.integer :position, null: false, default: 0
+      t.boolean :active, null: false, default: true
+
+      t.timestamps
+    end
+    add_index :program_tracks, "LOWER(key)", unique: true, name: "index_program_tracks_on_lower_key"
+    add_index :program_tracks, "LOWER(name)", unique: true, name: "index_program_tracks_on_lower_name"
+
+  # Entity table: program years (e.g., Year 1, Year 2).
+  create_table :program_years do |t|
+      t.integer :value, null: false
+      t.integer :position, null: false, default: 0
+      t.boolean :active, null: false, default: true
+      t.timestamps
+
+      t.index :value, unique: true
+      t.index :active
+    end
 
   # Entity table: in-app notification records per user.
   create_table :notifications do |t|
@@ -97,16 +138,32 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     add_index :program_semesters, :name, unique: true
     add_index :program_semesters, :current, where: "current = true"
 
+  # Entity table: per-competency target overrides by semester/track/year.
+  create_table :competency_target_levels do |t|
+      t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
+      t.string :track, null: false
+      t.integer :program_year
+      t.string :competency_title, null: false
+      t.integer :target_level, null: false
+      t.timestamps
+    end
+    add_index :competency_target_levels,
+              %i[program_semester_id track program_year competency_title],
+              unique: true,
+              name: "index_competency_targets_unique"
+
   # Entity table: survey definitions.
   create_table :surveys do |t|
       t.string :title, null: false
       t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
       t.text :description
       t.boolean :is_active, null: false, default: true
+      t.datetime :due_date
       t.references :created_by, foreign_key: { to_table: :users }
       t.timestamps
     end
     add_index :surveys, :is_active
+    add_index :surveys, :due_date
     execute <<~SQL
       CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_program_semester
       ON surveys (LOWER(title), program_semester_id);
@@ -139,8 +196,6 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.string :description
       t.integer :position, null: false, default: 0
       t.timestamps
-
-      t.index :survey_section_id, name: "index_categories_on_survey_section_id"
       t.index %i[survey_id position], name: "index_categories_on_survey_id_and_position"
     end
 
@@ -164,6 +219,31 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     add_index :questions, %i[category_id question_order]
     add_index :questions, :question_type
     add_index :questions, %i[parent_question_id sub_question_order], name: "index_questions_on_parent_and_sub_order"
+
+  # Entity table: advisor-only confidential notes scoped to student + survey + advisor.
+  create_table :confidential_advisor_notes do |t|
+      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
+      t.text :body, null: false
+      t.integer :lock_version, null: false, default: 0
+      t.timestamps
+    end
+    add_index :confidential_advisor_notes, %i[student_id survey_id advisor_id], unique: true, name: "index_confidential_notes_on_student_survey_advisor"
+
+  # Entity table: per-question advisor feedback rows.
+  create_table :feedback do |t|
+      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
+      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
+      t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.float :average_score
+      t.string :comments
+      t.bigint :question_id
+      t.integer :lock_version, null: false, default: 0
+      t.timestamps
+    end
+    add_index :feedback, :question_id
 
   # Join table: links surveys to named program tracks.
   create_table :survey_track_assignments do |t|
@@ -214,6 +294,27 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :student_questions, %i[student_id question_id], unique: true
 
+  # Entity table: immutable snapshots of survey responses (version history).
+  create_table :survey_response_versions do |t|
+      t.bigint :student_id, null: false
+      t.bigint :survey_id, null: false
+      t.bigint :advisor_id
+      t.bigint :survey_assignment_id
+      t.bigint :actor_user_id
+      t.string :actor_role
+      t.string :event, null: false
+      t.jsonb :answers, null: false, default: {}
+      t.timestamps
+    end
+
+    add_index :survey_response_versions, %i[student_id survey_id created_at], name: "index_srv_versions_on_student_survey_created"
+    add_index :survey_response_versions, :survey_assignment_id
+    add_index :survey_response_versions, :actor_user_id
+
+    add_foreign_key :survey_response_versions, :students, column: :student_id, primary_key: :student_id
+    add_foreign_key :survey_response_versions, :surveys, column: :survey_id
+    add_foreign_key :survey_response_versions, :survey_assignments, column: :survey_assignment_id
+
   # Join table: tag categories that participate in a survey.
   create_table :survey_category_tags do |t|
       t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
@@ -254,19 +355,6 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.timestamps
     end
     add_index :admin_activity_logs, %i[subject_type subject_id], name: "index_admin_activity_logs_on_subject"
-
-  # Entity table: advisor feedback summaries for students.
-  create_table :feedback do |t|
-      t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
-      t.references :advisor, null: false, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :cascade }
-      t.references :category, null: false, foreign_key: { to_table: :categories, on_delete: :cascade }
-      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
-      t.references :question, foreign_key: { to_table: :questions }, index: true
-      t.float :average_score
-      t.string :comments
-      t.timestamps
-    end
-    add_index :feedback, :survey_id
 
     backfill_mha_competency_sections
     backfill_mha_competency_tooltips

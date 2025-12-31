@@ -67,7 +67,7 @@ const API_ENDPOINTS = {
   benchmark: "/api/reports/benchmark",
   competency: "/api/reports/competency-summary",
   competencyDetail: "/api/reports/competency-detail",
-  track: "/api/reports/course-summary"
+  track: "/api/reports/track-summary"
 }
 
 const DEFAULT_FILTERS = {

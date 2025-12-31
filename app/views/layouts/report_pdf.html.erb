@@ -62,18 +62,17 @@
       }
 
       .chart-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
+        display: block;
+        margin-bottom: 12px;
         margin-bottom: 12px;
         font-size: 12px;
         color: #475569;
       }
 
       .chart-legend__item {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+        display: inline-block;
+        margin-right: 14px;
+        margin-bottom: 6px;
       }
 
       .chart-legend__swatch {
@@ -120,37 +119,45 @@
       }
 
       .chart-horizontal {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        display: block;
       }
 
       .chart-horizontal__row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        margin-bottom: 12px;
         font-size: 12px;
         color: #334155;
       }
 
       .chart-horizontal__label {
-        width: 160px;
+        display: table-cell;
+        width: 180px;
         font-weight: 600;
         word-break: break-word;
+        padding-right: 12px;
+        vertical-align: middle;
+        color: #0f172a;
       }
 
       .chart-horizontal__bar {
-        flex: 1;
-        height: 20px;
-        display: flex;
+        display: table-cell;
+        height: 18px;
         border-radius: 6px;
         overflow: hidden;
         background-color: #e2e8f0;
+        vertical-align: middle;
       }
 
       .chart-horizontal__value {
-        width: 64px;
+        display: table-cell;
+        width: 70px;
         text-align: right;
+        padding-left: 12px;
+        vertical-align: middle;
+        font-size: 12px;
+        color: #0f172a;
       }
 
       .chart-comparison {

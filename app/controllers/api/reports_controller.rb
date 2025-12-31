@@ -20,8 +20,8 @@ module Api
       render json: aggregator.competency_detail
     end
 
-    def course_summary
-      render json: aggregator.course_summary
+    def track_summary
+      render json: aggregator.track_summary
     end
 
     private

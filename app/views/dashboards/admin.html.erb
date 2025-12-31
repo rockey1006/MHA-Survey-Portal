@@ -2,97 +2,149 @@
 <main class="main-content main-content--dashboard">
   <%= render "shared/role_switcher" %>
 
-  <section class="dashboard-section">
+  <section class="c-card c-card--hover dashboard-section">
     <div class="section-header">
       <h1 class="section-title">Admin Dashboard</h1>
       <p class="section-subtitle">System management for the MHA Program</p>
     </div>
     
     <div class="dashboard-grid dashboard-grid-4">
-      <!-- Students Records -->
-      <div class="feature-item">
-        <%= link_to student_records_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">👨‍🎓</div>
-          <div class="feature-title">Students Records</div>
-          <div class="feature-description"><%= @role_counts[:student] || 0 %> registered</div>
+      <!-- Surveys -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to admin_surveys_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">📄</div>
+          <div class="c-tile__title">Survey Builder</div>
+          <div class="c-tile__description">Create & manage surveys</div>
         <% end %>
       </div>
 
-      <!-- Surveys -->
-      <div class="feature-item">
-        <%= link_to admin_surveys_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">📄</div>
-          <div class="feature-title">Surveys</div>
-          <div class="feature-description"><%= @total_surveys || 0 %> active</div>
+      <!-- Survey Assignment -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to assignments_surveys_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🧾</div>
+          <div class="c-tile__title">Assign Surveys</div>
+          <div class="c-tile__description">Assign/unassign surveys to students</div>
+        <% end %>
+      </div>
+
+      <!-- Target Levels -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to admin_target_levels_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🎯</div>
+          <div class="c-tile__title">Target Levels</div>
+          <div class="c-tile__description">Configure competency targets</div>
+        <% end %>
+      </div>
+
+      <!-- Program Setup -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to admin_program_setup_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🧩</div>
+          <div class="c-tile__title">Program Setup</div>
+          <div class="c-tile__description">Tracks, majors, years, semesters</div>
         <% end %>
       </div>
 
       <!-- Reports -->
-      <div class="feature-item">
-        <%= link_to reports_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">📊</div>
-          <div class="feature-title">Reports</div>
-          <div class="feature-description"><%= @total_reports || 0 %> generated</div>
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to reports_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">📊</div>
+          <div class="c-tile__title">Reports</div>
+          <div class="c-tile__description"><%= @total_reports || 0 %> generated</div>
+        <% end %>
+      </div>
+
+      <!-- Students Records -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to student_records_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">👨‍🎓</div>
+          <div class="c-tile__title">Students Records</div>
+          <div class="c-tile__description"><%= @role_counts[:student] || 0 %> registered</div>
         <% end %>
       </div>
 
       <!-- Manage Students -->
-      <div class="feature-item">
-        <%= link_to manage_students_path, class: "feature-link", style: "display:block; text-decoration:none; color:inherit;" do %>
-          <div class="feature-icon">⚙️</div>
-          <div class="feature-title">Manage Students</div>
-          <div class="feature-description"><%= pluralize(@advisee_count, "assigned student") %></div>
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to manage_students_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">⚙️</div>
+          <div class="c-tile__title">Manage Students</div>
+          <div class="c-tile__description"><%= pluralize(@advisee_count, "assigned student") %></div>
         <% end %>
       </div>
 
       <!-- Members -->
-      <div class="feature-item admin-feature">
-        <%= link_to manage_members_path, class: "feature-link" do %>
-          <div class="feature-icon admin-icon">🧑‍💼</div>
-          <div class="feature-title admin-title">Member Management</div>
-          <div class="feature-description"><%= @role_counts[:advisor] || 0 %> advisors</div>
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to manage_members_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🧑‍💼</div>
+          <div class="c-tile__title">Member Management</div>
+          <div class="c-tile__description"><%= @role_counts[:advisor] || 0 %> advisors</div>
+        <% end %>
+      </div>
+
+      <!-- View as Student/Advisor -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to new_impersonation_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon c-tile__icon--warning">🕵️</div>
+          <div class="c-tile__title c-tile__title--warning">View as Student/Advisor</div>
+          <div class="c-tile__description">Read-only preview</div>
+        <% end %>
+      </div>
+
+      <!-- Maintenance Mode -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to admin_maintenance_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon c-tile__icon--warning">🛠️</div>
+          <div class="c-tile__title c-tile__title--warning">Maintenance Mode</div>
+          <div class="c-tile__description"><%= @maintenance_enabled ? "Enabled" : "Disabled" %></div>
         <% end %>
       </div>
     </div>
   </section>
 
-  <section class="dashboard-section md:px-12" style="margin-top: var(--spacing-4xl);">
+  <section class="c-card c-card--hover dashboard-section md:px-12" style="margin-top: var(--spacing-4xl);">
     <div class="section-header">
       <h2 class="section-title">Recent Activity</h2>
       <p class="section-subtitle">Latest updates across surveys, feedback, and assignments</p>
     </div>
 
     <% if @recent_activity.present? %>
-      <div class="space-y-3">
+      <ul class="c-timeline">
         <% @recent_activity.each do |entry| %>
-          <div class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl"><%= entry[:icon] || "📌" %></div>
-            <div class="flex-1 space-y-1">
-              <div class="font-semibold text-slate-900">
+          <li class="c-timeline__item c-list-item" style="align-items: stretch;">
+            <div aria-hidden="true" style="width: 48px; height: 48px; border-radius: 999px; background: var(--gray-50); border: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: var(--font-size-xl); flex-shrink: 0;">
+              <%= entry[:icon] || "📌" %>
+            </div>
+
+            <div class="u-stack u-stack--sm" style="flex: 1; min-width: 0;">
+              <p class="c-value" style="word-break: break-word;">
                 <% if entry[:url].present? %>
-                  <%= link_to entry[:title], entry[:url], class: "text-[#500000] hover:underline" %>
+                  <%= link_to entry[:title], entry[:url], class: "u-text-primary", style: "text-decoration: none;" %>
                 <% else %>
                   <%= entry[:title] %>
                 <% end %>
-              </div>
+              </p>
+
               <% if entry[:subtitle].present? %>
-                <div class="text-sm text-slate-600"><%= entry[:subtitle] %></div>
+                <p class="c-lede" style="margin-top: 0;"><%= entry[:subtitle] %></p>
               <% end %>
             </div>
-            <div class="text-xs text-slate-500 whitespace-nowrap">
-              <% if entry[:timestamp].present? %>
-                <span title="<%= l(entry[:timestamp], format: :long) %>"><%= time_ago_in_words(entry[:timestamp]) %> ago</span>
-              <% else %>
-                <span>n/a</span>
-              <% end %>
+
+            <div class="u-text-right" style="white-space: nowrap;">
+              <p class="c-help" style="margin: 0;">
+                <% if entry[:timestamp].present? %>
+                  <span title="<%= l(entry[:timestamp], format: :long) %>"><%= time_ago_in_words(entry[:timestamp]) %> ago</span>
+                <% else %>
+                  <span>n/a</span>
+                <% end %>
+              </p>
             </div>
-          </div>
+          </li>
         <% end %>
-      </div>
+      </ul>
     <% else %>
-      <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-        <span class="text-4xl" aria-hidden="true">✨</span>
-        <p class="text-sm text-slate-600">No recent activity logged yet.</p>
+      <div class="c-card c-card--tight c-card--dashed u-text-center u-stack u-stack--sm">
+        <p class="c-value c-value--xl" aria-hidden="true">✨</p>
+        <p class="c-lede">No recent activity logged yet.</p>
       </div>
     <% end %>
   </section>

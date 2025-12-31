@@ -1,0 +1,80 @@
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <div class="shrink-0">
+        <%= link_to "Cancel", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-container c-container--dashboard c-page">
+    <header class="c-page-header">
+      <div>
+        <p class="c-eyebrow">Admin tools</p>
+        <h1 class="c-page-title">View as</h1>
+        <p class="c-page-subtitle">Read-only preview of the student or advisor experience.</p>
+      </div>
+
+      <div class="c-pill" aria-label="Read-only mode">
+        <span class="c-pill__dot c-pill__dot--brand" aria-hidden="true"></span>
+        Read-only
+      </div>
+    </header>
+
+    <div class="u-grid" style="--u-grid-min: 340px">
+      <section class="c-card c-card--spacious u-stack u-stack--md">
+        <div class="u-stack u-stack--sm">
+          <h2 class="c-section-title">Student</h2>
+          <p class="c-lede">Choose a student to emulate.</p>
+        </div>
+
+        <% if @students.present? %>
+          <%= form_with scope: :impersonation, url: impersonation_path, method: :post, class: "u-stack u-stack--md" do %>
+            <%= render SearchableSelectComponent.new(
+              id: "impersonation-student-user-id",
+              name: "impersonation[user_id]",
+              label: "Student",
+              placeholder: "Search by name or email...",
+              options: @students.map { |u| { value: u.id, label: u.full_name, description: u.email } }
+            ) %>
+
+            <div class="u-actions u-actions--start">
+              <%= submit_tag "View as student", class: tailwind_button_classes(:primary) %>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="c-card c-card--tight c-card--dashed c-card--muted" role="status">
+            <p class="c-lede">No students found.</p>
+          </div>
+        <% end %>
+      </section>
+
+      <section class="c-card c-card--spacious u-stack u-stack--md">
+        <div class="u-stack u-stack--sm">
+          <h2 class="c-section-title">Advisor</h2>
+          <p class="c-lede">Choose an advisor to emulate.</p>
+        </div>
+
+        <% if @advisors.present? %>
+          <%= form_with scope: :advisor_impersonation, url: advisor_impersonation_path, method: :post, class: "u-stack u-stack--md" do %>
+            <%= render SearchableSelectComponent.new(
+              id: "impersonation-advisor-user-id",
+              name: "advisor_impersonation[user_id]",
+              label: "Advisor",
+              placeholder: "Search by name or email...",
+              options: @advisors.map { |u| { value: u.id, label: u.full_name, description: u.email } }
+            ) %>
+
+            <div class="u-actions u-actions--start">
+              <%= submit_tag "View as advisor", class: tailwind_button_classes(:primary) %>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="c-card c-card--tight c-card--dashed c-card--muted" role="status">
+            <p class="c-lede">No advisors found.</p>
+          </div>
+        <% end %>
+      </section>
+    </div>
+  </div>
+</main>

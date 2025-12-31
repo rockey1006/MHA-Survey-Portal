@@ -1,0 +1,14 @@
+<% checked_value = checked ? true : false %>
+
+<div class="c-toggle">
+  <%= tag.input(**input_attributes) %>
+
+  <label class="c-toggle__track" for="<%= id %>">
+    <span class="c-toggle__thumb" aria-hidden="true"></span>
+    <span class="sr-only"><%= label.presence || "Toggle" %></span>
+  </label>
+
+  <% if label.present? %>
+    <span class="c-toggle__label"><%= label %></span>
+  <% end %>
+</div>

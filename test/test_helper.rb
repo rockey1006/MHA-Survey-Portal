@@ -12,6 +12,7 @@ if ENV["COVERAGE"] == "1"
     # Use the Rails profile and enable branch coverage for more accuracy.
     SimpleCov.start "rails" do
       enable_coverage :branch
+      minimum_coverage 95
       add_filter "/test/"
       add_group "Services", "app/services"
     end

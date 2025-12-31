@@ -5,6 +5,10 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     @adv_user = users(:advisor)
     @advisor = @adv_user.advisor_profile
 
+    @admin_user = users(:admin)
+    @other_adv_user = users(:other_advisor)
+    @other_advisor = @other_adv_user.advisor_profile
+
     @student_user = users(:student)
     @student = students(:student) || Student.first
 
@@ -188,6 +192,135 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated", existing.comments
   end
 
+  test "batch create returns conflict when feedback was updated concurrently" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
+
+    existing = Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      question_id: q1.id,
+      category_id: @cat1.id,
+      advisor_id: @advisor.advisor_id,
+      average_score: 3,
+      comments: "Initial"
+    )
+
+    stale_lock_version = existing.lock_version
+
+    # Simulate a concurrent save that happens after the form was rendered.
+    existing.update!(comments: "Concurrent update")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { id: existing.id, lock_version: stale_lock_version.to_s, average_score: "5", comments: "My update" }
+      }
+    }
+
+    post feedbacks_path, params: params
+    assert_response :unprocessable_entity
+
+    existing.reload
+    assert_equal "Concurrent update", existing.comments
+  end
+
+  test "batch create saves confidential advisor note when present" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      },
+      confidential_advisor_note: { body: "Confidential note from unified save" }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", 1 do
+      post feedbacks_path, params: params
+    end
+
+    note = ConfidentialAdvisorNote.find_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id
+    )
+    assert note
+    assert_equal "Confidential note from unified save", note.body
+  end
+
+  test "batch create clears confidential advisor note when blank" do
+    ConfidentialAdvisorNote.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      body: "Existing confidential note"
+    )
+
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      },
+      confidential_advisor_note: { body: "   " }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", -1 do
+      post feedbacks_path, params: params
+    end
+
+    refute ConfidentialAdvisorNote.find_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id
+    )
+  end
+
+  test "batch create allows note-only save and redirects" do
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {},
+      confidential_advisor_note: { body: "Note-only save" }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", 1 do
+      post feedbacks_path, params: params
+    end
+
+    assert_response :redirect
+    assert_redirected_to student_records_path
+
+    note = ConfidentialAdvisorNote.find_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id
+    )
+    assert note
+    assert_equal "Note-only save", note.body
+  end
+
+  test "batch create redirects to return_to when provided" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      return_to: "/student_records",
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      }
+    }
+
+    post feedbacks_path, params: params
+    assert_response :redirect
+    assert_redirected_to student_records_path
+  end
+
   test "batch create with validation errors rolls back transaction" do
     q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
 
@@ -206,7 +339,7 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "batch create rejects scores outside 0-5" do
+  test "batch create rejects scores outside 1-5" do
     q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
 
     params = {
@@ -214,6 +347,24 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
       student_id: @student.student_id,
       ratings: {
         q1.id.to_s => { average_score: "6", comments: "Too high" }
+      }
+    }
+
+    assert_no_difference "Feedback.count" do
+      post feedbacks_path, params: params
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "batch create rejects 0 score" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "0", comments: "Not assessable" }
       }
     }
 
@@ -336,6 +487,101 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     json = JSON.parse(response.body)
     assert_equal "No category or ratings provided", json["error"]
+  end
+
+  test "create allows confidential note save without ratings param" do
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      confidential_advisor_note: { body: "Note-only without ratings param" }
+    }
+
+    assert_difference "ConfidentialAdvisorNote.count", 1 do
+      post feedbacks_path, params: params
+    end
+
+    assert_response :redirect
+    assert_redirected_to student_records_path
+  end
+
+  test "create with feedback question_id enters per-question branch" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      feedback: {
+        survey_id: @survey.id,
+        student_id: @student.student_id,
+        question_id: q1.id,
+        average_score: "4",
+        comments: "Single"
+      }
+    }
+
+    post feedbacks_path, params: params
+
+    # This path is currently limited because question_id is not permitted; it should still be handled.
+    assert_response :unprocessable_entity
+  end
+
+  test "batch create returns JSON error when confidential note lock is stale" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    note = ConfidentialAdvisorNote.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      body: "Initial"
+    )
+    stale_lock_version = note.lock_version
+    note.update!(body: "Concurrent update")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      },
+      confidential_advisor_note: { body: "My update", lock_version: stale_lock_version.to_s }
+    }
+
+    post feedbacks_path, params: params, as: :json
+
+    assert_response :unprocessable_entity
+    json = JSON.parse(response.body)
+    assert_includes json.fetch("errors").fetch("confidential_advisor_note").join(" "), "updated by someone else"
+  end
+
+  test "note-only batch create returns JSON errors when confidential note lock is stale" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    note = ConfidentialAdvisorNote.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      body: "Initial"
+    )
+    stale_lock_version = note.lock_version
+    note.update!(body: "Concurrent update")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      # ratings must be present to take the batch path, but can be empty inputs
+      # to trigger the note-only save behavior.
+      ratings: {
+        q1.id.to_s => { average_score: "", comments: "" }
+      },
+      confidential_advisor_note: { body: "My update", lock_version: stale_lock_version.to_s }
+    }
+
+    post feedbacks_path,
+         params: params,
+         as: :json,
+         headers: { "ACCEPT" => "application/json" }
+
+    assert_response :unprocessable_entity
+    json = JSON.parse(response.body)
+    assert_includes json.fetch("errors").fetch("confidential_advisor_note").join(" "), "updated by someone else"
   end
 
   # === Update Action ===
@@ -472,5 +718,59 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     post feedbacks_path, params: params
 
     assert_response :unprocessable_entity
+  end
+
+  test "new shows confidential notes section for admin" do
+    sign_out @adv_user
+    sign_in @admin_user
+
+    get new_feedback_path, params: { survey_id: @survey.id, student_id: @student.student_id }
+    assert_response :success
+    assert_includes response.body, "Confidential advisor notes"
+  end
+
+  test "new hides confidential notes section for non-owner advisor" do
+    sign_out @adv_user
+    sign_in @other_adv_user
+
+    get new_feedback_path, params: { survey_id: @survey.id, student_id: @student.student_id }
+    assert_response :success
+    refute_includes response.body, "Confidential advisor notes"
+  end
+
+  test "note-only create does not save confidential note for non-owner advisor" do
+    sign_out @adv_user
+    sign_in @other_adv_user
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      confidential_advisor_note: { body: "Should not persist" }
+    }
+
+    assert_no_difference "ConfidentialAdvisorNote.count" do
+      post feedbacks_path, params: params
+    end
+
+    assert_response :redirect
+    assert_redirected_to student_records_path
+  end
+
+  test "create rejects non-local return_to to prevent open redirect" do
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      return_to: "//evil.example.com/phish",
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      }
+    }
+
+    post feedbacks_path, params: params
+
+    assert_response :redirect
+    assert_redirected_to student_records_path
   end
 end

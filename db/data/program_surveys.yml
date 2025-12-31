@@ -103,7 +103,7 @@ common_categories: &common_categories
               - ["3 — Some flexibility: some ability to adjust days per week or hours per day; you must work the total hours per week.", "3"]
               - ["4 — Flexible schedule: flexibility in days worked or hours worked per week, with limited variation in total hours per week.", "4"]
               - ["5 — Very flexible schedule: flexibility in days or hours worked each day, including total hours worked per week.", "5"]
-              - ["Other — Please describe the flexibility of your work schedule.", "0"]
+              - { label: "Other — Please describe the flexibility of your work schedule.", value: "0", requires_text: true }
 
   - name: "Health Care Environment and Community"
     description: "Relation between health care operations and community organizations and policies"
@@ -253,11 +253,11 @@ common_categories: &common_categories
 
 survey_base: &survey_base
   program_semester: "Fall 2025"
+  due_date: "2025-12-08"
   legend:
     title: "Rating Scale Reference"
     body: *mha_competency_tooltip
   is_active: true
-  seed_auto_assign_students: true
   categories: *common_categories
 
 surveys:
@@ -277,8 +277,16 @@ surveys:
 
   - <<: *executive_survey_base
     program_semester: "Spring 2025"
-    seed_auto_assign_students: false
+    due_date: "2025-04-29"
 
   - <<: *residential_survey_base
     program_semester: "Spring 2025"
-    seed_auto_assign_students: false
+    due_date: "2025-04-29"
+
+  - <<: *executive_survey_base
+    program_semester: "Spring 2026"
+    due_date: "2026-04-28"
+
+  - <<: *residential_survey_base
+    program_semester: "Spring 2026"
+    due_date: "2026-04-28"

@@ -1,0 +1,26 @@
+<%
+  # Shared 1–5 proficiency dropdown used across the app.
+  # Locals:
+  # - name: (String) form field name
+  # - selected: (String|nil) selected option value
+  # - question: (Question|nil) optional, for question-specific labels
+  # - id: (String|nil) optional id attribute
+  # - class_name: (String|nil) CSS classes
+  # - data: (Hash|nil) data-* attributes
+
+  select_name = local_assigns.fetch(:name)
+  selected_value = local_assigns[:selected]
+  question = local_assigns[:question]
+  select_id = local_assigns[:id]
+  class_name = local_assigns[:class_name].presence || "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+  data_attributes = local_assigns[:data].presence || {}
+
+  option_pairs = advisor_proficiency_option_pairs_for(question)
+  options = [["", ""]] + option_pairs
+%>
+
+<%= select_tag select_name,
+               options_for_select(options, selected_value),
+               id: select_id,
+               class: class_name,
+               data: data_attributes %>

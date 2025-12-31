@@ -48,6 +48,32 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["survey_section_id"], name: "index_categories_on_survey_section_id"
   end
 
+  create_table "competency_target_levels", force: :cascade do |t|
+    t.bigint "program_semester_id", null: false
+    t.string "track", null: false
+    t.integer "program_year"
+    t.string "competency_title", null: false
+    t.integer "target_level", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["program_semester_id", "track", "program_year", "competency_title"], name: "index_competency_targets_unique", unique: true
+    t.index ["program_semester_id"], name: "index_competency_target_levels_on_program_semester_id"
+  end
+
+  create_table "confidential_advisor_notes", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "survey_id", null: false
+    t.bigint "advisor_id", null: false
+    t.text "body", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["advisor_id"], name: "index_confidential_advisor_notes_on_advisor_id"
+    t.index ["student_id", "survey_id", "advisor_id"], name: "index_confidential_notes_on_student_survey_advisor", unique: true
+    t.index ["student_id"], name: "index_confidential_advisor_notes_on_student_id"
+    t.index ["survey_id"], name: "index_confidential_advisor_notes_on_survey_id"
+  end
+
   create_table "feedback", force: :cascade do |t|
     t.bigint "student_id", null: false
     t.bigint "advisor_id", null: false
@@ -55,6 +81,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.bigint "survey_id", null: false
     t.float "average_score"
     t.string "comments"
+    t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "question_id"
@@ -63,6 +90,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["question_id"], name: "index_feedback_on_question_id"
     t.index ["student_id"], name: "index_feedback_on_student_id"
     t.index ["survey_id"], name: "index_feedback_on_survey_id"
+  end
+
+  create_table "majors", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_majors_on_name", unique: true
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -89,6 +123,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["name"], name: "index_program_semesters_on_name", unique: true
   end
 
+  create_table "program_tracks", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((key)::text)", name: "index_program_tracks_on_lower_key", unique: true
+    t.index "lower((name)::text)", name: "index_program_tracks_on_lower_name", unique: true
+  end
+
+  create_table "program_years", force: :cascade do |t|
+    t.integer "value", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_program_years_on_active"
+    t.index ["value"], name: "index_program_years_on_value", unique: true
+  end
+
   create_table "questions", force: :cascade do |t|
     t.string "question_text", null: false
     t.text "description"
@@ -113,6 +168,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["question_order"], name: "index_questions_on_question_order"
   end
 
+  create_table "site_settings", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "value"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_site_settings_on_key", unique: true
+  end
+
   create_table "student_questions", force: :cascade do |t|
     t.bigint "student_id", null: false
     t.bigint "advisor_id"
@@ -133,7 +196,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "major"
+    t.integer "program_year"
     t.index ["advisor_id"], name: "index_students_on_advisor_id"
+    t.index ["program_year"], name: "index_students_on_program_year"
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
 
@@ -171,6 +236,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.index ["survey_id"], name: "index_survey_legends_on_survey_id", unique: true
   end
 
+  create_table "survey_response_versions", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "survey_id", null: false
+    t.bigint "advisor_id"
+    t.bigint "survey_assignment_id"
+    t.bigint "actor_user_id"
+    t.string "actor_role"
+    t.string "event", null: false
+    t.jsonb "answers", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_user_id"], name: "index_survey_response_versions_on_actor_user_id"
+    t.index ["student_id", "survey_id", "created_at"], name: "index_srv_versions_on_student_survey_created"
+    t.index ["survey_assignment_id"], name: "index_survey_response_versions_on_survey_assignment_id"
+  end
+
   create_table "survey_sections", force: :cascade do |t|
     t.bigint "survey_id", null: false
     t.string "title", null: false
@@ -200,8 +281,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.boolean "is_active", default: true, null: false
     t.bigint "created_by_id"
     t.bigint "program_semester_id", null: false
+    t.datetime "due_date"
     t.index "lower((title)::text), program_semester_id", name: "index_surveys_on_lower_title_and_program_semester", unique: true
     t.index ["created_by_id"], name: "index_surveys_on_created_by_id"
+    t.index ["due_date"], name: "index_surveys_on_due_date"
     t.index ["is_active"], name: "index_surveys_on_is_active"
     t.index ["program_semester_id"], name: "index_surveys_on_program_semester_id"
     t.index ["track"], name: "index_surveys_on_track"
@@ -230,6 +313,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
   add_foreign_key "categories", "survey_sections", on_delete: :nullify
   add_foreign_key "categories", "surveys"
+  add_foreign_key "competency_target_levels", "program_semesters"
+  add_foreign_key "confidential_advisor_notes", "advisors", primary_key: "advisor_id", on_delete: :cascade
+  add_foreign_key "confidential_advisor_notes", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "confidential_advisor_notes", "surveys", on_delete: :cascade
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
   add_foreign_key "feedback", "questions"
@@ -249,6 +336,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   add_foreign_key "survey_change_logs", "surveys", on_delete: :nullify
   add_foreign_key "survey_change_logs", "users", column: "admin_id"
   add_foreign_key "survey_legends", "surveys"
+  add_foreign_key "survey_response_versions", "students", primary_key: "student_id"
+  add_foreign_key "survey_response_versions", "survey_assignments"
+  add_foreign_key "survey_response_versions", "surveys"
   add_foreign_key "survey_sections", "surveys", on_delete: :cascade
   add_foreign_key "survey_track_assignments", "surveys", on_delete: :cascade
   add_foreign_key "surveys", "program_semesters"

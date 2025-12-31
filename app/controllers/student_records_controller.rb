@@ -110,7 +110,13 @@ class StudentRecordsController < ApplicationController
               assignment = assignments_lookup.dig(student.student_id, survey.id)
               completed_at = assignment&.completed_at
               due_date = assignment&.due_date
-              status_text = completed_at.present? ? "Completed" : "Pending"
+              status_text = if assignment.nil?
+                "Unassigned"
+              elsif completed_at.present?
+                "Completed"
+              else
+                "Assigned"
+              end
 
               {
                 student: student,

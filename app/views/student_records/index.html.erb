@@ -124,6 +124,8 @@
                             <% feedback_entries        = Array(row[:feedbacks]) %>
                             <% has_feedback            = feedback_entries.any? %>
                             <% has_completed          = status_text == "Completed" %>
+                            <% is_assigned           = status_text == "Assigned" %>
+                            <% is_unassigned         = status_text == "Unassigned" %>
                             <% survey_label            = has_completed ? (has_feedback ? "Edit Feedback" : "Review") : nil %>
                             <% survey_link_params      = { survey_id: survey.id, student_id: student.student_id } %>
                             <% survey_link_params[:prefill] = true if has_feedback %>
@@ -244,8 +246,10 @@
                                       title="Only the student's advisor or an admin can open this survey">
                                       <%= survey_label || "Review" %>
                                     </span>
-                                  <% else %>
+                                  <% elsif is_assigned %>
                                     <span class="text-xs text-slate-500">Awaiting student completion</span>
+                                  <% else %>
+                                    <span class="text-xs text-slate-500">Survey not assigned</span>
                                   <% end %>
                                 </div>
                               </td>

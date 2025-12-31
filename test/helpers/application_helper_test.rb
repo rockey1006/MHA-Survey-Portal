@@ -49,7 +49,8 @@ class ApplicationHelperTest < ActionView::TestCase
 
   test "survey_status_badge_classes maps status variants" do
     assert_includes survey_status_badge_classes("completed"), "emerald"
-    assert_includes survey_status_badge_classes("pending"), "amber"
+    assert_includes survey_status_badge_classes("assigned"), "amber"
+    assert_includes survey_status_badge_classes("unassigned"), "slate"
     assert_includes survey_status_badge_classes("unknown"), "slate"
   end
 

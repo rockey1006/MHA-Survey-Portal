@@ -286,23 +286,23 @@
       <h2>Track Achievement</h2>
       <% tracks = Array(payload[:track_summary]) %>
       <% if tracks.any? %>
-        <div class="chart-block" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="chart-block">
           <h3>% All Competency Achieved by Track</h3>
-          <div class="chart-legend" style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.9rem; color: #475569;">
-            <span class="chart-legend__item" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+          <div class="chart-legend">
+            <span class="chart-legend__item">
               <span class="chart-legend__swatch" style="display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 999px; background-color: <%= status_colors[:achieved] %>"></span>
               Achieved
             </span>
-            <span class="chart-legend__item" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+            <span class="chart-legend__item">
               <span class="chart-legend__swatch" style="display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 999px; background-color: <%= status_colors[:not_met] %>"></span>
               Not Met
             </span>
-            <span class="chart-legend__item" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+            <span class="chart-legend__item">
               <span class="chart-legend__swatch" style="display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 999px; background-color: <%= status_colors[:not_assessed] %>"></span>
               Not Assessed
             </span>
           </div>
-          <div class="chart-horizontal" style="display: flex; flex-direction: column; gap: 0.9rem;">
+          <div class="chart-horizontal">
             <% tracks.each do |entry| %>
               <% achieved_pct = [[entry[:achieved_percent].to_f, 0.0].max, 100.0].min %>
               <% not_met_pct = [[entry[:not_met_percent].to_f, 0.0].max, 100.0].min %>
@@ -314,16 +314,16 @@
                 <% not_met_pct *= scale %>
                 <% not_assessed_pct *= scale %>
               <% end %>
-              <div class="chart-horizontal__row" style="display: flex; align-items: center; gap: 0.8rem;">
-                <div class="chart-horizontal__label" style="flex: 0 0 180px; font-weight: 600; color: #0f172a;">
+              <div class="chart-horizontal__row">
+                <div class="chart-horizontal__label">
                   <%= entry[:track] %>
                 </div>
-                <div class="chart-horizontal__bar" style="flex: 1; height: 1.15rem; border-radius: 999px; overflow: hidden; background-color: #e2e8f0;">
+                <div class="chart-horizontal__bar">
                   <div style="float: left; height: 100%; width: <%= format('%.2f', achieved_pct) %>%; background-color: <%= status_colors[:achieved] %>;"></div>
                   <div style="float: left; height: 100%; width: <%= format('%.2f', not_met_pct) %>%; background-color: <%= status_colors[:not_met] %>;"></div>
                   <div style="float: left; height: 100%; width: <%= format('%.2f', not_assessed_pct) %>%; background-color: <%= status_colors[:not_assessed] %>;"></div>
                 </div>
-                <div class="chart-horizontal__value" style="flex: 0 0 70px; font-size: 0.9rem; color: #0f172a; text-align: right;">
+                <div class="chart-horizontal__value">
                   <%= entry[:achieved_percent].present? ? number_to_percentage(entry[:achieved_percent], precision: 1) : "—" %>
                 </div>
               </div>

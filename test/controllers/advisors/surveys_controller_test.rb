@@ -15,5 +15,4 @@ class Advisors::SurveysControllerTest < ActionDispatch::IntegrationTest
     get "/advisors/surveys/#{@survey.id}"
     assert_redirected_to assignments_survey_path(@survey)
   end
-
 end

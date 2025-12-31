@@ -17,7 +17,10 @@ class Advisors::StudentsControllerTest < ActionDispatch::IntegrationTest
   test "update changes track with valid input" do
     sign_in @advisor_user
 
-    patch advisors_student_path(@student), params: { student: { track: "executive" } }
+    I18n.stub(:l, ->(*) { raise I18n::MissingTranslationData.new(:en, :time) }) do
+      patch advisors_student_path(@student), params: { student: { track: "executive" } }
+    end
+
     assert_redirected_to advisors_student_path(@student)
     assert_equal "executive", @student.reload.track
     assert_match "Track changed", flash[:notice]

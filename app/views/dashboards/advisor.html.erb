@@ -2,24 +2,15 @@
 <main class="main-content main-content--dashboard">
   <%= render "shared/role_switcher" %>
 
-  <section class="c-card dashboard-section">
+  <section class="c-card c-card--hover dashboard-section">
     <div class="section-header">
       <h1 class="section-title">Advisor Dashboard</h1>
       <p class="section-subtitle">Student guidance for the MHA Program</p>
     </div>
 
     <div class="dashboard-grid dashboard-grid-4">
-      <!-- Students Records -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
-        <%= link_to student_records_path, class: "c-tile__link" do %>
-          <div class="c-tile__icon">👨‍🎓</div>
-          <div class="c-tile__title">Students Records</div>
-          <div class="c-tile__description"><%= pluralize(@advisee_count, "assigned student") %></div>
-        <% end %>
-      </div>
-
       <!-- Surveys -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to advisors_surveys_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">📄</div>
           <div class="c-tile__title">Surveys</div>
@@ -28,11 +19,20 @@
       </div>
 
       <!-- Reports -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to reports_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">📊</div>
           <div class="c-tile__title">Reports</div>
           <div class="c-tile__description"><%= @total_reports || 0 %> generated</div>
+        <% end %>
+      </div>
+
+      <!-- Students Records -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to student_records_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">👨‍🎓</div>
+          <div class="c-tile__title">Students Records</div>
+          <div class="c-tile__description"><%= pluralize(@advisee_count, "assigned student") %></div>
         <% end %>
       </div>
     </div>

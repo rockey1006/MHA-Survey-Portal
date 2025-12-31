@@ -609,7 +609,11 @@ module Reports
           total_students: attainment_counts[:total_students],
           courses: course_breakdown
         }
-      end.compact.select { |entry| REPORT_DOMAINS.include?(entry[:name]) }.sort_by { |entry| -(entry[:student_average] || 0.0) }
+      end.compact
+
+      summary = summary.select { |entry| REPORT_DOMAINS.include?(entry[:name]) }
+      order_lookup = domain_order_names.each_with_index.to_h
+      summary = summary.sort_by { |entry| order_lookup.fetch(entry[:name], Float::INFINITY) }
 
       Rails.logger.debug "Generated competency summary: #{summary.inspect}"
       summary
@@ -797,11 +801,33 @@ module Reports
     end
 
     def available_categories
-      category_group_lookup
+      entries = category_group_lookup
         .values
         .select { |entry| REPORT_DOMAINS.include?(entry[:name]) }
         .map { |entry| { id: entry[:id], name: entry[:name], category_ids: entry[:ids] } }
-        .sort_by { |entry| entry[:name].to_s.downcase }
+
+      order_lookup = domain_order_names.each_with_index.to_h
+      entries.sort_by do |entry|
+        [ order_lookup.fetch(entry[:name], Float::INFINITY), entry[:name].to_s.downcase ]
+      end
+    end
+
+    def domain_order_names
+      return @domain_order_names if defined?(@domain_order_names)
+
+      @domain_order_names = if filters[:survey_id]
+        categories = Category.where(survey_id: filters[:survey_id]).select(:id, :name)
+        categories = if Category.column_names.include?("position")
+          categories.order(:position, :id)
+        else
+          categories.order(:id)
+        end
+
+        ordered_names = categories.map { |category| category.name.to_s.strip }.reject(&:blank?)
+        ordered_names & REPORT_DOMAINS
+      else
+        REPORT_DOMAINS
+      end
     end
 
     def available_surveys

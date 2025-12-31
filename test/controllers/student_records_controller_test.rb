@@ -53,6 +53,15 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
+  test "student users are redirected away" do
+    sign_in users(:student)
+
+    get student_records_path
+
+    assert_redirected_to dashboard_path
+    assert_match "Advisor or admin access required", flash[:alert]
+  end
+
   test "student record status remains pending until submission completed" do
     student = students(:student)
     survey = surveys(:fall_2025)

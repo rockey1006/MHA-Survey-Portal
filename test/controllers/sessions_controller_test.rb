@@ -193,4 +193,33 @@ class SessionsControllerCallbacksTest < ActionController::TestCase
       assert_equal dashboard_path, path
     end
   end
+
+  test "after sign in rescues auto assign failures" do
+    student_user = users(:student)
+
+    SurveyAssignments::AutoAssigner.stub :call, ->(**) { raise "boom" } do
+      path = @controller.stub(:stored_location_for, nil) do
+        @controller.after_sign_in_path_for(student_user)
+      end
+
+      assert_equal dashboard_path, path
+    end
+  end
+
+  test "resolve_user uses wrapper objects exposing a user" do
+    student_user = users(:student)
+    wrapper = Struct.new(:user).new(student_user)
+
+    calls = []
+    SurveyAssignments::AutoAssigner.stub :call, ->(**args) { calls << args } do
+      path = @controller.stub(:stored_location_for, nil) do
+        @controller.after_sign_in_path_for(wrapper)
+      end
+
+      assert_equal dashboard_path, path
+    end
+
+    assert_equal 1, calls.length
+    assert_equal student_user.student_profile, calls.first[:student]
+  end
 end

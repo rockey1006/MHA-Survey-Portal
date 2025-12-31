@@ -96,7 +96,7 @@ class TestRunner
   end
 
   def build_test_command
-    base_command = "rails test"
+    base_command = "bin/rails test"
 
     # Add specific test paths based on type
     case @options[:type]

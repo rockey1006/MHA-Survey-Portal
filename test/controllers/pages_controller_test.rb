@@ -121,6 +121,13 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_not @response.redirect?
   end
 
+  # Maintenance page tests
+  test "maintenance page returns service unavailable" do
+    get maintenance_path
+
+    assert_response :service_unavailable
+  end
+
   test "faq action exists and is callable" do
     assert_nothing_raised do
       get faq_path

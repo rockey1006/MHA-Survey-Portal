@@ -2,7 +2,7 @@
 <main class="main-content main-content--dashboard">
   <%= render "shared/role_switcher" %>
 
-  <section class="c-card dashboard-section">
+  <section class="c-card c-card--hover dashboard-section">
     <div class="section-header">
       <h1 class="section-title">Admin Dashboard</h1>
       <p class="section-subtitle">System management for the MHA Program</p>
@@ -10,7 +10,7 @@
     
     <div class="dashboard-grid dashboard-grid-4">
       <!-- Surveys -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_surveys_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">📄</div>
           <div class="c-tile__title">Surveys</div>
@@ -19,7 +19,7 @@
       </div>
 
       <!-- Target Levels -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_target_levels_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">🎯</div>
           <div class="c-tile__title">Target Levels</div>
@@ -28,7 +28,7 @@
       </div>
 
       <!-- Program Setup -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_program_setup_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">🧩</div>
           <div class="c-tile__title">Program Setup</div>
@@ -37,7 +37,7 @@
       </div>
 
       <!-- Reports -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to reports_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">📊</div>
           <div class="c-tile__title">Reports</div>
@@ -46,7 +46,7 @@
       </div>
 
       <!-- Students Records -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to student_records_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">👨‍🎓</div>
           <div class="c-tile__title">Students Records</div>
@@ -55,7 +55,7 @@
       </div>
 
       <!-- Manage Students -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to manage_students_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">⚙️</div>
           <div class="c-tile__title">Manage Students</div>
@@ -64,7 +64,7 @@
       </div>
 
       <!-- Members -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to manage_members_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">🧑‍💼</div>
           <div class="c-tile__title">Member Management</div>
@@ -73,7 +73,7 @@
       </div>
 
       <!-- View as Student/Advisor -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to new_impersonation_path, class: "c-tile__link" do %>
           <div class="c-tile__icon c-tile__icon--warning">🕵️</div>
           <div class="c-tile__title c-tile__title--warning">View as Student/Advisor</div>
@@ -82,7 +82,7 @@
       </div>
 
       <!-- Maintenance Mode -->
-      <div class="c-card c-card--interactive c-card--lift c-tile">
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_maintenance_path, class: "c-tile__link" do %>
           <div class="c-tile__icon c-tile__icon--warning">🛠️</div>
           <div class="c-tile__title c-tile__title--warning">Maintenance Mode</div>
@@ -92,7 +92,7 @@
     </div>
   </section>
 
-  <section class="c-card dashboard-section md:px-12" style="margin-top: var(--spacing-4xl);">
+  <section class="c-card c-card--hover dashboard-section md:px-12" style="margin-top: var(--spacing-4xl);">
     <div class="section-header">
       <h2 class="section-title">Recent Activity</h2>
       <p class="section-subtitle">Latest updates across surveys, feedback, and assignments</p>

@@ -45,4 +45,23 @@ class CompositeReportsHelperTest < ActionView::TestCase
     assert_equal "Yes", composite_display_answer("Yes")
     assert_equal "A, B", composite_display_answer([ "A", "B" ])
   end
+
+  test "proficiency_option_pairs_for rejects 0 values and falls back to defaults" do
+    question_with_zero = Struct.new(:answer_option_pairs).new([ [ "Zero", "0" ], [ "One", "1" ] ])
+    pairs = proficiency_option_pairs_for(question_with_zero)
+    refute pairs.any? { |(_label, value)| value.to_s == "0" }
+    assert pairs.any? { |(_label, value)| value.to_s == "1" }
+
+    pairs = proficiency_option_pairs_for(nil)
+    assert_equal DEFAULT_PROFICIENCY_OPTION_PAIRS, pairs
+  end
+
+  test "normalize_proficiency_value normalizes numeric inputs" do
+    assert_equal "3", normalize_proficiency_value(3)
+    assert_equal "3", normalize_proficiency_value(3.0)
+    assert_equal "4", normalize_proficiency_value("4")
+    assert_nil normalize_proficiency_value(nil)
+    assert_nil normalize_proficiency_value(0)
+    assert_nil normalize_proficiency_value(99)
+  end
 end

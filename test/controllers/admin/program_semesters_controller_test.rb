@@ -57,4 +57,18 @@ class Admin::ProgramSemestersControllerTest < ActionDispatch::IntegrationTest
     assert ProgramSemester.current.present?, "fallback semester should become current"
     assert_not_equal @fall.id, ProgramSemester.current.id
   end
+
+  test "updates semester name" do
+    patch admin_program_semester_path(@spring), params: { program_semester: { name: "Spring 2026 Updated" } }
+
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
+    assert_equal "Spring 2026 Updated", @spring.reload.name
+  end
+
+  test "update shows validation errors" do
+    patch admin_program_semester_path(@spring), params: { program_semester: { name: "" } }
+
+    assert_redirected_to admin_program_setup_path(tab: "semesters")
+    assert flash[:alert].present?
+  end
 end

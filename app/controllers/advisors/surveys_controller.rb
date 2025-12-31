@@ -189,7 +189,7 @@ module Advisors
     def timestamp_str
       I18n.l(Time.current, format: :long)
     rescue I18n::MissingTranslationData, I18n::InvalidLocale
-      Time.current.to_s(:long)
+      Time.current.to_fs(:long)
     end
   end
 end

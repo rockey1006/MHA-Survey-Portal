@@ -72,6 +72,45 @@ class ConfidentialAdvisorNotesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Should not save", note.body
   end
 
+  test "assigned advisor can clear a confidential note" do
+    ConfidentialAdvisorNote.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      body: "Existing"
+    )
+
+    sign_in @assigned_advisor_user
+
+    assert_difference "ConfidentialAdvisorNote.count", -1 do
+      patch confidential_advisor_note_survey_response_path(@survey_response),
+            params: {
+              survey_id: @survey.id,
+              student_id: @student.student_id,
+              confidential_advisor_note: { body: "" }
+            }
+    end
+
+    assert_redirected_to new_feedback_path(survey_id: @survey.id, student_id: @student.student_id)
+    assert_match(/cleared/i, flash[:notice].to_s)
+  end
+
+  test "admin cannot save confidential note when advisor is missing" do
+    orphan_user = User.create!(email: "orphan_student_#{SecureRandom.hex(4)}@example.com", name: "Orphan", role: "student", uid: "uid-#{SecureRandom.hex(4)}")
+    orphan_student = orphan_user.student_profile
+    orphan_student.update!(advisor: nil, uin: "222333444", track: "Residential", program_year: 1)
+    survey_response = SurveyResponse.build(student: orphan_student, survey: @survey)
+
+    sign_in @admin_user
+    patch confidential_advisor_note_survey_response_path(survey_response),
+          params: { confidential_advisor_note: { body: "note" } }
+
+    assert_redirected_to survey_response_path(survey_response)
+    assert_match(/unable to save confidential note/i, flash[:alert].to_s)
+  ensure
+    orphan_user&.destroy
+  end
+
   test "confidential note section is only shown to assigned advisor" do
     previous_survey = surveys(:spring_2025)
 

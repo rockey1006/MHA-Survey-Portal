@@ -1,21 +1,19 @@
 <main class="main-content space-y-12">
   <header class="c-toolbar c-toolbar--spaced">
-    <div class="c-toolbar__row justify-between w-full items-end">
-              <%= link_to "← Back",
-                    admin_dashboard_path,
-                    class: tailwind_button_classes(:secondary),
-                    data: { turbo: false } %>
-      
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <div class="shrink-0">
+        <%= link_to "← Back",
+                  admin_dashboard_path,
+                  class: tailwind_button_classes(:secondary),
+                  data: { turbo: false } %>
+      </div>
     </div>
-
-    <div class="flex flex-wrap items-center justify-end gap-3">
-                                    <div class="space-y-2">
-        <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Program Setup</h1>
-        <p class="text-sm text-slate-600">Manage program tracks, majors, years, and semesters.</p>
-      </div>
-      </div>
-
   </header>
+
+  <div class="space-y-2">
+    <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Program Setup</h1>
+    <p class="text-sm text-slate-600">Manage program tracks, majors, years, and semesters.</p>
+  </div>
 
 
 

@@ -242,6 +242,67 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     assert_response :unauthorized
   end
 
+  test "show loads previous and next versions when multiple versions exist" do
+    sign_in @admin
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+
+    v1 = SurveyResponseVersion.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      event: "admin_snapshot",
+      answers: { "1" => "a" },
+      created_at: 2.days.ago,
+      updated_at: 2.days.ago
+    )
+    v2 = SurveyResponseVersion.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: @student.advisor_id,
+      event: "admin_edited",
+      answers: { "1" => "b" },
+      created_at: 1.day.ago,
+      updated_at: 1.day.ago
+    )
+
+    get :show, params: { id: sr.id, version_id: v1.id }
+
+    assert_response :success
+    assert_nil assigns(:previous_version)
+    assert_equal v2.id, assigns(:next_version)&.id
+    assert_equal v1.id, assigns(:selected_version)&.id
+  end
+
+  test "show ignores non-local return_to" do
+    sign_in @admin
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :show, params: { id: sr.id, return_to: "//evil.example.com" }
+
+    assert_response :success
+    assert_nil assigns(:return_to)
+  end
+
+  test "composite_report rejects access via token even when signed in" do
+    sign_in @admin
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    token = sr.signed_download_token
+
+    get :composite_report, params: { id: sr.id, token: token }
+    assert_response :unauthorized
+  end
+
+  test "composite_report blocks unassigned advisor" do
+    sign_in @other_advisor
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :composite_report, params: { id: sr.id }
+
+    assert_response :unauthorized
+  end
+
   test "download returns service_unavailable when WickedPdf not defined" do
     sign_in @admin
     sr = SurveyResponse.build(student: @student, survey: @survey)
@@ -427,6 +488,153 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     sr = SurveyResponse.build(student: @student, survey: @survey)
     get :composite_report, params: { id: sr.id }
     assert_response :unauthorized
+  end
+
+  test "show selects requested version and computes previous/next" do
+    sign_in @admin
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    v1 = SurveyResponseVersion.create!(student_id: @student.student_id, survey_id: @survey.id, event: "submitted", answers: { "a" => 1 })
+    v2 = SurveyResponseVersion.create!(student_id: @student.student_id, survey_id: @survey.id, event: "revised", answers: { "a" => 2 })
+
+    get :show, params: { id: sr.id, version_id: v1.id }
+
+    assert_response :success
+    assert_equal v1.id, assigns(:selected_version).id
+    assert_nil assigns(:previous_version)
+    assert_equal v2.id, assigns(:next_version).id
+  end
+
+  test "show defaults to latest version when version_id is missing" do
+    sign_in @admin
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    v1 = SurveyResponseVersion.create!(student_id: @student.student_id, survey_id: @survey.id, event: "submitted", answers: { "a" => 1 })
+    v2 = SurveyResponseVersion.create!(student_id: @student.student_id, survey_id: @survey.id, event: "revised", answers: { "a" => 2 })
+
+    get :show, params: { id: sr.id }
+
+    assert_response :success
+    assert_equal v2.id, assigns(:selected_version).id
+    assert_equal v1.id, assigns(:previous_version).id
+    assert_nil assigns(:next_version)
+  end
+
+  test "safe_filename_part falls back and sanitizes" do
+    controller = SurveyResponsesController.new
+    assert_equal "file", controller.send(:safe_filename_part, nil)
+    assert_equal "fallback_name", controller.send(:safe_filename_part, "   ", fallback: "Fallback Name")
+    assert_equal "hello_world", controller.send(:safe_filename_part, "Hello, World!")
+  end
+
+  test "unauthenticated users are redirected to sign_in" do
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :show, params: { id: sr.id }
+    assert_response :redirect
+    assert_match "/sign_in", @response.headers["Location"].to_s
+  end
+
+  test "show returns not_found when token is invalid" do
+    sign_in @admin
+    get :show, params: { id: "ignored", token: "not-a-valid-token" }
+    assert_response :not_found
+  end
+
+  test "edit does not populate other_answers when choice text is blank" do
+    sign_in @admin
+
+    semester = program_semesters(:fall_2025)
+    survey = Survey.new(
+      title: "Admin Edit NoText Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: false
+    )
+    category = survey.categories.build(name: "Cat", description: "")
+    choice = category.questions.build(
+      question_text: "Choice",
+      question_order: 0,
+      question_type: "dropdown",
+      is_required: false,
+      answer_options: [
+        { label: "Yes", value: "Yes" },
+        { label: "Other", value: "Other", requires_text: true }
+      ].to_json
+    )
+
+    survey.save!
+
+    StudentQuestion.create!(
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      question_id: choice.id,
+      answer: { "answer" => "Yes" }
+    )
+
+    sr = SurveyResponse.build(student: @student, survey: survey)
+    get :edit, params: { id: sr.id }
+
+    assert_response :success
+    assert_equal "Yes", assigns(:existing_answers)[choice.id.to_s]
+    refute assigns(:other_answers).key?(choice.id.to_s)
+  end
+
+  test "download returns 503 when generated file disappears during read" do
+    sign_in @admin
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+
+    wickedpdf_defined = defined?(WickedPdf)
+    Object.const_set(:WickedPdf, Class.new) unless wickedpdf_defined
+
+    result = Struct.new(:path) do
+      def cleanup!; end
+    end
+    fake_result = result.new("/tmp/will-disappear-#{SecureRandom.hex}.pdf")
+    fake_generator = Struct.new(:result) do
+      def render
+        result
+      end
+    end
+
+    CompositeReportGenerator.stub(:new, fake_generator.new(fake_result)) do
+      File.stub(:exist?, true) do
+        File.stub(:binread, ->(_path) { raise Errno::ENOENT.new("missing") }) do
+          get :download, params: { id: sr.id }
+          assert_response :service_unavailable
+          assert_includes @response.body.to_s.downcase, "pdf generation unavailable"
+        end
+      end
+    end
+  ensure
+    Object.send(:remove_const, :WickedPdf) unless wickedpdf_defined
+  end
+
+  test "authorize_admin blocks non-admin edit" do
+    sign_in @student_user
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :edit, params: { id: sr.id }
+    assert_response :unauthorized
+  end
+
+  test "update tolerates missing answers params" do
+    sign_in @admin
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+
+    fake_scope = Struct.new(:versions) do
+      def chronological
+        versions
+      end
+    end
+
+    SurveyResponseVersion.stub(:current_answers_for, {}) do
+      SurveyResponseVersion.stub(:for_pair, fake_scope.new([])) do
+        SurveyResponseVersion.stub(:capture_current!, ->(**_) { nil }) do
+          patch :update, params: { id: sr.id }
+        end
+      end
+    end
+
+    assert_response :redirect
   end
 end
 

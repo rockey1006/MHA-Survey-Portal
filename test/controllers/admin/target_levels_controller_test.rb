@@ -52,6 +52,63 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 4, record.target_level
   end
 
+  test "update redirects with alert when semester/track not selected" do
+    sign_in @admin
+
+    patch admin_target_levels_path, params: {
+      program_semester_id: "",
+      track: "",
+      targets: {
+        "0" => { competency_title: @competency_title, target_level: "4" }
+      }
+    }
+
+    assert_redirected_to admin_target_levels_path
+    follow_redirect!
+    assert_match(/select a semester and track/i, flash[:alert].to_s)
+  end
+
+  test "blank target level deletes existing record" do
+    sign_in @admin
+
+    existing = CompetencyTargetLevel.create!(
+      program_semester: @semester,
+      track: @track_value,
+      program_year: nil,
+      competency_title: @competency_title,
+      target_level: 3
+    )
+
+    assert_difference "CompetencyTargetLevel.count", -1 do
+      patch admin_target_levels_path, params: {
+        program_semester_id: @semester.id,
+        track: @track_value,
+        program_year: "",
+        targets: {
+          "0" => { competency_title: @competency_title, target_level: "" }
+        }
+      }
+    end
+
+    refute CompetencyTargetLevel.exists?(existing.id)
+  end
+
+  test "invalid target level renders unprocessable entity" do
+    sign_in @admin
+
+    patch admin_target_levels_path, params: {
+      program_semester_id: @semester.id,
+      track: @track_value,
+      program_year: "",
+      targets: {
+        "0" => { competency_title: @competency_title, target_level: "0" }
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_match(/must be greater than or equal to 1/i, response.body)
+  end
+
   test "warns when updating target levels after students submitted surveys" do
     sign_in @admin
 

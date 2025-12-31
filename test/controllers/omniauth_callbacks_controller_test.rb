@@ -60,6 +60,21 @@ class OmniauthCallbacksControllerTest < ActionDispatch::IntegrationTest
     User.find_by(email: email)&.destroy
   end
 
+  test "TAMU email redirects to sign in when provisioning returns nil" do
+    email = "provisioning_failure@tamu.edu"
+    mock_oauth(email: email)
+
+    User.stub :from_google, nil do
+      get user_google_oauth2_omniauth_callback_path, params: { role: "student" }
+    end
+
+    assert_redirected_to new_user_session_path
+    follow_redirect!
+    assert_match(/not authorized/i, flash[:alert].to_s)
+  ensure
+    User.find_by(email: email)&.destroy
+  end
+
   private
 
   def mock_oauth(email:)
@@ -115,18 +130,64 @@ class OmniauthCallbacksControllerUnitTest < ActionController::TestCase
     assert_equal user.student_profile, called.first[:student]
   end
 
-  test "provisioning failures redirect back with alert" do
-    User.stub :from_google, nil do
-      @request.env["devise.mapping"] = Devise.mappings[:user]
+  test "admin role redirects to admin dashboard" do
+    user = users(:admin)
+    @request.env["devise.mapping"] = Devise.mappings[:user]
+
+    User.stub :from_google, user do
       get :google_oauth2
     end
 
-    assert_redirected_to new_user_session_path
-    assert_match "not authorized", flash[:alert]
+    assert_redirected_to admin_dashboard_path
+  end
+
+  test "advisor role redirects to advisor dashboard" do
+    user = users(:advisor)
+    @request.env["devise.mapping"] = Devise.mappings[:user]
+
+    User.stub :from_google, user do
+      get :google_oauth2
+    end
+
+    assert_redirected_to advisor_dashboard_path
+  end
+
+  test "student auto assignment failures are rescued" do
+    user = users(:student)
+    @request.env["devise.mapping"] = Devise.mappings[:user]
+
+    SurveyAssignments::AutoAssigner.stub :call, ->(**_args) { raise "boom" } do
+      User.stub :from_google, user do
+        get :google_oauth2
+      end
+    end
+
+    assert_redirected_to student_dashboard_path
   end
 
   test "after_omniauth_failure_path_for returns sign in path" do
     assert_equal new_user_session_path, @controller.send(:after_omniauth_failure_path_for, :user)
+  end
+
+  test "unknown user role falls back to requested role param" do
+    user = users(:student)
+    @request.env["omniauth.params"] = { "role" => "advisor" }
+
+    user.stub(:role, "mystery") do
+      user.stub(:role_student?, false) do
+        User.stub :from_google, user do
+          @request.env["devise.mapping"] = Devise.mappings[:user]
+          get :google_oauth2
+        end
+      end
+    end
+
+    assert_redirected_to advisor_dashboard_path
+  end
+
+  test "tamu_email accepts email.tamu.edu and rejects blank" do
+    assert_equal true, @controller.send(:tamu_email?, "someone@email.tamu.edu")
+    assert_equal false, @controller.send(:tamu_email?, "")
   end
 
   private

@@ -4,10 +4,10 @@
 
 <div class="flex min-h-[calc(100vh-8rem)] w-full justify-center bg-slate-50 px-4 py-14 sm:py-20">
   <div class="w-full max-w-4xl space-y-12">
-    <header class="c-card c-card--spacious c-card--muted notification-card <%= 'notification-card--unread' if unread %>">
+    <header class="c-card c-card--spacious c-card--muted <%= 'is-unread' if unread %>">
       <div class="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
         <div class="flex flex-1 items-start gap-6">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full notification-icon">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full c-icon-circle">
             <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <% if unread %>
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m1 0v1a2 2 0 004 0v-1m-4 0h4" />

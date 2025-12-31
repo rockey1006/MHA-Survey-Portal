@@ -471,6 +471,65 @@
   color: var(--gray-600);
 }
 
+/* === States + small utilities ===========================================
+ * Keep these general so other features can reuse them.
+ * ======================================================================= */
+
+/* Unread / attention accent (usable on both .c-card and .c-list-item). */
+.is-unread {
+  border-color: var(--primary-color);
+  background-color: var(--primary-hover);
+}
+
+/* Simple scroll utility: opt-in max height + scroll (used on dashboards). */
+.u-max-h-70vh {
+  max-height: 70vh;
+}
+
+.u-scroll-y {
+  overflow-y: auto;
+}
+
+/* Media / row layout helper: icon + content (used for list rows). */
+.c-media {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.c-media__content {
+  flex: 1;
+}
+
+.c-media__title-link {
+  color: var(--info-color);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.c-media__title-link:hover {
+  color: var(--info-hover);
+  text-decoration: underline;
+}
+
+/* Icon circle helper for inline SVG chips (index/show, etc). */
+.c-icon-circle {
+  background-color: var(--gray-100);
+  color: var(--gray-500);
+}
+
+.is-unread .c-icon-circle {
+  background-color: var(--primary-active);
+  color: var(--primary-color);
+}
+
+/* When a list-item is used as a media row, opt-in with .c-media. */
+.c-list-item.c-media {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
 /* === Stats / summary tiles ==============================================
  * Reusable “metrics grid” used across admin pages.
  * Mirrors the visual hierarchy used in reports summary cards.
@@ -711,6 +770,13 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   filter: brightness(0) invert(1);
 }
 
+/* Notification glyph sizing when used outside the header (e.g., dashboards). */
+.notification-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 /* Small count badge (unread notifications). */
 .c-badge {
   display: inline-flex;
@@ -833,6 +899,7 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   border: 1px solid var(--gray-200);
   flex-shrink: 0;
 }
+
 
 /* === Forms =============================================================== */
 
@@ -1127,4 +1194,20 @@ body.high-contrast .c-label {
 /* Notifications: strengthen icon in high contrast. */
 body.high-contrast .app-header .c-icon-button__icon > img {
   filter: brightness(0) invert(1);
+}
+
+/* Icon primitives: ensure icon chips stay readable. */
+body.high-contrast .c-icon--survey {
+  border-color: #000000;
+}
+
+body.high-contrast .c-icon-circle {
+  background-color: var(--white);
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+body.high-contrast .is-unread .c-icon-circle {
+  background-color: #000000;
+  color: var(--white);
 }

@@ -19,18 +19,15 @@ function applyHighContrast(enabled) {
     body.classList.remove("high-contrast")
   }
 
-  // Keep all toggles in sync (supports both legacy buttons and new switches)
+  // Keep all toggle switches in sync.
   const controls = document.querySelectorAll("[data-high-contrast-toggle]")
   controls.forEach((el) => {
-    if (el instanceof HTMLInputElement && el.type === "checkbox") {
-      el.checked = enabled
-      el.setAttribute("aria-checked", enabled ? "true" : "false")
-      if (el.dataset.toggleInitialized === "true") {
-        el.dataset.togglePrev = enabled ? "true" : "false"
-      }
-    } else {
-      el.setAttribute("aria-pressed", enabled ? "true" : "false")
-      el.textContent = enabled ? "High Contrast: On" : "High Contrast: Off"
+    if (!(el instanceof HTMLInputElement) || el.type !== "checkbox") return
+
+    el.checked = enabled
+    el.setAttribute("aria-checked", enabled ? "true" : "false")
+    if (el.dataset.toggleInitialized === "true") {
+      el.dataset.togglePrev = enabled ? "true" : "false"
     }
   })
 }
@@ -45,25 +42,19 @@ function initHighContrastToggle() {
   applyHighContrast(initialEnabled)
 
   controls.forEach((el) => {
+    if (!(el instanceof HTMLInputElement) || el.type !== "checkbox") return
+
     // Avoid adding duplicate listeners on Turbo navigations
     if (el.dataset.hcInitialized === "true") return
     el.dataset.hcInitialized = "true"
 
-    const handler = (e) => {
-      if (!(el instanceof HTMLInputElement && el.type === "checkbox")) {
-        e.preventDefault()
-      }
-      const isEnabled = document.body.classList.contains("high-contrast")
-      const next = !isEnabled
+    const handler = () => {
+      const next = el.checked
       applyHighContrast(next)
       window.localStorage.setItem(HIGH_CONTRAST_KEY, String(next))
     }
 
-    if (el instanceof HTMLInputElement && el.type === "checkbox") {
-      el.addEventListener("change", handler)
-    } else {
-      el.addEventListener("click", handler)
-    }
+    el.addEventListener("change", handler)
   })
 }
 
@@ -81,15 +72,12 @@ function stopReading() {
 
   const controls = document.querySelectorAll("[data-tts-toggle]")
   controls.forEach((el) => {
-    if (el instanceof HTMLInputElement && el.type === "checkbox") {
-      el.checked = false
-      el.setAttribute("aria-checked", "false")
-      if (el.dataset.toggleInitialized === "true") {
-        el.dataset.togglePrev = "false"
-      }
-    } else {
-      el.setAttribute("aria-pressed", "false")
-      el.textContent = "Read Page Aloud"
+    if (!(el instanceof HTMLInputElement) || el.type !== "checkbox") return
+
+    el.checked = false
+    el.setAttribute("aria-checked", "false")
+    if (el.dataset.toggleInitialized === "true") {
+      el.dataset.togglePrev = "false"
     }
   })
 }
@@ -97,6 +85,7 @@ function stopReading() {
 function startReading() {
   if (!("speechSynthesis" in window)) {
     alert("Text-to-speech is not supported in this browser.")
+    stopReading()
     return
   }
 
@@ -105,6 +94,7 @@ function startReading() {
 
   if (!text || !text.trim()) {
     alert("There is no readable content on this page.")
+    stopReading()
     return
   }
 
@@ -118,15 +108,12 @@ function startReading() {
   utterance.onstart = () => {
     const controls = document.querySelectorAll("[data-tts-toggle]")
     controls.forEach((el) => {
-      if (el instanceof HTMLInputElement && el.type === "checkbox") {
-        el.checked = true
-        el.setAttribute("aria-checked", "true")
-        if (el.dataset.toggleInitialized === "true") {
-          el.dataset.togglePrev = "true"
-        }
-      } else {
-        el.setAttribute("aria-pressed", "true")
-        el.textContent = "Stop Reading"
+      if (!(el instanceof HTMLInputElement) || el.type !== "checkbox") return
+
+      el.checked = true
+      el.setAttribute("aria-checked", "true")
+      if (el.dataset.toggleInitialized === "true") {
+        el.dataset.togglePrev = "true"
       }
     })
   }
@@ -145,36 +132,27 @@ function initTTSToggle() {
   // If API is missing, disable the control
   if (!("speechSynthesis" in window)) {
     controls.forEach((el) => {
+      if (!(el instanceof HTMLInputElement) || el.type !== "checkbox") return
       el.disabled = true
-      if (!(el instanceof HTMLInputElement && el.type === "checkbox")) {
-        el.textContent = "Read Aloud (not supported)"
-      }
     })
     return
   }
 
   controls.forEach((el) => {
+    if (!(el instanceof HTMLInputElement) || el.type !== "checkbox") return
+
     if (el.dataset.ttsInitialized === "true") return
     el.dataset.ttsInitialized = "true"
 
-    const handler = (e) => {
-      if (!(el instanceof HTMLInputElement && el.type === "checkbox")) {
-        e.preventDefault()
-      }
-
-      const isSpeaking = window.speechSynthesis.speaking
-      if (isSpeaking) {
-        stopReading()
-      } else {
+    const handler = () => {
+      if (el.checked) {
         startReading()
+      } else {
+        stopReading()
       }
     }
 
-    if (el instanceof HTMLInputElement && el.type === "checkbox") {
-      el.addEventListener("change", handler)
-    } else {
-      el.addEventListener("click", handler)
-    }
+    el.addEventListener("change", handler)
   })
 }
 

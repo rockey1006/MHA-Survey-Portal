@@ -116,7 +116,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     @admin.update!(notifications_enabled: false)
 
-    patch settings_path, params: { user: { notifications_enabled: "1" } }
+    patch settings_path, params: { user: { notifications_enabled: "true" } }
 
     assert_redirected_to root_path
     @admin.reload
@@ -127,7 +127,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     @admin.update!(notifications_enabled: true)
 
-    patch settings_path, params: { user: { notifications_enabled: "0" } }
+    patch settings_path, params: { user: { notifications_enabled: "false" } }
 
     assert_redirected_to root_path
     @admin.reload
@@ -173,7 +173,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     patch settings_path, params: {
       user: {
         language: "es",
-        notifications_enabled: "1",
+        notifications_enabled: "true",
         text_scale_percent: 110
       }
     }

@@ -64,11 +64,181 @@ function initHighContrastToggle() {
 
 let currentUtterance = null
 
+const TTS_RATE_KEY = "mha:tts_rate"
+
+let ttsHighlightState = {
+  overlayEl: null,
+  nodes: [],
+  text: "",
+  currentRange: null,
+  rafId: null,
+  scrollHandlerInstalled: false
+}
+
+function ensureTTSHighlightOverlay() {
+  if (ttsHighlightState.overlayEl && document.body.contains(ttsHighlightState.overlayEl)) {
+    return ttsHighlightState.overlayEl
+  }
+
+  const el = document.createElement("div")
+  el.className = "c-tts-highlight"
+  el.setAttribute("aria-hidden", "true")
+  document.body.appendChild(el)
+  ttsHighlightState.overlayEl = el
+  return el
+}
+
+function hideTTSHighlight() {
+  const el = ttsHighlightState.overlayEl
+  if (!el) return
+  el.style.width = "0"
+  el.style.height = "0"
+}
+
+function scheduleTTSHighlightUpdate() {
+  if (ttsHighlightState.rafId) return
+  ttsHighlightState.rafId = window.requestAnimationFrame(() => {
+    ttsHighlightState.rafId = null
+    updateTTSHighlightFromCurrentRange()
+  })
+}
+
+function updateTTSHighlightFromCurrentRange() {
+  const range = ttsHighlightState.currentRange
+  if (!range) {
+    hideTTSHighlight()
+    return
+  }
+
+  const rect = range.getBoundingClientRect()
+  if (!rect || rect.width === 0 || rect.height === 0) {
+    hideTTSHighlight()
+    return
+  }
+
+  const overlay = ensureTTSHighlightOverlay()
+  overlay.style.left = `${Math.max(0, rect.left)}px`
+  overlay.style.top = `${Math.max(0, rect.top)}px`
+  overlay.style.width = `${Math.max(0, rect.width)}px`
+  overlay.style.height = `${Math.max(0, rect.height)}px`
+}
+
+function getReadableTextNodes(container) {
+  const nodes = []
+
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT
+      if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT
+
+      const parent = node.parentElement
+      if (!parent) return NodeFilter.FILTER_REJECT
+      const tag = parent.tagName ? parent.tagName.toLowerCase() : ""
+      if (tag === "script" || tag === "style" || tag === "noscript") return NodeFilter.FILTER_REJECT
+      if (parent.closest("[aria-hidden='true'], [hidden]")) return NodeFilter.FILTER_REJECT
+
+      return NodeFilter.FILTER_ACCEPT
+    }
+  })
+
+  let current = walker.nextNode()
+  while (current) {
+    nodes.push(current)
+    current = walker.nextNode()
+  }
+
+  return nodes
+}
+
+function buildTextMapFromNodes(nodes) {
+  const parts = []
+  const mapped = []
+  let index = 0
+
+  nodes.forEach((node) => {
+    const value = (node.nodeValue || "").replace(/\s+/g, " ").trim()
+    if (!value) return
+
+    if (parts.length) {
+      parts.push(" ")
+      index += 1
+    }
+
+    mapped.push({ node, start: index, length: value.length, text: value })
+    parts.push(value)
+    index += value.length
+  })
+
+  return { text: parts.join(""), mapped }
+}
+
+function findMappedNodeAtIndex(mapped, charIndex) {
+  let lo = 0
+  let hi = mapped.length - 1
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    const item = mapped[mid]
+    const start = item.start
+    const end = item.start + item.length
+
+    if (charIndex < start) {
+      hi = mid - 1
+    } else if (charIndex >= end) {
+      lo = mid + 1
+    } else {
+      return item
+    }
+  }
+  return null
+}
+
+function computeWordBounds(text, charIndex) {
+  const clamped = Math.max(0, Math.min(charIndex, Math.max(0, text.length - 1)))
+  let start = clamped
+  let end = clamped
+
+  while (start > 0 && !/\s/.test(text[start - 1])) start -= 1
+  while (end < text.length && !/\s/.test(text[end])) end += 1
+
+  return { start, end }
+}
+
+function highlightWordAtCharIndex(charIndex) {
+  const mapped = ttsHighlightState.nodes
+  const text = ttsHighlightState.text
+  if (!mapped.length || !text) return
+
+  const bounds = computeWordBounds(text, charIndex)
+  const item = findMappedNodeAtIndex(mapped, bounds.start)
+  if (!item) {
+    hideTTSHighlight()
+    return
+  }
+
+  const offsetInItem = bounds.start - item.start
+  const wordLength = Math.max(1, bounds.end - bounds.start)
+  const startOffset = Math.max(0, Math.min(offsetInItem, (item.node.nodeValue || "").length))
+  const endOffset = Math.max(startOffset + 1, Math.min(startOffset + wordLength, (item.node.nodeValue || "").length))
+
+  try {
+    const range = document.createRange()
+    range.setStart(item.node, startOffset)
+    range.setEnd(item.node, endOffset)
+    ttsHighlightState.currentRange = range
+    scheduleTTSHighlightUpdate()
+  } catch {
+    hideTTSHighlight()
+  }
+}
+
 function stopReading() {
   if (window.speechSynthesis && window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel()
   }
   currentUtterance = null
+
+  ttsHighlightState.currentRange = null
+  hideTTSHighlight()
 
   const controls = document.querySelectorAll("[data-tts-toggle]")
   controls.forEach((el) => {
@@ -90,7 +260,11 @@ function startReading() {
   }
 
   const main = document.querySelector("main")
-  const text = (main || document.body).innerText || (main || document.body).textContent
+  const container = main || document.body
+  const rawNodes = getReadableTextNodes(container)
+  const { text, mapped } = buildTextMapFromNodes(rawNodes)
+  ttsHighlightState.nodes = mapped
+  ttsHighlightState.text = text
 
   if (!text || !text.trim()) {
     alert("There is no readable content on this page.")
@@ -102,7 +276,14 @@ function startReading() {
 
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = "en-US"
-  utterance.rate = 1.0
+  try {
+    const storedRate = window.localStorage.getItem(TTS_RATE_KEY)
+    const parsedRate = storedRate ? parseFloat(storedRate) : 1.0
+    const rate = Number.isFinite(parsedRate) ? Math.max(0.25, Math.min(2.0, parsedRate)) : 1.0
+    utterance.rate = rate
+  } catch {
+    utterance.rate = 1.0
+  }
   utterance.pitch = 1.0
 
   utterance.onstart = () => {
@@ -120,6 +301,17 @@ function startReading() {
 
   utterance.onend = stopReading
   utterance.onerror = stopReading
+
+  utterance.onboundary = (event) => {
+    if (!event || typeof event.charIndex !== "number") return
+    highlightWordAtCharIndex(event.charIndex)
+  }
+
+  if (!ttsHighlightState.scrollHandlerInstalled) {
+    ttsHighlightState.scrollHandlerInstalled = true
+    window.addEventListener("scroll", scheduleTTSHighlightUpdate, { passive: true })
+    window.addEventListener("resize", scheduleTTSHighlightUpdate)
+  }
 
   currentUtterance = utterance
   window.speechSynthesis.speak(utterance)
@@ -207,6 +399,97 @@ function initSurveyBranching() {
       update()
     })
   })
+}
+
+// -----------------------------
+// Survey keyboard shortcuts (multiple choice + dropdown)
+// -----------------------------
+
+function initSurveyQuestionKeyboardShortcuts() {
+  const body = document.body
+  if (!body) return
+  if (body.dataset.surveyKeyboardShortcutsInitialized === "true") return
+  body.dataset.surveyKeyboardShortcutsInitialized = "true"
+
+  const isTypingField = (el) => {
+    if (!(el instanceof Element)) return false
+    const tag = (el.tagName || "").toLowerCase()
+    if (tag === "textarea") return true
+
+    if (tag !== "input") return false
+    const type = ((el.getAttribute("type") || "text") + "").toLowerCase()
+    return (
+      type === "text" ||
+      type === "search" ||
+      type === "email" ||
+      type === "url" ||
+      type === "password" ||
+      type === "tel" ||
+      type === "number" ||
+      type === "date" ||
+      type === "time"
+    )
+  }
+
+  const handler = (e) => {
+    if (e.defaultPrevented) return
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (typeof e.key !== "string" || !/^[0-9]$/.test(e.key)) return
+
+    const target = e.target
+    if (!(target instanceof Element)) return
+    if (isTypingField(target)) return
+
+    // Only on survey pages
+    if (!target.closest(".survey-form")) return
+
+    // Find the nearest question container for both survey render paths:
+    // - surveys/show: <article data-question-id ...>
+    // - survey_responses/_survey_response: <article class="question-block" ...>
+    const container = target.closest('[data-question-id], .question-block, article[id^="question-block-"]')
+    if (!container) return
+
+    const raw = e.key === "0" ? 10 : parseInt(e.key, 10)
+    if (!Number.isFinite(raw) || raw < 1) return
+    const index = raw - 1
+
+    const radios = Array.from(container.querySelectorAll('input[type="radio"]')).filter((el) => {
+      return el instanceof HTMLInputElement && !el.disabled
+    })
+
+    if (radios.length) {
+      if (index >= radios.length) return
+      e.preventDefault()
+
+      const radio = radios[index]
+      radio.checked = true
+      radio.focus()
+      radio.dispatchEvent(new Event("input", { bubbles: true }))
+      radio.dispatchEvent(new Event("change", { bubbles: true }))
+      return
+    }
+
+    const select = container.querySelector('select:not([multiple])')
+    if (!(select instanceof HTMLSelectElement) || select.disabled) return
+
+    const options = Array.from(select.options || []).filter((opt) => {
+      if (!opt || opt.disabled) return false
+      // Skip blank placeholder options.
+      return (opt.value || "").toString() !== ""
+    })
+
+    if (index >= options.length) return
+    e.preventDefault()
+
+    select.value = options[index].value
+    select.dispatchEvent(new Event("input", { bubbles: true }))
+    select.dispatchEvent(new Event("change", { bubbles: true }))
+  }
+
+  // Use capture so we still see events when a native <select> is focused/open.
+  document.addEventListener("keydown", handler, true)
+  // Fallback for some browsers that behave oddly with open <select> controls.
+  document.addEventListener("keypress", handler, true)
 }
 
 function initOtherChoiceInputs() {
@@ -580,6 +863,7 @@ function initAccessibilityFeatures() {
   initHighContrastToggle()
   initTTSToggle()
   initSurveyBranching()
+  initSurveyQuestionKeyboardShortcuts()
   initOtherChoiceInputs()
   initToggleSwitches()
   initComboboxes()

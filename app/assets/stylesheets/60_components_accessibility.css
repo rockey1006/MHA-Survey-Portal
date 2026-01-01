@@ -532,6 +532,28 @@
    High-contrast accessibility mode
    ========================================================= */
 
+/* =========================================================
+   Read Aloud: moving highlighter
+   ========================================================= */
+
+.c-tts-highlight {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background-color: var(--warning-light);
+  outline: 2px solid var(--warning-color);
+  border-radius: var(--border-radius-sm);
+}
+
+body.high-contrast .c-tts-highlight {
+  background-color: var(--warning-light);
+  outline-color: var(--gray-700);
+}
+
 body.high-contrast {
   /* Keep background light and text very dark for maximum readability */
   background-color: #ffffff;

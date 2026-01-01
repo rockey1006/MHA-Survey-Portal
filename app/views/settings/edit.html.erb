@@ -8,6 +8,7 @@
 } %>
 <% current_language_label = lang_labels[lang_code] || lang_code %>
 <% text_scale = @user.text_scale_percent || 100 %>
+<% notifications_enabled = @user.notifications_enabled.nil? ? true : @user.notifications_enabled %>
 <% back_path = if current_user&.role_admin?
                  admin_dashboard_path
                elsif current_user&.role_advisor?
@@ -70,7 +71,7 @@
             </div>
           <% end %>
 
-          <div class="u-grid" style="--u-grid-min: 260px">
+          <div class="u-grid u-grid--2">
             <div class="c-kv c-kv--compact">
               <div class="c-field">
                 <label class="c-label">Language</label>
@@ -90,10 +91,54 @@
                 <small class="c-help">Increase up to 200% for larger copy.</small>
               </div>
             </div>
+
+            <div class="c-kv c-kv--compact">
+              <div class="c-field">
+                <label class="c-label">Notifications</label>
+                <%= f.select :notifications_enabled,
+                      options_for_select([["On", true], ["Off", false]], notifications_enabled),
+                      {},
+                      class: "c-input" %>
+                <small class="c-help">Turns account notifications on or off.</small>
+              </div>
+            </div>
+
+            <div class="c-kv c-kv--compact">
+              <div class="c-field">
+                <div class="flex items-baseline justify-between gap-3">
+                  <label class="c-label" for="tts-rate">Read Aloud speed</label>
+                  <span class="c-help" id="tts-rate-value" aria-live="polite">1.0×</span>
+                </div>
+                <input
+                  class="c-input"
+                  id="tts-rate"
+                  type="range"
+                  min="0.25"
+                  max="2.0"
+                  step="0.1"
+                  value="1.0"
+                  data-tts-rate
+                />
+                <div class="mt-3 flex flex-wrap gap-2" aria-label="Read aloud speed presets">
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="0.25">0.25×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="0.5">0.5×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="0.75">0.75×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="1.0">1.0×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="1.25">1.25×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="1.5">1.5×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="1.75">1.75×</button>
+                  <button type="button" class="btn btn-subtle" data-tts-rate-preset="2.0">2.0×</button>
+                </div>
+                <small class="c-help">Saved on this device and used when you toggle “Read Aloud” in the header.</small>
+              </div>
+            </div>
           </div>
 
           <div class="c-form-actions u-actions u-actions--split border-t border-slate-100 pt-6">
-            <%= link_to "Cancel", back_path, class: tailwind_button_classes(:secondary) %>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="btn btn-secondary" id="reset-local-defaults">Reset to defaults</button>
+              <%= link_to "Cancel", back_path, class: tailwind_button_classes(:secondary) %>
+            </div>
             <%= f.submit "Save changes", class: tailwind_button_classes(:primary) %>
           </div>
         <% end %>
@@ -152,6 +197,112 @@
         alert('Failed to save settings. Please try again.');
       });
     });
+  })();
+</script>
+<script>
+  // Read Aloud speed (local-only): store in localStorage so it applies to TTS everywhere.
+  (function() {
+    var KEY = 'mha:tts_rate';
+    var HIGH_CONTRAST_KEY = 'mha_high_contrast';
+    var slider = document.querySelector('[data-tts-rate]');
+    var valueLabel = document.getElementById('tts-rate-value');
+    if (!slider || !valueLabel) return;
+
+    var presets = Array.prototype.slice.call(document.querySelectorAll('[data-tts-rate-preset]'));
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function formatRate(rate) {
+      return (Math.round(rate * 10) / 10).toFixed(1) + '×';
+    }
+
+    try {
+      var stored = window.localStorage.getItem(KEY);
+      var initial = stored ? parseFloat(stored) : 1.0;
+      if (!isFinite(initial)) initial = 1.0;
+      initial = clamp(initial, 0.25, 2.0);
+
+      slider.value = String(initial);
+      valueLabel.textContent = formatRate(initial);
+    } catch (e) {
+      // ignore
+    }
+
+    slider.addEventListener('input', function() {
+      var next = parseFloat(slider.value);
+      if (!isFinite(next)) return;
+      valueLabel.textContent = formatRate(next);
+    });
+
+    function persist(rate) {
+      try {
+        window.localStorage.setItem(KEY, String(rate));
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    slider.addEventListener('change', function() {
+      var next = parseFloat(slider.value);
+      if (!isFinite(next)) return;
+      persist(next);
+    });
+
+    presets.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var rate = parseFloat(btn.getAttribute('data-tts-rate-preset'));
+        if (!isFinite(rate)) return;
+        rate = clamp(rate, 0.25, 2.0);
+        slider.value = String(rate);
+        valueLabel.textContent = formatRate(rate);
+        persist(rate);
+      });
+    });
+
+    // Reset local-only preferences back to defaults.
+    var resetBtn = document.getElementById('reset-local-defaults');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        try {
+          window.localStorage.removeItem(KEY);
+          window.localStorage.removeItem(HIGH_CONTRAST_KEY);
+        } catch (e) {
+          // ignore
+        }
+
+        // Reset Read Aloud speed UI
+        slider.value = '1.0';
+        valueLabel.textContent = '1.0×';
+
+        // Stop reading if active
+        try {
+          if (window.speechSynthesis && window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        // Remove highlight overlay if present
+        var highlight = document.querySelector('.c-tts-highlight');
+        if (highlight) {
+          highlight.style.width = '0';
+          highlight.style.height = '0';
+        }
+
+        // Turn off high contrast immediately
+        document.body && document.body.classList.remove('high-contrast');
+        var hcToggles = document.querySelectorAll('[data-high-contrast-toggle]');
+        hcToggles.forEach(function(el) {
+          if (el && el.type === 'checkbox') {
+            el.checked = false;
+            el.setAttribute('aria-checked', 'false');
+          }
+        });
+      });
+    }
   })();
 </script>
 <script>

@@ -1136,6 +1136,17 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   grid-template-columns: repeat(auto-fit, minmax(var(--u-grid-min, 220px), 1fr));
 }
 
+/* Fixed-column grid helpers (use when auto-fit creates too many columns). */
+.u-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .u-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* === Heroes ============================================================== */
 
 .c-hero {

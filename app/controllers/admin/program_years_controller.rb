@@ -7,7 +7,7 @@ class Admin::ProgramYearsController < Admin::BaseController
 
     if @program_year.save
       redirect_back fallback_location: admin_program_setup_path(tab: "years"),
-                    notice: "Program year #{@program_year.value} created."
+                    notice: "Cohort year (Class of #{@program_year.value}) created."
     else
       redirect_back fallback_location: admin_program_setup_path(tab: "years"),
                     alert: @program_year.errors.full_messages.to_sentence
@@ -17,7 +17,7 @@ class Admin::ProgramYearsController < Admin::BaseController
   def update
     if @program_year.update(program_year_params)
       redirect_back fallback_location: admin_program_setup_path(tab: "years"),
-                    notice: "Program year #{@program_year.value} updated."
+                    notice: "Cohort year (Class of #{@program_year.value}) updated."
     else
       redirect_back fallback_location: admin_program_setup_path(tab: "years"),
                     alert: @program_year.errors.full_messages.to_sentence
@@ -29,7 +29,7 @@ class Admin::ProgramYearsController < Admin::BaseController
 
     if @program_year.destroy
       redirect_back fallback_location: admin_program_setup_path(tab: "years"),
-                    notice: "Program year #{value} deleted."
+                    notice: "Cohort year (Class of #{value}) deleted."
     else
       redirect_back fallback_location: admin_program_setup_path(tab: "years"),
                     alert: @program_year.errors.full_messages.to_sentence

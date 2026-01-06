@@ -4,5 +4,4 @@ class SurveyLegend < ApplicationRecord
   belongs_to :survey
 
   validates :survey_id, uniqueness: true
-  validates :body, presence: true
 end

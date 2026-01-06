@@ -29,7 +29,7 @@ module Assignments
       @assignments_by_student_id =
         SurveyAssignment
           .where(survey_id: @survey.id, student_id: student_ids)
-          .select(:id, :student_id, :assigned_at, :due_date, :completed_at)
+          .select(:id, :student_id, :assigned_at, :available_from, :available_until, :completed_at)
           .index_by(&:student_id)
 
       @assigned_student_ids = @assignments_by_student_id.keys.to_set
@@ -164,13 +164,33 @@ module Assignments
       )
 
       created = assignment.new_record?
+      assignment.manual = true if assignment.respond_to?(:manual=)
       assignment.advisor_id ||= current_advisor_profile&.advisor_id
       assignment.assigned_at ||= Time.current
 
-      if (due_date = parsed_due_date)
-        assignment.due_date = due_date
-      elsif assignment.respond_to?(:due_date) && assignment.due_date.blank? && @survey.respond_to?(:due_date) && @survey.due_date.present?
-        assignment.due_date = @survey.due_date
+      default_available_from = @survey.available_from
+      default_available_until = @survey.available_until
+
+      if SurveyOffering.data_source_ready? && student.track.present? && student.class_of.present?
+        offerings = SurveyOffering.for_student(track_key: student.track, class_of: student.class_of)
+                                 .where(survey_id: @survey.id)
+        if offerings.exists?
+          exact = offerings.find { |row| row.class_of.present? && row.class_of.to_i == student.class_of.to_i }
+          offering = exact || offerings.first
+          default_available_from = offering.available_from if offering.available_from.present?
+          default_available_until = offering.available_until if offering.available_until.present?
+        end
+      end
+
+      assignment.available_from ||= default_available_from
+      assignment.available_until ||= default_available_until
+
+      if (available_from = parsed_available_from)
+        assignment.available_from = available_from
+      end
+
+      if (available_until = parsed_available_until)
+        assignment.available_until = available_until
       end
 
       assignment.completed_at = nil if created
@@ -179,12 +199,22 @@ module Assignments
       [ assignment, created ]
     end
 
-    # Parses an optional due date supplied with the request.
-    def parsed_due_date
-      return @parsed_due_date if instance_variable_defined?(:@parsed_due_date)
+    def parsed_available_from
+      return @parsed_available_from if instance_variable_defined?(:@parsed_available_from)
 
-      raw_value = params[:due_date].presence
-      @parsed_due_date = begin
+      raw_value = params[:available_from].presence
+      @parsed_available_from = begin
+        raw_value ? Time.zone.parse(raw_value) : nil
+      rescue ArgumentError
+        nil
+      end
+    end
+
+    def parsed_available_until
+      return @parsed_available_until if instance_variable_defined?(:@parsed_available_until)
+
+      raw_value = params[:available_until].presence
+      @parsed_available_until = begin
         raw_value ? Time.zone.parse(raw_value) : nil
       rescue ArgumentError
         nil

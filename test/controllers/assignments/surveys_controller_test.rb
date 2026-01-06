@@ -66,20 +66,20 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to assignments_surveys_path
   end
 
-  test "assign parses due_date and falls back when I18n timestamp formatting fails" do
+  test "assign parses available_until and falls back when I18n timestamp formatting fails" do
     StudentQuestion.delete_all
     SurveyAssignment.delete_all
 
     I18n.stub(:l, ->(*) { raise I18n::InvalidLocale.new(:xx) }) do
       post assign_assignments_survey_path(@survey), params: {
         student_id: students(:student).student_id,
-        due_date: "2030-01-01"
+        available_until: "2030-01-01"
       }
     end
 
     assert_redirected_to assignments_surveys_path
     assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: students(:student).student_id)
-    assert_equal Date.new(2030, 1, 1), assignment.due_date.to_date
+    assert_equal Date.new(2030, 1, 1), assignment.available_until.to_date
     assert_match "Assigned", flash[:notice]
   end
 

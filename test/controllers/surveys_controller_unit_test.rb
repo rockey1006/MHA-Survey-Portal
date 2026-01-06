@@ -65,7 +65,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
     sign_in @student_user
 
     assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: @student.student_id)
-    assignment.update!(completed_at: Time.current, due_date: nil)
+    assignment.update!(completed_at: Time.current, available_until: nil)
 
     @controller.stub(:current_student, @student) do
       get :show, params: { id: @survey.id }
@@ -79,7 +79,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
     sign_in @student_user
 
     assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: @student.student_id)
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
 
     @controller.stub(:current_student, @student) do
       get :show, params: { id: @survey.id }
@@ -87,7 +87,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
 
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
     assert_redirected_to survey_response_path(survey_response)
-    assert flash[:alert].to_s.include?("due date has passed")
+    assert flash[:alert].to_s.include?("now closed")
   end
 
   test "save_progress redirects when student record missing" do
@@ -206,11 +206,11 @@ class SurveysControllerUnitTest < ActionController::TestCase
     assert_match "Student record not found", flash[:alert]
   end
 
-  test "submit redirects to read-only response when already completed and due date passed" do
+  test "submit redirects to read-only response when already completed and closed" do
     sign_in @student_user
 
     assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: @student.student_id)
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
 
     @controller.stub(:current_student, @student) do
       post :submit, params: { id: @survey.id }
@@ -218,7 +218,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
 
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
     assert_redirected_to survey_response_path(survey_response)
-    assert_match "due date has passed", flash[:alert]
+    assert_match "now closed", flash[:alert]
   end
 
   test "save_progress enforces read-only when impersonating" do

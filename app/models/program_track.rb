@@ -55,6 +55,10 @@ class ProgramTrack < ApplicationRecord
 
     normalized = text.downcase
 
+    # Program aliases used in scheduling language.
+    return "residential" if normalized == "rmha"
+    return "executive" if normalized == "emha"
+
     # Fast path: direct key match.
     tracks = tracks_hash
     return normalized if tracks.key?(normalized)

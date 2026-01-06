@@ -27,6 +27,13 @@
   --tamu-maroon: #500000;
   --tamu-maroon-light: rgba(80, 0, 0, 0.8);
   --tamu-maroon-dark: #330000;
+
+  /* Section accents (PDF parity) */
+  --advisor-section-surface: #DCE2F0;
+  --advisor-section-accent: #50586C;
+
+  --student-section-surface: #F9EBDE;
+  --student-section-accent: #815854;
   
   /* UI Colors */
   --primary-color: var(--tamu-maroon);

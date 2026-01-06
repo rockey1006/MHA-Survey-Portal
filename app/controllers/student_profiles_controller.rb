@@ -14,7 +14,6 @@ class StudentProfilesController < ApplicationController
     @student = current_student
     @advisors = Advisor.joins(:user).order("users.name ASC")
     @majors = Major.order(:name)
-    @program_year_options = ProgramYear.options_for_select
   end
 
   # Update profile information
@@ -22,18 +21,17 @@ class StudentProfilesController < ApplicationController
     @student = current_student
     @advisors = Advisor.joins(:user).order("users.name ASC")
     @majors = Major.order(:name)
-    @program_year_options = ProgramYear.options_for_select
 
     # Update student attributes
     @student.assign_attributes(student_params)
     track_will_change = @student.will_save_change_to_track?
-    program_year_will_change = @student.will_save_change_to_program_year?
+    class_of_will_change = @student.will_save_change_to_class_of?
     had_assignments = @student.survey_assignments.exists?
 
     if @student.valid?(:profile_completion)
       @student.save!(context: :profile_completion) # This will also save the user and student changes
 
-      if track_will_change || program_year_will_change || !had_assignments
+      if track_will_change || class_of_will_change || !had_assignments
         SurveyAssignments::AutoAssigner.call(student: @student)
       end
 
@@ -52,6 +50,6 @@ class StudentProfilesController < ApplicationController
   end
 
   def student_params
-    params.require(:student).permit(:uin, :major, :track, :program_year, :advisor_id)
+    params.require(:student).permit(:uin, :major, :track, :class_of, :advisor_id)
   end
 end

@@ -1,11 +1,13 @@
-# Database-backed program year options (e.g., Year 1, Year 2).
+# Database-backed cohort year options ("Class of YYYY").
 class ProgramYear < ApplicationRecord
   DEFAULT_YEARS = [
-    { value: 1, position: 10 },
-    { value: 2, position: 20 }
+    { value: 2026, position: 10 },
+    { value: 2027, position: 20 }
   ].freeze
 
-  validates :value, presence: true, numericality: { only_integer: true, greater_than: 0 }
+  validates :value,
+            presence: true,
+            numericality: { only_integer: true, greater_than_or_equal_to: 2026, less_than_or_equal_to: 3000 }
   validates :value, uniqueness: true
 
   scope :ordered, -> { order(:position, :value) }
@@ -42,6 +44,6 @@ class ProgramYear < ApplicationRecord
 
   # @return [Array<Array(String, Integer)>] [label, value]
   def self.options_for_select
-    values.map { |year| [ "Year #{year}", year ] }
+    values.map { |year| [ "Class of #{year}", year ] }
   end
 end

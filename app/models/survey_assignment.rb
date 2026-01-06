@@ -15,9 +15,9 @@ class SurveyAssignment < ApplicationRecord
 
   scope :recent, -> { order(assigned_at: :desc) }
   scope :incomplete, -> { where(completed_at: nil) }
-  scope :due_after, ->(time) { where("due_date > ?", time) }
-  scope :due_before, ->(time) { where("due_date <= ?", time) }
-  scope :due_between, ->(start_time, end_time) { where(due_date: start_time..end_time) }
+  scope :closes_after, ->(time) { where("available_until > ?", time) }
+  scope :closes_before, ->(time) { where("available_until <= ?", time) }
+  scope :closes_between, ->(start_time, end_time) { where(available_until: start_time..end_time) }
 
   # @return [User] the user record backing the student
   def recipient_user
@@ -40,16 +40,45 @@ class SurveyAssignment < ApplicationRecord
     update!(completed_at: timestamp) unless completed_at?
   end
 
-  # @return [Boolean] true when the assignment has passed its due date without completion
+  # @return [Boolean] true when the assignment has passed its availability window without completion
   def overdue?(reference_time = Time.current)
-    due_date.present? && completed_at.nil? && due_date < reference_time
+    available_until.present? && completed_at.nil? && available_until < reference_time
   end
 
-  # @return [Boolean] true when the assignment is due within the specified window
-  def due_within?(window:, reference_time: Time.current)
-    return false unless due_date.present? && completed_at.nil?
+  # @return [Boolean] true when current time is within the availability window
+  def available_now?(reference_time = Time.current)
+    return false if available_from.present? && reference_time < available_from
+    return false if available_until.present? && reference_time > available_until
 
-    due_date <= reference_time + window && due_date >= reference_time
+    true
+  end
+
+  # @return [Symbol] :not_yet, :closed, or :open
+  def availability_status(reference_time = Time.current)
+    return :not_yet if available_from.present? && reference_time < available_from
+    return :closed if available_until.present? && reference_time > available_until
+
+    :open
+  end
+
+  # For submitted surveys, revisions are allowed while the assignment remains
+  # within the availability window.
+  def can_edit_now?(reference_time = Time.current)
+    return false unless available_now?(reference_time)
+
+    if completed_at?
+      return true if available_until.blank?
+      return available_until >= reference_time
+    end
+
+    true
+  end
+
+  # @return [Boolean] true when the assignment closes within the specified window
+  def closes_within?(window:, reference_time: Time.current)
+    return false unless available_until.present? && completed_at.nil?
+
+    available_until <= reference_time + window && available_until >= reference_time
   end
 
   private

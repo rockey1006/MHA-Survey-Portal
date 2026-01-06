@@ -18,7 +18,7 @@ export default class extends Controller {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
 
-    const uniqueId = Date.now().toString()
+    const uniqueId = this.uniqueToken()
     const formUid = this.generateFormUid()
     let html = this.templateTarget.innerHTML
     html = html.replace(/NEW_SECTION_UID/g, formUid)
@@ -77,5 +77,9 @@ export default class extends Controller {
 
   generateFormUid() {
     return `section-temp-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 8)}`
+  }
+
+  uniqueToken() {
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
   }
 }

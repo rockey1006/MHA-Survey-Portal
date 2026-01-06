@@ -83,8 +83,8 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_nil row[:completed_at]
 
     assignment = survey_assignments(:residential_assignment)
-    assert_not_nil row[:due_date]
-    assert_in_delta assignment.due_date.to_i, row[:due_date].to_i, 1
+    assert_not_nil row[:available_until]
+    assert_in_delta assignment.available_until.to_i, row[:available_until].to_i, 1
     completion_time = Time.current
     assignment.update!(completed_at: completion_time)
 
@@ -106,7 +106,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil row, "Expected to find a student row for an unassigned survey"
     assert_equal "Unassigned", row[:status]
     assert_nil row[:completed_at]
-    assert_nil row[:due_date]
+    assert_nil row[:available_until]
   end
 
   private

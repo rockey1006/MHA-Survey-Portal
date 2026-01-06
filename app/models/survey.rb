@@ -12,6 +12,7 @@ class Survey < ApplicationRecord
            dependent: :destroy
   has_many :questions, through: :categories
   has_many :track_assignments, class_name: "SurveyTrackAssignment", inverse_of: :survey, dependent: :destroy
+  has_many :offerings, class_name: "SurveyOffering", inverse_of: :survey, dependent: :destroy
   has_many :survey_assignments, inverse_of: :survey, dependent: :destroy
   has_many :survey_change_logs, dependent: :nullify
   has_many :feedbacks, foreign_key: :survey_id, class_name: "Feedback", dependent: :destroy
@@ -33,6 +34,7 @@ class Survey < ApplicationRecord
             }
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
+  validate :availability_window_order
 
   # Virtual semester accessor maintained for compatibility with existing
   # views/forms. The canonical value lives in program_semesters.name.
@@ -107,6 +109,13 @@ class Survey < ApplicationRecord
 
       errors.add(:base, "Each category must include at least one question")
     end
+  end
+
+  def availability_window_order
+    return if available_from.blank? || available_until.blank?
+    return if available_from <= available_until
+
+    errors.add(:available_until, "must be after Available from")
   end
 
   def normalize_track_values(values)

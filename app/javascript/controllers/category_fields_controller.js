@@ -11,7 +11,7 @@ export default class extends Controller {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
 
-    const uniqueId = Date.now().toString()
+    const uniqueId = this.uniqueToken()
     const content = this.templateTarget.innerHTML.replace(/NEW_CATEGORY/g, uniqueId)
     this.containerTarget.insertAdjacentHTML("beforeend", content)
     this.refreshNewSectionSelects()
@@ -81,5 +81,9 @@ export default class extends Controller {
   extractOptionsFromSelect(select) {
     if (!select) return null
     return Array.from(select.options).map((option) => ({ uid: option.value, label: option.textContent || option.value }))
+  }
+
+  uniqueToken() {
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
   }
 }

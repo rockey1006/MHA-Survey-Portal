@@ -45,27 +45,27 @@ class SurveyAssignmentTest < ActiveSupport::TestCase
     assert assignment.completed_at.present?
   end
 
-  test "overdue? and due_within? evaluate due dates" do
+  test "overdue? and closes_within? evaluate availability windows" do
     now = Time.zone.now
     assignment = SurveyAssignment.create!(
       survey: @survey,
       student: @student,
       advisor: @advisor,
       assigned_at: now,
-      due_date: now + 2.days
+      available_until: now + 2.days
     )
 
     refute assignment.overdue?(now)
-    assert assignment.due_within?(window: 3.days, reference_time: now)
-    refute assignment.due_within?(window: 1.day, reference_time: now)
+    assert assignment.closes_within?(window: 3.days, reference_time: now)
+    refute assignment.closes_within?(window: 1.day, reference_time: now)
 
-    assignment.update!(due_date: now - 1.hour)
+    assignment.update!(available_until: now - 1.hour)
     assert assignment.overdue?(now)
-    refute assignment.due_within?(window: 3.days, reference_time: now)
+    refute assignment.closes_within?(window: 3.days, reference_time: now)
 
     assignment.mark_completed!(now)
     refute assignment.overdue?(now)
-    refute assignment.due_within?(window: 3.days, reference_time: now)
+    refute assignment.closes_within?(window: 3.days, reference_time: now)
   end
 
   test "recipient_user and advisor_user resolve backing users" do

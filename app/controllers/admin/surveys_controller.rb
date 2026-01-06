@@ -129,7 +129,8 @@ class Admin::SurveysController < Admin::BaseController
                              {}
     end
 
-    previous_due_date = @survey.due_date
+    previous_available_from = @survey.available_from
+    previous_available_until = @survey.available_until
 
     @survey.assign_attributes(survey_params)
     resolve_category_sections(@survey)
@@ -172,10 +173,19 @@ class Admin::SurveysController < Admin::BaseController
         end
       end
 
-      if previous_due_date != @survey.due_date
-        SurveyAssignment
-          .where(survey_id: @survey.id, completed_at: nil)
-          .update_all(due_date: @survey.due_date, updated_at: Time.current)
+      if previous_available_from != @survey.available_from ||
+          previous_available_until != @survey.available_until
+        has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
+
+        unless has_offerings
+          SurveyAssignment
+            .where(survey_id: @survey.id, completed_at: nil)
+            .update_all(
+              available_from: @survey.available_from,
+              available_until: @survey.available_until,
+              updated_at: Time.current
+            )
+        end
 
         ReconcileSurveyAssignmentsJob.perform_later(survey_id: @survey.id)
       end
@@ -316,8 +326,15 @@ class Admin::SurveysController < Admin::BaseController
       :title,
       :description,
       :semester,
-      :due_date,
+      :available_from,
+      :available_until,
       :is_active,
+      legend_attributes: [
+        :id,
+        :title,
+        :body,
+        :_destroy
+      ],
       categories_attributes: [
         :id,
         :name,
@@ -414,11 +431,16 @@ class Admin::SurveysController < Admin::BaseController
   # @param survey [Survey]
   # @return [Hash]
   def survey_snapshot(survey)
+    snapshot_time = lambda do |value|
+      value&.in_time_zone&.strftime("%Y-%m-%d %H:%M")
+    end
+
     {
       title: survey.title,
       semester: survey.semester,
       description: survey.description,
-      due_date: survey.due_date&.to_date,
+      available_from: snapshot_time.call(survey.available_from),
+      available_until: snapshot_time.call(survey.available_until),
       is_active: survey.is_active,
       tracks: survey.track_list,
       categories: survey.categories.map do |category|
@@ -439,7 +461,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [String]
   def change_summary(before, after, tracks)
     diffs = []
-    %i[title semester description due_date is_active].each do |attribute|
+    %i[title semester description available_from available_until is_active].each do |attribute|
       before_value = before[attribute]
       after_value = after[attribute]
       next if before_value == after_value

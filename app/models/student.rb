@@ -25,20 +25,19 @@ class Student < ApplicationRecord
             inclusion: { in: ->(_student) { ProgramTrack.keys } },
             allow_blank: true,
             on: :profile_completion
-  validates :program_year, presence: true, on: :profile_completion
-  validates :program_year, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
-  validates :program_year,
-            inclusion: { in: ->(_student) { ProgramYear.values } },
-            allow_blank: true,
-            on: :profile_completion
+  validates :class_of, presence: true, on: :profile_completion
+  validates :class_of, numericality: { only_integer: true, greater_than_or_equal_to: 2026, less_than_or_equal_to: 3000 }, allow_nil: true
 
-  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? || saved_change_to_program_year? }
+  # Legacy: keep program_year optional for now (used by some reports/targets).
+  validates :program_year, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+
+  after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? || saved_change_to_class_of? }
 
   # Checks if the student has completed their profile setup
   #
   # @return [Boolean]
   def profile_complete?
-    user.name.present? && uin.present? && major.present? && track.present?
+    user.name.present? && uin.present? && major.present? && track.present? && class_of.present?
   end
 
   # @return [String] the student's preferred full name

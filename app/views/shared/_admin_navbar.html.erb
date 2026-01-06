@@ -13,6 +13,10 @@
           Home
         </a>
 
+        <%= link_to "Reports",
+                    reports_path,
+                    class: "nav-link #{'active' if local_assigns[:active_page] == 'reports'}" %>
+
         <%= link_to "Student Records",
                     student_records_path,
                     class: "nav-link #{'active' if local_assigns[:active_page] == 'students'}" %>

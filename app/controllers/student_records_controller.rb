@@ -109,7 +109,7 @@ class StudentRecordsController < ApplicationController
 
               assignment = assignments_lookup.dig(student.student_id, survey.id)
               completed_at = assignment&.completed_at
-              due_date = assignment&.due_date
+              available_until = assignment&.available_until
               status_text = if assignment.nil?
                 "Unassigned"
               elsif completed_at.present?
@@ -123,7 +123,7 @@ class StudentRecordsController < ApplicationController
                 advisor: student.advisor,
                 status: status_text,
                 completed_at: completed_at,
-                due_date: due_date,
+                available_until: available_until,
                 admin_updated_at: admin_update_lookup[[ student.student_id, survey.id ]],
                 survey: survey,
                 survey_response: survey_response,

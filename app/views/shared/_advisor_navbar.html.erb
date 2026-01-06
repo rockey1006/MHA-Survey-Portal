@@ -30,13 +30,13 @@
           Home
         </a>
 
+        <%= link_to "Reports",
+                    reports_path,
+                    class: "nav-link #{'active' if local_assigns[:active_page] == 'reports'}" %>
+                    
         <%= link_to "Student Records",
                     student_records_path,
                     class: "nav-link #{'active' if local_assigns[:active_page] == 'students'}" %>
-
-          <%= link_to "Surveys",
-                      assignments_surveys_path,
-                      class: "nav-link #{'active' if local_assigns[:active_page] == 'surveys'}" %>
       </nav>
     </div>
 

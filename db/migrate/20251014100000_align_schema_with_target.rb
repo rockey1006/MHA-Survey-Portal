@@ -1,6 +1,6 @@
 class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
   SECTION_TITLE = "MHA Competency Self-Assessment".freeze
-  SECTION_DESCRIPTION = "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale.".freeze
+  SECTION_DESCRIPTION = "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Refer to the sidebar for a description of the 1-5 proficiency scale.".freeze
   CATEGORY_NAMES = [
     "Health Care Environment and Community",
     "Leadership Skills",
@@ -72,11 +72,13 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.bigint :advisor_id
       t.string :major
       t.integer :program_year
+      t.integer :class_of
       t.enum :track, enum_type: :student_tracks, null: false, default: "Residential"
       t.enum :classification, enum_type: :student_classifications, null: false, default: "G1"
       t.timestamps
 
       t.index :advisor_id
+      t.index :class_of
       t.index :program_year
       t.index :uin, unique: true, where: "uin IS NOT NULL"
     end
@@ -143,12 +145,13 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
       t.string :track, null: false
       t.integer :program_year
+      t.integer :class_of
       t.string :competency_title, null: false
       t.integer :target_level, null: false
       t.timestamps
     end
     add_index :competency_target_levels,
-              %i[program_semester_id track program_year competency_title],
+              %i[program_semester_id track program_year class_of competency_title],
               unique: true,
               name: "index_competency_targets_unique"
 
@@ -158,12 +161,14 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.references :program_semester, null: false, foreign_key: { to_table: :program_semesters }
       t.text :description
       t.boolean :is_active, null: false, default: true
-      t.datetime :due_date
+      t.datetime :available_from
+      t.datetime :available_until
       t.references :created_by, foreign_key: { to_table: :users }
       t.timestamps
     end
     add_index :surveys, :is_active
-    add_index :surveys, :due_date
+    add_index :surveys, :available_from
+    add_index :surveys, :available_until
     execute <<~SQL
       CREATE UNIQUE INDEX IF NOT EXISTS index_surveys_on_lower_title_and_program_semester
       ON surveys (LOWER(title), program_semester_id);
@@ -253,18 +258,40 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
     end
     add_index :survey_track_assignments, %i[survey_id track], unique: true, name: "index_survey_track_assignments_on_survey_id_and_track"
 
+  # Entity table: survey offering/schedule rows that drive auto-assignment.
+  # Each offering maps a survey to a program (track), cohort year (class_of), and stage.
+  # Portfolio due date is the survey due date for that cohort/stage.
+  create_table :survey_offerings do |t|
+      t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
+      t.string :track, null: false
+      t.integer :class_of
+      t.string :stage, null: false
+      t.datetime :portfolio_due_date
+      t.datetime :available_from
+      t.datetime :available_until
+      t.date :review_meetings_start
+      t.date :review_meetings_end
+      t.boolean :active, null: false, default: true
+      t.timestamps
+    end
+    add_index :survey_offerings, %i[survey_id track class_of stage], unique: true, name: "index_survey_offerings_unique"
+    add_index :survey_offerings, %i[track class_of active], name: "index_survey_offerings_on_track_class_of_active"
+
   # Join table (with attributes): assigns surveys to students and advisors.
   create_table :survey_assignments do |t|
       t.references :survey, null: false, foreign_key: { to_table: :surveys, on_delete: :cascade }
       t.references :student, null: false, foreign_key: { to_table: :students, primary_key: :student_id, on_delete: :cascade }
       t.references :advisor, foreign_key: { to_table: :advisors, primary_key: :advisor_id, on_delete: :nullify }
       t.datetime :assigned_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
-      t.datetime :due_date
+      t.datetime :available_from
+      t.datetime :available_until
       t.datetime :completed_at
+      t.boolean :manual, null: false, default: false
       t.timestamps
     end
     add_index :survey_assignments, %i[survey_id student_id], unique: true, name: "index_survey_assignments_on_survey_and_student"
-    add_index :survey_assignments, %i[due_date completed_at], name: "index_survey_assignments_due_date"
+    add_index :survey_assignments, %i[available_until completed_at], name: "index_survey_assignments_available_until"
+    add_index :survey_assignments, :manual
 
   # Join table: associates surveys with their questions.
   create_table :survey_questions do |t|

@@ -97,7 +97,7 @@
                   </summary>
 
                   <%= render TableComponent.new(
-                    headers: ["#", "Student", "Advisor", "Track", "Year", "Status", "Completion", "Feedback", "Survey"],
+                    headers: ["#", "Student", "Advisor", "Track", "Class year", "Status", "Completion", "Feedback", "Survey"],
                     right_align: [8]
                   ) do %>
                         <% if filtered_rows.blank? %>
@@ -117,7 +117,7 @@
                             <% advisor                 = row[:advisor] %>
                             <% status_text             = row[:status] %>
                             <% completion_date         = row[:completed_at] %>
-                            <% due_date                = row[:due_date] %>
+                            <% available_until         = row[:available_until] %>
                             <% admin_updated_at         = row[:admin_updated_at] %>
                             <% survey_response         = row[:survey_response] %>
                             <% download_token          = row[:download_token] %>
@@ -162,7 +162,9 @@
                               </td>
 
                               <td class="px-4 py-3 text-sm text-slate-700">
-                                <% if student.program_year.present? %>
+                                <% if student.class_of.present? %>
+                                  <div class="font-semibold text-slate-900"><%= student.class_of %></div>
+                                <% elsif student.program_year.present? %>
                                   <div class="font-semibold text-slate-900">Year <%= student.program_year %></div>
                                 <% else %>
                                   <div class="font-semibold text-slate-400">—</div>
@@ -182,10 +184,10 @@
                                     <div class="font-semibold text-slate-900"><%= l(completion_date, format: :long) %></div>
                                     <div class="mt-1 text-xs text-slate-500">Updated <%= time_ago_in_words(completion_date) %> ago</div>
                                   <% end %>
-                                  <div class="mt-1 text-xs text-slate-500"><%= survey_due_note(due_date) %></div>
+                                  <div class="mt-1 text-xs text-slate-500"><%= survey_availability_note(available_until) %></div>
                                 <% else %>
                                   <span class="text-xs text-slate-500">Not yet completed</span>
-                                  <div class="mt-1 text-xs text-slate-500"><%= survey_due_note(due_date) %></div>
+                                  <div class="mt-1 text-xs text-slate-500"><%= survey_availability_note(available_until) %></div>
                                 <% end %>
                               </td>
 

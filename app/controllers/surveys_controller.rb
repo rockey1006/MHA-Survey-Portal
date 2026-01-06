@@ -3,6 +3,7 @@ class SurveysController < ApplicationController
   protect_from_forgery except: :save_progress
   before_action :set_survey, only: %i[show submit save_progress]
   before_action :redirect_completed_assignment!, only: %i[show submit save_progress]
+  before_action :redirect_unavailable_assignment!, only: %i[show submit save_progress]
 
   # Lists active surveys ordered by display priority.
   #
@@ -12,7 +13,7 @@ class SurveysController < ApplicationController
     assignments = if @student
                     SurveyAssignment
                       .where(student_id: @student.student_id)
-                      .select(:id, :survey_id, :assigned_at, :due_date, :completed_at)
+                      .select(:id, :survey_id, :assigned_at, :available_from, :available_until, :completed_at)
     else
                     SurveyAssignment.none
     end
@@ -29,6 +30,19 @@ class SurveysController < ApplicationController
     end
 
     @assignment_lookup = assignments.index_by(&:survey_id)
+
+    @offerings_by_survey_id = {}
+    if SurveyOffering.data_source_ready? && @student&.class_of.present? && @student&.track.present? && @surveys.any?
+      offerings = SurveyOffering
+                    .for_student(track_key: @student.track, class_of: @student.class_of)
+                    .where(survey_id: @surveys.map(&:id))
+
+      grouped = offerings.group_by(&:survey_id)
+      grouped.each do |survey_id, rows|
+        exact = rows.find { |row| row.class_of.present? && row.class_of.to_i == @student.class_of.to_i }
+        @offerings_by_survey_id[survey_id] = exact || rows.first
+      end
+    end
 
     @current_semester_label = ProgramSemester.current_name.presence || fallback_semester_label
   end
@@ -54,8 +68,7 @@ class SurveysController < ApplicationController
       @survey_assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
 
       if @survey_assignment&.completed_at?
-        due_date = @survey_assignment.due_date
-        can_revise = due_date.blank? || due_date >= Time.current
+        can_revise = @survey_assignment.can_edit_now?
         if can_revise
           flash.now[:notice] ||= "You’re editing a submitted survey. Previous submissions are still visible in your submission history."
         end
@@ -136,9 +149,9 @@ class SurveysController < ApplicationController
     end
 
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
-    if assignment&.completed_at? && assignment.due_date.present? && assignment.due_date < Time.current
+    if assignment&.completed_at? && !assignment.can_edit_now?
       survey_response = SurveyResponse.build(student: student, survey: @survey)
-      redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed."
+      redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and is now closed. It can only be viewed."
       return
     end
 
@@ -353,9 +366,8 @@ class SurveysController < ApplicationController
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.current
 
-        if assignment.respond_to?(:due_date) && @survey.respond_to?(:due_date) && @survey.due_date.present?
-          assignment.due_date ||= @survey.due_date
-        end
+        assignment.available_from ||= @survey.available_from
+        assignment.available_until ||= @survey.available_until
         assignment.save! if assignment.changed?
 
         was_completed = assignment.completed_at?
@@ -430,9 +442,9 @@ class SurveysController < ApplicationController
 
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
     if assignment&.completed_at?
-      if assignment.due_date.present? && assignment.due_date < Time.current
+      if !assignment.can_edit_now?
         survey_response = SurveyResponse.build(student: student, survey: @survey)
-        redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed."
+        redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and is now closed. It can only be viewed."
       else
         redirect_to survey_path(@survey), alert: "This survey has already been submitted. Use Submit Survey to update your answers."
       end
@@ -561,13 +573,35 @@ class SurveysController < ApplicationController
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
     return unless assignment&.completed_at?
 
-    # Allow unlimited revisions if no due date exists, or when the due date
-    # hasn't passed yet.
-    return if assignment.due_date.blank?
-    return if assignment.due_date >= Time.current
+    return if assignment.can_edit_now?
 
     survey_response = SurveyResponse.build(student: student, survey: @survey)
-    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and the due date has passed. It can only be viewed." and return
+    redirect_to survey_response_path(survey_response), alert: "This survey has already been submitted and is now closed. It can only be viewed." and return
+  end
+
+  def redirect_unavailable_assignment!
+    student = current_student
+    return unless student && @survey
+
+    assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
+    return unless assignment
+
+    case assignment.availability_status
+    when :not_yet
+      message = "This survey is not available yet."
+      if assignment.available_from.present?
+        message = "This survey will be available starting #{I18n.l(assignment.available_from)}."
+      end
+      redirect_to surveys_path, alert: message and return
+    when :closed
+      message = "This survey is no longer available."
+      if assignment.available_until.present?
+        message = "This survey closed on #{I18n.l(assignment.available_until)}."
+      end
+
+      survey_response = SurveyResponse.build(student: student, survey: @survey)
+      redirect_to survey_response_path(survey_response), alert: message and return
+    end
   end
 
   # Checks if a Google-hosted link (Drive/Docs/Sites) is publicly accessible.

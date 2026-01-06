@@ -87,7 +87,7 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
       advisor_id: @student.advisor_id,
       assigned_at: 2.days.ago,
       completed_at: 1.day.ago,
-      due_date: 1.day.ago
+      available_until: 1.day.ago
     )
 
     post save_progress_survey_path(survey), params: { answers: { q1.id.to_s => "ignored" } }
@@ -108,7 +108,7 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
       assigned_at: 2.days.ago
     )
 
-    assignment.update!(completed_at: Time.current, due_date: 2.days.from_now)
+    assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
 
     post save_progress_survey_path(survey), params: { answers: {} }
 
@@ -130,7 +130,7 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
       assigned_at: 2.days.ago
     )
 
-    assignment.update!(completed_at: 2.days.ago, due_date: 1.day.ago)
+    assignment.update!(completed_at: 2.days.ago, available_until: 1.day.ago)
 
     post submit_survey_path(survey), params: { answers: {} }
 

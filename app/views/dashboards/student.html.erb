@@ -15,6 +15,7 @@
           <% if @pending_surveys.present? %>
             <% @pending_surveys.each do |entry| %>
               <% survey = entry[:survey] %>
+              <% offering = @offerings_by_survey_id[survey.id] %>
               <div class="c-list-item">
                 <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
@@ -23,11 +24,16 @@
                     Semester: <%= survey.semester %>
                   </div>
                 <% end %>
+                <% if (review_note = review_meetings_note(offering)).present? %>
+                  <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
+                    Review meetings: <%= review_note %>
+                  </div>
+                <% end %>
                 <% progress = entry[:progress] || {} %>
                 <div class="survey-meta">
                   Status: <%= entry[:status] %>
                   &bull;
-                  <%= survey_due_note(entry[:due_date]) %>
+                  <%= survey_availability_note(entry[:available_until]) %>
                   <% total_questions = progress[:total_questions].to_i %>
                   <% answered_total = progress[:answered_total].to_i %>
                   <% if total_questions.positive? %>
@@ -64,16 +70,22 @@
           <% if @completed_surveys.present? %>
             <% @completed_surveys.each do |entry| %>
               <% survey = entry[:survey] %>
+              <% offering = @offerings_by_survey_id[survey.id] %>
               <% survey_response = entry[:survey_response] %>
               <% download_token = entry[:download_token] %>
-              <% due_date = entry[:due_date] %>
-              <% can_edit = due_date.blank? || due_date >= Time.current %>
+              <% available_until = entry[:available_until] %>
+              <% can_edit = available_until.blank? || available_until >= Time.current %>
               <div class="completed-item">
                 <div class="c-icon--survey" aria-hidden="true"></div>
                 <div class="survey-title"><%= survey.title %></div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
                     Semester: <%= survey.semester %>
+                  </div>
+                <% end %>
+                <% if (review_note = review_meetings_note(offering)).present? %>
+                  <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
+                    Review meetings: <%= review_note %>
                   </div>
                 <% end %>
                 <% progress = entry[:progress] || {} %>
@@ -88,7 +100,7 @@
                     Completed on <%= submitted_at&.to_date || 'N/A' %>
                   <% end %>
                   &bull;
-                  <%= survey_due_note(due_date) %>
+                  <%= survey_availability_note(available_until) %>
                 </div>
 
                 <div class="survey-meta">

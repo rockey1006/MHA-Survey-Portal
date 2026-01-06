@@ -6,7 +6,7 @@
         <%= hidden_field_tag :return_to, back_path %>
         <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question } %>
 
-        <section class="c-card advisor-summary" data-advisor-feedback-summary>
+        <section class="c-card" data-advisor-feedback-summary>
           <div class="advisor-summary__header">
             <h3 class="advisor-summary__title">Summary Statistics</h3>
             <p class="advisor-summary__hint">Updates as you edit scores</p>

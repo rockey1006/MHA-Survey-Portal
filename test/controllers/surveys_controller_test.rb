@@ -28,12 +28,29 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       answer_options: [ [ "Beginner (1)", "1" ], [ "Mastery (5)", "5" ] ].to_json
     )
 
+    short = category.questions.create!(
+      question_text: "Test short",
+      question_order: 9993,
+      question_type: "short_answer",
+      is_required: false
+    )
+
+    evidence = category.questions.create!(
+      question_text: "Test evidence",
+      question_order: 9994,
+      question_type: "evidence",
+      is_required: false
+    )
+
     get survey_path(@survey)
     assert_response :success
 
     assert_select "input[type=radio][name=?]", "answers[#{mc.id}]", minimum: 2
     assert_select "select[name=?] option", "answers[#{dd.id}]", text: "Beginner (1)"
     assert_select "select[name=?] option", "answers[#{dd.id}]", text: "Mastery (5)"
+
+    assert_select "div[data-controller=?] textarea[name=?][maxlength=?]", "character-counter", "answers[#{short.id}]", StudentQuestion::TEXT_MAX_LENGTH.to_s
+    assert_select "div[data-controller=?] input[name=?][maxlength=?]", "character-counter", "answers[#{evidence.id}]", StudentQuestion::TEXT_MAX_LENGTH.to_s
   end
 
   test "submit redirects when student missing" do
@@ -113,7 +130,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show redirects students with completed surveys to survey response" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
 
     get survey_path(@survey)
@@ -126,7 +143,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "save_progress redirects when survey already submitted" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
 
     post save_progress_survey_path(@survey), params: { answers: { "1" => "data" } }
@@ -137,7 +154,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "save_progress is blocked after submission even before due date" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current, due_date: 2.days.from_now)
+    assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
 
     post save_progress_survey_path(@survey), params: { answers: { "1" => "data" } }
 
@@ -149,7 +166,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "submit redirects when survey already submitted" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
     survey_response = SurveyResponse.build(student: @student, survey: @survey)
 
     post submit_survey_path(@survey), params: { answers: {} }
@@ -160,7 +177,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show allows revisions before due date" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current, due_date: 2.days.from_now)
+    assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
 
     get survey_path(@survey)
 
@@ -170,7 +187,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show allows revisions when due date is not set" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
-    assignment.update!(completed_at: Time.current, due_date: nil)
+    assignment.update!(completed_at: Time.current, available_until: nil)
 
     get survey_path(@survey)
 
@@ -590,7 +607,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
 
     get survey_path(@survey)
 
@@ -606,7 +623,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
 
     post submit_survey_path(@survey), params: { answers: {} }
 
@@ -622,7 +639,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
 
     post save_progress_survey_path(@survey), params: { answers: {} }
 
@@ -936,7 +953,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       a.advisor_id = @student.advisor_id
       a.assigned_at = 1.day.ago
     end
-    assignment.update!(completed_at: Time.current, due_date: 1.day.ago)
+    assignment.update!(completed_at: Time.current, available_until: 1.day.ago)
 
     get survey_path(@survey)
 

@@ -108,6 +108,17 @@ seed_user = lambda do |email:, name:, role:, uid: nil, avatar_url: nil|
   user
 end
 
+puts "• Ensuring core advisor accounts"
+core_advisor_accounts = [
+  { email: "sarah115@tamu.edu", name: "Jack Buckley" },
+  { email: "probinson@tamu.edu", name: "Phillip Robinson" },
+  { email: "cstebbins@tamu.edu", name: "Carla Stebbins" }
+]
+
+core_advisor_accounts.each do |attrs|
+  seed_user.call(email: attrs[:email], name: attrs[:name], role: :advisor)
+end
+
 if seed_demo_data
   puts "• Creating administrative accounts"
   admin_accounts = [
@@ -186,13 +197,16 @@ end
 template_data = YAML.safe_load_file(survey_template_path, aliases: true)
 survey_templates = Array(template_data.fetch("surveys"))
 
-preferred_seed_current_semester = "Fall 2025"
+preferred_seed_current_semester = "Spring 2026"
 semester_names = survey_templates.map do |definition|
   definition.fetch("program_semester").to_s.strip.presence
 end.compact.uniq
 if semester_names.blank?
   semester_names = [Time.zone.now.strftime("%B %Y")]
 end
+
+# Only keep 2026 semesters in seed data.
+semester_names = semester_names.select { |name| name.match?(/\b2026\b/) }
 
 existing_current_semester = ProgramSemester.current_name.to_s.strip.presence
 # Seed behavior: in non-production environments, prefer the newest semester so
@@ -219,6 +233,9 @@ ProgramSemester.transaction do
   semester_names.each do |name|
     ProgramSemester.find_or_create_by!(name: name)
   end
+
+  # Ensure Fall 2026 exists as an empty semester placeholder.
+  ProgramSemester.find_or_create_by!(name: "Fall 2026")
 
   ProgramSemester.where.not(name: target_current_semester).update_all(current: false)
   ProgramSemester.find_or_create_by!(name: target_current_semester).update!(current: true)
@@ -306,7 +323,6 @@ answer_options_for = lambda do |options|
 end
 
 created_surveys = []
-survey_due_dates = nil
 
 legend_supported = ActiveRecord::Base.connection.data_source_exists?("survey_legends")
 question_target_level_supported = ActiveRecord::Base.connection.column_exists?(:questions, :program_target_level)
@@ -493,19 +509,103 @@ survey_templates.each do |definition|
     tracks = Array(definition.fetch("tracks", [])).map(&:to_s)
     survey.assign_tracks!(tracks)
 
-    raw_due_date = definition["due_date"].to_s.strip
-    if raw_due_date.present?
+    raw_available_from = definition["available_from"].to_s.strip
+    raw_available_until = definition["available_until"].to_s.strip
+
+    if raw_available_from.present?
       begin
-        parsed_due_date = Time.zone.parse(raw_due_date)
-        survey.due_date = parsed_due_date.end_of_day if parsed_due_date
+        survey.available_from = Time.zone.parse(raw_available_from)
       rescue StandardError
-        # Ignore invalid due dates; we will fall back to default assignment logic.
+        # Ignore invalid available_from values.
+      end
+    end
+
+    if raw_available_until.present?
+      begin
+        parsed_until = Time.zone.parse(raw_available_until)
+        survey.available_until = if raw_available_until.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+          parsed_until&.end_of_day
+        else
+          parsed_until
+        end
+      rescue StandardError
+        # Ignore invalid available_until values.
       end
     end
 
     survey.save! if survey.changed?
 
     created_surveys << survey
+  end
+end
+
+if ActiveRecord::Base.connection.data_source_exists?("survey_offerings")
+  puts "• Syncing survey offerings (program/cohort/stage schedule)"
+
+  stage_surveys_by_title = {
+    "RMHA Initial Survey" => { track: "Residential", stage: "initial" },
+    "RMHA Mid-point Survey" => { track: "Residential", stage: "midpoint" },
+    "RMHA Final Survey" => { track: "Residential", stage: "final" },
+    "EMHA Mid-point Survey" => { track: "Executive", stage: "midpoint" },
+    "EMHA Final Survey" => { track: "Executive", stage: "final" }
+  }
+
+  schedule_rows = [
+    # RMHA
+    { title: "RMHA Initial Survey", class_of: 2027, portfolio_due_date: "2026-01-16", review_start: "2026-01-20", review_end: "2026-02-16" },
+    { title: "RMHA Mid-point Survey", class_of: 2026, portfolio_due_date: "2026-01-16", review_start: nil, review_end: nil },
+    { title: "RMHA Final Survey", class_of: 2026, portfolio_due_date: "2026-03-20", review_start: "2026-03-20", review_end: "2026-04-17" },
+
+    # EMHA
+    { title: "EMHA Mid-point Survey", class_of: 2027, portfolio_due_date: "2026-05-31", review_start: "2026-06-01", review_end: "2026-08-04" },
+    { title: "EMHA Final Survey", class_of: 2026, portfolio_due_date: "2026-03-20", review_start: "2026-03-21", review_end: "2026-04-17" }
+  ]
+
+  schedule_rows.each do |row|
+    config = stage_surveys_by_title[row[:title]]
+    next unless config
+
+    survey = Survey.find_by(title: row[:title])
+    unless survey
+      warn "• Skipping offering for #{row[:title]} (survey not found)"
+      next
+    end
+
+    offering = SurveyOffering.find_or_initialize_by(
+      survey: survey,
+      track: config[:track],
+      class_of: row[:class_of],
+      stage: config[:stage]
+    )
+
+    availability_start = Time.zone.parse("2026-01-05 09:00")
+    offering.available_from = availability_start if offering.respond_to?(:available_from)
+
+    if row[:portfolio_due_date].present?
+      raw_due = row[:portfolio_due_date].to_s.strip
+      parsed = Time.zone.parse(raw_due)
+      offering.portfolio_due_date = if raw_due.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+        parsed&.change(hour: 23, min: 59)
+      else
+        parsed
+      end
+
+      if offering.respond_to?(:available_until)
+        offering.available_until = if raw_due.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+          parsed&.change(hour: 23, min: 59)
+        else
+          parsed
+        end
+      end
+    else
+      offering.portfolio_due_date = nil
+      offering.available_until = nil if offering.respond_to?(:available_until)
+    end
+
+    offering.review_meetings_start = row[:review_start].present? ? Date.parse(row[:review_start].to_s) : nil
+    offering.review_meetings_end = row[:review_end].present? ? Date.parse(row[:review_end].to_s) : nil
+    offering.active = true if offering.active.nil?
+    offering.save!
   end
 end
 
@@ -587,7 +687,7 @@ students.each do |student|
       survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
   end
   if multi_semester_student_ids.include?(student.student_id) || program_year_value == 2
-    multi_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
+    multi_semesters = ["Spring 2026"].freeze
     extra_surveys = created_surveys.select do |survey|
       multi_semesters.include?(survey.program_semester.name.to_s.strip) &&
         survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
@@ -712,11 +812,13 @@ students.each do |student|
         assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
           record.advisor_id = student.advisor_id
           record.assigned_at = completion_timestamp
-          record.due_date = survey.due_date if survey.respond_to?(:due_date)
+          record.available_from = survey.available_from
+          record.available_until = survey.available_until
         end
 
         assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
-        assignment.update!(due_date: survey.due_date) if assignment.due_date.blank? && survey.respond_to?(:due_date) && survey.due_date.present?
+        assignment.update!(available_from: survey.available_from) if assignment.available_from.blank? && survey.available_from.present?
+        assignment.update!(available_until: survey.available_until) if assignment.available_until.blank? && survey.available_until.present?
         assignment.update!(completed_at: nil) if student.user.email.to_s.downcase == incomplete_seed_email
 
         unless student.user.email.to_s.downcase == incomplete_seed_email
@@ -736,18 +838,20 @@ students.each do |student|
       # Seed Year-2 students with multi-semester completions so confidential
       # notes history and version navigation have realistic data.
       if program_year_value == 2
-        completion_semesters = ["Spring 2025", "Fall 2025", "Spring 2026"].freeze
+        completion_semesters = ["Spring 2026"].freeze
         if completion_semesters.include?(survey.program_semester&.name.to_s.strip)
           completion_timestamp = latest_response_timestamp || Time.current
 
           assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
             record.advisor_id = student.advisor_id
             record.assigned_at = completion_timestamp
-            record.due_date = survey.due_date if survey.respond_to?(:due_date)
+            record.available_from = survey.available_from
+            record.available_until = survey.available_until
           end
 
           assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
-          assignment.update!(due_date: survey.due_date) if assignment.due_date.blank? && survey.respond_to?(:due_date) && survey.due_date.present?
+          assignment.update!(available_from: survey.available_from) if assignment.available_from.blank? && survey.available_from.present?
+          assignment.update!(available_until: survey.available_until) if assignment.available_until.blank? && survey.available_until.present?
           assignment.mark_completed!(completion_timestamp)
 
           SurveyResponseVersion.capture_current!(

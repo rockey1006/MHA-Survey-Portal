@@ -123,7 +123,7 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
 
     # Create a second version by revising before due date.
     assignment = SurveyAssignment.find_by!(student_id: @student.student_id, survey_id: @survey.id)
-    assignment.update!(due_date: 2.days.from_now)
+    assignment.update!(available_until: 2.days.from_now)
 
     answers2 = {}
     @survey.questions.limit(1).each { |q| answers2[q.id.to_s] = "A2" }

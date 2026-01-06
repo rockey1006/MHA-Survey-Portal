@@ -2,28 +2,32 @@
 
 module SurveyAssignments
   # Ensures a student's survey assignments mirror the surveys associated with
-  # their current track selection and program year. When either value is blank,
+  # their current track selection and class year ("Class of"). When either value is blank,
   # the auto assigner leaves the assignment list untouched so that a first-time
   # login does not receive surveys prematurely.
   class AutoAssigner
     # @param student [Student]
     # @param track [String, nil]
-    # @param program_year [Integer, String, nil]
+    # @param class_of [Integer, String, nil]
+    # @param program_year [Integer, String, nil] legacy alias
     # @return [void]
-    def self.call(student:, track: nil, program_year: nil)
-      new(student:, track:, program_year:).call
+    def self.call(student:, track: nil, class_of: nil, program_year: nil)
+      new(student:, track:, class_of:, program_year:).call
     end
 
-    def initialize(student:, track: nil, program_year: nil)
+    def initialize(student:, track: nil, class_of: nil, program_year: nil)
       @student = student
       @track = (track.presence || student&.track).to_s.strip
-      @program_year = program_year.presence || student&.program_year
+      @class_of = class_of.presence || student&.class_of
+
+      # Backward compatibility: some older callers may still pass program_year.
+      @class_of = @class_of.presence || program_year.presence
     end
 
     def call
       return unless student
 
-      if track.blank? || program_year.blank?
+      if track.blank? || class_of.blank?
         # Track selection not available yet; remove any outdated managed
         # assignments so that onboarding students start with a clean slate.
         remove_managed_assignments!(allowed_ids: [])
@@ -31,12 +35,15 @@ module SurveyAssignments
         return
       end
 
-      surveys = surveys_for_track
-      active_ids = surveys.map(&:id)
+      surveys, active_ids, offering_available_from, offering_available_until = surveys_for_student
 
       ActiveRecord::Base.transaction do
         remove_managed_assignments!(allowed_ids: active_ids)
-        assign_missing_surveys!(surveys)
+        assign_missing_surveys!(
+          surveys,
+          offering_available_from: offering_available_from,
+          offering_available_until: offering_available_until
+        )
       end
 
       reset_student_assignment_cache!
@@ -44,7 +51,29 @@ module SurveyAssignments
 
     private
 
-    attr_reader :student, :track, :program_year
+    attr_reader :student, :track, :class_of
+
+    def surveys_for_student
+      if SurveyOffering.data_source_ready? && SurveyOffering.active.exists?
+        offerings = SurveyOffering.for_student(track_key: track, class_of: class_of)
+          .includes(:survey)
+
+        surveys = offerings.map(&:survey).compact.uniq
+        active_ids = surveys.map(&:id)
+        available_from = offerings.each_with_object({}) do |offering, memo|
+          memo[offering.survey_id] = offering.available_from
+        end
+
+        available_until = offerings.each_with_object({}) do |offering, memo|
+          memo[offering.survey_id] = offering.available_until
+        end
+
+        return [ surveys, active_ids, available_from, available_until ]
+      end
+
+      surveys = surveys_for_track
+      [ surveys, surveys.map(&:id), {}, {} ]
+    end
 
     def surveys_for_track
       current_semester = ProgramSemester.current&.name.to_s.strip
@@ -63,29 +92,51 @@ module SurveyAssignments
     end
 
     def remove_managed_assignments!(allowed_ids: [])
-      scope = assignment_scope.joins(survey: :track_assignments).distinct
+      scope = assignment_scope
+      scope = scope.where(manual: false) if SurveyAssignment.column_names.include?("manual")
+
+      if SurveyOffering.data_source_ready? && SurveyOffering.active.exists?
+        # When offerings drive assignment, treat *any* survey with an offering as managed.
+        # This ensures changing track/class_of removes outdated managed assignments.
+        scope = scope
+          .joins(:survey)
+          .joins("INNER JOIN survey_offerings ON survey_offerings.survey_id = surveys.id")
+          .distinct
+      else
+        scope = scope.joins(survey: :track_assignments).distinct
+      end
+
       scope = scope.where.not(survey_id: allowed_ids) if allowed_ids.present?
       scope = scope.where(completed_at: nil) # completed assignments double as an audit log
       scope.find_each(&:destroy!)
     end
 
-    def assign_missing_surveys!(surveys)
+    def assign_missing_surveys!(
+      surveys,
+      offering_available_from: {},
+      offering_available_until: {}
+    )
       existing = assignment_scope.index_by(&:survey_id)
 
-      today = Time.zone.today
-      assignable = surveys.select do |survey|
-        next false if survey.due_date.blank?
-
-        survey.due_date.to_date >= today
-      end
-
-      assignable.each do |survey|
+      surveys.each do |survey|
         assignment = existing[survey.id] || SurveyAssignment.new(student_id: student.student_id, survey: survey)
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.zone.now
 
-        if assignment.respond_to?(:due_date) && survey.respond_to?(:due_date)
-          assignment.due_date = survey.due_date
+        if assignment.respond_to?(:available_from) && survey.respond_to?(:available_from)
+          assignment.available_from = if offering_available_from.key?(survey.id)
+            offering_available_from[survey.id]
+          else
+            survey.available_from
+          end
+        end
+
+        if assignment.respond_to?(:available_until) && survey.respond_to?(:available_until)
+          assignment.available_until = if offering_available_until.key?(survey.id)
+            offering_available_until[survey.id]
+          else
+            survey.available_until
+          end
         end
 
         assignment.save! if assignment.new_record? || assignment.changed?

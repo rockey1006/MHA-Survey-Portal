@@ -6,22 +6,22 @@ class QuestionTest < ActiveSupport::TestCase
     Rails.application.load_seed
   end
 
-  # --- Executive Survey ---
-  test "Project Management question in Fall 2025 Executive Survey exists" do
-    survey = Survey.joins(:program_semester).find_by(title: "Executive Survey", program_semesters: { name: "Fall 2025" })
-    assert_not_nil survey, "Executive Survey (Fall 2025) should exist"
+  # --- EMHA stage surveys ---
+  test "Project Management question in Spring 2026 EMHA Mid-point Survey exists" do
+    survey = Survey.joins(:program_semester).find_by(title: "EMHA Mid-point Survey", program_semesters: { name: "Spring 2026" })
+    assert_not_nil survey, "EMHA Mid-point Survey (Spring 2026) should exist"
 
     category = survey.categories.find_by(name: "Management Skills")
-    assert_not_nil category, "Management Skills category should exist in Executive Survey"
+    assert_not_nil category, "Management Skills category should exist in EMHA Mid-point Survey"
 
     question = category.questions.find_by(question_text: "Project Management")
     assert_not_nil question, "Project Management question should exist"
     assert question.required, "Project Management question should be required"
   end
 
-  test "Evidence question in Executive Survey is required" do
-    survey = Survey.joins(:program_semester).find_by(title: "Executive Survey", program_semesters: { name: "Fall 2025" })
-    assert_not_nil survey, "Executive Survey should exist"
+  test "Evidence question in EMHA Mid-point Survey is required" do
+    survey = Survey.joins(:program_semester).find_by(title: "EMHA Mid-point Survey", program_semesters: { name: "Spring 2026" })
+    assert_not_nil survey, "EMHA Mid-point Survey should exist"
 
     evidence_questions = survey.questions.where(question_type: "evidence")
     assert evidence_questions.any?, "There should be at least one evidence question"
@@ -31,21 +31,21 @@ class QuestionTest < ActiveSupport::TestCase
     end
   end
 
-  # --- Residential Survey ---
-  test "Residential Survey categories and Project Management exist" do
-    survey = Survey.joins(:program_semester).find_by(title: "Residential Survey", program_semesters: { name: "Fall 2025" })
-    assert_not_nil survey, "Residential Survey (Fall 2025) should exist"
+  # --- RMHA stage surveys ---
+  test "RMHA Initial Survey categories and Project Management exist" do
+    survey = Survey.joins(:program_semester).find_by(title: "RMHA Initial Survey", program_semesters: { name: "Spring 2026" })
+    assert_not_nil survey, "RMHA Initial Survey (Spring 2026) should exist"
 
     expected_categories = [ "Health Care Environment and Community", "Leadership Skills", "Management Skills", "Analytic and Technical Skills" ]
     actual_names = survey.categories.pluck(:name)
     expected_categories.each do |name|
-      assert_includes actual_names, name, "Residential Survey should include category '#{name}'"
+      assert_includes actual_names, name, "RMHA Initial Survey should include category '#{name}'"
     end
 
     category = survey.categories.find_by(name: "Management Skills")
     assert_not_nil category, "Management Skills category should exist"
     q = category.questions.find_by(question_text: "Project Management")
-    assert_not_nil q, "Project Management question should exist in Residential Survey"
+    assert_not_nil q, "Project Management question should exist in RMHA Initial Survey"
     assert q.required, "Project Management should be required"
   end
 

@@ -4,7 +4,7 @@
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
 <% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
-<% program_year = @student.program_year.present? ? "Year #{@student.program_year}" : "Not set" %>
+<% class_of = @student.class_of.present? ? "Class of #{@student.class_of}" : "Not set" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
@@ -69,8 +69,8 @@
           <p class="c-value c-value--xl c-value--inverse"><%= uin %></p>
         </article>
         <article class="c-kv c-kv--inverse c-kv--compact">
-          <p class="c-eyebrow c-eyebrow--inverse">Program year</p>
-          <p class="c-value c-value--xl c-value--inverse"><%= program_year %></p>
+          <p class="c-eyebrow c-eyebrow--inverse">Class year</p>
+          <p class="c-value c-value--xl c-value--inverse"><%= class_of %></p>
         </article>
       </div>
     </section>
@@ -109,8 +109,8 @@
                 <dd class="c-value c-value--lg"><%= major %></dd>
               </div>
               <div class="c-kv c-kv--compact">
-                <dt class="c-eyebrow">Program year</dt>
-                <dd class="c-value c-value--lg"><%= program_year %></dd>
+                <dt class="c-eyebrow">Class year</dt>
+                <dd class="c-value c-value--lg"><%= class_of %></dd>
               </div>
               <div class="c-kv c-kv--compact">
                 <dt class="c-eyebrow">Program track</dt>

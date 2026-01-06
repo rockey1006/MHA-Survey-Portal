@@ -36,6 +36,19 @@ class DashboardsController < ApplicationController
 
     surveys = surveys_for_student(@student)
 
+    @offerings_by_survey_id = {}
+    if SurveyOffering.data_source_ready? && @student.class_of.present? && @student.track.present? && surveys.any?
+      offerings = SurveyOffering
+                    .for_student(track_key: @student.track, class_of: @student.class_of)
+                    .where(survey_id: surveys.map(&:id))
+
+      grouped = offerings.group_by(&:survey_id)
+      grouped.each do |survey_id, rows|
+        exact = rows.find { |row| row.class_of.present? && row.class_of.to_i == @student.class_of.to_i }
+        @offerings_by_survey_id[survey_id] = exact || rows.first
+      end
+    end
+
     student_responses = StudentQuestion
                           .joins(question: :category)
                           .where(student_id: @student.student_id)
@@ -89,7 +102,8 @@ class DashboardsController < ApplicationController
       # Only consider a survey "Completed" when it was submitted, not just answered
       assignment = assignments[survey.id]
       completed_at = assignment&.completed_at
-      due_date = assignment&.due_date
+      available_from = assignment&.available_from
+      available_until = assignment&.available_until
 
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
@@ -100,7 +114,8 @@ class DashboardsController < ApplicationController
         required_answered_count: answered_required_count,
         required_total_count: total_required_count,
         completed_at: completed_at,
-        due_date: due_date,
+        available_from: available_from,
+        available_until: available_until,
         admin_updated_at: admin_update_by_survey[survey.id],
         required: required_ids.present?,
         survey_response: survey_response,
@@ -785,13 +800,13 @@ class DashboardsController < ApplicationController
         survey_title = assignment.survey&.title.presence || "Survey ##{assignment.survey_id}" || "Survey"
         student_name = assignment.student&.user&.name.presence || "Student ##{assignment.student_id}" || "Student"
         advisor_name = assignment.advisor&.display_name.presence || assignment.advisor&.email || "Advisor"
-        due_label = assignment.due_date.present? ? helpers.format_calendar_date(assignment.due_date) : "No due date"
+        closes_label = assignment.available_until.present? ? helpers.format_calendar_date(assignment.available_until) : "No deadline"
 
         entries << {
           timestamp: assignment.updated_at,
           icon: "📬",
           title: "Survey assigned: #{survey_title}",
-          subtitle: "#{student_name} · Advisor: #{advisor_name} · Due #{due_label}",
+          subtitle: "#{student_name} · Advisor: #{advisor_name} · Closes #{closes_label}",
           url: student_records_path
         }
       end

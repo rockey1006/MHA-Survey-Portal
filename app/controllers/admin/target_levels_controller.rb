@@ -25,7 +25,7 @@ class Admin::TargetLevelsController < Admin::BaseController
       .where(
         program_semester_id: @selected_semester_id,
         track: @selected_track,
-        program_year: @selected_program_year,
+        class_of: @selected_class_of,
         competency_title: competency_titles
       )
       .pluck(:competency_title, :target_level)
@@ -54,7 +54,7 @@ class Admin::TargetLevelsController < Admin::BaseController
           CompetencyTargetLevel.where(
             program_semester_id: @selected_semester_id,
             track: @selected_track,
-            program_year: @selected_program_year,
+            class_of: @selected_class_of,
             competency_title: title
           ).delete_all
           next
@@ -64,7 +64,7 @@ class Admin::TargetLevelsController < Admin::BaseController
         record = CompetencyTargetLevel.find_or_initialize_by(
           program_semester_id: @selected_semester_id,
           track: @selected_track,
-          program_year: @selected_program_year,
+          class_of: @selected_class_of,
           competency_title: title
         )
         record.target_level = level
@@ -76,7 +76,7 @@ class Admin::TargetLevelsController < Admin::BaseController
       .where(
         program_semester_id: @selected_semester_id,
         track: @selected_track,
-        program_year: @selected_program_year,
+        class_of: @selected_class_of,
         competency_title: competency_titles
       )
       .pluck(:competency_title, :target_level)
@@ -94,7 +94,7 @@ class Admin::TargetLevelsController < Admin::BaseController
     redirect_to admin_target_levels_path(
       program_semester_id: @selected_semester_id,
       track: @selected_track,
-      program_year: @selected_program_year
+      class_of: @selected_class_of
     ), notice: "Target levels updated."
   rescue ActiveRecord::RecordInvalid => e
     load_targets
@@ -107,14 +107,15 @@ class Admin::TargetLevelsController < Admin::BaseController
   def load_selector_options
     @semesters = ProgramSemester.order(Arel.sql("current DESC"), Arel.sql("LOWER(name) ASC"))
     @tracks = Student.tracks.values
-    @program_year_options = [ [ "All years", "" ] ] + ProgramYear.options_for_select.map { |label, value| [ label, value.to_s ] }
+    class_years = Student.where.not(class_of: nil).distinct.order(:class_of).pluck(:class_of)
+    @class_of_options = [ [ "All classes", "" ] ] + class_years.map { |year| [ "Class of #{year}", year.to_s ] }
 
     requested_semester_id = params[:program_semester_id].to_s.presence
     @selected_semester_id = requested_semester_id&.to_i
     @selected_track = params[:track].to_s.presence
 
-    year = params[:program_year].to_s.strip
-    @selected_program_year = year.present? ? year.to_i : nil
+    year = params[:class_of].to_s.strip
+    @selected_class_of = year.present? ? year.to_i : nil
   end
 
   def load_targets
@@ -132,8 +133,8 @@ class Admin::TargetLevelsController < Admin::BaseController
       competency_title: @competencies
     )
 
-    exact = scoped.where(program_year: @selected_program_year).index_by(&:competency_title)
-    fallback = @selected_program_year.nil? ? {} : scoped.where(program_year: nil).index_by(&:competency_title)
+    exact = scoped.where(class_of: @selected_class_of).index_by(&:competency_title)
+    fallback = @selected_class_of.nil? ? {} : scoped.where(class_of: nil).index_by(&:competency_title)
 
     @targets_by_title = @competencies.index_with do |title|
       (exact[title] || fallback[title])&.target_level
@@ -151,8 +152,8 @@ class Admin::TargetLevelsController < Admin::BaseController
       .where(students: { track: @selected_track })
       .where.not(completed_at: nil)
 
-    if @selected_program_year.present?
-      submitted_scope = submitted_scope.where(students: { program_year: @selected_program_year })
+    if @selected_class_of.present?
+      submitted_scope = submitted_scope.where(students: { class_of: @selected_class_of })
     end
 
     submitted_scope.select(:student_id).distinct.count

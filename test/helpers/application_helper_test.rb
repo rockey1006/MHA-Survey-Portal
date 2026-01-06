@@ -34,17 +34,14 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_includes classes, "mt-2"
   end
 
-  test "survey_due_note handles blank, overdue, today, and future" do
-    assert_equal "No due date", survey_due_note(nil)
+  test "survey_availability_note handles blank and formats closing dates" do
+    assert_equal "No deadline", survey_availability_note(nil)
 
     today = Time.zone.today
-    assert_equal "Due today", survey_due_note(today)
-
-    overdue = today - 1
-    assert_includes survey_due_note(overdue), "Overdue"
+    assert_equal "Closes #{today.strftime('%B')} #{today.day}, #{today.year}", survey_availability_note(today)
 
     future = today + 5
-    assert_includes survey_due_note(future), "Due"
+    assert_equal "Closes #{future.strftime('%B')} #{future.day}, #{future.year}", survey_availability_note(future)
   end
 
   test "survey_status_badge_classes maps status variants" do

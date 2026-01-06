@@ -53,6 +53,7 @@ module Reports
       "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.class_of AS student_class_of",
       "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -73,6 +74,7 @@ module Reports
       "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.class_of AS student_class_of",
       "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -1056,53 +1058,67 @@ module Reports
       semester_id = record.program_semester_id
       track = record.student_track.to_s.strip
       title = normalized_competency_title(record.question_text)
+      class_of = record.respond_to?(:student_class_of) ? record.student_class_of : nil
       program_year = record.respond_to?(:student_program_year) ? record.student_program_year : nil
 
-      exact_lookup = competency_target_level_lookup
+      lookup_bundle = competency_target_level_lookup_bundle
 
-      exact_lookup[[ semester_id, track, program_year, title ]] ||
-        exact_lookup[[ semester_id, track, nil, title ]] ||
-        (program_year.nil? ? competency_target_level_any_year_lookup[[ semester_id, track, title ]] : nil) ||
+      lookup_bundle[:class_of_exact][[ semester_id, track, class_of, title ]] ||
+        lookup_bundle[:class_of_exact][[ semester_id, track, nil, title ]] ||
+        (class_of.nil? ? lookup_bundle[:class_of_any][[ semester_id, track, title ]] : nil) ||
+        lookup_bundle[:program_year_exact][[ semester_id, track, program_year, title ]] ||
+        lookup_bundle[:program_year_exact][[ semester_id, track, nil, title ]] ||
+        (program_year.nil? ? lookup_bundle[:program_year_any_year][[ semester_id, track, title ]] : nil) ||
         fallback
-    end
-
-    def competency_target_level_lookup
-      competency_target_level_lookup_bundle[:exact]
-    end
-
-    def competency_target_level_any_year_lookup
-      competency_target_level_lookup_bundle[:any_year]
     end
 
     def competency_target_level_lookup_bundle
       @competency_target_level_lookup_bundle ||= begin
-        exact = {}
-        any_year = {}
+        class_of_exact = {}
+        class_of_any = {}
+        program_year_exact = {}
+        program_year_any_year = {}
 
         CompetencyTargetLevel
-          .select(:id, :program_semester_id, :track, :program_year, :competency_title, :target_level)
+          .select(:id, :program_semester_id, :track, :program_year, :class_of, :competency_title, :target_level)
           .find_each do |row|
             semester_id = row.program_semester_id
             track = row.track.to_s.strip
             title = normalized_competency_title(row.competency_title)
             program_year = row.program_year
+            class_of = row.class_of
 
-            exact[[ semester_id, track, program_year, title ]] = row.target_level
+            class_of_exact[[ semester_id, track, class_of, title ]] = row.target_level
+            program_year_exact[[ semester_id, track, program_year, title ]] = row.target_level
+
+            if class_of.present?
+              any_class_key = [ semester_id, track, title ]
+              existing = class_of_any[any_class_key]
+              if existing.nil? || class_of.to_i < existing[:class_of]
+                class_of_any[any_class_key] = { class_of: class_of.to_i, level: row.target_level }
+              end
+            end
 
             next if program_year.blank?
 
             any_year_key = [ semester_id, track, title ]
-            existing = any_year[any_year_key]
+            existing = program_year_any_year[any_year_key]
             if existing.nil? || program_year.to_i < existing[:year]
-              any_year[any_year_key] = { year: program_year.to_i, level: row.target_level }
+              program_year_any_year[any_year_key] = { year: program_year.to_i, level: row.target_level }
             end
           end
 
         {
-          exact: exact,
-          any_year: any_year.transform_values { |entry| entry[:level] }
+          class_of_exact: class_of_exact,
+          class_of_any: class_of_any.transform_values { |entry| entry[:level] },
+          program_year_exact: program_year_exact,
+          program_year_any_year: program_year_any_year.transform_values { |entry| entry[:level] }
         }
       end
+    end
+
+    def competency_target_level_any_year_lookup
+      competency_target_level_lookup_bundle[:program_year_any_year]
     end
 
     def sanitize_tracks(values)

@@ -12,7 +12,7 @@
 
   <div class="space-y-2">
     <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Program Setup</h1>
-    <p class="text-sm text-slate-600">Manage program tracks, majors, years, and semesters.</p>
+    <p class="text-sm text-slate-600">Manage program tracks, majors, cohort years, and semesters.</p>
   </div>
 
 
@@ -21,7 +21,7 @@
     <% tabs = [
       ["Tracks", "tracks"],
       ["Majors", "majors"],
-      ["Years", "years"],
+      ["Cohorts", "years"],
       ["Semesters", "semesters"]
     ] %>
 
@@ -189,8 +189,8 @@
     <section class="w-full c-card u-stack">
       <header class="toolbar">
         <div>
-          <h2 class="text-xl font-semibold text-slate-900">Program years</h2>
-          <p class="text-sm text-slate-600">View and manage year options used by student profiles and target levels.</p>
+          <h2 class="text-xl font-semibold text-slate-900">Cohort years</h2>
+          <p class="text-sm text-slate-600">Manage the “Class of YYYY” options used for cohort assignment and reporting.</p>
         </div>
       </header>
 
@@ -206,7 +206,7 @@
                 <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p class="text-base font-semibold text-slate-900">Year <%= year.value %></p>
+                      <p class="text-base font-semibold text-slate-900">Class of <%= year.value %></p>
                       <p class="text-xs text-slate-500">Position: <%= year.position %></p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
@@ -221,8 +221,8 @@
                           <%= form_with model: [:admin, year], local: true, class: "space-y-3" do |form| %>
                             <div class="grid gap-3 sm:grid-cols-2">
                               <div class="space-y-1">
-                                <%= form.label :value, "Year number", class: "text-sm font-medium text-slate-700" %>
-                                <%= form.number_field :value, required: true, min: 1, step: 1, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+                                <%= form.label :value, "Class of year", class: "text-sm font-medium text-slate-700" %>
+                                <%= form.number_field :value, required: true, min: 2026, max: 3000, step: 1, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
                               </div>
                               <div class="space-y-1">
                                 <%= form.label :position, "Position", class: "text-sm font-medium text-slate-700" %>
@@ -238,7 +238,7 @@
                               <%= button_to "Delete",
                                             admin_program_year_path(year),
                                             method: :delete,
-                                            data: { turbo_confirm: "Delete Year #{year.value}?" },
+                                            data: { turbo_confirm: "Delete Class of #{year.value}?" },
                                             class: tailwind_button_classes(:danger, extra_classes: "btn-sm") %>
                             </div>
                           <% end %>
@@ -253,14 +253,14 @@
         </div>
 
         <div class="c-card c-card--tight c-card--muted">
-          <h3 class="text-base font-semibold text-slate-900">Add program year</h3>
-          <p class="mb-4 text-sm text-slate-600">Example: 3</p>
+          <h3 class="text-base font-semibold text-slate-900">Add cohort year</h3>
+          <p class="mb-4 text-sm text-slate-600">Example: 2027</p>
           <%= form_with model: [:admin, @new_program_year], url: admin_program_years_path, local: true, class: "space-y-4" do |form| %>
             <div class="space-y-1">
-              <%= form.label :value, "Year number", class: "text-sm font-medium text-slate-700" %>
-              <%= form.number_field :value, required: true, min: 1, step: 1, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm" %>
+              <%= form.label :value, "Class of year", class: "text-sm font-medium text-slate-700" %>
+              <%= form.number_field :value, required: true, min: 2026, max: 3000, step: 1, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm" %>
             </div>
-            <%= form.submit "Save year", class: tailwind_button_classes(:primary) %>
+            <%= form.submit "Save cohort", class: tailwind_button_classes(:primary) %>
           <% end %>
         </div>
       </div>

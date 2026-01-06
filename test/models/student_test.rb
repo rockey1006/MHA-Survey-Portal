@@ -30,9 +30,23 @@ class StudentTest < ActiveSupport::TestCase
       student = students(:student)
       student.major = "Public Health"
       student.track = "Residential"
+      student.class_of = 2026
 
       student.uin = "123-456-789"
       assert student.valid?(:profile_completion)
       assert_equal "123456789", student.uin
+    end
+
+    test "class_of must be between 2026 and 3000" do
+      student = students(:student)
+      student.major = "Public Health"
+      student.track = "Residential"
+      student.uin = "123456789"
+
+      student.class_of = 2025
+      assert_not student.valid?(:profile_completion)
+
+      student.class_of = 2026
+      assert student.valid?(:profile_completion)
     end
 end

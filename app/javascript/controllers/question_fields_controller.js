@@ -12,7 +12,7 @@ export default class extends Controller {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
 
-    const uniqueId = Date.now().toString()
+    const uniqueId = this.uniqueToken()
     const html = this.templateTarget.innerHTML.replace(/NEW_QUESTION/g, uniqueId)
     this.containerTarget.insertAdjacentHTML("beforeend", html)
     this.notifyChange()
@@ -30,5 +30,9 @@ export default class extends Controller {
 
     item.style.display = "none"
     this.notifyChange()
+  }
+
+  uniqueToken() {
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
   }
 }

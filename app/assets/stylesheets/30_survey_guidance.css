@@ -64,7 +64,54 @@
   padding-top: var(--spacing-md);
 }
 
+/* Student survey section cards (surveys/show + read-only responses) */
+.survey-section-card {
+  background-color: var(--student-section-surface);
+  border-color: var(--student-section-accent);
+  border-top-width: 6px;
+  border-top-color: var(--student-section-accent);
+}
+
+@media (forced-colors: active) {
+  .survey-section-card {
+    background: Canvas;
+    border-color: CanvasText;
+    border-top-color: CanvasText;
+  }
+}
+
 /* Advisor feedback summary (feedbacks/new) */
+
+/* Advisor per-question feedback cards (read-only + entry form) */
+.advisor-feedback-card {
+  background-color: var(--advisor-section-surface);
+  border-color: var(--advisor-section-accent);
+  border-left-width: 4px;
+  border-left-color: var(--advisor-section-accent);
+}
+
+@media (forced-colors: active) {
+  .advisor-feedback-card {
+    background: Canvas;
+    border-color: CanvasText;
+    border-left-color: CanvasText;
+  }
+}
+
+.advisor-summary {
+  background-color: var(--advisor-section-surface);
+  border-color: var(--advisor-section-accent);
+  border-left-width: 6px;
+  border-left-color: var(--advisor-section-accent);
+}
+
+@media (forced-colors: active) {
+  .advisor-summary {
+    background: Canvas;
+    border-color: CanvasText;
+    border-left-color: CanvasText;
+  }
+}
 
 .advisor-summary__header {
   display: flex;

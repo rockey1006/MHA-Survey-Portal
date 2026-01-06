@@ -162,8 +162,14 @@
                               </td>
 
                               <td class="px-4 py-3 text-sm text-slate-700">
-                                <% if student.program_year.present? %>
-                                  <div class="font-semibold text-slate-900"><%= student.program_year %></div>
+                                <% graduation_year = if student.respond_to?(:has_attribute?) && student.has_attribute?(:class_of) && student[:class_of].present?
+                                  student[:class_of]
+                                else
+                                  student.program_year
+                                end %>
+
+                                <% if graduation_year.present? %>
+                                  <div class="font-semibold text-slate-900"><%= graduation_year %></div>
                                 <% else %>
                                   <div class="font-semibold text-slate-400">—</div>
                                 <% end %>

@@ -43,8 +43,8 @@ end
 if ActiveRecord::Base.connection.data_source_exists?("program_years")
   ProgramYear.seed_defaults!
 
-  # Keep seed environments deterministic: only Year 1 and Year 2.
-  # (Admins can add more years in production if needed.)
+  # Keep seed environments deterministic: only the default cohort years.
+  # (Admins can add more cohort years in production if needed.)
   if Rails.env.development? || Rails.env.test?
     allowed_years = ProgramYear::DEFAULT_YEARS.map { |attrs| attrs.fetch(:value) }
     ProgramYear.where.not(value: allowed_years).delete_all
@@ -156,11 +156,12 @@ if seed_demo_data
     track = data.fetch("track")
     advisor_email = data.fetch("advisor_email")
     pending = data.fetch("pending", false)
-    program_year = data.fetch("program_year", 1)
+    raw_program_year = data.fetch("program_year", 2027)
+    program_year = raw_program_year.to_i <= 10 ? (raw_program_year.to_i == 2 ? 2026 : 2027) : raw_program_year.to_i
     multi_semester = if data.key?("multi_semester")
       data.fetch("multi_semester")
     else
-      program_year.to_i == 2
+      raw_program_year.to_i <= 10 ? raw_program_year.to_i == 2 : program_year.to_i == 2026
     end
 
     advisor_user = advisors_by_email[advisor_email.to_s.downcase]
@@ -178,6 +179,13 @@ if seed_demo_data
   students = students_with_metadata.map { |entry| entry[:profile] }
   pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
   multi_semester_student_ids = students_with_metadata.select { |entry| entry[:multi_semester] }.map { |entry| entry[:profile].student_id }
+
+  # Backfill legacy seed values (1/2) to cohort years so re-running seeds fixes
+  # existing dev/test databases.
+  if Rails.env.development? || Rails.env.test?
+    Student.where(program_year: 1).update_all(program_year: 2027)
+    Student.where(program_year: 2).update_all(program_year: 2026)
+  end
 
   high_performer_emails = %w[
     nova.mitchell25@tamu.edu

@@ -45,8 +45,8 @@ module SurveyAssignments
       end
     end
 
-    test "skips assignment when class_of is blank" do
-      @student.update_columns(track: "Residential", class_of: nil)
+    test "skips assignment when program_year is blank" do
+      @student.update_columns(track: "Residential", program_year: nil)
 
       assert_no_difference -> { SurveyAssignment.count } do
         AutoAssigner.call(student: @student)
@@ -54,7 +54,7 @@ module SurveyAssignments
     end
 
     test "assigns surveys matching the student's track" do
-      @student.update_columns(track: "Residential", class_of: 2026)
+      @student.update_columns(track: "Residential", program_year: 2026)
 
       assert_difference -> { @student.survey_assignments.count }, 1 do
         AutoAssigner.call(student: @student)
@@ -78,7 +78,7 @@ module SurveyAssignments
         available_until: nil
       )
 
-      @student.update_columns(track: "Residential", class_of: 2027)
+      @student.update_columns(track: "Residential", program_year: 2027)
 
       assert_difference -> { @student.survey_assignments.count }, 1 do
         AutoAssigner.call(student: @student)
@@ -90,7 +90,7 @@ module SurveyAssignments
     end
 
     test "replaces assignments when the track changes" do
-      @student.update_columns(track: "Residential", class_of: 2026)
+      @student.update_columns(track: "Residential", program_year: 2026)
       AutoAssigner.call(student: @student)
 
       @student.update_columns(track: "Executive")
@@ -100,7 +100,7 @@ module SurveyAssignments
     end
 
     test "keeps completed assignments when the track changes" do
-      @student.update_columns(track: "Residential", class_of: 2026)
+      @student.update_columns(track: "Residential", program_year: 2026)
       AutoAssigner.call(student: @student)
 
       assignment = @student.survey_assignments.find_by!(survey: surveys(:fall_2025))
@@ -120,7 +120,7 @@ module SurveyAssignments
     end
 
     test "does not remove manual assignments during reconciliation" do
-      @student.update_columns(track: "Residential", class_of: 2026)
+      @student.update_columns(track: "Residential", program_year: 2026)
 
       manual_survey = surveys(:spring_2025) # Executive offering; not in Residential offerings
       SurveyAssignment.create!(student: @student, survey: manual_survey, assigned_at: Time.current, manual: true)
@@ -131,7 +131,7 @@ module SurveyAssignments
     end
 
     test "assigns all matching offerings for the student" do
-      @student.update_columns(track: "Executive", class_of: 2026)
+      @student.update_columns(track: "Executive", program_year: 2026)
       AutoAssigner.call(student: @student)
 
       survey_ids = @student.survey_assignments.pluck(:survey_id)

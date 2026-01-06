@@ -53,7 +53,7 @@ module Reports
       "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
-      "students.class_of AS student_class_of",
+      "students.program_year AS student_class_of",
       "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -74,7 +74,7 @@ module Reports
       "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
-      "students.class_of AS student_class_of",
+      "students.program_year AS student_class_of",
       "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"

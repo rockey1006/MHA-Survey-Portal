@@ -1,4 +1,4 @@
-# Manages the list of program year options (e.g., Year 1, Year 2) from the admin dashboard.
+# Manages the list of cohort/graduation year options (e.g., 2026, 2027) from the admin dashboard.
 class Admin::ProgramYearsController < Admin::BaseController
   before_action :set_program_year, only: %i[update destroy]
 

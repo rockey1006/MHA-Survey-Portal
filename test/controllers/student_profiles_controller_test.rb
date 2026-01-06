@@ -19,7 +19,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
       uin: @student.uin || "123456789",
       major: @student.major || "Computer Science",
       track: @student.track || "Residential",
-      class_of: @student.class_of || 2026,
+      program_year: @student.program_year || 2026,
       advisor_id: @student.advisor_id || Advisor.first&.id
     }.merge(overrides)
   end
@@ -38,7 +38,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update requires authentication" do
-    patch student_profile_path, params: { student: { class_of: 2026 } }
+    patch student_profile_path, params: { student: { program_year: 2026 } }
 
     assert_redirected_to new_user_session_path
   end
@@ -65,7 +65,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   test "update requires student role" do
     sign_in @admin
 
-    patch student_profile_path, params: { student: { class_of: 2026 } }
+    patch student_profile_path, params: { student: { program_year: 2026 } }
 
     assert_redirected_to root_path
     assert_equal "Access denied.", flash[:alert]
@@ -92,7 +92,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   test "advisor cannot access update" do
     sign_in @advisor
 
-    patch student_profile_path, params: { student: { class_of: 2026 } }
+    patch student_profile_path, params: { student: { program_year: 2026 } }
 
     assert_redirected_to root_path
     assert_equal "Access denied.", flash[:alert]
@@ -230,20 +230,20 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   test "update allows changing multiple attributes" do
     sign_in @student_user
     original_major = @student.major
-    original_class_of = @student.class_of
+    original_program_year = @student.program_year
 
     patch student_profile_path, params: {
-      student: valid_student_params(class_of: 2027, major: "Updated Major")
+      student: valid_student_params(program_year: 2027, major: "Updated Major")
     }
 
     assert_redirected_to student_dashboard_path
     @student.reload
     @student.user.reload
     assert_equal "Updated Major", @student.major
-    assert_equal 2027, @student.class_of
+    assert_equal 2027, @student.program_year
   ensure
     @student.update!(major: original_major)
-    @student.update!(class_of: original_class_of)
+    @student.update!(program_year: original_program_year)
   end
 
   # Success Messages
@@ -277,7 +277,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
         uin: "",
         major: "",
         track: "",
-        class_of: nil,
+        program_year: nil,
         advisor_id: nil
       }
     }
@@ -318,7 +318,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal original_student_id, @student.student_id
   end
 
-  test "update only permits uin major track class_of and advisor_id" do
+  test "update only permits uin major track program_year and advisor_id" do
     sign_in @student_user
 
     patch student_profile_path, params: {
@@ -360,7 +360,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
 
   test "update skips auto-assignment when track unchanged and assignments exist" do
     sign_in @student_user
-    @student.update_columns(class_of: 2026)
+    @student.update_columns(program_year: 2026)
     SurveyAssignment.find_or_create_by!(student_id: @student.student_id, survey: surveys(:fall_2025)) do |assignment|
       assignment.advisor_id = @student.advisor_id
       assignment.assigned_at = Time.zone.now
@@ -455,18 +455,18 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     @student.update!(major: original_major) if original_major
   end
 
-  test "update persists class_of changes" do
+  test "update persists program_year changes" do
     sign_in @student_user
-    original_class_of = @student.class_of
+    original_program_year = @student.program_year
 
     patch student_profile_path, params: {
-      student: valid_student_params(class_of: 2027)
+      student: valid_student_params(program_year: 2027)
     }
 
     student_from_db = Student.find(@student.student_id)
-    assert_equal 2027, student_from_db.class_of
+    assert_equal 2027, student_from_db.program_year
   ensure
-    @student.update!(class_of: original_class_of)
+    @student.update!(program_year: original_program_year)
   end
 
   test "update allows nil advisor_id" do
@@ -514,8 +514,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
       uin: generate_unique_uin,
       track: @student.track || "Residential",
       major: @student.major || "Undeclared",
-      class_of: 2026,
-      program_year: 1
+      program_year: 2026
     )
   end
 
@@ -565,20 +564,20 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
     sign_in @student_user
     original_name = @student.user.name
     original_major = @student.major
-    original_class_of = @student.class_of
+    original_program_year = @student.program_year
 
     patch student_profile_path, params: {
-      student: valid_student_params(class_of: 2027, major: "Transaction Major")
+      student: valid_student_params(program_year: 2027, major: "Transaction Major")
     }
 
     @student.reload
     @student.user.reload
     assert_equal original_name, @student.user.name
     assert_equal "Transaction Major", @student.major
-    assert_equal 2027, @student.class_of
+    assert_equal 2027, @student.program_year
   ensure
     @student.update!(major: original_major)
-    @student.update!(class_of: original_class_of)
+    @student.update!(program_year: original_program_year)
   end
 
   # Track Values

@@ -107,7 +107,7 @@ class Admin::TargetLevelsController < Admin::BaseController
   def load_selector_options
     @semesters = ProgramSemester.order(Arel.sql("current DESC"), Arel.sql("LOWER(name) ASC"))
     @tracks = Student.tracks.values
-    class_years = Student.where.not(class_of: nil).distinct.order(:class_of).pluck(:class_of)
+    class_years = Student.where.not(program_year: nil).distinct.order(:program_year).pluck(:program_year)
     @class_of_options = [ [ "All classes", "" ] ] + class_years.map { |year| [ "Class of #{year}", year.to_s ] }
 
     requested_semester_id = params[:program_semester_id].to_s.presence
@@ -153,7 +153,7 @@ class Admin::TargetLevelsController < Admin::BaseController
       .where.not(completed_at: nil)
 
     if @selected_class_of.present?
-      submitted_scope = submitted_scope.where(students: { class_of: @selected_class_of })
+      submitted_scope = submitted_scope.where(students: { program_year: @selected_class_of })
     end
 
     submitted_scope.select(:student_id).distinct.count

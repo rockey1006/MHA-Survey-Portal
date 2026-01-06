@@ -171,11 +171,11 @@ module Assignments
       default_available_from = @survey.available_from
       default_available_until = @survey.available_until
 
-      if SurveyOffering.data_source_ready? && student.track.present? && student.class_of.present?
-        offerings = SurveyOffering.for_student(track_key: student.track, class_of: student.class_of)
+      if SurveyOffering.data_source_ready? && student.track.present? && student.program_year.present?
+        offerings = SurveyOffering.for_student(track_key: student.track, class_of: student.program_year)
                                  .where(survey_id: @survey.id)
         if offerings.exists?
-          exact = offerings.find { |row| row.class_of.present? && row.class_of.to_i == student.class_of.to_i }
+          exact = offerings.find { |row| row.class_of.present? && row.class_of.to_i == student.program_year.to_i }
           offering = exact || offerings.first
           default_available_from = offering.available_from if offering.available_from.present?
           default_available_until = offering.available_until if offering.available_until.present?

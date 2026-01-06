@@ -97,7 +97,7 @@
                   </summary>
 
                   <%= render TableComponent.new(
-                    headers: ["#", "Student", "Advisor", "Track", "Class year", "Status", "Completion", "Feedback", "Survey"],
+                    headers: ["#", "Student", "Advisor", "Track", "Program year", "Status", "Completion", "Feedback", "Survey"],
                     right_align: [8]
                   ) do %>
                         <% if filtered_rows.blank? %>
@@ -162,10 +162,8 @@
                               </td>
 
                               <td class="px-4 py-3 text-sm text-slate-700">
-                                <% if student.class_of.present? %>
-                                  <div class="font-semibold text-slate-900"><%= student.class_of %></div>
-                                <% elsif student.program_year.present? %>
-                                  <div class="font-semibold text-slate-900">Year <%= student.program_year %></div>
+                                <% if student.program_year.present? %>
+                                  <div class="font-semibold text-slate-900"><%= student.program_year %></div>
                                 <% else %>
                                   <div class="font-semibold text-slate-400">—</div>
                                 <% end %>

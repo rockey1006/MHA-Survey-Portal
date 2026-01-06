@@ -384,7 +384,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "student dashboard only shows surveys assigned to the student" do
-    Student.find(@student.id).update!(class_of: 2026) if Student.find_by(student_id: @student.id)&.class_of.blank?
+    Student.find(@student.id).update!(program_year: 2026) if Student.find_by(student_id: @student.id)&.program_year.blank?
     sign_in @student
 
     get student_dashboard_path

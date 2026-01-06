@@ -14,6 +14,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Student Records"
     assert_includes response.body, users(:student).name
     assert_includes response.body, users(:other_student).name
+    assert_includes response.body, students(:student).program_year.to_s
     assert_includes response.body, "Has feedback"
   end
 

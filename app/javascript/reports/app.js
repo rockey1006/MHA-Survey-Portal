@@ -365,7 +365,9 @@ const FilterBar = ({ filters, options, onChange, onReset }) => {
 
 const SummaryCards = ({ cards }) =>
   h("section", { className: "reports-summary" },
-    cards.map((card) => {
+    cards
+      .filter((card) => !["overall_average", "overall_advisor_average"].includes(card.key))
+      .map((card) => {
       const headerChildren = [ h("p", { className: "reports-summary__label" }, card.title) ]
       if (card.meta && card.meta.name) {
         headerChildren.push(h("span", { className: "reports-summary__meta" }, card.meta.name))

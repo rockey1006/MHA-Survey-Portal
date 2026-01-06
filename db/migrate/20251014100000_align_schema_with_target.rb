@@ -72,13 +72,11 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.bigint :advisor_id
       t.string :major
       t.integer :program_year
-      t.integer :class_of
       t.enum :track, enum_type: :student_tracks, null: false, default: "Residential"
       t.enum :classification, enum_type: :student_classifications, null: false, default: "G1"
       t.timestamps
 
       t.index :advisor_id
-      t.index :class_of
       t.index :program_year
       t.index :uin, unique: true, where: "uin IS NOT NULL"
     end

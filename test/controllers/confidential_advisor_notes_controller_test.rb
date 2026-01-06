@@ -98,7 +98,7 @@ class ConfidentialAdvisorNotesControllerTest < ActionDispatch::IntegrationTest
   test "admin cannot save confidential note when advisor is missing" do
     orphan_user = User.create!(email: "orphan_student_#{SecureRandom.hex(4)}@example.com", name: "Orphan", role: "student", uid: "uid-#{SecureRandom.hex(4)}")
     orphan_student = orphan_user.student_profile
-    orphan_student.update!(advisor: nil, uin: "222333444", track: "Residential", program_year: 1)
+    orphan_student.update!(advisor: nil, uin: "222333444", track: "Residential", program_year: 2026)
     survey_response = SurveyResponse.build(student: orphan_student, survey: @survey)
 
     sign_in @admin_user

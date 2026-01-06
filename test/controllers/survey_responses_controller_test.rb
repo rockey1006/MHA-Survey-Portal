@@ -651,7 +651,7 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     sign_in @student_user
 
     student = students(:student)
-    student.update!(program_year: 1)
+    student.update!(program_year: 2026)
     survey = surveys(:fall_2025)
 
     competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
@@ -668,7 +668,7 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     CompetencyTargetLevel.create!(
       program_semester: survey.program_semester,
       track: student.track_before_type_cast,
-      program_year: 1,
+      program_year: 2026,
       competency_title: competency_title,
       target_level: 5
     )

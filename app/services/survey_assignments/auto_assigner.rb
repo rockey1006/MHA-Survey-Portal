@@ -18,7 +18,7 @@ module SurveyAssignments
     def initialize(student:, track: nil, class_of: nil, program_year: nil)
       @student = student
       @track = (track.presence || student&.track).to_s.strip
-      @class_of = class_of.presence || student&.class_of
+      @class_of = class_of.presence || student&.program_year
 
       # Backward compatibility: some older callers may still pass program_year.
       @class_of = @class_of.presence || program_year.presence

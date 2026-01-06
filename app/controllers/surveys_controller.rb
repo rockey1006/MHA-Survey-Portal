@@ -32,14 +32,14 @@ class SurveysController < ApplicationController
     @assignment_lookup = assignments.index_by(&:survey_id)
 
     @offerings_by_survey_id = {}
-    if SurveyOffering.data_source_ready? && @student&.class_of.present? && @student&.track.present? && @surveys.any?
+    if SurveyOffering.data_source_ready? && @student&.program_year.present? && @student&.track.present? && @surveys.any?
       offerings = SurveyOffering
-                    .for_student(track_key: @student.track, class_of: @student.class_of)
+                    .for_student(track_key: @student.track, class_of: @student.program_year)
                     .where(survey_id: @surveys.map(&:id))
 
       grouped = offerings.group_by(&:survey_id)
       grouped.each do |survey_id, rows|
-        exact = rows.find { |row| row.class_of.present? && row.class_of.to_i == @student.class_of.to_i }
+        exact = rows.find { |row| row.class_of.present? && row.class_of.to_i == @student.program_year.to_i }
         @offerings_by_survey_id[survey_id] = exact || rows.first
       end
     end

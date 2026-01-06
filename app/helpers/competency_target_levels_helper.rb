@@ -20,7 +20,7 @@ module CompetencyTargetLevelsHelper
 
     return fallback if semester_id.blank? || track.blank? || title.blank?
 
-    lookup = competency_target_level_lookup(program_semester_id: semester_id, track: track, class_of: student.respond_to?(:class_of) ? student.class_of : nil)
+    lookup = competency_target_level_lookup(program_semester_id: semester_id, track: track, class_of: student.respond_to?(:program_year) ? student.program_year : nil)
     lookup[title].presence || fallback
   end
 
@@ -45,10 +45,10 @@ module CompetencyTargetLevelsHelper
     exact_levels = scoped.where(class_of: class_of).pluck(:competency_title, :target_level).to_h
     fallback_levels = class_of.nil? ? {} : scoped.where(class_of: nil).pluck(:competency_title, :target_level).to_h
 
-    # If the student has no class_of recorded, fall back to any available class
+    # If the student has no cohort year recorded, fall back to any available class
     # for that competency (deterministically: lowest class_of). This keeps the
     # UI from hiding target levels when the data exists but the student record is
-    # missing class_of.
+    # missing cohort year.
     any_year_levels = {}
     if class_of.nil?
       scoped.where.not(class_of: nil)

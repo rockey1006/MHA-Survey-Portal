@@ -254,7 +254,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
   test "show displays effective competency target level from CompetencyTargetLevel" do
     sign_in @student_user
 
-    @student.update!(program_year: 1)
+    @student.update!(program_year: 2026)
     competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
     category = @survey.categories.first || @survey.categories.create!(name: "Test Category", description: "")
 
@@ -269,7 +269,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     CompetencyTargetLevel.create!(
       program_semester: @survey.program_semester,
       track: @student.track_before_type_cast,
-      program_year: 1,
+      program_year: 2026,
       competency_title: competency_title,
       target_level: 4
     )

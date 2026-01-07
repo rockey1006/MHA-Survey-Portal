@@ -8,6 +8,18 @@ class StudentRecordsController < ApplicationController
   # @return [void]
   def index
     @search_query = params[:q].to_s.strip
+    @survey_filter_id = params[:survey_id].to_s.strip.presence
+    @status_filter = normalize_status_filter(params[:status])
+    @sort_key = normalize_sort_key(params[:sort])
+
+    @survey_filter_options = Survey
+                             .includes(:program_semester)
+                             .order(created_at: :desc)
+                             .map do |survey|
+      label = [survey.title.to_s, survey.semester.to_s.presence].compact.join(" · ")
+      [label, survey.id]
+    end
+
     @students = load_students
     @student_records = build_student_records(@students)
   end
@@ -65,7 +77,7 @@ class StudentRecordsController < ApplicationController
 
     student_ids = students.map(&:student_id)
 
-    surveys = Survey.includes(:questions).order(created_at: :desc)
+    surveys = filtered_surveys
     return [] if surveys.blank?
 
     survey_ids = surveys.map(&:id)
@@ -99,7 +111,8 @@ class StudentRecordsController < ApplicationController
         surveys: grouped[semester].map do |survey|
           {
             survey: survey,
-            rows: students.map do |student|
+            rows: begin
+              rows = students.map do |student|
               responses = responses_matrix[student.student_id][survey.id]
               answered_ids = responses.map { |entry| entry[:question_id] }.uniq
               survey_response = SurveyResponse.build(student: student, survey: survey)
@@ -131,11 +144,96 @@ class StudentRecordsController < ApplicationController
                 feedbacks: feedbacks_for_pair,
                 feedback_last_updated_at: feedback_last_updated
               }
+              end
+
+              if @status_filter.present?
+                rows = rows.select { |row| row[:status].to_s.downcase == @status_filter }
+              end
+
+              sort_student_record_rows(rows)
             end
           }
         end
       }
     end.reject { |block| block[:surveys].blank? }
+  end
+
+  def filtered_surveys
+    scope = Survey.includes(:questions).order(created_at: :desc)
+
+    if @survey_filter_id.present?
+      scope = scope.where(id: @survey_filter_id)
+    end
+
+    scope
+  end
+
+  def normalize_status_filter(value)
+    normalized = value.to_s.strip.downcase
+    return nil if normalized.blank? || normalized == "all"
+
+    return "completed" if normalized == "completed"
+    return "assigned" if normalized == "assigned"
+    return "unassigned" if normalized == "unassigned"
+
+    nil
+  end
+
+  def normalize_sort_key(value)
+    normalized = value.to_s.strip.downcase
+    return "name_asc" if normalized.blank? || normalized == "default"
+
+    allowed = %w[
+      name_asc
+      name_desc
+      status
+      due_asc
+      due_desc
+      completed_desc
+    ]
+
+    allowed.include?(normalized) ? normalized : "name_asc"
+  end
+
+  def sort_student_record_rows(rows)
+    return rows if rows.blank?
+
+    case @sort_key
+    when "name_desc"
+      rows.sort_by { |row| row_student_name(row) }.reverse
+    when "status"
+      rows.sort_by do |row|
+        [ status_sort_value(row[:status]), row_student_name(row) ]
+      end
+    when "due_asc"
+      rows.sort_by do |row|
+        [ row[:available_until].presence || Time.utc(3000, 1, 1), row_student_name(row) ]
+      end
+    when "due_desc"
+      rows.sort_by do |row|
+        [ row[:available_until].presence || Time.utc(0, 1, 1), row_student_name(row) ]
+      end.reverse
+    when "completed_desc"
+      rows.sort_by do |row|
+        [ row[:completed_at].presence || Time.utc(0, 1, 1), row_student_name(row) ]
+      end.reverse
+    else
+      rows.sort_by { |row| row_student_name(row) }
+    end
+  end
+
+  def row_student_name(row)
+    student = row[:student]
+    student&.user&.name.to_s.downcase
+  end
+
+  def status_sort_value(status)
+    case status.to_s.downcase
+    when "completed" then 0
+    when "assigned" then 1
+    when "unassigned" then 2
+    else 3
+    end
   end
 
   # Produces a sortable key for semester labels (e.g., "Fall 2024").

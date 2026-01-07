@@ -41,6 +41,30 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, users(:other_student).name
   end
 
+  test "admin can filter to a single survey" do
+    sign_in @admin
+
+    target = surveys(:fall_2025)
+    other = surveys(:spring_2025)
+
+    get student_records_path(survey_id: target.id)
+    assert_response :success
+    assert_includes response.body, target.title
+    # Other surveys still appear in the Survey dropdown options; ensure they do
+    # not render as a survey section.
+    assert_not_includes response.body, ">#{other.title}</span>"
+  end
+
+  test "admin can filter student records by status" do
+    sign_in @admin
+
+    get student_records_path(status: "unassigned")
+    assert_response :success
+    # "Completed" can appear in seeded student names; assert against status badges.
+    assert_includes response.body, ">Unassigned</span>"
+    assert_not_includes response.body, ">Completed</span>"
+  end
+
   test "advisor search stays within assigned scope" do
     sign_in @advisor
 

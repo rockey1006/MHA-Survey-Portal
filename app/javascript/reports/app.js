@@ -958,8 +958,8 @@ const ReportsApp = ({ exportUrls = {} }) => {
   const [ loading, setLoading ] = useState(true)
   const [ error, setError ] = useState(null)
   const [ viewMode, setViewMode ] = useState("cohort")
-  const [ activeTab, setActiveTab ] = useState("trend")
-  const [ yAxisMode, setYAxisMode ] = useState("score")
+  const [ activeTab, setActiveTab ] = useState("competency")
+  const [ yAxisMode, setYAxisMode ] = useState("percent")
   const [ competencyDetailDomain, setCompetencyDetailDomain ] = useState("all")
   const [ competencyDetailSort, setCompetencyDetailSort ] = useState("student")
   const filtersRef = useRef(DEFAULT_FILTERS)
@@ -1102,16 +1102,17 @@ const ReportsApp = ({ exportUrls = {} }) => {
     const tabs = []
 
     tabs.push({
-      key: "trend",
-      label: "Trend",
-      title: "Progress Over Time",
-      description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
+      key: "competency",
+      label: "Competency",
+      title: "Num Achieved by Competency",
+      description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per competency.",
       axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
-      content: timeline.length > 0
-        ? h(TrendChart, { timeline, yAxisMode })
-        : h("p", { className: "reports-placeholder" }, "No trend data available."),
-      footnote: h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
+      content: h(CompetencyAchievementChart, { items: competencyAchievementItems, yAxisMode }),
+      footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
+        "Averages are calculated based on all responses within each competency.",
+        filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
+      ].filter(Boolean))
     })
 
     tabs.push({
@@ -1129,20 +1130,6 @@ const ReportsApp = ({ exportUrls = {} }) => {
     })
 
     tabs.push({
-      key: "competency",
-      label: "Competency",
-      title: "Num Achieved by Competency",
-      description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per competency.",
-      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
-      content: h(CompetencyAchievementChart, { items: competencyAchievementItems, yAxisMode }),
-      footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
-        "Averages are calculated based on all responses within each competency.",
-        filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
-      ].filter(Boolean))
-    })
-
-    tabs.push({
       key: "track",
       label: "Track",
       title: "% All Competency Achieved by Track",
@@ -1155,6 +1142,19 @@ const ReportsApp = ({ exportUrls = {} }) => {
       footnote: (filtersDescription && filtersDescription !== "None")
         ? h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
         : null
+    })
+
+    tabs.push({
+      key: "trend",
+      label: "Trend",
+      title: "Progress Over Time",
+      description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
+      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
+      content: timeline.length > 0
+        ? h(TrendChart, { timeline, yAxisMode })
+        : h("p", { className: "reports-placeholder" }, "No trend data available."),
+      footnote: h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
     })
 
     return tabs

@@ -607,7 +607,11 @@ if ActiveRecord::Base.connection.data_source_exists?("survey_offerings")
       end
     else
       offering.portfolio_due_date = nil
-      offering.available_until = nil if offering.respond_to?(:available_until)
+      if offering.respond_to?(:available_until)
+        raw_review_end = row[:review_end].to_s.strip
+        parsed_review_end = raw_review_end.present? ? Time.zone.parse(raw_review_end) : nil
+        offering.available_until = parsed_review_end&.change(hour: 23, min: 59)
+      end
     end
 
     offering.review_meetings_start = row[:review_start].present? ? Date.parse(row[:review_start].to_s) : nil
@@ -684,21 +688,36 @@ competency_rating_value = lambda do |high_performer:|
 end
 
 students.each do |student|
-  track_value = student.track.presence || student.read_attribute(:track)
-  normalized_student_track = track_value.to_s.strip.downcase
-  next if normalized_student_track.blank?
+  track_key = student.track.presence || ProgramTrack.canonical_key(student.read_attribute(:track))
+  track_key = track_key.to_s.strip
+  next if track_key.blank?
+
+  track_label = ProgramTrack.name_for_key(track_key) || student.read_attribute(:track).to_s.strip
   pending_student = pending_student_ids.include?(student.student_id)
   program_year_value = student.program_year.to_i
 
-  surveys_to_seed = created_surveys.select do |survey|
-    survey.program_semester&.name.to_s.strip.casecmp?(target_current_semester.to_s.strip) &&
-      survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
+  year_1 = [1, 2027].include?(program_year_value)
+  year_2 = [2, 2026].include?(program_year_value)
+
+  surveys_to_seed = if SurveyOffering.data_source_ready? && SurveyOffering.active.exists?
+    SurveyOffering.for_student(track_key: track_key, class_of: student.program_year)
+      .includes(:survey)
+      .map(&:survey)
+      .compact
+      .uniq
+  else
+    created_surveys.select do |survey|
+      survey.program_semester&.name.to_s.strip.casecmp?(target_current_semester.to_s.strip) &&
+        survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_label.to_s.strip) }
+    end
   end
-  if multi_semester_student_ids.include?(student.student_id) || program_year_value == 2
+
+  if (multi_semester_student_ids.include?(student.student_id) || year_2) &&
+     !(SurveyOffering.data_source_ready? && SurveyOffering.active.exists?)
     multi_semesters = ["Spring 2026"].freeze
     extra_surveys = created_surveys.select do |survey|
       multi_semesters.include?(survey.program_semester.name.to_s.strip) &&
-        survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_value.to_s.strip) }
+        survey.track_list.any? { |track| track.to_s.strip.casecmp?(track_label.to_s.strip) }
     end
     surveys_to_seed = (surveys_to_seed + extra_surveys).uniq
   end
@@ -807,13 +826,13 @@ students.each do |student|
         record.save!
       end
 
-      puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_value})"
+      puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_label})"
       puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
-      puts "     ↳ Track auto-assign will create survey tasks on next profile update"
+      puts "     ↳ Auto-assign will sync survey tasks from offerings"
 
       # Seed completion history for most Year-1 students on the Spring 2026 survey.
       # This helps exercise UI states that depend on completed assignments.
-      if survey.program_semester&.name.to_s.strip.casecmp?("Spring 2026") && program_year_value == 1
+      if survey.program_semester&.name.to_s.strip.casecmp?("Spring 2026") && year_1
         incomplete_seed_email = "zoe.elliott24@tamu.edu"
         completion_timestamp = latest_response_timestamp || Time.current
 
@@ -845,7 +864,7 @@ students.each do |student|
 
       # Seed Year-2 students with multi-semester completions so confidential
       # notes history and version navigation have realistic data.
-      if program_year_value == 2
+      if year_2
         completion_semesters = ["Spring 2026"].freeze
         if completion_semesters.include?(survey.program_semester&.name.to_s.strip)
           completion_timestamp = latest_response_timestamp || Time.current
@@ -873,14 +892,13 @@ students.each do |student|
         end
       end
     else
-      puts "   • Assigned #{survey.title} to #{student.user.name} (#{track_value}) — awaiting completion"
+      puts "   • Assigned #{survey.title} to #{student.user.name} (#{track_label}) — awaiting completion"
     end
 
-    # Survey assignments are intentionally not created here.
-    # We rely on SurveyAssignments::AutoAssigner (triggered by student profile
-    # updates) to assign the newest surveys so assignment behavior is exercised
-    # consistently in dev/test.
   end
+
+  # Ensure every student gets assignments immediately from offerings.
+  SurveyAssignments::AutoAssigner.call(student: student, track: track_key, class_of: student.program_year)
 end
 
 puts "   • Generated sample ratings for #{StudentQuestion.count} question responses"

@@ -94,7 +94,7 @@ module Reports
       assert_equal 2, completion_card_after[:sample_size]
     end
 
-    test "includes overall advisor average card" do
+    test "includes benchmark attainment cards" do
       SurveyAssignment.delete_all
       StudentQuestion.delete_all
 
@@ -117,11 +117,16 @@ module Reports
       )
 
       aggregator = Reports::DataAggregator.new(user: @admin, params: {})
-      advisor_avg_card = aggregator.benchmark[:cards].find { |card| card[:key] == "overall_advisor_average" }
 
-      refute_nil advisor_avg_card, "Expected overall advisor average card to be present"
-      assert_in_delta 3.0, advisor_avg_card[:value], 0.01
-      assert_equal 1, advisor_avg_card[:sample_size]
+      attainment_card = aggregator.benchmark[:cards].find { |card| card[:key] == "benchmark_attainment_overall" }
+      refute_nil attainment_card, "Expected benchmark attainment card to be present"
+      assert_in_delta 0.0, attainment_card[:value], 0.01
+      assert_equal 1, attainment_card[:sample_size]
+
+      below_card = aggregator.benchmark[:cards].find { |card| card[:key] == "benchmark_not_meeting_overall" }
+      refute_nil below_card, "Expected below benchmark card to be present"
+      assert_in_delta 100.0, below_card[:value], 0.01
+      assert_equal 1, below_card[:sample_size]
     end
 
     test "advisor alignment uses 1-5 max gap" do

@@ -440,28 +440,16 @@
         <thead>
           <tr>
             <th>Month</th>
-            <% if percent_mode %>
-              <th>Student % Meeting Target</th>
-              <th>Advisor % Meeting Target</th>
-            <% else %>
-              <th>Student Average</th>
-              <th>Advisor Average</th>
-              <th>Alignment %</th>
-            <% end %>
+            <th>Student % Meeting Target</th>
+            <th>Advisor % Meeting Target</th>
           </tr>
         </thead>
         <tbody>
           <% timeline_points.each do |point| %>
             <tr>
               <td><%= point[:label] %></td>
-              <% if percent_mode %>
-                <td><%= point[:student_target_percent].present? ? number_to_percentage(point[:student_target_percent], precision: 1) : "—" %></td>
-                <td><%= point[:advisor_target_percent].present? ? number_to_percentage(point[:advisor_target_percent], precision: 1) : "—" %></td>
-              <% else %>
-                <td><%= number_with_precision(point[:student], precision: 2) %></td>
-                <td><%= number_with_precision(point[:advisor], precision: 2) %></td>
-                <td><%= point[:alignment].present? ? number_with_precision(point[:alignment], precision: 1) : "—" %></td>
-              <% end %>
+              <td><%= point[:student_target_percent].present? ? number_to_percentage(point[:student_target_percent], precision: 1) : "—" %></td>
+              <td><%= point[:advisor_target_percent].present? ? number_to_percentage(point[:advisor_target_percent], precision: 1) : "—" %></td>
             </tr>
           <% end %>
         </tbody>

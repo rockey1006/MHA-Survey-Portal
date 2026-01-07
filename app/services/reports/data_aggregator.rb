@@ -368,46 +368,65 @@ module Reports
       Rails.logger.debug "Filters applied: #{@raw_params.inspect}"
       Rails.logger.debug "Dataset rows count: #{dataset_rows.size}"
 
-      student_scores = dataset_rows.reject { |row| row[:advisor_entry] }.map { |row| row[:score] }
-      advisor_scores = dataset_rows.select { |row| row[:advisor_entry] }.map { |row| row[:score] }
+      benchmark_thresholds = {
+        students_goal_percent: 80.0,
+        competencies_goal_percent: 85.0
+      }
 
-      student_avg = average(student_scores)
-      advisor_avg = average(advisor_scores)
-      alignment_pct = alignment_percent(student_avg, advisor_avg)
+      benchmark_attainment = benchmark_attainment_stats(
+        dataset_rows,
+        competencies_goal_percent: benchmark_thresholds[:competencies_goal_percent]
+      )
 
       cards = []
-      cards << build_card(
-        key: "overall_average",
-        title: "Overall Student Average",
-        value: student_avg,
-        unit: "score",
-        precision: 1,
-        change: percent_change_for(:student),
-        description: "Mean student competency score on a five-point scale.",
-        sample_size: student_scores.size
-      )
 
       cards << build_card(
-        key: "overall_advisor_average",
-        title: "Overall Advisor Average",
-        value: advisor_avg,
-        unit: "score",
-        precision: 1,
-        change: percent_change_for(:advisor),
-        description: "Mean advisor competency score on a five-point scale.",
-        sample_size: advisor_scores.size
-      )
-
-      cards << build_card(
-        key: "advisor_alignment",
-        title: "Student & Advisor Alignment",
-        value: alignment_pct,
+        key: "benchmark_attainment_overall",
+        title: "Benchmark Attainment",
+        value: benchmark_attainment[:overall][:students_meeting_percent],
         unit: "percent",
         precision: 0,
-        change: alignment_trend_change,
-        description: "Closeness of student and advisor averages (100% = perfect alignment).",
-        sample_size: [ student_scores.size, advisor_scores.size ].min
+        change: nil,
+        description: "Percent of students meeting target in at least #{benchmark_thresholds[:competencies_goal_percent].to_i}% of competencies.",
+        sample_size: benchmark_attainment[:overall][:total_students],
+        meta: {
+          goal_percent: benchmark_thresholds[:students_goal_percent],
+          students_met_goal: benchmark_attainment[:overall][:students_meeting_count],
+          competencies_goal_percent: benchmark_thresholds[:competencies_goal_percent]
+        }
       )
+
+      cards << build_card(
+        key: "benchmark_not_meeting_overall",
+        title: "Below Benchmark",
+        value: benchmark_attainment[:overall][:students_not_meeting_percent],
+        unit: "percent",
+        precision: 0,
+        change: nil,
+        description: "Percent of students below the benchmark threshold.",
+        sample_size: benchmark_attainment[:overall][:total_students]
+      )
+
+      benchmark_attainment[:by_track].each do |track_key, stats|
+        track_label = track_key.to_s.strip
+        next if track_label.blank?
+
+        cards << build_card(
+          key: "benchmark_attainment_#{track_label.parameterize(separator: '_')}",
+          title: "Benchmark (#{track_label})",
+          value: stats[:students_meeting_percent],
+          unit: "percent",
+          precision: 0,
+          change: nil,
+          description: "Percent of #{track_label} students meeting the benchmark.",
+          sample_size: stats[:total_students],
+          meta: {
+            goal_percent: benchmark_thresholds[:students_goal_percent],
+            students_met_goal: stats[:students_meeting_count],
+            competencies_goal_percent: benchmark_thresholds[:competencies_goal_percent]
+          }
+        )
+      end
 
       completion_stats = completion_stats()
       cards << build_card(
@@ -427,14 +446,100 @@ module Reports
       Rails.logger.debug "--- Finished build_benchmark_payload ---"
 
       {
-        student_average: student_avg,
-        advisor_average: advisor_avg,
-        alignment_percent: alignment_pct,
         completion_rate: completion_stats[:completion_rate],
         cards: cards.compact,
         timeline: build_timeline,
-        sample_size_student: student_scores.size,
-        sample_size_advisor: advisor_scores.size
+        benchmark_attainment: benchmark_attainment
+      }
+    end
+
+    def benchmark_attainment_stats(rows, competencies_goal_percent:)
+      goal = competencies_goal_percent.to_f
+
+      grouped = Hash.new { |hash, key| hash[key] = {} }
+
+      rows.each do |row|
+        student_id = row[:student_id]
+        next if student_id.blank?
+
+        competency_title = normalized_competency_title(row[:question_text])
+        next if competency_title.blank?
+
+        existing = grouped[student_id][competency_title]
+        if existing.nil?
+          grouped[student_id][competency_title] = row
+          next
+        end
+
+        existing_time = existing[:updated_at]
+        incoming_time = row[:updated_at]
+
+        preferred = if existing[:advisor_entry] && !row[:advisor_entry]
+          false
+        elsif !existing[:advisor_entry] && row[:advisor_entry]
+          true
+        elsif existing_time.present? && incoming_time.present?
+          incoming_time > existing_time
+        else
+          false
+        end
+
+        grouped[student_id][competency_title] = row if preferred
+      end
+
+      per_student = {}
+      per_track = Hash.new { |hash, key| hash[key] = { students: 0, meeting: 0 } }
+
+      grouped.each do |student_id, competency_map|
+        competency_rows = competency_map.values
+        next if competency_rows.blank?
+
+        achieved = 0
+        competency_rows.each do |row|
+          target = row[:program_target_level].presence || 4.0
+          achieved += 1 if row[:score].to_f >= target.to_f
+        end
+
+        total = competency_rows.size
+        percent_met = safe_percent(achieved, total) || 0.0
+        meets_goal = percent_met >= goal
+
+        track = competency_rows.first[:track]
+        per_student[student_id] = {
+          track: track,
+          competencies_total: total,
+          competencies_met: achieved,
+          competencies_met_percent: percent_met,
+          meets_benchmark: meets_goal
+        }
+
+        track_key = track.to_s
+        per_track[track_key][:students] += 1
+        per_track[track_key][:meeting] += 1 if meets_goal
+      end
+
+      total_students = per_student.size
+      meeting_students = per_student.values.count { |s| s[:meets_benchmark] }
+      meeting_percent = safe_percent(meeting_students, total_students)
+      not_meeting_percent = meeting_percent.nil? ? nil : (100.0 - meeting_percent)
+
+      {
+        overall: {
+          total_students: total_students,
+          students_meeting_count: meeting_students,
+          students_meeting_percent: meeting_percent,
+          students_not_meeting_percent: not_meeting_percent,
+          competencies_goal_percent: goal
+        },
+        by_track: per_track.transform_values do |stats|
+          meeting_pct = safe_percent(stats[:meeting], stats[:students])
+          {
+            total_students: stats[:students],
+            students_meeting_count: stats[:meeting],
+            students_meeting_percent: meeting_pct
+          }
+        end,
+        per_student: per_student
       }
     end
 

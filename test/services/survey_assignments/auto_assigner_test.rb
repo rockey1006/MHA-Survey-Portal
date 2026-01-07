@@ -10,6 +10,12 @@ module SurveyAssignments
 
       SurveyOffering.delete_all
 
+      ProgramSemester.update_all(current: false)
+      program_semesters(:fall_2025).update!(current: true)
+
+      # Keep two executive offerings eligible under the current-semester filter.
+      surveys(:spring_2025).update_column(:program_semester_id, program_semesters(:fall_2025).id)
+
       SurveyOffering.create!(
         survey: surveys(:fall_2025),
         track: "Residential",

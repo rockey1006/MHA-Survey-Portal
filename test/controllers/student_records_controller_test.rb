@@ -50,7 +50,21 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     get student_records_path(survey_id: target.id)
     assert_response :success
     assert_includes response.body, target.title
-    assert_not_includes response.body, other.title
+    # Other surveys still appear in the Survey dropdown options; ensure they do
+    # not render as a survey section.
+    assert_not_includes response.body, ">#{other.title}</span>"
+  end
+
+  test "admin can filter surveys by keyword" do
+    sign_in @admin
+
+    executive_title = surveys(:fall_2025_executive).title
+    residential_title = surveys(:fall_2025).title
+
+    get student_records_path(survey_query: "executive")
+    assert_response :success
+    assert_includes response.body, executive_title
+    assert_not_includes response.body, residential_title
   end
 
   test "admin can filter student records by status" do
@@ -58,8 +72,27 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
     get student_records_path(status: "unassigned")
     assert_response :success
-    assert_includes response.body, "Unassigned"
-    assert_not_includes response.body, "Completed"
+    # "Completed" can appear in seeded student names; assert against status badges.
+    assert_includes response.body, ">Unassigned</span>"
+    assert_not_includes response.body, ">Completed</span>"
+  end
+
+  test "admin can filter students by track" do
+    sign_in @admin
+
+    get student_records_path(track: "Executive")
+    assert_response :success
+    assert_includes response.body, users(:other_student).name
+    assert_not_includes response.body, users(:student).name
+  end
+
+  test "admin can filter students by program year" do
+    sign_in @admin
+
+    get student_records_path(program_year: "2026")
+    assert_response :success
+    assert_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
   end
 
   test "advisor search stays within assigned scope" do

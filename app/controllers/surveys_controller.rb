@@ -53,7 +53,9 @@ class SurveysController < ApplicationController
   def show
     @return_to = safe_return_to_param
   Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
-      scope = @survey.categories.includes(:section, :questions)
+      # Avoid relying on a potentially partially-loaded association proxy.
+      # This ensures newly-added categories/questions show up immediately.
+      scope = Category.where(survey_id: @survey.id).includes(:section, :questions)
       @category_groups = if Category.column_names.include?("position")
                            scope.order(:position, :id)
       else
@@ -246,7 +248,9 @@ class SurveysController < ApplicationController
     end
 
     if missing_required.any? || invalid_links.any?
-      scope = @survey.categories.includes(:section, :questions)
+      # Avoid relying on a potentially partially-loaded association proxy.
+      # This ensures newly-added categories/questions show up immediately.
+      scope = Category.where(survey_id: @survey.id).includes(:section, :questions)
       @category_groups = if Category.column_names.include?("position")
                            scope.order(:position, :id)
       else

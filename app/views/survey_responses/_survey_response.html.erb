@@ -41,7 +41,10 @@
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
   <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
-  <% categories = survey.present? ? survey.categories.includes(:section, :questions).order(:id).to_a : [] %>
+  <%# Avoid relying on a potentially partially-loaded association proxy.
+      This ensures newly-added categories/questions show up immediately in preview/read-only.
+  %>
+  <% categories = survey.present? ? Category.where(survey_id: survey.id).includes(:section, :questions).order(:id).to_a : [] %>
 
   <%# Read-only survey response pages should show advisor feedback directly under the
       parent + sub-question group (when feedback exists). %>

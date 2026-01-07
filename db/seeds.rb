@@ -133,15 +133,6 @@ if seed_demo_data
     admin_users << seed_user.call(email: "admin@tamu.edu", name: "MHA Admin", role: :admin)
   end
 
-  puts "• Creating advisor accounts"
-  advisor_users = [
-    seed_user.call(email: "rainsuds@tamu.edu", name: "Tee Li", role: :advisor),
-    seed_user.call(email: "advisor.clark@tamu.edu", name: "Jordan Clark", role: :advisor)
-  ]
-
-  advisors = advisor_users.map(&:advisor_profile)
-  advisors_by_email = advisor_users.index_by { |user| user.email.to_s.downcase }
-
   puts "• Creating sample students"
   students_data_path = Rails.root.join("db", "data", "sample_students.yml")
   unless File.exist?(students_data_path)

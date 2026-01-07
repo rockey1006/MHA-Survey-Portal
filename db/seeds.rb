@@ -119,6 +119,9 @@ core_advisor_accounts.each do |attrs|
   seed_user.call(email: attrs[:email], name: attrs[:name], role: :advisor)
 end
 
+# Lookup table used by demo student seeding.
+advisors_by_email = User.advisors.includes(:advisor_profile).index_by { |u| u.email.to_s.downcase }
+
 if seed_demo_data
   puts "• Creating administrative accounts"
   admin_accounts = [
@@ -155,8 +158,17 @@ if seed_demo_data
       raw_program_year.to_i <= 10 ? raw_program_year.to_i == 2 : program_year.to_i == 2026
     end
 
-    advisor_user = advisors_by_email[advisor_email.to_s.downcase]
-    raise "Unknown advisor_email #{advisor_email} for student #{email}" unless advisor_user
+    advisor_key = advisor_email.to_s.downcase
+    advisor_user = advisors_by_email[advisor_key]
+
+    unless advisor_user
+      fallback_name = advisor_email.to_s.split("@", 2).first.to_s
+      fallback_name = fallback_name.tr("._", "  ").split.map(&:capitalize).join(" ")
+      fallback_name = advisor_email.to_s if fallback_name.blank?
+
+      advisor_user = seed_user.call(email: advisor_email, name: fallback_name, role: :advisor)
+      advisors_by_email[advisor_key] = advisor_user
+    end
 
     user = seed_user.call(email: email, name: name, role: :student)
     profile = user.student_profile || Student.new(student_id: user.id)

@@ -307,7 +307,7 @@
     <% end %>
 
     <%# Ensure newly added sections appear even if they have no categories yet. %>
-    <% @survey.sections.ordered.each do |section| %>
+    <% SurveySection.where(survey_id: @survey.id).ordered.each do |section| %>
       <% next if rendered_section_ids.include?(section.id) %>
       <div class="survey-block">
         <div id="survey-section-<%= section.id %>" class="c-card survey-section-card space-y-2 text-left">

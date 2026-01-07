@@ -165,6 +165,111 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert flash[:warning].blank?
   end
 
+  test "update can add a section when new section position submits blank" do
+    assert_difference "SurveySection.count", 1 do
+      patch admin_survey_path(@survey), params: {
+        survey: {
+          sections_attributes: {
+            "0" => {
+              title: "New section",
+              description: "",
+              position: "",
+              form_uid: "section-temp-test"
+            }
+          }
+        }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    @survey.reload
+    new_section = @survey.sections.find_by(title: "New section")
+    assert new_section.present?
+    assert new_section.position.is_a?(Integer)
+  end
+
+  test "update can add a new category with a question and preview shows it" do
+    category_name = "Added category"
+    question_text = "Added question text"
+
+    assert_difference [ "Category.count", "Question.count" ], 1 do
+      patch admin_survey_path(@survey), params: {
+        survey: {
+          categories_attributes: {
+            "0" => {
+              name: category_name,
+              description: "",
+              section_form_uid: "",
+              questions_attributes: {
+                "0" => {
+                  question_text: question_text,
+                  question_type: "short_answer",
+                  question_order: 1,
+                  is_required: false,
+                  has_evidence_field: false
+                }
+              }
+            }
+          }
+        }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    get preview_admin_survey_path(@survey)
+    assert_response :success
+    assert_includes response.body, category_name
+    assert_includes response.body, question_text
+  end
+
+  test "update can add a new section and assign a new category to it; preview shows both" do
+    section_uid = "section-temp-test-123"
+    section_title = "Added section"
+    category_name = "Added category in section"
+    question_text = "Added question in section"
+
+    assert_difference [ "SurveySection.count", "Category.count", "Question.count" ], 1 do
+      patch admin_survey_path(@survey), params: {
+        survey: {
+          sections_attributes: {
+            "0" => {
+              title: section_title,
+              description: "",
+              position: "",
+              form_uid: section_uid
+            }
+          },
+          categories_attributes: {
+            "0" => {
+              name: category_name,
+              description: "",
+              section_form_uid: section_uid,
+              questions_attributes: {
+                "0" => {
+                  question_text: question_text,
+                  question_type: "short_answer",
+                  question_order: 1,
+                  is_required: false,
+                  has_evidence_field: false
+                }
+              }
+            }
+          }
+        }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    get preview_admin_survey_path(@survey)
+    assert_response :success
+    assert_includes response.body, section_title
+    assert_includes response.body, category_name
+    assert_includes response.body, question_text
+  end
+
   # === Index Action ===
 
   test "index displays surveys successfully" do

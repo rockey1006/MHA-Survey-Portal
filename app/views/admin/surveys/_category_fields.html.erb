@@ -103,7 +103,13 @@
         <% end %>
       </div>
 
-      <% new_question = category.questions.build(question_text: "", question_order: (category.questions.maximum(:question_order) || 0) + 1) %>
+      <% new_question = category.questions.build(
+           question_text: "New question",
+           question_type: (@question_types.first || Question.question_types.keys.first),
+           question_order: (category.questions.maximum(:question_order) || 0) + 1,
+           is_required: false,
+           has_evidence_field: false
+         ) %>
       <% template = capture do %>
         <%= category_fields.fields_for(:questions, new_question, child_index: "NEW_QUESTION") do |question_fields| %>
           <%= render "admin/surveys/question_fields",

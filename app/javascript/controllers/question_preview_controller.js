@@ -588,11 +588,6 @@ export default class extends Controller {
         }
       }
 
-      if (out.length && this.looksLikeContinuation(label)) {
-        out[out.length - 1].label = `${out[out.length - 1].label} ${label}`.trim()
-        continue
-      }
-
       out.push({ label, value: value || label })
     }
 

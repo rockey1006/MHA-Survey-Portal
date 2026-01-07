@@ -5,11 +5,11 @@ class SurveySectionTest < ActiveSupport::TestCase
     @survey = surveys(:fall_2025)
   end
 
-  test "requires a title" do
-    section = SurveySection.new(survey: @survey)
+  test "normalizes blank title to a default" do
+    section = SurveySection.new(survey: @survey, title: "")
 
-    assert_not section.valid?
-    assert_includes section.errors[:title], "can't be blank"
+    assert section.valid?
+    assert_equal "Untitled section", section.title
   end
 
   test "auto assigns a position when omitted" do

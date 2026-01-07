@@ -13,6 +13,8 @@ export default class extends Controller {
     this.lastSavedAt = null
     this.controller = null
     this.hasPendingChanges = false
+    this.lastSaveSucceeded = true
+    this.lastSaveWasValidationError = false
 
     this.handleFormChange = this.handleFormChange.bind(this)
     this.handleSubmit = this.handleSubmit.bind(this)
@@ -105,13 +107,29 @@ export default class extends Controller {
         credentials: "same-origin"
       })
 
-      if (!response.ok) throw new Error("Autosave failed")
+      this.lastSaveWasValidationError = response.status === 422
+      if (!response.ok) {
+        this.lastSaveSucceeded = false
+        // Validation errors won't succeed without user edits; don't spin.
+        if (this.lastSaveWasValidationError) {
+          this.updateStatus("Cannot save — fix the errors in the form", "error")
+          this.hasPendingChanges = true
+          return
+        }
+
+        throw new Error("Autosave failed")
+      }
 
       this.lastSavedAt = new Date()
       this.hasPendingChanges = false
+      this.lastSaveSucceeded = true
       this.updateStatus(this.formatSavedMessage(this.lastSavedAt), "saved")
     } catch (error) {
       if (error.name === "AbortError") return
+
+      // Network/server errors may be transient; retry. Validation errors are
+      // handled above and should not retry until the user fixes the form.
+      this.lastSaveSucceeded = false
       this.updateStatus("Save failed. Retrying…", "error")
       this.pendingTimeout = setTimeout(() => this.performSave(), this.debounceDuration)
     } finally {
@@ -188,6 +206,13 @@ export default class extends Controller {
     // Cancel the debounce and save now.
     this.clearPendingSave()
     await this.performSave()
+
+    if (!this.lastSaveSucceeded || this.hasPendingChanges) {
+      // Stay on the page so the admin can resolve validation errors; otherwise
+      // navigating (e.g., to Preview) makes it look like the builder saved.
+      this.updateStatus("Fix errors before leaving this page", "error")
+      return
+    }
 
     try {
       if (window.Turbo && typeof window.Turbo.visit === "function") {

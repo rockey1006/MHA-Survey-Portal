@@ -189,7 +189,7 @@
           <% end %>
         </div>
 
-        <% new_section = survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
+        <% new_section = survey.sections.build(title: "Untitled section", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
         <% new_section.form_uid ||= "NEW_SECTION_UID" %>
         <% section_template = capture do %>
           <%= form.fields_for :sections, new_section, child_index: "NEW_SECTION" do |section_fields| %>
@@ -221,8 +221,16 @@
           <% end %>
         </div>
 
-        <% new_category = survey.categories.build(name: "", description: "") %>
-        <% new_category.questions.build(question_text: "", question_order: 1) if new_category.questions.empty? %>
+        <% new_category = survey.categories.build(name: "New Category", description: "") %>
+        <% if new_category.questions.empty? %>
+          <% new_category.questions.build(
+               question_text: "New question",
+               question_type: (@question_types.first || Question.question_types.keys.first),
+               question_order: 1,
+               is_required: false,
+               has_evidence_field: false
+             ) %>
+        <% end %>
         <% category_template = capture do %>
           <%= form.fields_for :categories, new_category, child_index: "NEW_CATEGORY" do |category_fields| %>
             <%= render "admin/surveys/category_fields",

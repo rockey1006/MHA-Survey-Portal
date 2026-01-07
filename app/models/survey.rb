@@ -35,6 +35,7 @@ class Survey < ApplicationRecord
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
   validate :availability_window_order
+  validate :duplicate_title_diagnostic
 
   # Virtual semester accessor maintained for compatibility with existing
   # views/forms. The canonical value lives in program_semesters.name.
@@ -96,6 +97,28 @@ class Survey < ApplicationRecord
   end
 
   private
+
+  def duplicate_title_diagnostic
+    return if title.blank? || program_semester_id.blank?
+
+    normalized = title.to_s.strip.squeeze(" ")
+    return if normalized.blank?
+
+    duplicate = Survey
+      .where(program_semester_id: program_semester_id)
+      .where("LOWER(title) = ?", normalized.downcase)
+      .where.not(id: id)
+      .first
+
+    return unless duplicate
+
+    semester_label = program_semester&.name.to_s.strip.presence || "this semester"
+    errors.add(
+      :base,
+      "A survey titled '#{duplicate.title}' already exists for #{semester_label} (Survey ##{duplicate.id}). " \
+      "Titles are matched case-insensitively and extra spaces are ignored."
+    )
+  end
 
   def validate_category_structure
     active_categories = categories.reject(&:marked_for_destruction?)

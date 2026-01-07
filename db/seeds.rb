@@ -595,19 +595,14 @@ if ActiveRecord::Base.connection.data_source_exists?("survey_offerings")
     if row[:portfolio_due_date].present?
       raw_due = row[:portfolio_due_date].to_s.strip
       parsed = Time.zone.parse(raw_due)
-      offering.portfolio_due_date = if raw_due.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+      due_at = if raw_due.match?(/\A\d{4}-\d{2}-\d{2}\z/)
         parsed&.change(hour: 23, min: 59)
       else
         parsed
       end
 
-      if offering.respond_to?(:available_until)
-        offering.available_until = if raw_due.match?(/\A\d{4}-\d{2}-\d{2}\z/)
-          parsed&.change(hour: 23, min: 59)
-        else
-          parsed
-        end
-      end
+      offering.portfolio_due_date = due_at
+      offering.available_until = due_at if offering.respond_to?(:available_until)
     else
       offering.portfolio_due_date = nil
       if offering.respond_to?(:available_until)

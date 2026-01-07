@@ -38,59 +38,9 @@
           <%= render ToolbarSearchComponent.new(
             url: student_records_path,
             query: @search_query,
-            placeholder: "Search by name, email, or UIN",
-            hidden_params: {
-              survey_id: @survey_filter_id,
-              status: @status_filter,
-              sort: @sort_key
-            }
+            placeholder: "Search by name, email, or UIN"
           ) %>
         </div>
-      </div>
-
-      <div class="c-toolbar__row items-end w-full gap-3">
-        <%= form_with url: student_records_path, method: :get, local: true, class: "flex w-full flex-wrap items-end gap-3" do %>
-          <%= hidden_field_tag :q, @search_query if @search_query.present? %>
-
-          <div class="min-w-[16rem] flex-1">
-            <%= label_tag :survey_id, "Survey", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-            <%= select_tag :survey_id,
-                           options_for_select([["All surveys", ""]] + Array(@survey_filter_options), @survey_filter_id),
-                           class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-          </div>
-
-          <div class="min-w-[12rem]">
-            <%= label_tag :status, "Status", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-            <%= select_tag :status,
-                           options_for_select(
-                             [["All", ""], ["Completed", "completed"], ["Assigned", "assigned"], ["Unassigned", "unassigned"]],
-                             @status_filter
-                           ),
-                           class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-          </div>
-
-          <div class="min-w-[14rem]">
-            <%= label_tag :sort, "Sort", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-            <%= select_tag :sort,
-                           options_for_select(
-                             [
-                               ["Name (A–Z)", "name_asc"],
-                               ["Name (Z–A)", "name_desc"],
-                               ["Status (Completed first)", "status"],
-                               ["Due date (soonest)", "due_asc"],
-                               ["Due date (latest)", "due_desc"],
-                               ["Completion (most recent)", "completed_desc"]
-                             ],
-                             @sort_key
-                           ),
-                           class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <%= button_tag "Apply", type: :submit, class: tailwind_button_classes(:secondary) %>
-            <%= link_to "Clear", student_records_path, class: tailwind_button_classes(:ghost), data: { turbo: false } %>
-          </div>
-        <% end %>
       </div>
     </div>
 

@@ -50,9 +50,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     get student_records_path(survey_id: target.id)
     assert_response :success
     assert_includes response.body, target.title
-    # Other surveys still appear in the Survey dropdown options; ensure they do
-    # not render as a survey section.
-    assert_not_includes response.body, ">#{other.title}</span>"
+    assert_not_includes response.body, other.title
   end
 
   test "admin can filter student records by status" do
@@ -60,9 +58,8 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
     get student_records_path(status: "unassigned")
     assert_response :success
-    # "Completed" can appear in seeded student names; assert against status badges.
-    assert_includes response.body, ">Unassigned</span>"
-    assert_not_includes response.body, ">Completed</span>"
+    assert_includes response.body, "Unassigned"
+    assert_not_includes response.body, "Completed"
   end
 
   test "advisor search stays within assigned scope" do

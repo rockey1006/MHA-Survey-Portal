@@ -16,8 +16,8 @@ class StudentRecordsController < ApplicationController
                              .includes(:program_semester)
                              .order(created_at: :desc)
                              .map do |survey|
-      label = [survey.title.to_s, survey.semester.to_s.presence].compact.join(" · ")
-      [label, survey.id]
+      label = [ survey.title.to_s, survey.semester.to_s.presence ].compact.join(" · ")
+      [ label, survey.id ]
     end
 
     @students = load_students

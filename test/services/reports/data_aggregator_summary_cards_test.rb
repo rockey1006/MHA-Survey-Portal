@@ -172,7 +172,7 @@ module Reports
       refute_nil residential, "Expected Residential track entry"
       refute_nil executive, "Expected Executive track entry"
 
-      assert_equal "Advisor & student ratings", residential[:source_label]
+      assert_equal "Advisor ratings", residential[:source_label]
       assert_equal "Student self-ratings", executive[:source_label]
 
       assert_in_delta 100.0, residential[:percent], 0.01

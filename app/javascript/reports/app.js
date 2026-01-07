@@ -373,12 +373,41 @@ const SummaryCards = ({ cards }) =>
         headerChildren.push(h("span", { className: "reports-summary__meta" }, card.meta.name))
       }
 
-      const valueChildren = [ h("strong", null, formatMetricValue(card.value, card.unit, card.precision)) ]
-      if (card.meta && card.meta.advisor_average !== undefined && card.meta.advisor_average !== null) {
-        valueChildren.push(
-          h("span", { className: "reports-summary__subtext" }, `Advisor avg ${formatMetricValue(card.meta.advisor_average, "score", 1)}`)
-        )
-      }
+        const trackSummaries = Array.isArray(card.meta?.tracks) ? card.meta.tracks : []
+        const showTrackSummaries = trackSummaries.length > 0
+
+        let valueNode
+        if (showTrackSummaries) {
+          const trackRows = trackSummaries.map((track) => {
+            const detailParts = []
+            if (track.source_label) detailParts.push(track.source_label)
+            if (track.students_met_goal !== undefined && track.students_met_goal !== null) {
+              detailParts.push(`Students meeting goal: ${track.students_met_goal}`)
+            }
+
+            const children = [
+              h("span", { className: "reports-summary__meta" }, track.label),
+              h("strong", null, formatMetricValue(track.percent, "percent", 0))
+            ]
+
+            if (detailParts.length > 0) {
+              children.push(
+                h("span", { className: "reports-summary__subtext" }, detailParts.join(" • "))
+              )
+            }
+
+            return h("div", { key: track.label, className: "reports-summary__value-track" }, children)
+          })
+          valueNode = h("div", { className: "reports-summary__value reports-summary__value--tracks" }, trackRows)
+        } else {
+          const valueChildren = [ h("strong", null, formatMetricValue(card.value, card.unit, card.precision)) ]
+          if (card.meta && card.meta.advisor_average !== undefined && card.meta.advisor_average !== null) {
+            valueChildren.push(
+              h("span", { className: "reports-summary__subtext" }, `Advisor avg ${formatMetricValue(card.meta.advisor_average, "score", 1)}`)
+            )
+          }
+          valueNode = h("div", { className: "reports-summary__value" }, valueChildren)
+        }
 
       const footerChildren = [
         h("span", { className: `reports-summary__trend reports-summary__trend--${card.change_direction || "flat"}` }, formatChange(card.change, card.unit)),
@@ -398,7 +427,7 @@ const SummaryCards = ({ cards }) =>
 
       return h("article", { key: card.key, className: "reports-summary__card", "aria-label": card.title }, [
         h("header", null, headerChildren),
-        h("div", { className: "reports-summary__value" }, valueChildren),
+        valueNode,
         h("footer", null, footerChildren)
       ])
     })

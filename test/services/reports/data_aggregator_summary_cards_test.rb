@@ -97,6 +97,7 @@ module Reports
     test "includes benchmark attainment cards" do
       SurveyAssignment.delete_all
       StudentQuestion.delete_all
+      Feedback.delete_all
 
       question = create_numeric_question("Advisor Average Question")
       create_assignment(student: @student, survey: question.category.survey, completed: true)
@@ -127,6 +128,90 @@ module Reports
       refute_nil below_card, "Expected below benchmark card to be present"
       assert_in_delta 100.0, below_card[:value], 0.01
       assert_equal 1, below_card[:sample_size]
+    end
+
+    test "benchmark track summary combines track details" do
+      SurveyAssignment.delete_all
+      StudentQuestion.delete_all
+      Feedback.delete_all
+
+      question = create_numeric_question("Combined Benchmark Summary")
+      create_assignment(student: @student, survey: question.category.survey, completed: true)
+      create_assignment(student: @other_student, survey: question.category.survey, completed: true)
+
+      StudentQuestion.create!(
+        student_id: @student.student_id,
+        question: question,
+        response_value: "4.5"
+      )
+
+      StudentQuestion.create!(
+        student_id: @other_student.student_id,
+        question: question,
+        response_value: "2.5"
+      )
+
+      Feedback.create!(
+        student: @student,
+        survey: question.category.survey,
+        category: question.category,
+        question: question,
+        average_score: 4.0,
+        advisor: advisors(:advisor)
+      )
+
+      aggregator = Reports::DataAggregator.new(user: @admin, params: {})
+      track_card = aggregator.benchmark[:cards].find { |card| card[:key] == "benchmark_attainment_by_track" }
+
+      refute_nil track_card, "Expected combined benchmark track card"
+      assert_equal 2, Array(track_card.dig(:meta, :tracks)).size
+
+      residential = track_card[:meta][:tracks].find { |entry| entry[:label] == "Residential" }
+      executive = track_card[:meta][:tracks].find { |entry| entry[:label] == "Executive" }
+
+      refute_nil residential, "Expected Residential track entry"
+      refute_nil executive, "Expected Executive track entry"
+
+      assert_equal "Advisor & student ratings", residential[:source_label]
+      assert_equal "Student self-ratings", executive[:source_label]
+
+      assert_in_delta 100.0, residential[:percent], 0.01
+      assert_in_delta 0.0, executive[:percent], 0.01
+      assert_equal 1, residential[:students_met_goal]
+      assert_equal 0, executive[:students_met_goal]
+      assert_equal 2, track_card[:sample_size]
+    end
+
+    test "includes student advisor alignment card when both ratings present" do
+      SurveyAssignment.delete_all
+      StudentQuestion.delete_all
+      Feedback.delete_all
+
+      question = create_numeric_question("Alignment Metric Question")
+      create_assignment(student: @student, survey: question.category.survey, completed: true)
+
+      StudentQuestion.create!(
+        student_id: @student.student_id,
+        question: question,
+        response_value: "4.0"
+      )
+
+      Feedback.create!(
+        student: @student,
+        survey: question.category.survey,
+        category: question.category,
+        question: question,
+        average_score: 4.0,
+        advisor: advisors(:advisor)
+      )
+
+      aggregator = Reports::DataAggregator.new(user: @admin, params: {})
+      alignment_card = aggregator.benchmark[:cards].find { |card| card[:key] == "student_advisor_alignment" }
+
+      refute_nil alignment_card, "Expected alignment card to be present"
+      assert_in_delta 100.0, alignment_card[:value], 0.01
+      assert_equal 1, alignment_card[:sample_size]
+      assert_equal "Advisor & student ratings", alignment_card.dig(:meta, :name)
     end
 
     test "advisor alignment uses 1-5 max gap" do

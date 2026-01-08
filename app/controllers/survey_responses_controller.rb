@@ -163,7 +163,7 @@ class SurveyResponsesController < ApplicationController
       Notification.deliver!(
         user: recipient,
         title: "Survey response deleted",
-        message: "An admin deleted your responses for '#{survey.title}'. If the due date has not passed, you may submit again.",
+        message: "An admin deleted your responses for '#{survey.title}'. If the survey has not closed yet, you may submit again.",
         notifiable: assignment
       )
     end

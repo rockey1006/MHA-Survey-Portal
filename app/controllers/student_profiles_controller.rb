@@ -32,7 +32,11 @@ class StudentProfilesController < ApplicationController
       @student.save!(context: :profile_completion) # This will also save the user and student changes
 
       if track_will_change || program_year_will_change || !had_assignments
-        SurveyAssignments::AutoAssigner.call(student: @student)
+        begin
+          SurveyAssignments::AutoAssigner.call(student: @student)
+        rescue StandardError => e
+          Rails.logger.error("Profile auto-assign failed for student #{@student.student_id}: #{e.class}: #{e.message}")
+        end
       end
 
       redirect_to student_dashboard_path, notice: "Profile completed successfully!"

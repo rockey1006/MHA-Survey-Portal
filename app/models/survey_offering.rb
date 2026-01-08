@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Maps a survey to a specific program (track), cohort year (class_of), and stage.
-# These rows drive auto-assignment and provide cohort-specific due dates.
+# These rows drive auto-assignment and provide cohort-specific availability windows.
 class SurveyOffering < ApplicationRecord
   STAGES = %w[initial midpoint final].freeze
 

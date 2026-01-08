@@ -121,7 +121,7 @@ class SurveyResponsesVersioningTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/<a[^>]+>Edit<\/a>/, response.body)
 
-    # Create a second version by revising before due date.
+    # Create a second version by revising before the survey closes.
     assignment = SurveyAssignment.find_by!(student_id: @student.student_id, survey_id: @survey.id)
     assignment.update!(available_until: 2.days.from_now)
 

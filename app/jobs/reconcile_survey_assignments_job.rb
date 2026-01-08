@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Reconciles survey assignments for all relevant students after a survey-level
-# change (e.g., due date adjustments).
+# change (e.g., availability window adjustments).
 class ReconcileSurveyAssignmentsJob < ApplicationJob
   queue_as :default
 

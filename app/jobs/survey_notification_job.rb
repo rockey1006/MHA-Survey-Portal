@@ -68,7 +68,7 @@ class SurveyNotificationJob < ApplicationJob
 
     Notification.deliver!(
       user: assignment.recipient_user,
-      title: "Competency Survey Due Soon",
+      title: "Competency Survey Closing Soon",
       message: "Your competency survey '#{assignment.survey.title}' closes in #{closes_in}. Please complete it before it closes.",
       notifiable: assignment
     )
@@ -81,7 +81,7 @@ class SurveyNotificationJob < ApplicationJob
 
     Notification.deliver!(
       user: assignment.recipient_user,
-      title: "Competency Survey Past Due",
+      title: "Competency Survey Closed",
       message: "The competency survey '#{assignment.survey.title}' is now closed.",
       notifiable: assignment
     )

@@ -2,6 +2,8 @@ require "active_support/core_ext/numeric/time"
 
 # Represents the assignment of a survey to a specific student (and optional advisor).
 class SurveyAssignment < ApplicationRecord
+  self.ignored_columns += %w[due_date]
+
   belongs_to :survey
   belongs_to :student, foreign_key: :student_id, primary_key: :student_id
   belongs_to :advisor, foreign_key: :advisor_id, primary_key: :advisor_id, optional: true

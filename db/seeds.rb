@@ -125,7 +125,9 @@ advisors_by_email = User.advisors.includes(:advisor_profile).index_by { |u| u.em
 if seed_demo_data
   puts "• Creating administrative accounts"
   admin_accounts = [
-    # { email: "health-admin1@tamu.edu", name: "Health Admin One" }
+    { email: "westerman@tamu.edu", name: "Megan Westerman" },
+    { email: "ruoqiwei@tamu.edu", name: "Ruoqi Wei" },
+    { email: "rainsuds@tamu.edu", name: "Tianlan Li" }
   ]
 
   admin_users = admin_accounts.map do |attrs|

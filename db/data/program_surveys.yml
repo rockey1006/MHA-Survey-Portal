@@ -278,26 +278,26 @@ residential_track_survey_base: &residential_track_survey_base
 surveys:
   # Stage-based surveys (portfolio schedule-driven).
   - <<: *residential_track_survey_base
-    title: "RMHA Initial Survey"
+    title: "RMHA Initial Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-01-16"
 
   - <<: *residential_track_survey_base
-    title: "RMHA Mid-point Survey"
+    title: "RMHA Mid-point Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-01-16"
 
   - <<: *residential_track_survey_base
-    title: "RMHA Final Survey"
+    title: "RMHA Final Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-03-20"
 
   - <<: *executive_track_survey_base
-    title: "EMHA Mid-point Survey"
+    title: "EMHA Mid-point Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-05-31"
 
   - <<: *executive_track_survey_base
-    title: "EMHA Final Survey"
+    title: "EMHA Final Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-03-20"

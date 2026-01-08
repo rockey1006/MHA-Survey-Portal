@@ -136,6 +136,64 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_match "Unassigned", flash[:notice]
   end
 
+  test "unassigning multiple surveys creates distinct notifications" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+    Notification.delete_all
+
+    student = students(:student)
+
+    other_survey = Survey.create!(
+      title: "Temp Survey For Unassign Notifications",
+      program_semester: program_semesters(:fall_2025),
+      description: "Temp survey for notification regression coverage",
+      is_active: true,
+      available_until: 30.days.from_now.change(hour: 23, min: 59, sec: 0),
+      categories_attributes: {
+        "0" => {
+          name: "Temp Category",
+          questions_attributes: {
+            "0" => {
+              question_text: "Temp question?",
+              question_order: 1,
+              question_type: "short_answer",
+              is_required: true,
+              has_evidence_field: false,
+              answer_options: nil
+            }
+          }
+        }
+      }
+    )
+
+    [ @survey, other_survey ].each do |survey|
+      survey.questions.find_each do |question|
+        StudentQuestion.create!(
+          student: student,
+          question: question,
+          advisor_id: advisors(:advisor).advisor_id
+        )
+      end
+
+      SurveyAssignment.create!(
+        survey: survey,
+        student: student,
+        advisor: advisors(:advisor),
+        assigned_at: Time.current
+      )
+    end
+
+    assert_difference "Notification.count", 2 do
+      delete unassign_assignments_survey_path(@survey), params: { student_id: student.student_id }
+      delete unassign_assignments_survey_path(other_survey), params: { student_id: student.student_id }
+    end
+
+    notifications = Notification.where(user: student.user, title: "Survey Unassigned").order(:id)
+    assert_equal 2, notifications.size
+    assert_equal [ @survey.id, other_survey.id ].sort, notifications.map(&:notifiable_id).sort
+    assert notifications.all? { |n| n.notifiable_type == "Survey" }
+  end
+
   test "unassign is blocked for completed assignments" do
     StudentQuestion.delete_all
     Notification.delete_all

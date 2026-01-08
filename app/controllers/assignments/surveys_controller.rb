@@ -109,7 +109,8 @@ module Assignments
           Notification.deliver!(
             user: student.user,
             title: "Survey Unassigned",
-            message: "#{current_user.name} removed '#{@survey.title}' from your assignments."
+            message: "#{current_user.name} removed '#{@survey.title}' from your assignments.",
+            notifiable: @survey
           )
         end
         redirect_to assignments_survey_path(@survey),

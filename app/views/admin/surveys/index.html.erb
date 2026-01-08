@@ -119,6 +119,7 @@
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Title", "title") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Semester", "semester") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Tracks</th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Sections", "section_count") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Categories", "category_count") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Questions", "question_count") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Updated", "updated_at") %></th>
@@ -127,6 +128,7 @@
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-600">
               <% @active_surveys.each do |survey| %>
+                <% section_count = survey.respond_to?(:section_count) ? survey.section_count.to_i : survey.sections.size %>
                 <% category_count = survey.respond_to?(:category_count) ? survey.category_count.to_i : survey.categories.size %>
                 <% question_count = survey.respond_to?(:question_count) ? survey.question_count.to_i : survey.questions.size %>
                 <% tracks = survey.track_list %>
@@ -147,6 +149,7 @@
                       <span class="text-xs font-medium text-amber-600">Unassigned</span>
                     <% end %>
                   </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= section_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= category_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= question_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
@@ -189,6 +192,7 @@
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Title</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Semester</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Tracks</th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Sections</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Categories</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Questions</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Updated</th>
@@ -197,6 +201,7 @@
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-600">
               <% @archived_surveys.each do |survey| %>
+                <% section_count = survey.sections.size %>
                 <% category_count = survey.respond_to?(:category_count) ? survey.category_count.to_i : survey.categories.size %>
                 <% question_count = survey.respond_to?(:question_count) ? survey.question_count.to_i : survey.questions.size %>
                 <% tracks = survey.track_list %>
@@ -217,6 +222,7 @@
                       <span class="text-xs font-medium text-amber-600">Unassigned</span>
                     <% end %>
                   </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= section_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= category_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= question_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
@@ -239,8 +245,8 @@
   <section class="w-full space-y-4">
     <header class="flex items-center justify-between">
       <div>
-        <h2 class="text-xl font-semibold text-slate-900">Recent activity</h2>
-        <p class="text-sm text-slate-600">Automatic log entries capture who changed each survey and what was updated.</p>
+        <h2 class="text-xl font-semibold text-slate-900">Recent Activity</h2>
+        <p class="text-sm text-slate-600">Latest updates across surveys, feedback, and assignments</p>
       </div>
       <% if @recent_logs.present? %>
         <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Last <%= @recent_logs.size %> events</span>
@@ -250,23 +256,27 @@
     <% if @recent_logs.blank? %>
       <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-600">No survey activity has been recorded yet.</div>
     <% else %>
-      <ul class="space-y-3">
+      <ul class="c-timeline">
         <% @recent_logs.each do |log| %>
-          <li class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <div class="mt-1 h-2.5 w-2.5 rounded-full bg-indigo-500" aria-hidden="true"></div>
-            <div class="flex-1 space-y-1">
-              <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <strong class="font-semibold text-slate-700"><%= log.admin&.display_name || "Unknown admin" %></strong>
-                <span aria-hidden="true">•</span>
-                <span><%= log.action.titleize %></span>
+          <li class="c-timeline__item c-list-item" style="align-items: stretch;">
+            <div aria-hidden="true" style="width: 48px; height: 48px; border-radius: 999px; background: var(--gray-50); border: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: var(--font-size-xl); flex-shrink: 0;">
+              <span style="line-height: 1;">•</span>
+            </div>
+
+            <div class="u-stack u-stack--sm" style="flex: 1; min-width: 0;">
+              <p class="c-value" style="word-break: break-word;">
+                <strong class="font-semibold"><%= log.admin&.display_name || "Unknown admin" %></strong>
+                <span class="text-slate-500">•</span>
+                <span class="text-slate-600"><%= log.action.titleize %></span>
                 <% if log.survey.present? %>
-                  <span aria-hidden="true">•</span>
-                  <span>Survey: <strong class="font-semibold text-slate-700"><%= log.survey.title %></strong></span>
+                  <span class="text-slate-500">•</span>
+                  <span class="text-slate-600">Survey: <strong class="font-semibold"><%= log.survey.title %></strong></span>
                 <% end %>
-                <span aria-hidden="true">•</span>
-                <span><%= time_ago_in_words(log.created_at) %> ago</span>
-              </div>
-              <p class="text-sm text-slate-600"><%= log.description %></p>
+                <span class="text-slate-500">•</span>
+                <span class="text-slate-600"><%= time_ago_in_words(log.created_at) %> ago</span>
+              </p>
+
+              <p class="c-lede" style="margin-top: 0;"><%= log.description %></p>
             </div>
           </li>
         <% end %>

@@ -10,7 +10,7 @@
     <header class="toolbar">
       <div class="flex flex-wrap items-center gap-3">
         <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
-        <h2 class="text-lg font-semibold text-slate-900">Recent activity</h2>
+        <h2 class="text-lg font-semibold text-slate-900">Recent Activity</h2>
       </div>
       <%= form_with url: admin_survey_change_logs_path, method: :get, local: true, class: "toolbar__group" do %>
         <div class="flex items-center gap-2">

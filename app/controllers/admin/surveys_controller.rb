@@ -21,7 +21,8 @@ class Admin::SurveysController < Admin::BaseController
       "semester" => "program_semesters.name",
       "updated_at" => "surveys.updated_at",
       "question_count" => "question_count",
-      "category_count" => "category_count"
+      "category_count" => "category_count",
+      "section_count" => "section_count"
     }
 
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
@@ -48,9 +49,10 @@ class Admin::SurveysController < Admin::BaseController
     active_scope = active_scope.distinct
 
     active_scope = active_scope
-      .left_joins(:categories, :questions)
+      .left_joins(:categories, :questions, :sections)
       .select(
         "surveys.*, " \
+        "COUNT(DISTINCT survey_sections.id) AS section_count, " \
         "COUNT(DISTINCT categories.id) AS category_count, " \
         "COUNT(DISTINCT questions.id) AS question_count"
       )
@@ -151,7 +153,10 @@ class Admin::SurveysController < Admin::BaseController
       )
     end
 
-    @survey.assign_attributes(survey_params)
+    permitted_params = survey_params
+    scrub_stale_section_attributes!(permitted_params)
+
+    @survey.assign_attributes(permitted_params)
     resolve_category_sections(@survey)
 
     if @survey.save
@@ -226,6 +231,37 @@ class Admin::SurveysController < Admin::BaseController
       ensure_section_form_state(@survey)
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  # Rails nested attributes will raise ActiveRecord::RecordNotFound if the form
+  # submits an id that no longer exists for this survey (e.g., stale DOM after
+  # deletes + reload races). Drop those entries so updates remain idempotent.
+  def scrub_stale_section_attributes!(permitted_params)
+    sections = permitted_params[:sections_attributes]
+    return unless sections.present?
+
+    sections_hash = sections.respond_to?(:to_h) ? sections.to_h : sections
+    return unless sections_hash.is_a?(Hash)
+
+    valid_ids = @survey.sections.pluck(:id).map(&:to_s).to_set
+
+    scrubbed = {}
+    sections_hash.each do |key, attrs|
+      next unless attrs.present?
+
+      attrs_hash = attrs.respond_to?(:to_h) ? attrs.to_h : attrs
+      next unless attrs_hash.is_a?(Hash)
+
+      submitted_id = attrs_hash[:id] || attrs_hash["id"]
+      if submitted_id.present? && !valid_ids.include?(submitted_id.to_s)
+        Rails.logger.info("[survey_update] dropping stale section id=#{submitted_id} for survey=#{@survey.id}") if Rails.env.development?
+        next
+      end
+
+      scrubbed[key] = attrs
+    end
+
+    permitted_params[:sections_attributes] = scrubbed
   end
 
   # Deletes a survey and records the action in the change log.

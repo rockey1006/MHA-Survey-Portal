@@ -144,5 +144,57 @@ module SurveyAssignments
       assert_includes survey_ids, surveys(:fall_2025_executive).id
       assert_includes survey_ids, surveys(:spring_2025).id
     end
+
+    test "fallback assignment follows RMHA schedule by class year" do
+      SurveyOffering.delete_all
+      ProgramSemester.update_all(current: false)
+      program_semesters(:spring_2026).update!(current: true)
+
+      @student.update_columns(track: "Residential", program_year: 2026)
+
+      assert_difference -> { @student.survey_assignments.count }, 2 do
+        AutoAssigner.call(student: @student)
+      end
+
+      survey_ids = @student.survey_assignments.pluck(:survey_id)
+      assert_includes survey_ids, surveys(:rmha_midpoint_spring_2026).id
+      assert_includes survey_ids, surveys(:rmha_final_spring_2026).id
+      refute_includes survey_ids, surveys(:rmha_initial_spring_2026).id
+
+      @student.survey_assignments.destroy_all
+      @student.update_columns(track: "Residential", program_year: 2027)
+
+      assert_difference -> { @student.survey_assignments.count }, 1 do
+        AutoAssigner.call(student: @student)
+      end
+
+      survey_ids = @student.survey_assignments.pluck(:survey_id)
+      assert_equal [ surveys(:rmha_initial_spring_2026).id ], survey_ids
+    end
+
+    test "fallback assignment follows EMHA schedule by class year" do
+      SurveyOffering.delete_all
+      ProgramSemester.update_all(current: false)
+      program_semesters(:spring_2026).update!(current: true)
+
+      @student.update_columns(track: "Executive", program_year: 2027)
+
+      assert_difference -> { @student.survey_assignments.count }, 1 do
+        AutoAssigner.call(student: @student)
+      end
+
+      survey_ids = @student.survey_assignments.pluck(:survey_id)
+      assert_equal [ surveys(:emha_midpoint_spring_2026).id ], survey_ids
+
+      @student.survey_assignments.destroy_all
+      @student.update_columns(track: "Executive", program_year: 2026)
+
+      assert_difference -> { @student.survey_assignments.count }, 1 do
+        AutoAssigner.call(student: @student)
+      end
+
+      survey_ids = @student.survey_assignments.pluck(:survey_id)
+      assert_equal [ surveys(:emha_final_spring_2026).id ], survey_ids
+    end
   end
 end

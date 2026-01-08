@@ -40,3 +40,43 @@ spring_2026_executive:
   is_active: true
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
+
+rmha_initial_spring_2026:
+  title: RMHA Initial Survey
+  program_semester: spring_2026
+  description: RMHA initial portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+rmha_midpoint_spring_2026:
+  title: RMHA Mid-point Survey
+  program_semester: spring_2026
+  description: RMHA midpoint portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+rmha_final_spring_2026:
+  title: RMHA Final Survey
+  program_semester: spring_2026
+  description: RMHA final portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+emha_midpoint_spring_2026:
+  title: EMHA Mid-point Survey
+  program_semester: spring_2026
+  description: EMHA midpoint portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+emha_final_spring_2026:
+  title: EMHA Final Survey
+  program_semester: spring_2026
+  description: EMHA final review (no portfolio due)
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

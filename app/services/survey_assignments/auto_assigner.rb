@@ -83,12 +83,51 @@ module SurveyAssignments
 
       return Survey.none if current_semester.blank?
 
+      scheduled_titles = scheduled_titles_for(track: track, class_of: class_of)
+      if scheduled_titles.any?
+        return Survey.active
+          .joins(:program_semester)
+          .where("LOWER(program_semesters.name) = ?", current_semester.downcase)
+          .where(title: scheduled_titles)
+          .distinct
+      end
+
       Survey.active
         .joins(:program_semester)
         .where("LOWER(program_semesters.name) = ?", current_semester.downcase)
             .joins(:track_assignments)
             .where("LOWER(survey_track_assignments.track) = ?", track.downcase)
             .distinct
+    end
+
+    def scheduled_titles_for(track:, class_of:)
+      return [] if track.blank? || class_of.blank?
+
+      normalized_track = track.to_s.strip.downcase
+      cohort = class_of.to_i
+
+      case normalized_track
+      when "residential"
+        case cohort
+        when 2027
+          [ "RMHA Initial Survey" ]
+        when 2026
+          [ "RMHA Mid-point Survey", "RMHA Final Survey" ]
+        else
+          []
+        end
+      when "executive"
+        case cohort
+        when 2027
+          [ "EMHA Mid-point Survey" ]
+        when 2026
+          [ "EMHA Final Survey" ]
+        else
+          []
+        end
+      else
+        []
+      end
     end
 
     def remove_managed_assignments!(allowed_ids: [])

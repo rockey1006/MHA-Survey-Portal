@@ -7,7 +7,8 @@ class SurveyResponseVersion < ApplicationRecord
   validates :student_id, presence: true
   validates :survey_id, presence: true
   validates :event, presence: true
-  validates :answers, presence: true
+  # Allow empty hashes (e.g., snapshot before any answers exist), but disallow nil.
+  validates :answers, exclusion: { in: [ nil ], message: "can't be nil" }
 
   scope :for_pair, ->(student_id:, survey_id:) { where(student_id: student_id, survey_id: survey_id) }
   scope :chronological, -> { order(created_at: :asc, id: :asc) }

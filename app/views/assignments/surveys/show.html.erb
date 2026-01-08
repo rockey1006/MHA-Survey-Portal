@@ -15,7 +15,7 @@
     <% if @students.present? %>
       <div class="c-card c-card--flush">
         <%= render TableComponent.new(
-          headers: ["Student", "Email", "Track", "Status", "Due", "Action"],
+          headers: ["Student", "Email", "Track", "Status", "Closes", "Action"],
           right_align: [5]
         ) do %>
           <% @students.each do |student| %>
@@ -23,7 +23,7 @@
             <% assigned = assignment.present? %>
             <% completed = assignment&.completed_at? %>
             <% status_text = completed ? "Completed" : (assigned ? "Assigned" : "Unassigned") %>
-            <% due_label = assignment&.due_date.present? ? format_calendar_date(assignment.due_date) : "—" %>
+            <% due_label = assignment&.available_until.present? ? format_calendar_date(assignment.available_until) : "—" %>
 
             <tr class="transition hover:bg-slate-50">
               <td class="px-4 py-3 text-sm text-slate-700">

@@ -53,6 +53,7 @@ module Reports
       "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.program_year AS student_class_of",
       "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -73,6 +74,7 @@ module Reports
       "program_semesters.id AS program_semester_id",
       "program_semesters.name AS survey_semester",
       "students.track AS student_track",
+      "students.program_year AS student_class_of",
       "students.program_year AS student_program_year",
       "students.student_id AS student_primary_id",
       "students.advisor_id AS owning_advisor_id"
@@ -366,46 +368,86 @@ module Reports
       Rails.logger.debug "Filters applied: #{@raw_params.inspect}"
       Rails.logger.debug "Dataset rows count: #{dataset_rows.size}"
 
-      student_scores = dataset_rows.reject { |row| row[:advisor_entry] }.map { |row| row[:score] }
-      advisor_scores = dataset_rows.select { |row| row[:advisor_entry] }.map { |row| row[:score] }
+      benchmark_thresholds = {
+        students_goal_percent: 80.0,
+        competencies_goal_percent: 85.0
+      }
 
-      student_avg = average(student_scores)
-      advisor_avg = average(advisor_scores)
-      alignment_pct = alignment_percent(student_avg, advisor_avg)
+      benchmark_attainment = benchmark_attainment_stats(
+        dataset_rows,
+        competencies_goal_percent: benchmark_thresholds[:competencies_goal_percent]
+      )
 
       cards = []
-      cards << build_card(
-        key: "overall_average",
-        title: "Overall Student Average",
-        value: student_avg,
-        unit: "score",
-        precision: 1,
-        change: percent_change_for(:student),
-        description: "Mean student competency score on a five-point scale.",
-        sample_size: student_scores.size
-      )
+
+      overall_source_label = rating_source_label(benchmark_attainment.dig(:source_breakdown, :overall))
+      overall_meta = {
+        goal_percent: benchmark_thresholds[:students_goal_percent],
+        students_met_goal: benchmark_attainment[:overall][:students_meeting_count],
+        competencies_goal_percent: benchmark_thresholds[:competencies_goal_percent]
+      }
+      overall_meta[:name] = overall_source_label if overall_source_label.present?
 
       cards << build_card(
-        key: "overall_advisor_average",
-        title: "Overall Advisor Average",
-        value: advisor_avg,
-        unit: "score",
-        precision: 1,
-        change: percent_change_for(:advisor),
-        description: "Mean advisor competency score on a five-point scale.",
-        sample_size: advisor_scores.size
-      )
-
-      cards << build_card(
-        key: "advisor_alignment",
-        title: "Student & Advisor Alignment",
-        value: alignment_pct,
+        key: "benchmark_attainment_overall",
+        title: "Benchmark Attainment",
+        value: benchmark_attainment[:overall][:students_meeting_percent],
         unit: "percent",
         precision: 0,
-        change: alignment_trend_change,
-        description: "Closeness of student and advisor averages (100% = perfect alignment).",
-        sample_size: [ student_scores.size, advisor_scores.size ].min
+        change: nil,
+        description: "Percent of students meeting target in at least #{benchmark_thresholds[:competencies_goal_percent].to_i}% of competencies.",
+        sample_size: benchmark_attainment[:overall][:total_students],
+        meta: overall_meta
       )
+
+      cards << build_card(
+        key: "benchmark_not_meeting_overall",
+        title: "Below Benchmark",
+        value: benchmark_attainment[:overall][:students_not_meeting_percent],
+        unit: "percent",
+        precision: 0,
+        change: nil,
+        description: "Percent of students below the benchmark threshold.",
+        sample_size: benchmark_attainment[:overall][:total_students]
+      )
+
+      track_summaries = []
+      benchmark_attainment[:by_track].each do |track_key, stats|
+        track_label = track_key.to_s.strip
+        next if track_label.blank?
+
+        track_source_label = rating_source_label(benchmark_attainment.dig(:source_breakdown, :by_track, track_key))
+
+        track_summaries << {
+          label: track_label,
+          percent: stats[:students_meeting_percent],
+          students_met_goal: stats[:students_meeting_count],
+          sample_size: stats[:total_students],
+          source_label: track_source_label
+        }
+      end
+
+      if track_summaries.any?
+        total_track_students = track_summaries.sum { |entry| entry[:sample_size].to_i }
+        cards << build_card(
+          key: "benchmark_attainment_by_track",
+          title: "Benchmark by Track",
+          value: nil,
+          unit: "percent",
+          precision: 0,
+          change: nil,
+          description: "Percent of students meeting the benchmark broken down by track.",
+          sample_size: total_track_students,
+          meta: {
+            goal_percent: benchmark_thresholds[:students_goal_percent],
+            competencies_goal_percent: benchmark_thresholds[:competencies_goal_percent],
+            tracks: track_summaries
+          }
+        )
+      end
+
+      alignment_card = build_alignment_card
+      cards << alignment_card if alignment_card
 
       completion_stats = completion_stats()
       cards << build_card(
@@ -425,19 +467,158 @@ module Reports
       Rails.logger.debug "--- Finished build_benchmark_payload ---"
 
       {
-        student_average: student_avg,
-        advisor_average: advisor_avg,
-        alignment_percent: alignment_pct,
         completion_rate: completion_stats[:completion_rate],
         cards: cards.compact,
         timeline: build_timeline,
-        sample_size_student: student_scores.size,
-        sample_size_advisor: advisor_scores.size
+        benchmark_attainment: benchmark_attainment
       }
     end
 
+    def build_alignment_card
+      summary = alignment_summary
+      return nil unless summary
+
+      build_card(
+        key: "student_advisor_alignment",
+        title: "Student & Advisor Alignment",
+        value: summary[:percent],
+        unit: "percent",
+        precision: 0,
+        change: summary[:change],
+        description: "Percent alignment between student self-assessments and advisor ratings.",
+        sample_size: summary[:sample_size],
+        meta: summary[:meta]
+      )
+    end
+
+    def benchmark_attainment_stats(rows, competencies_goal_percent:)
+      goal = competencies_goal_percent.to_f
+
+      grouped = Hash.new { |hash, key| hash[key] = {} }
+
+      rows.each do |row|
+        student_id = row[:student_id]
+        next if student_id.blank?
+
+        competency_title = normalized_competency_title(row[:question_text])
+        next if competency_title.blank?
+
+        existing = grouped[student_id][competency_title]
+        if existing.nil?
+          grouped[student_id][competency_title] = row
+          next
+        end
+
+        existing_time = existing[:updated_at]
+        incoming_time = row[:updated_at]
+
+        preferred = if existing[:advisor_entry] && !row[:advisor_entry]
+          false
+        elsif !existing[:advisor_entry] && row[:advisor_entry]
+          true
+        elsif existing_time.present? && incoming_time.present?
+          incoming_time > existing_time
+        else
+          false
+        end
+
+        grouped[student_id][competency_title] = row if preferred
+      end
+
+      per_student = {}
+      per_track = Hash.new { |hash, key| hash[key] = { students: 0, meeting: 0 } }
+      per_track_source_counts = Hash.new { |hash, key| hash[key] = { advisor: 0, student: 0 } }
+      overall_source_counts = { advisor: 0, student: 0 }
+
+      grouped.each do |student_id, competency_map|
+        competency_rows = competency_map.values
+        next if competency_rows.blank?
+
+        achieved = 0
+        advisor_entries = 0
+        student_entries = 0
+
+        competency_rows.each do |row|
+          target = row[:program_target_level].presence || 4.0
+          achieved += 1 if row[:score].to_f >= target.to_f
+          if row[:advisor_entry]
+            advisor_entries += 1
+          else
+            student_entries += 1
+          end
+        end
+
+        total = competency_rows.size
+        percent_met = safe_percent(achieved, total) || 0.0
+        meets_goal = percent_met >= goal
+
+        track = competency_rows.first[:track]
+        track_key = track.to_s
+
+        overall_source_counts[:advisor] += advisor_entries
+        overall_source_counts[:student] += student_entries
+        per_track_source_counts[track_key][:advisor] += advisor_entries
+        per_track_source_counts[track_key][:student] += student_entries
+        per_student[student_id] = {
+          track: track,
+          competencies_total: total,
+          competencies_met: achieved,
+          competencies_met_percent: percent_met,
+          meets_benchmark: meets_goal
+        }
+
+        per_track[track_key][:students] += 1
+        per_track[track_key][:meeting] += 1 if meets_goal
+      end
+
+      total_students = per_student.size
+      meeting_students = per_student.values.count { |s| s[:meets_benchmark] }
+      meeting_percent = safe_percent(meeting_students, total_students)
+      not_meeting_percent = meeting_percent.nil? ? nil : (100.0 - meeting_percent)
+
+      {
+        overall: {
+          total_students: total_students,
+          students_meeting_count: meeting_students,
+          students_meeting_percent: meeting_percent,
+          students_not_meeting_percent: not_meeting_percent,
+          competencies_goal_percent: goal
+        },
+        by_track: per_track.transform_values do |stats|
+          meeting_pct = safe_percent(stats[:meeting], stats[:students])
+          {
+            total_students: stats[:students],
+            students_meeting_count: stats[:meeting],
+            students_meeting_percent: meeting_pct
+          }
+        end,
+        per_student: per_student,
+        source_breakdown: {
+          overall: overall_source_counts,
+          by_track: per_track_source_counts.transform_values { |counts| counts.dup }
+        }
+      }
+    end
+
+    def rating_source_label(source_counts)
+      counts = source_counts || {}
+      advisor = counts[:advisor].to_i
+      student = counts[:student].to_i
+
+      return nil if advisor.zero? && student.zero?
+
+      if advisor.positive? && student.positive?
+        "Advisor & student ratings"
+      elsif advisor.positive?
+        "Advisor ratings"
+      else
+        "Student self-ratings"
+      end
+    end
+
     def build_card(key:, title:, value:, unit:, precision:, description:, change:, sample_size:, meta: nil)
-      return nil if value.nil?
+      tracks = meta.is_a?(Hash) ? Array(meta[:tracks]) : []
+      return nil if value.nil? && tracks.blank?
 
       {
         key: key,
@@ -549,6 +730,36 @@ module Reports
       return nil if latest.nil? || previous.nil?
 
       latest - previous
+    end
+
+    def alignment_summary
+      student_rows = dataset_rows.reject { |row| row[:advisor_entry] }
+      advisor_rows = dataset_rows.select { |row| row[:advisor_entry] }
+
+      student_avg = average(student_rows.map { |row| row[:score] })
+      advisor_avg = average(advisor_rows.map { |row| row[:score] })
+      alignment = alignment_percent(student_avg, advisor_avg)
+      return nil if alignment.nil?
+
+      paired_students = group_student_rows(dataset_rows).count do |_student_id, rows|
+        next false if rows.blank?
+
+        has_student = rows.any? { |row| !row[:advisor_entry] }
+        has_advisor = rows.any? { |row| row[:advisor_entry] }
+        has_student && has_advisor
+      end
+      return nil if paired_students.zero?
+
+      {
+        percent: alignment,
+        change: alignment_trend_change,
+        sample_size: paired_students,
+        meta: {
+          name: "Advisor & student ratings",
+          advisor_average: advisor_avg,
+          student_average: student_avg
+        }
+      }
     end
 
     def build_competency_summary
@@ -1056,53 +1267,67 @@ module Reports
       semester_id = record.program_semester_id
       track = record.student_track.to_s.strip
       title = normalized_competency_title(record.question_text)
+      class_of = record.respond_to?(:student_class_of) ? record.student_class_of : nil
       program_year = record.respond_to?(:student_program_year) ? record.student_program_year : nil
 
-      exact_lookup = competency_target_level_lookup
+      lookup_bundle = competency_target_level_lookup_bundle
 
-      exact_lookup[[ semester_id, track, program_year, title ]] ||
-        exact_lookup[[ semester_id, track, nil, title ]] ||
-        (program_year.nil? ? competency_target_level_any_year_lookup[[ semester_id, track, title ]] : nil) ||
+      lookup_bundle[:class_of_exact][[ semester_id, track, class_of, title ]] ||
+        lookup_bundle[:class_of_exact][[ semester_id, track, nil, title ]] ||
+        (class_of.nil? ? lookup_bundle[:class_of_any][[ semester_id, track, title ]] : nil) ||
+        lookup_bundle[:program_year_exact][[ semester_id, track, program_year, title ]] ||
+        lookup_bundle[:program_year_exact][[ semester_id, track, nil, title ]] ||
+        (program_year.nil? ? lookup_bundle[:program_year_any_year][[ semester_id, track, title ]] : nil) ||
         fallback
-    end
-
-    def competency_target_level_lookup
-      competency_target_level_lookup_bundle[:exact]
-    end
-
-    def competency_target_level_any_year_lookup
-      competency_target_level_lookup_bundle[:any_year]
     end
 
     def competency_target_level_lookup_bundle
       @competency_target_level_lookup_bundle ||= begin
-        exact = {}
-        any_year = {}
+        class_of_exact = {}
+        class_of_any = {}
+        program_year_exact = {}
+        program_year_any_year = {}
 
         CompetencyTargetLevel
-          .select(:id, :program_semester_id, :track, :program_year, :competency_title, :target_level)
+          .select(:id, :program_semester_id, :track, :program_year, :class_of, :competency_title, :target_level)
           .find_each do |row|
             semester_id = row.program_semester_id
             track = row.track.to_s.strip
             title = normalized_competency_title(row.competency_title)
             program_year = row.program_year
+            class_of = row.class_of
 
-            exact[[ semester_id, track, program_year, title ]] = row.target_level
+            class_of_exact[[ semester_id, track, class_of, title ]] = row.target_level
+            program_year_exact[[ semester_id, track, program_year, title ]] = row.target_level
+
+            if class_of.present?
+              any_class_key = [ semester_id, track, title ]
+              existing = class_of_any[any_class_key]
+              if existing.nil? || class_of.to_i < existing[:class_of]
+                class_of_any[any_class_key] = { class_of: class_of.to_i, level: row.target_level }
+              end
+            end
 
             next if program_year.blank?
 
             any_year_key = [ semester_id, track, title ]
-            existing = any_year[any_year_key]
+            existing = program_year_any_year[any_year_key]
             if existing.nil? || program_year.to_i < existing[:year]
-              any_year[any_year_key] = { year: program_year.to_i, level: row.target_level }
+              program_year_any_year[any_year_key] = { year: program_year.to_i, level: row.target_level }
             end
           end
 
         {
-          exact: exact,
-          any_year: any_year.transform_values { |entry| entry[:level] }
+          class_of_exact: class_of_exact,
+          class_of_any: class_of_any.transform_values { |entry| entry[:level] },
+          program_year_exact: program_year_exact,
+          program_year_any_year: program_year_any_year.transform_values { |entry| entry[:level] }
         }
       end
+    end
+
+    def competency_target_level_any_year_lookup
+      competency_target_level_lookup_bundle[:program_year_any_year]
     end
 
     def sanitize_tracks(values)

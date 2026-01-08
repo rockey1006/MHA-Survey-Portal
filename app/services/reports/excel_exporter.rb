@@ -70,13 +70,10 @@ module Reports
 
         sheet.add_row []
         sheet.add_row [ "Timeline" ]
-        sheet.add_row [ "Month", "Student Average", "Advisor Average", "Alignment %", "Student % Meeting Target", "Advisor % Meeting Target" ]
+        sheet.add_row [ "Month", "Student % Meeting Target", "Advisor % Meeting Target" ]
         timeline.each do |point|
           sheet.add_row [
             point[:label],
-            format_number(point[:student], 2),
-            format_number(point[:advisor], 2),
-            format_number(point[:alignment], 1),
             format_number(point[:student_target_percent], 1, suffix: "%"),
             format_number(point[:advisor_target_percent], 1, suffix: "%")
           ]
@@ -91,12 +88,9 @@ module Reports
       workbook.add_worksheet(name: "Competencies") do |sheet|
         sheet.add_row [
           "Competency",
-          "Student Avg",
-          "Advisor Avg",
           "Program Target Level",
           "Student % Meeting Target",
           "Advisor % Meeting Target",
-          "Gap",
           "Trend %",
           "Status",
           "Student Sample",
@@ -112,12 +106,9 @@ module Reports
         summary.each do |entry|
           sheet.add_row [
             entry[:name],
-            format_number(entry[:student_average], 2),
-            format_number(entry[:advisor_average], 2),
             format_number(entry[:program_target_level], 2),
             format_number(entry[:student_target_percent], 1, suffix: "%"),
             format_number(entry[:advisor_target_percent], 1, suffix: "%"),
-            format_number(entry[:gap], 2),
             formatted_change(entry[:change], "percent"),
             entry[:status].to_s.titleize,
             entry[:student_sample],
@@ -144,9 +135,6 @@ module Reports
           "Program Target Level",
           "Student % Meeting Target",
           "Advisor % Meeting Target",
-          "Student Avg",
-          "Advisor Avg",
-          "Gap",
           "Achieved",
           "Not Met",
           "Not Assessed",
@@ -162,9 +150,6 @@ module Reports
             format_number(item[:program_target_level], 2),
             format_number(item[:student_target_percent], 1, suffix: "%"),
             format_number(item[:advisor_target_percent], 1, suffix: "%"),
-            format_number(item[:student_average], 2),
-            format_number(item[:advisor_average], 2),
-            format_number(item[:gap], 2),
             item[:achieved_count],
             item[:not_met_count],
             item[:not_assessed_count],
@@ -183,9 +168,6 @@ module Reports
       workbook.add_worksheet(name: "Tracks") do |sheet|
         sheet.add_row [
           "Track",
-          "Student Avg",
-          "Advisor Avg",
-          "Gap",
           "On Track %",
           "Submissions",
           "Achieved",
@@ -199,9 +181,6 @@ module Reports
         tracks.each do |entry|
           sheet.add_row [
             entry[:track],
-            format_number(entry[:student_average], 2),
-            format_number(entry[:advisor_average], 2),
-            format_number(entry[:gap], 2),
             format_number(entry[:achieved_percent], 1, suffix: "%"),
             entry[:submissions],
             entry[:achieved_count],

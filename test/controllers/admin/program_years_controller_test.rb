@@ -9,7 +9,7 @@ class Admin::ProgramYearsControllerTest < ActionDispatch::IntegrationTest
   test "non-admin is redirected" do
     sign_in @student
 
-    post admin_program_years_path, params: { program_year: { value: 3, position: 30, active: true } }
+    post admin_program_years_path, params: { program_year: { value: 2028, position: 30, active: true } }
 
     assert_redirected_to dashboard_path
   end
@@ -18,14 +18,14 @@ class Admin::ProgramYearsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     assert_difference "ProgramYear.count", 1 do
-      post admin_program_years_path, params: { program_year: { value: 3, position: 30, active: true } }
+      post admin_program_years_path, params: { program_year: { value: 2028, position: 30, active: true } }
     end
 
     assert_redirected_to admin_program_setup_path(tab: "years")
     assert_match(/created/i, flash[:notice].to_s)
 
     record = ProgramYear.order(:id).last
-    assert_equal 3, record.value
+    assert_equal 2028, record.value
     assert_equal 30, record.position
     assert_equal true, record.active
   end
@@ -44,14 +44,14 @@ class Admin::ProgramYearsControllerTest < ActionDispatch::IntegrationTest
   test "admin can update program year" do
     sign_in @admin
 
-    year = ProgramYear.create!(value: 9, position: 90, active: true)
+    year = ProgramYear.create!(value: 2029, position: 90, active: true)
 
-    patch admin_program_year_path(year), params: { program_year: { value: 10, position: 100, active: false } }
+    patch admin_program_year_path(year), params: { program_year: { value: 2030, position: 100, active: false } }
 
     assert_redirected_to admin_program_setup_path(tab: "years")
 
     year.reload
-    assert_equal 10, year.value
+    assert_equal 2030, year.value
     assert_equal 100, year.position
     assert_equal false, year.active
   end
@@ -59,7 +59,7 @@ class Admin::ProgramYearsControllerTest < ActionDispatch::IntegrationTest
   test "admin update shows errors when invalid" do
     sign_in @admin
 
-    year = ProgramYear.create!(value: 11, position: 110, active: true)
+    year = ProgramYear.create!(value: 2031, position: 110, active: true)
 
     patch admin_program_year_path(year), params: { program_year: { value: "" } }
 
@@ -70,7 +70,7 @@ class Admin::ProgramYearsControllerTest < ActionDispatch::IntegrationTest
   test "admin can delete program year" do
     sign_in @admin
 
-    year = ProgramYear.create!(value: 12, position: 120, active: true)
+    year = ProgramYear.create!(value: 2032, position: 120, active: true)
 
     assert_difference "ProgramYear.count", -1 do
       delete admin_program_year_path(year)

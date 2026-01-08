@@ -25,12 +25,9 @@ class Student < ApplicationRecord
             inclusion: { in: ->(_student) { ProgramTrack.keys } },
             allow_blank: true,
             on: :profile_completion
+  # Program year is stored as a cohort/graduation year (e.g., 2026, 2027).
   validates :program_year, presence: true, on: :profile_completion
-  validates :program_year, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
-  validates :program_year,
-            inclusion: { in: ->(_student) { ProgramYear.values } },
-            allow_blank: true,
-            on: :profile_completion
+  validates :program_year, numericality: { only_integer: true, greater_than_or_equal_to: 2026, less_than_or_equal_to: 3000 }, allow_nil: true
 
   after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? || saved_change_to_program_year? }
 
@@ -38,7 +35,17 @@ class Student < ApplicationRecord
   #
   # @return [Boolean]
   def profile_complete?
-    user.name.present? && uin.present? && major.present? && track.present?
+    user.name.present? && uin.present? && major.present? && track.present? && program_year.present?
+  end
+
+  # Backwards-compat: treat legacy class_of as program_year.
+  # (The DB column may be removed, but some code paths/tests still call class_of.)
+  def class_of
+    program_year
+  end
+
+  def class_of=(value)
+    self.program_year = value
   end
 
   # @return [String] the student's preferred full name

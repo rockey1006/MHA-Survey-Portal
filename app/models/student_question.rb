@@ -10,8 +10,12 @@ class StudentQuestion < ApplicationRecord
   validates :question, presence: true
   validates :question_id, uniqueness: { scope: :student_id }
   validate :validate_evidence_link, if: :evidence_question?
+  validate :validate_text_lengths
 
   before_save :normalize_response_value
+
+  # Maximum allowed length for student-entered free-text fields.
+  TEXT_MAX_LENGTH = 1000
 
   # Pattern used to validate Google-hosted links (Drive, Docs, Sites, etc.) for evidence responses.
   GOOGLE_URL_REGEX = %r{\Ahttps?://(?:(?:drive|docs|sites)\.google\.com|(?:[a-z0-9-]+\.)?googleusercontent\.com)(?:/|$)\S*}i
@@ -47,6 +51,29 @@ class StudentQuestion < ApplicationRecord
   end
 
   private
+
+  def validate_text_lengths
+    value = answer
+    validate_value_text_lengths(value)
+  end
+
+  def validate_value_text_lengths(value)
+    case value
+    when String
+      validate_string_length(value)
+    when Array
+      value.each { |item| validate_value_text_lengths(item) }
+    when Hash
+      value.each_value { |item| validate_value_text_lengths(item) }
+    end
+  end
+
+  def validate_string_length(str)
+    return if str.blank?
+    return unless str.length > TEXT_MAX_LENGTH
+
+    errors.add(:response_value, "must be #{TEXT_MAX_LENGTH} characters or fewer")
+  end
 
   def evidence_question?
     question.present? && question.question_type == "evidence"

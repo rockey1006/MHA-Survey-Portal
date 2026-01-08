@@ -4,7 +4,7 @@
 <% email = @student.email %>
 <% uin = @student.uin.presence || "Not provided" %>
 <% track = @student.track.present? ? @student.track.to_s.titleize : "Not assigned" %>
-<% program_year = @student.program_year.present? ? "Year #{@student.program_year}" : "Not set" %>
+<% class_of = @student.program_year.present? ? "Class of #{@student.program_year}" : "Not set" %>
 <% major = @student.major.presence || "Program TBD" %>
 <% advisor_name = @student.advisor&.name || "Advisor pending" %>
 <% member_since = @student.created_at ? @student.created_at.strftime("%b %-d, %Y") : "Recently" %>
@@ -71,7 +71,7 @@
         </article>
         <article class="c-kv c-kv--inverse c-kv--compact">
           <p class="c-eyebrow c-eyebrow--inverse">Program year</p>
-          <p class="c-value c-value--xl c-value--inverse"><%= program_year %></p>
+          <p class="c-value c-value--xl c-value--inverse"><%= class_of %></p>
         </article>
       </div>
     </section>
@@ -124,11 +124,12 @@
                 <div class="c-kv c-kv--compact">
                   <div class="c-field">
                     <%= form.label :program_year, "Program year", class: "c-label" %>
+                    <% program_year_options = ProgramYear.values.map { |year| [year.to_s, year] } %>
                     <%= form.select :program_year,
-                        options_for_select(@program_year_options, @student.program_year),
-                        { prompt: "Select your year" },
+                        options_for_select(program_year_options, @student.program_year.to_i.presence),
+                        { prompt: "Select your graduation year" },
                         { required: true, class: "c-input" } %>
-                    <small class="c-help">Used to determine which surveys to assign.</small>
+                    <small class="c-help">Select your graduation year (e.g., 2026). Used to determine which surveys to assign.</small>
                   </div>
                 </div>
 

@@ -42,7 +42,7 @@
             <% case question.question_type %>
             <% when "short_answer" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.text_area :response_value, rows: 2, class: "w-full border rounded px-2 py-1" %>
+                <%= qr_form.text_area :response_value, rows: 2, maxlength: StudentQuestion::TEXT_MAX_LENGTH, class: "w-full border rounded px-2 py-1" %>
               <% end %>
             <% when "multiple_choice" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
@@ -59,7 +59,7 @@
               <% end %>
             <% when "evidence" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.text_field :response_value, class: "w-full border rounded px-2 py-1" %>
+                <%= qr_form.text_field :response_value, maxlength: StudentQuestion::TEXT_MAX_LENGTH, class: "w-full border rounded px-2 py-1" %>
               <% end %>
               <% if question.is_required? %>
                 <span class="text-rose-600">*</span>
@@ -70,7 +70,7 @@
               <% end %>
             <% else %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.text_field :response_value, class: "w-full border rounded px-2 py-1" %>
+                <%= qr_form.text_field :response_value, maxlength: StudentQuestion::TEXT_MAX_LENGTH, class: "w-full border rounded px-2 py-1" %>
                 <% if qr.errors[:response_value].any? %>
                   <div class="text-xs text-rose-600 mt-1">
                     <%= qr.errors[:response_value].join(', ') %>

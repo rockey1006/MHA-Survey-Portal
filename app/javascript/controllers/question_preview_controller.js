@@ -99,13 +99,23 @@ export default class extends Controller {
     this.element.removeEventListener("keydown", this.handleKeyDown)
   }
 
-  update() {
+  update(event) {
+    // When editing an option inline, keystrokes happen inside the rendered
+    // preview region. If we re-render the preview on every keystroke, the
+    // input can be replaced mid-edit and indices can drift, making text land
+    // on the wrong choice. Only re-render once the backing textarea changes.
+    const target = event?.target
+    const editingInsideResponsePreview = !!(target && this.hasResponseTarget && this.responseTarget.contains(target))
+
     this.updatePrompt()
     this.updateDescription()
     this.updateTooltip()
     this.updateRequired()
     this.updateAnswerOptionsVisibility()
-    this.updateResponsePreview()
+
+    if (!editingInsideResponsePreview) {
+      this.updateResponsePreview()
+    }
   }
 
   updatePrompt() {
@@ -576,11 +586,6 @@ export default class extends Controller {
           prev.value = prev.value || label
           continue
         }
-      }
-
-      if (out.length && this.looksLikeContinuation(label)) {
-        out[out.length - 1].label = `${out[out.length - 1].label} ${label}`.trim()
-        continue
       }
 
       out.push({ label, value: value || label })

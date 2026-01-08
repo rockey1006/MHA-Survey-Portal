@@ -14,6 +14,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Student Records"
     assert_includes response.body, users(:student).name
     assert_includes response.body, users(:other_student).name
+    assert_includes response.body, students(:student).program_year.to_s
     assert_includes response.body, "Has feedback"
   end
 
@@ -35,6 +36,60 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     get student_records_path(q: users(:student).name)
+    assert_response :success
+    assert_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
+  end
+
+  test "admin can filter to a single survey" do
+    sign_in @admin
+
+    target = surveys(:fall_2025)
+    other = surveys(:spring_2025)
+
+    get student_records_path(survey_id: target.id)
+    assert_response :success
+    assert_includes response.body, target.title
+    # Other surveys still appear in the Survey dropdown options; ensure they do
+    # not render as a survey section.
+    assert_not_includes response.body, ">#{other.title}</span>"
+  end
+
+  test "admin can filter surveys by keyword" do
+    sign_in @admin
+
+    executive_title = surveys(:fall_2025_executive).title
+    residential_title = surveys(:fall_2025).title
+
+    get student_records_path(survey_query: "executive")
+    assert_response :success
+    assert_includes response.body, executive_title
+    assert_not_includes response.body, residential_title
+  end
+
+  test "admin can filter student records by status" do
+    sign_in @admin
+
+    get student_records_path(status: "unassigned")
+    assert_response :success
+    # "Completed" can appear in seeded student names; assert against status badges.
+    assert_includes response.body, ">Unassigned</span>"
+    assert_not_includes response.body, ">Completed</span>"
+  end
+
+  test "admin can filter students by track" do
+    sign_in @admin
+
+    get student_records_path(track: "Executive")
+    assert_response :success
+    assert_includes response.body, users(:other_student).name
+    assert_not_includes response.body, users(:student).name
+  end
+
+  test "admin can filter students by program year" do
+    sign_in @admin
+
+    get student_records_path(program_year: "2026")
     assert_response :success
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
@@ -83,8 +138,8 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_nil row[:completed_at]
 
     assignment = survey_assignments(:residential_assignment)
-    assert_not_nil row[:due_date]
-    assert_in_delta assignment.due_date.to_i, row[:due_date].to_i, 1
+    assert_not_nil row[:available_until]
+    assert_in_delta assignment.available_until.to_i, row[:available_until].to_i, 1
     completion_time = Time.current
     assignment.update!(completed_at: completion_time)
 
@@ -106,7 +161,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil row, "Expected to find a student row for an unassigned survey"
     assert_equal "Unassigned", row[:status]
     assert_nil row[:completed_at]
-    assert_nil row[:due_date]
+    assert_nil row[:available_until]
   end
 
   private

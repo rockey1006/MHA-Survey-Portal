@@ -50,8 +50,12 @@ end %>
         <dd class="text-slate-800"><%= @survey.semester.presence || "Unscheduled" %></dd>
       </div>
       <div class="flex items-center gap-2">
-        <dt class="font-semibold uppercase tracking-wide text-slate-600">Due date</dt>
-        <dd class="text-slate-800"><%= @survey.due_date.present? ? format_calendar_date(@survey.due_date) : "No due date" %></dd>
+        <dt class="font-semibold uppercase tracking-wide text-slate-600">Available from</dt>
+        <dd class="text-slate-800"><%= @survey.available_from.present? ? l(@survey.available_from, format: :medium) : "No start" %></dd>
+      </div>
+      <div class="flex items-center gap-2">
+        <dt class="font-semibold uppercase tracking-wide text-slate-600">Available until</dt>
+        <dd class="text-slate-800"><%= @survey.available_until.present? ? l(@survey.available_until, format: :medium) : "No end" %></dd>
       </div>
       <div class="flex items-center gap-2">
         <dt class="font-semibold uppercase tracking-wide text-slate-600">Created</dt>

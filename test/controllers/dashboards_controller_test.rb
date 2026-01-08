@@ -384,6 +384,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "student dashboard only shows surveys assigned to the student" do
+    Student.find(@student.id).update!(program_year: 2026) if Student.find_by(student_id: @student.id)&.program_year.blank?
     sign_in @student
 
     get student_dashboard_path
@@ -393,8 +394,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
 
     assignment = survey_assignments(:residential_assignment)
-    expected_due = ApplicationController.helpers.survey_due_note(assignment.due_date)
-    assert_includes response.body, expected_due
+    expected_availability = ApplicationController.helpers.survey_availability_note(assignment.available_until)
+    assert_includes response.body, expected_availability
   end
 
   test "student dashboard renders even when auto-assigner raises" do

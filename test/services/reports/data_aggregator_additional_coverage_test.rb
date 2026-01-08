@@ -344,11 +344,11 @@ class DataAggregatorAdditionalCoverageTest < ActiveSupport::TestCase
     track = "Residential"
     title = "Communication"
 
-    row = Struct.new(:program_semester_id, :track, :program_year, :competency_title, :target_level)
+    row = Struct.new(:program_semester_id, :track, :program_year, :class_of, :competency_title, :target_level)
     rows = [
-      row.new(semester_id, track, 2026, title, 5),
-      row.new(semester_id, track, 2025, title, 4),
-      row.new(semester_id, track, nil, title, 3)
+      row.new(semester_id, track, 2026, nil, title, 5),
+      row.new(semester_id, track, 2025, nil, title, 4),
+      row.new(semester_id, track, nil, nil, title, 3)
     ]
 
     relation = Struct.new(:rows) do

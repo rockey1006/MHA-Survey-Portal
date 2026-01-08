@@ -53,8 +53,8 @@ class SurveyNotificationJob < ApplicationJob
 
     Notification.deliver!(
       user: assignment.recipient_user,
-      title: "New Survey Assigned",
-      message: "#{advisor_name} assigned the survey '#{assignment.survey.title}' to you.",
+      title: "New Competency Survey Assigned",
+      message: "#{advisor_name} assigned the competency survey '#{assignment.survey.title}' to you.",
       notifiable: assignment
     )
   end
@@ -62,14 +62,14 @@ class SurveyNotificationJob < ApplicationJob
   def handle_due_soon_notification(survey_assignment_id)
     assignment = assignment_scope.includes(:survey, student: :user).find(survey_assignment_id)
     return if assignment.completed_at?
-    return unless assignment.due_date
+    return unless assignment.available_until
 
-    due_in = ActionController::Base.helpers.distance_of_time_in_words(Time.current, assignment.due_date)
+    closes_in = ActionController::Base.helpers.distance_of_time_in_words(Time.current, assignment.available_until)
 
     Notification.deliver!(
       user: assignment.recipient_user,
-      title: "Survey Due Soon",
-      message: "Your survey '#{assignment.survey.title}' is due in #{due_in}. Please complete it before the deadline.",
+      title: "Competency Survey Due Soon",
+      message: "Your competency survey '#{assignment.survey.title}' closes in #{closes_in}. Please complete it before it closes.",
       notifiable: assignment
     )
   end
@@ -77,12 +77,12 @@ class SurveyNotificationJob < ApplicationJob
   def handle_past_due_notification(survey_assignment_id)
     assignment = assignment_scope.includes(:survey, student: :user).find(survey_assignment_id)
     return if assignment.completed_at?
-    return unless assignment.due_date
+    return unless assignment.available_until
 
     Notification.deliver!(
       user: assignment.recipient_user,
-      title: "Survey Past Due",
-      message: "The survey '#{assignment.survey.title}' is past due. Please complete it as soon as possible.",
+      title: "Competency Survey Past Due",
+      message: "The competency survey '#{assignment.survey.title}' is now closed.",
       notifiable: assignment
     )
   end
@@ -94,7 +94,7 @@ class SurveyNotificationJob < ApplicationJob
 
     Notification.deliver!(
       user: student_user,
-      title: "Survey Submitted",
+      title: "Competency Survey Submitted",
       message: "Thanks! Your responses for '#{assignment.survey.title}' were received.",
       notifiable: assignment
     )
@@ -131,7 +131,7 @@ class SurveyNotificationJob < ApplicationJob
     recipients.values.each do |user|
       Notification.deliver!(
         user: user,
-        title: "Survey Updated After Feedback",
+        title: "Competency Survey Updated After Feedback",
         message: "#{assignment.student.full_name} updated '#{assignment.survey.title}' after feedback was provided.",
         notifiable: assignment
       )
@@ -145,8 +145,8 @@ class SurveyNotificationJob < ApplicationJob
     User.where(id: advisor_ids).find_each do |advisor_user|
       Notification.deliver!(
         user: advisor_user,
-        title: "Survey Updated",
-        message: "The survey '#{survey.title}' has been updated. #{metadata[:summary]}".strip,
+        title: "Competency Survey Updated",
+        message: "The competency survey '#{survey.title}' has been updated. #{metadata[:summary]}".strip,
         notifiable: survey
       )
     end
@@ -159,8 +159,8 @@ class SurveyNotificationJob < ApplicationJob
     Student.includes(:user).where(student_id: student_ids).find_each do |student|
       Notification.deliver!(
         user: student.user,
-        title: "Survey Archived",
-        message: "The survey '#{survey.title}' is no longer active.",
+        title: "Competency Survey Archived",
+        message: "The competency survey '#{survey.title}' is no longer active.",
         notifiable: survey
       )
     end
@@ -172,12 +172,12 @@ class SurveyNotificationJob < ApplicationJob
     return unless survey
 
     editor_name = metadata[:editor_name].presence || "An administrator"
-    message = "#{editor_name} updated the question '#{question.question_text}' in the '#{survey.title}' survey. Review the latest instructions before proceeding."
+    message = "#{editor_name} updated the question '#{question.question_text}' in the '#{survey.title}' competency survey. Review the latest instructions before proceeding."
 
     participant_users_for_survey(survey.id).each do |user|
       Notification.deliver!(
         user: user,
-        title: "Question Updated",
+        title: "Competency Question Updated",
         message: message,
         notifiable: question
       )

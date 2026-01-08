@@ -12,7 +12,7 @@ export default class extends Controller {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
 
-    const uniqueId = Date.now().toString()
+    const uniqueId = this.uniqueToken()
     const html = this.templateTarget.innerHTML.replace(/NEW_QUESTION/g, uniqueId)
     this.containerTarget.insertAdjacentHTML("beforeend", html)
     this.notifyChange()
@@ -30,5 +30,10 @@ export default class extends Controller {
 
     item.style.display = "none"
     this.notifyChange()
+  }
+
+  uniqueToken() {
+    // Must be digits-only so Rails strong params keeps nested attributes.
+    return `${Date.now()}${Math.floor(Math.random() * 1_000_000_000)}`
   }
 }

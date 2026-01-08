@@ -12,6 +12,7 @@ class Survey < ApplicationRecord
            dependent: :destroy
   has_many :questions, through: :categories
   has_many :track_assignments, class_name: "SurveyTrackAssignment", inverse_of: :survey, dependent: :destroy
+  has_many :offerings, class_name: "SurveyOffering", inverse_of: :survey, dependent: :destroy
   has_many :survey_assignments, inverse_of: :survey, dependent: :destroy
   has_many :survey_change_logs, dependent: :nullify
   has_many :feedbacks, foreign_key: :survey_id, class_name: "Feedback", dependent: :destroy
@@ -20,6 +21,7 @@ class Survey < ApplicationRecord
   accepts_nested_attributes_for :categories, allow_destroy: true
   accepts_nested_attributes_for :legend, update_only: true, allow_destroy: true
   accepts_nested_attributes_for :sections, allow_destroy: true
+  accepts_nested_attributes_for :offerings
 
   before_validation :normalize_title
   before_validation :assign_program_semester_from_semester_name
@@ -33,6 +35,8 @@ class Survey < ApplicationRecord
             }
   validates :is_active, inclusion: { in: [ true, false ] }
   validate :validate_category_structure
+  validate :availability_window_order
+  validate :duplicate_title_diagnostic
 
   # Virtual semester accessor maintained for compatibility with existing
   # views/forms. The canonical value lives in program_semesters.name.
@@ -95,6 +99,28 @@ class Survey < ApplicationRecord
 
   private
 
+  def duplicate_title_diagnostic
+    return if title.blank? || program_semester_id.blank?
+
+    normalized = title.to_s.strip.squeeze(" ")
+    return if normalized.blank?
+
+    duplicate = Survey
+      .where(program_semester_id: program_semester_id)
+      .where("LOWER(title) = ?", normalized.downcase)
+      .where.not(id: id)
+      .first
+
+    return unless duplicate
+
+    semester_label = program_semester&.name.to_s.strip.presence || "this semester"
+    errors.add(
+      :base,
+      "A survey titled '#{duplicate.title}' already exists for #{semester_label} (Survey ##{duplicate.id}). " \
+      "Titles are matched case-insensitively and extra spaces are ignored."
+    )
+  end
+
   def validate_category_structure
     active_categories = categories.reject(&:marked_for_destruction?)
     if active_categories.empty?
@@ -107,6 +133,13 @@ class Survey < ApplicationRecord
 
       errors.add(:base, "Each category must include at least one question")
     end
+  end
+
+  def availability_window_order
+    return if available_from.blank? || available_until.blank?
+    return if available_from <= available_until
+
+    errors.add(:available_until, "must be after Available from")
   end
 
   def normalize_track_values(values)

@@ -18,7 +18,7 @@ export default class extends Controller {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
 
-    const uniqueId = Date.now().toString()
+    const uniqueId = this.uniqueToken()
     const formUid = this.generateFormUid()
     let html = this.templateTarget.innerHTML
     html = html.replace(/NEW_SECTION_UID/g, formUid)
@@ -77,5 +77,12 @@ export default class extends Controller {
 
   generateFormUid() {
     return `section-temp-${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 8)}`
+  }
+
+  uniqueToken() {
+    // Rails strong parameters filters nested-attribute hash keys unless they
+    // look like numeric indexes (e.g., "0", "1700000000").
+    // Use digits only so newly-added sections are not silently dropped.
+    return `${Date.now()}${Math.floor(Math.random() * 1_000_000_000)}`
   }
 }

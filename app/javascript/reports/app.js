@@ -365,18 +365,49 @@ const FilterBar = ({ filters, options, onChange, onReset }) => {
 
 const SummaryCards = ({ cards }) =>
   h("section", { className: "reports-summary" },
-    cards.map((card) => {
+    cards
+      .filter((card) => !["overall_average", "overall_advisor_average"].includes(card.key))
+      .map((card) => {
       const headerChildren = [ h("p", { className: "reports-summary__label" }, card.title) ]
       if (card.meta && card.meta.name) {
         headerChildren.push(h("span", { className: "reports-summary__meta" }, card.meta.name))
       }
 
-      const valueChildren = [ h("strong", null, formatMetricValue(card.value, card.unit, card.precision)) ]
-      if (card.meta && card.meta.advisor_average !== undefined && card.meta.advisor_average !== null) {
-        valueChildren.push(
-          h("span", { className: "reports-summary__subtext" }, `Advisor avg ${formatMetricValue(card.meta.advisor_average, "score", 1)}`)
-        )
-      }
+        const trackSummaries = Array.isArray(card.meta?.tracks) ? card.meta.tracks : []
+        const showTrackSummaries = trackSummaries.length > 0
+
+        let valueNode
+        if (showTrackSummaries) {
+          const trackRows = trackSummaries.map((track) => {
+            const detailParts = []
+            if (track.source_label) detailParts.push(track.source_label)
+            if (track.students_met_goal !== undefined && track.students_met_goal !== null) {
+              detailParts.push(`Students meeting goal: ${track.students_met_goal}`)
+            }
+
+            const children = [
+              h("span", { className: "reports-summary__meta" }, track.label),
+              h("strong", null, formatMetricValue(track.percent, "percent", 0))
+            ]
+
+            if (detailParts.length > 0) {
+              children.push(
+                h("span", { className: "reports-summary__subtext" }, detailParts.join(" • "))
+              )
+            }
+
+            return h("div", { key: track.label, className: "reports-summary__value-track" }, children)
+          })
+          valueNode = h("div", { className: "reports-summary__value reports-summary__value--tracks" }, trackRows)
+        } else {
+          const valueChildren = [ h("strong", null, formatMetricValue(card.value, card.unit, card.precision)) ]
+          if (card.meta && card.meta.advisor_average !== undefined && card.meta.advisor_average !== null) {
+            valueChildren.push(
+              h("span", { className: "reports-summary__subtext" }, `Advisor avg ${formatMetricValue(card.meta.advisor_average, "score", 1)}`)
+            )
+          }
+          valueNode = h("div", { className: "reports-summary__value" }, valueChildren)
+        }
 
       const footerChildren = [
         h("span", { className: `reports-summary__trend reports-summary__trend--${card.change_direction || "flat"}` }, formatChange(card.change, card.unit)),
@@ -396,7 +427,7 @@ const SummaryCards = ({ cards }) =>
 
       return h("article", { key: card.key, className: "reports-summary__card", "aria-label": card.title }, [
         h("header", null, headerChildren),
-        h("div", { className: "reports-summary__value" }, valueChildren),
+        valueNode,
         h("footer", null, footerChildren)
       ])
     })
@@ -956,8 +987,8 @@ const ReportsApp = ({ exportUrls = {} }) => {
   const [ loading, setLoading ] = useState(true)
   const [ error, setError ] = useState(null)
   const [ viewMode, setViewMode ] = useState("cohort")
-  const [ activeTab, setActiveTab ] = useState("trend")
-  const [ yAxisMode, setYAxisMode ] = useState("score")
+  const [ activeTab, setActiveTab ] = useState("competency")
+  const [ yAxisMode, setYAxisMode ] = useState("percent")
   const [ competencyDetailDomain, setCompetencyDetailDomain ] = useState("all")
   const [ competencyDetailSort, setCompetencyDetailSort ] = useState("student")
   const filtersRef = useRef(DEFAULT_FILTERS)
@@ -1100,16 +1131,17 @@ const ReportsApp = ({ exportUrls = {} }) => {
     const tabs = []
 
     tabs.push({
-      key: "trend",
-      label: "Trend",
-      title: "Progress Over Time",
-      description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
+      key: "competency",
+      label: "Competency",
+      title: "Num Achieved by Competency",
+      description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per competency.",
       axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
-      content: timeline.length > 0
-        ? h(TrendChart, { timeline, yAxisMode })
-        : h("p", { className: "reports-placeholder" }, "No trend data available."),
-      footnote: h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
+      content: h(CompetencyAchievementChart, { items: competencyAchievementItems, yAxisMode }),
+      footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
+        "Averages are calculated based on all responses within each competency.",
+        filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
+      ].filter(Boolean))
     })
 
     tabs.push({
@@ -1127,20 +1159,6 @@ const ReportsApp = ({ exportUrls = {} }) => {
     })
 
     tabs.push({
-      key: "competency",
-      label: "Competency",
-      title: "Num Achieved by Competency",
-      description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per competency.",
-      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
-      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
-      content: h(CompetencyAchievementChart, { items: competencyAchievementItems, yAxisMode }),
-      footnote: h("p", { className: "text-xs text-slate-500 space-y-1" }, [
-        "Averages are calculated based on all responses within each competency.",
-        filtersDescription && filtersDescription !== "None" ? h("span", { className: "block" }, `Filters applied: ${filtersDescription}`) : null
-      ].filter(Boolean))
-    })
-
-    tabs.push({
       key: "track",
       label: "Track",
       title: "% All Competency Achieved by Track",
@@ -1153,6 +1171,19 @@ const ReportsApp = ({ exportUrls = {} }) => {
       footnote: (filtersDescription && filtersDescription !== "None")
         ? h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
         : null
+    })
+
+    tabs.push({
+      key: "trend",
+      label: "Trend",
+      title: "Progress Over Time",
+      description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
+      axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
+      content: timeline.length > 0
+        ? h(TrendChart, { timeline, yAxisMode })
+        : h("p", { className: "reports-placeholder" }, "No trend data available."),
+      footnote: h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
     })
 
     return tabs

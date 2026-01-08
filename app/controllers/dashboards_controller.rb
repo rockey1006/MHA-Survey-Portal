@@ -36,6 +36,19 @@ class DashboardsController < ApplicationController
 
     surveys = surveys_for_student(@student)
 
+    @offerings_by_survey_id = {}
+    if SurveyOffering.data_source_ready? && @student.program_year.present? && @student.track.present? && surveys.any?
+      offerings = SurveyOffering
+                    .for_student(track_key: @student.track, class_of: @student.program_year)
+                    .where(survey_id: surveys.map(&:id))
+
+      grouped = offerings.group_by(&:survey_id)
+      grouped.each do |survey_id, rows|
+        exact = rows.find { |row| row.class_of.present? && row.class_of.to_i == @student.program_year.to_i }
+        @offerings_by_survey_id[survey_id] = exact || rows.first
+      end
+    end
+
     student_responses = StudentQuestion
                           .joins(question: :category)
                           .where(student_id: @student.student_id)
@@ -89,7 +102,8 @@ class DashboardsController < ApplicationController
       # Only consider a survey "Completed" when it was submitted, not just answered
       assignment = assignments[survey.id]
       completed_at = assignment&.completed_at
-      due_date = assignment&.due_date
+      available_from = assignment&.available_from
+      available_until = assignment&.available_until
 
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {
@@ -100,7 +114,8 @@ class DashboardsController < ApplicationController
         required_answered_count: answered_required_count,
         required_total_count: total_required_count,
         completed_at: completed_at,
-        due_date: due_date,
+        available_from: available_from,
+        available_until: available_until,
         admin_updated_at: admin_update_by_survey[survey.id],
         required: required_ids.present?,
         survey_response: survey_response,
@@ -322,6 +337,7 @@ class DashboardsController < ApplicationController
     @advisors = Advisor.left_joins(:user).includes(:user).order(Arel.sql("LOWER(users.name) ASC"))
     @advisor_select_options = [ [ "Unassigned", "" ] ] + @advisors.map { |advisor| [ advisor.display_name, advisor.advisor_id.to_s ] }
     @track_select_options = Student.tracks.keys.map { |key| [ key.titleize, key ] }
+    @assignment_group_select_options = build_assignment_group_select_options
     @assignment_stats = {
       total: @students.size,
       assigned: @students.count { |student| student.advisor_id.present? },
@@ -361,14 +377,15 @@ class DashboardsController < ApplicationController
 
     advisor_updates = normalize_student_updates(params[:advisor_updates])
     track_updates = normalize_student_updates(params[:track_updates])
+    assignment_group_updates = normalize_student_updates(params[:assignment_group_updates])
 
-    if advisor_updates.blank? && track_updates.blank?
+    if advisor_updates.blank? && track_updates.blank? && assignment_group_updates.blank?
       redirect_to manage_students_path, alert: "No student changes were submitted."
       return
     end
 
     advisor_lookup = build_advisor_lookup(advisor_updates.values)
-    student_ids = (advisor_updates.keys + track_updates.keys).uniq
+    student_ids = (advisor_updates.keys + track_updates.keys + assignment_group_updates.keys).uniq
     students = Student.includes(:user, advisor: :user)
                       .where(student_id: student_ids)
                       .index_by { |student| student.student_id.to_s }
@@ -377,6 +394,8 @@ class DashboardsController < ApplicationController
     advisor_failures = []
     track_successes = []
     track_failures = []
+    group_successes = []
+    group_failures = []
 
     ActiveRecord::Base.transaction do
       student_ids.each do |student_id|
@@ -390,6 +409,10 @@ class DashboardsController < ApplicationController
 
         if track_updates.key?(student_id)
           apply_track_update(student, track_updates[student_id], track_successes, track_failures)
+        end
+
+        if assignment_group_updates.key?(student_id)
+          apply_assignment_group_update(student, assignment_group_updates[student_id], group_successes, group_failures)
         end
 
         if advisor_updates.key?(student_id)
@@ -431,6 +454,16 @@ class DashboardsController < ApplicationController
 
     if track_failures.present?
       alert_parts << "Track update errors: #{track_failures.join(', ')}"
+    end
+
+    if group_successes.present?
+      summary = "Updated #{group_successes.size} assignment group#{'s' if group_successes.size != 1}"
+      summary += ". Changes: #{group_successes.join(', ')}" if group_successes.any?
+      notice_parts << "#{summary}."
+    end
+
+    if group_failures.present?
+      alert_parts << "Assignment group update errors: #{group_failures.join(', ')}"
     end
 
     if notice_parts.blank? && alert_parts.blank?
@@ -684,12 +717,54 @@ class DashboardsController < ApplicationController
     failures << "#{student_label}: #{e.message}"
   end
 
+  # Applies a single assignment_group update for the provided student.
+  #
+  # @param student [Student]
+  # @param new_group_value [String]
+  # @param successes [Array<String>]
+  # @param failures [Array<String>]
+  # @return [void]
+  def apply_assignment_group_update(student, new_group_value, successes, failures)
+    student_label = student_display_label(student)
+
+    new_group = new_group_value.to_s.strip.presence
+    current_group = student.respond_to?(:assignment_group) ? student.assignment_group.to_s.strip.presence : nil
+
+    return if current_group == new_group
+
+    previous_label = current_group.presence || "Unassigned"
+    new_label = new_group.presence || "Unassigned"
+
+    student.update!(assignment_group: new_group)
+    successes << "#{student_label}: #{previous_label} → #{new_label}"
+  rescue StandardError => e
+    failures << "#{student_label}: #{e.message}"
+  end
+
   # Human-friendly identifier for logging/flash messages.
   #
   # @param student [Student]
   # @return [String]
   def student_display_label(student)
     student.user&.name.presence || student.user&.email.presence || "Student ##{student.student_id}"
+  end
+
+  def build_assignment_group_select_options
+    groups = []
+
+    if SurveyOffering.data_source_ready?
+      groups.concat(SurveyOffering.distinct.pluck(:assignment_group))
+    end
+
+    if Student.column_names.include?("assignment_group")
+      groups.concat(Student.distinct.pluck(:assignment_group))
+    end
+
+    groups = groups.compact.map { |value| value.to_s.strip }.reject(&:blank?).uniq.sort
+
+    [ [ "Unassigned", "" ] ] + groups.map { |group| [ group, group ] }
+  rescue StandardError
+    [ [ "Unassigned", "" ] ]
   end
 
   # Builds a combined activity feed for the admin dashboard from several
@@ -785,13 +860,13 @@ class DashboardsController < ApplicationController
         survey_title = assignment.survey&.title.presence || "Survey ##{assignment.survey_id}" || "Survey"
         student_name = assignment.student&.user&.name.presence || "Student ##{assignment.student_id}" || "Student"
         advisor_name = assignment.advisor&.display_name.presence || assignment.advisor&.email || "Advisor"
-        due_label = assignment.due_date.present? ? helpers.format_calendar_date(assignment.due_date) : "No due date"
+        closes_label = assignment.available_until.present? ? helpers.format_calendar_date(assignment.available_until) : "No deadline"
 
         entries << {
           timestamp: assignment.updated_at,
           icon: "📬",
           title: "Survey assigned: #{survey_title}",
-          subtitle: "#{student_name} · Advisor: #{advisor_name} · Due #{due_label}",
+          subtitle: "#{student_name} · Advisor: #{advisor_name} · Closes #{closes_label}",
           url: student_records_path
         }
       end

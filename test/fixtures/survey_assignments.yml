@@ -3,7 +3,7 @@ residential_assignment:
   student: student
   advisor: advisor
   assigned_at: <%= 2.days.ago %>
-  due_date: <%= 5.days.from_now %>
+  available_until: <%= 5.days.from_now %>
   completed_at:
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
@@ -13,7 +13,7 @@ overdue_assignment:
   student: other_student
   advisor: other_advisor
   assigned_at: <%= 5.days.ago %>
-  due_date: <%= 1.day.ago %>
+  available_until: <%= 1.day.ago %>
   completed_at:
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
@@ -23,7 +23,7 @@ completed_residential_assignment:
   student: completed_student
   advisor: other_advisor
   assigned_at: <%= 10.days.ago %>
-  due_date: <%= 5.days.ago %>
+  available_until: <%= 5.days.ago %>
   completed_at: <%= 4.days.ago %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>

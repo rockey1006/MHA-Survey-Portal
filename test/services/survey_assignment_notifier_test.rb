@@ -22,7 +22,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :due_soon, survey_assignment_id: assignment.id } ]) do
@@ -37,7 +37,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 3.days
+      available_until: @reference_time + 3.days
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :due_soon, survey_assignment_id: assignment.id } ]) do
@@ -52,7 +52,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 4.days
+      available_until: @reference_time + 4.days
     )
 
     assert_no_enqueued_jobs(only: SurveyNotificationJob) do
@@ -67,7 +67,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 5.days,
-      due_date: @reference_time - 1.day
+      available_until: @reference_time - 1.day
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :past_due, survey_assignment_id: assignment.id } ]) do
@@ -82,7 +82,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 5.days,
-      due_date: @reference_time
+      available_until: @reference_time
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :due_soon, survey_assignment_id: assignment.id } ]) do
@@ -97,7 +97,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 5.days,
-      due_date: @reference_time - 1.day,
+      available_until: @reference_time - 1.day,
       completed_at: @reference_time - 2.days
     )
 
@@ -113,7 +113,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: nil
+      available_until: nil
     )
 
     assert_no_enqueued_jobs(only: SurveyNotificationJob) do
@@ -128,7 +128,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 1.day
+      available_until: @reference_time + 1.day
     )
 
     other_student = students(:other_student)
@@ -137,7 +137,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: other_student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     assert_enqueued_jobs(2, only: SurveyNotificationJob) do
@@ -152,7 +152,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 1.day
+      available_until: @reference_time + 1.day
     )
 
     # Create one overdue
@@ -162,7 +162,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: other_student,
       advisor: @advisor,
       assigned_at: @reference_time - 5.days,
-      due_date: @reference_time - 1.day
+      available_until: @reference_time - 1.day
     )
 
     assert_enqueued_jobs(2, only: SurveyNotificationJob) do
@@ -177,7 +177,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: Time.current - 1.day,
-      due_date: Time.current + 2.days
+      available_until: Time.current + 2.days
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :due_soon, survey_assignment_id: assignment.id } ]) do
@@ -192,7 +192,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 10.days
+      available_until: @reference_time + 10.days
     )
 
     assert_no_enqueued_jobs(only: SurveyNotificationJob) do
@@ -207,7 +207,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 5.days,
-      due_date: @reference_time - 1.second
+      available_until: @reference_time - 1.second
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :past_due, survey_assignment_id: assignment.id } ]) do
@@ -222,7 +222,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 3.days + 1.second
+      available_until: @reference_time + 3.days + 1.second
     )
 
     assert_no_enqueued_jobs(only: SurveyNotificationJob) do
@@ -238,19 +238,19 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     assert_difference "Notification.count", 1 do
       notification = SurveyAssignmentNotifier.notify_now!(
         assignment: assignment,
         title: "Survey Due Soon",
-        message: "Please complete your survey by #{assignment.due_date}"
+        message: "Please complete your survey by #{assignment.available_until}"
       )
 
       assert_equal assignment.recipient_user, notification.user
       assert_equal "Survey Due Soon", notification.title
-      assert_equal "Please complete your survey by #{assignment.due_date}", notification.message
+      assert_equal "Please complete your survey by #{assignment.available_until}", notification.message
       assert_equal assignment, notification.notifiable
     end
   end
@@ -261,7 +261,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     notification = SurveyAssignmentNotifier.notify_now!(
@@ -280,7 +280,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     notification = SurveyAssignmentNotifier.notify_now!(
@@ -298,7 +298,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     notification = SurveyAssignmentNotifier.notify_now!(
@@ -318,7 +318,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     custom_title = "Custom Title #{Time.current}"
@@ -340,7 +340,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     long_message = "A" * 500
@@ -371,7 +371,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
         student: @student,
         advisor: @advisor,
         assigned_at: pacific_time - 1.day,
-        due_date: pacific_time + 2.days
+        available_until: pacific_time + 2.days
       )
 
       assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :due_soon, survey_assignment_id: assignment.id } ]) do
@@ -387,7 +387,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 35.days,
-      due_date: @reference_time - 30.days
+      available_until: @reference_time - 30.days
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :past_due, survey_assignment_id: assignment.id } ]) do
@@ -405,7 +405,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 1.day
+      available_until: @reference_time + 1.day
     )
 
     assignment2 = SurveyAssignment.create!(
@@ -413,7 +413,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     assignment3 = SurveyAssignment.create!(
@@ -421,7 +421,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: other_student,
       advisor: @advisor,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 3.days
+      available_until: @reference_time + 3.days
     )
 
     assert_enqueued_jobs(3, only: SurveyNotificationJob) do
@@ -435,7 +435,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: nil,
       assigned_at: @reference_time - 1.day,
-      due_date: @reference_time + 2.days
+      available_until: @reference_time + 2.days
     )
 
     assert_nothing_raised do
@@ -458,7 +458,7 @@ class SurveyAssignmentNotifierTest < ActiveSupport::TestCase
       student: @student,
       advisor: @advisor,
       assigned_at: midnight - 1.day,
-      due_date: midnight + 2.days
+      available_until: midnight + 2.days
     )
 
     assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :due_soon, survey_assignment_id: assignment.id } ]) do

@@ -41,7 +41,10 @@
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
   <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
-  <% categories = survey.present? ? survey.categories.includes(:section, :questions).order(:id).to_a : [] %>
+  <%# Avoid relying on a potentially partially-loaded association proxy.
+      This ensures newly-added categories/questions show up immediately in preview/read-only.
+  %>
+  <% categories = survey.present? ? Category.where(survey_id: survey.id).includes(:section, :questions).order(:id).to_a : [] %>
 
   <%# Read-only survey response pages should show advisor feedback directly under the
       parent + sub-question group (when feedback exists). %>
@@ -80,11 +83,15 @@
         <% section = category.section %>
         <% if section.present? && !rendered_section_ids.include?(section.id) %>
           <% section_anchor_id = "survey-section-#{section.id}" %>
-          <div class="c-card survey-section-card space-y-2 text-left border-amber-200 bg-amber-50/60">
+          <div class="c-card survey-section-card space-y-2 text-left">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
             <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
-            <% if section.description.present? %>
+            <% if section.description.present? && !section.mha_competency? %>
               <p class="text-sm text-slate-700"><%= section.description %></p>
+            <% end %>
+
+            <% if section.mha_competency? %>
+              <p class="mt-3 text-sm text-slate-700"><%= section.description %></p>
             <% end %>
           </div>
           <% rendered_section_ids << section.id %>
@@ -136,9 +143,6 @@
                   <% end %>
                   <% q_text = question.question_text.to_s.squish %>
                   <% desc_text = question.description.to_s.strip.presence %>
-                  <% tooltip_text = question.tooltip_text.to_s.strip.presence %>
-                  <% show_mha_tooltip = %w[multiple_choice dropdown].include?(question.question_type) && section&.mha_competency? %>
-                  <% show_custom_tooltip = tooltip_text.present? && !show_mha_tooltip %>
                   <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
                 <% # Compute if this question is required using the same logic as the controller %>
@@ -180,15 +184,6 @@
                       <span class="min-w-0 flex flex-col gap-1">
                         <span class="flex min-w-0 flex-wrap items-center gap-2">
                           <span class="leading-snug"><%= q_text %></span>
-                          <% if show_mha_tooltip %>
-                            <% if tooltip_text.present? %>
-                              <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text, label: "Show proficiency guidance" %></span>
-                            <% else %>
-                              <span class="inline-flex"><%= render 'shared/proficiency_tooltip' %></span>
-                            <% end %>
-                          <% elsif show_custom_tooltip %>
-                            <span class="inline-flex"><%= render 'shared/question_tooltip', text: tooltip_text %></span>
-                          <% end %>
                           <% if required %>
                             <span class="text-red-600" aria-hidden="true">*</span>
                           <% end %>
@@ -210,12 +205,17 @@
 
                   <% case question.question_type %>
                   <% when "short_answer" %>
-                    <%= text_area_tag "#{answer_param_key}[#{question.id}]",
-                                      (answer_text || ""),
-                                      rows: 3,
-                                      id: "question-#{question.id}",
-                                      class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                        disabled: input_disabled %>
+                    <div data-controller="character-counter">
+                      <%= text_area_tag "#{answer_param_key}[#{question.id}]",
+                                        (answer_text || ""),
+                                        rows: 3,
+                                        id: "question-#{question.id}",
+                                        maxlength: StudentQuestion::TEXT_MAX_LENGTH,
+                                        data: { "character-counter-target": "input", action: "input->character-counter#input" },
+                                        class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                          disabled: input_disabled %>
+                      <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= (answer_text || "").to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
+                    </div>
                   <% when "multiple_choice" %>
                     <% option_pairs = question.answer_option_pairs.presence || [] %>
                     <% selected = answer_value.to_s %>
@@ -243,13 +243,16 @@
                                             end
                                           end %>
                           <% show_other = (selected == value.to_s) || selected.casecmp?(label.to_s) || selected.casecmp?("Other") || other_text.present? %>
-                          <div class="ml-6 <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
+                          <div class="ml-6 <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>" data-controller="character-counter">
                             <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                                other_text,
                                                id: "question-#{question.id}-other",
                                                placeholder: "Please describe...",
+                                               maxlength: StudentQuestion::TEXT_MAX_LENGTH,
+                                               data: { "character-counter-target": "input", action: "input->character-counter#input" },
                                                class: "w-full max-w-xl rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
                                                disabled: (input_disabled || !show_other) %>
+                            <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= other_text.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
                           </div>
                         <% end %>
                       <% end %>
@@ -276,13 +279,16 @@
                                         end
                                       end %>
                       <% show_other = (selected_value.to_s == value.to_s) || selected_value.casecmp?(label.to_s) || selected_value.casecmp?("Other") || other_text.present? %>
-                      <div class="mt-2 max-w-xl <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>">
+                      <div class="mt-2 max-w-xl <%= show_other ? "" : "hidden" %>" data-other-input-wrapper data-other-for-question-id="<%= question.id %>" data-other-choice-value="<%= value %>" aria-hidden="<%= show_other ? "false" : "true" %>" data-controller="character-counter">
                         <%= text_field_tag "#{other_param_key}[#{question.id}]",
                                            other_text,
                                            id: "question-#{question.id}-other-#{value.to_s.parameterize}",
                                            placeholder: "Please describe...",
+                                           maxlength: StudentQuestion::TEXT_MAX_LENGTH,
+                                           data: { "character-counter-target": "input", action: "input->character-counter#input" },
                                            class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
                                            disabled: (input_disabled || !show_other) %>
+                        <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= other_text.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
                       </div>
                     <% end %>
                   <% when "scale" %>
@@ -315,12 +321,17 @@
                   <% when "evidence" %>
                     <% link_value = answer_text.to_s.strip.presence %>
                     <% if editable %>
-                      <%= text_field_tag "#{answer_param_key}[#{question.id}]",
-                                         link_value.to_s,
-                                         id: "question-#{question.id}",
-                                         placeholder: "https://drive.google.com/...",
-                                         class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                         disabled: input_disabled %>
+                      <div data-controller="character-counter">
+                        <%= text_field_tag "#{answer_param_key}[#{question.id}]",
+                                           link_value.to_s,
+                                           id: "question-#{question.id}",
+                                           placeholder: "https://drive.google.com/...",
+                                           maxlength: StudentQuestion::TEXT_MAX_LENGTH,
+                                           data: { "character-counter-target": "input", action: "input->character-counter#input" },
+                                           class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                           disabled: input_disabled %>
+                        <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= link_value.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
+                      </div>
                     <% elsif link_value.present? %>
                       <%= link_to link_value,
                                   link_value,
@@ -328,19 +339,29 @@
                                   target: "_blank",
                                   rel: "noopener noreferrer" %>
                     <% else %>
-                      <%= text_field_tag "#{answer_param_key}[#{question.id}]",
-                                         "",
-                                         id: "question-#{question.id}",
-                                         placeholder: "https://drive.google.com/...",
-                                         class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                         disabled: input_disabled %>
+                      <div data-controller="character-counter">
+                        <%= text_field_tag "#{answer_param_key}[#{question.id}]",
+                                           "",
+                                           id: "question-#{question.id}",
+                                           placeholder: "https://drive.google.com/...",
+                                           maxlength: StudentQuestion::TEXT_MAX_LENGTH,
+                                           data: { "character-counter-target": "input", action: "input->character-counter#input" },
+                                           class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                           disabled: input_disabled %>
+                        <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter">0/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
+                      </div>
                     <% end %>
                   <% else %>
-                    <%= text_field_tag "#{answer_param_key}[#{question.id}]",
-                                       (answer_text || ""),
-                                       id: "question-#{question.id}",
-                                       class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
-                                       disabled: input_disabled %>
+                    <div data-controller="character-counter">
+                      <%= text_field_tag "#{answer_param_key}[#{question.id}]",
+                                         (answer_text || ""),
+                                         id: "question-#{question.id}",
+                                         maxlength: StudentQuestion::TEXT_MAX_LENGTH,
+                                         data: { "character-counter-target": "input", action: "input->character-counter#input" },
+                                         class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                         disabled: input_disabled %>
+                      <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= (answer_text || "").to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
+                    </div>
                   <% end %>
 
                 </article>
@@ -363,7 +384,7 @@
                       <% next if viewer_is_student_owner && category.name.to_s.strip.downcase == 'employment information' %>
                       <% fb = feedback_question_id ? per_question_map[feedback_question_id] : nil %>
                       <% if fb.present? %>
-                        <article class="question-block mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm ring-1 ring-amber-200/40 space-y-2">
+                        <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-2">
                           <div class="flex flex-wrap items-center justify-between gap-3">
                             <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — #<%= question_number %></h5>
                             <p class="text-xs text-slate-600">Score: <%= fb.average_score.present? ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
@@ -394,7 +415,7 @@
                     <% existing_q = (feedback_question_id && passed_existing_feedbacks) ? passed_existing_feedbacks[feedback_question_id] : nil %>
                     <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
                     <% if supports_feedback %>
-                    <article class="question-block mt-3 rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm ring-1 ring-amber-200/40 space-y-3">
+                    <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-3">
                     <div class="flex items-center justify-between gap-3">
                       <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
                       <p class="text-xs text-slate-500">Score 1–5, feedback optional</p>
@@ -457,8 +478,37 @@
       <label class="text-sm font-semibold text-slate-700">Response</label>
       <%= text_area_tag nil,
                         (sr&.question_responses&.first&.answer || ""),
+                        maxlength: StudentQuestion::TEXT_MAX_LENGTH,
                         class: "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:outline-none", disabled: true %>
     </div>
+  <% end %>
+
+  <%# Ensure newly added sections appear even if they have no categories yet. %>
+  <% if survey.present? %>
+    <% SurveySection.where(survey_id: survey.id).ordered.each do |section| %>
+      <% next if rendered_section_ids.include?(section.id) %>
+      <div class="survey-block">
+        <div id="survey-section-<%= section.id %>" class="c-card survey-section-card space-y-2 text-left">
+          <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
+          <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
+          <% if section.description.present? && !section.mha_competency? %>
+            <p class="text-sm text-slate-700"><%= section.description %></p>
+          <% end %>
+
+          <% if section.mha_competency? %>
+            <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-sm text-rose-800 space-y-2">
+              <p>
+                <%= section.description %>
+              </p>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="c-card survey-category-card mt-4 rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+          No competencies are configured in this section yet.
+        </div>
+      </div>
+    <% end %>
   <% end %>
 
   <%# Legacy fallback: if there are only category-level legacy feedback entries, keep a minimal

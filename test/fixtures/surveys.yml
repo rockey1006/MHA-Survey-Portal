@@ -3,7 +3,7 @@ fall_2025:
   program_semester: fall_2025
   description: Baseline residential survey
   is_active: true
-  due_date: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
+  available_until: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -12,7 +12,7 @@ spring_2025:
   program_semester: spring_2025
   description: Executive program check-in
   is_active: true
-  due_date: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
+  available_until: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -21,7 +21,7 @@ fall_2025_executive:
   program_semester: fall_2025
   description: Executive track focus
   is_active: true
-  due_date: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
+  available_until: <%= 30.days.from_now.change(hour: 23, min: 59, sec: 0) %>
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>
 
@@ -37,6 +37,46 @@ spring_2026_executive:
   title: Spring 2026 Executive Assessment
   program_semester: spring_2026
   description: Spring executive survey
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+rmha_initial_spring_2026:
+  title: RMHA Initial Competency Survey
+  program_semester: spring_2026
+  description: RMHA initial portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+rmha_midpoint_spring_2026:
+  title: RMHA Mid-point Competency Survey
+  program_semester: spring_2026
+  description: RMHA midpoint portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+rmha_final_spring_2026:
+  title: RMHA Final Competency Survey
+  program_semester: spring_2026
+  description: RMHA final portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+emha_midpoint_spring_2026:
+  title: EMHA Mid-point Competency Survey
+  program_semester: spring_2026
+  description: EMHA midpoint portfolio
+  is_active: true
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>
+
+emha_final_spring_2026:
+  title: EMHA Final Competency Survey
+  program_semester: spring_2026
+  description: EMHA final review (no portfolio due)
   is_active: true
   created_at: <%= Time.zone.now %>
   updated_at: <%= Time.zone.now %>

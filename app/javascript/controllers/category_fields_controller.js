@@ -11,7 +11,7 @@ export default class extends Controller {
     event.preventDefault()
     if (!this.hasTemplateTarget || !this.hasContainerTarget) return
 
-    const uniqueId = Date.now().toString()
+    const uniqueId = this.uniqueToken()
     const content = this.templateTarget.innerHTML.replace(/NEW_CATEGORY/g, uniqueId)
     this.containerTarget.insertAdjacentHTML("beforeend", content)
     this.refreshNewSectionSelects()
@@ -23,10 +23,18 @@ export default class extends Controller {
     const wrapper = event.target.closest("[data-category-fields-target='item']")
     if (!wrapper) return
 
-    const destroyCheckbox = wrapper.querySelector("input[type='checkbox'][name*='[_destroy]']")
+    const destroyInput = wrapper.querySelector("input[name*='[_destroy]']")
+    const idInput = wrapper.querySelector("input[name$='[id]']")
+    const persisted = (idInput?.value || "").trim().length > 0
 
-    if (destroyCheckbox) {
-      destroyCheckbox.checked = true
+    if (persisted) {
+      if (destroyInput) {
+        if (destroyInput.type === "checkbox") {
+          destroyInput.checked = true
+        } else {
+          destroyInput.value = "1"
+        }
+      }
       wrapper.style.display = "none"
     } else {
       wrapper.remove()
@@ -81,5 +89,10 @@ export default class extends Controller {
   extractOptionsFromSelect(select) {
     if (!select) return null
     return Array.from(select.options).map((option) => ({ uid: option.value, label: option.textContent || option.value }))
+  }
+
+  uniqueToken() {
+    // Must be digits-only so Rails strong params keeps nested attributes.
+    return `${Date.now()}${Math.floor(Math.random() * 1_000_000_000)}`
   }
 }

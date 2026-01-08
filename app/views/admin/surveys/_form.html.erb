@@ -58,9 +58,15 @@
       </div>
 
       <div class="space-y-2">
-        <%= form.label :due_date, "Default due date", class: "block text-sm font-medium text-slate-700" %>
-        <%= form.date_field :due_date, class: input_classes %>
-        <p class="text-xs text-slate-500">Optional. Used as the default due date when this survey is auto-assigned to students.</p>
+        <%= form.label :available_from, "Available from", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.datetime_local_field :available_from, class: input_classes %>
+        <p class="text-xs text-slate-500">Optional. Students cannot open the survey before this time.</p>
+      </div>
+
+      <div class="space-y-2">
+        <%= form.label :available_until, "Available until", class: "block text-sm font-medium text-slate-700" %>
+        <%= form.datetime_local_field :available_until, class: input_classes %>
+        <p class="text-xs text-slate-500">Optional. After this time, the survey is locked (Canvas-style availability).</p>
       </div>
 
       <div class="md:col-span-2 space-y-2">
@@ -73,6 +79,27 @@
         <div class="space-y-1 text-sm">
           <span class="font-medium text-slate-700">Survey is active</span>
           <p class="text-slate-500">Inactive surveys stay hidden from advisors until you reactivate them.</p>
+        </div>
+      </div>
+
+      <div class="md:col-span-2 border-t border-slate-200 pt-6">
+        <div class="space-y-1">
+          <h3 class="text-base font-semibold text-slate-900">Rating scale legend</h3>
+          <p class="text-sm text-slate-600">Optional. Displays in the sidebar for students as a reference.</p>
+        </div>
+
+        <div class="mt-4 grid gap-6 md:grid-cols-2">
+          <%= form.fields_for :legend, (survey.legend || survey.build_legend(title: "", body: "")) do |legend_fields| %>
+            <div class="space-y-2">
+              <%= legend_fields.label :title, "Legend title", class: "block text-sm font-medium text-slate-700" %>
+              <%= legend_fields.text_field :title, class: input_classes, placeholder: "Rating Scale Reference" %>
+            </div>
+
+            <div class="md:col-span-2 space-y-2">
+              <%= legend_fields.label :body, "Legend body", class: "block text-sm font-medium text-slate-700" %>
+              <%= legend_fields.text_area :body, class: textarea_classes, placeholder: "Add the rating scale text shown to students." %>
+            </div>
+          <% end %>
         </div>
       </div>
     </div>
@@ -95,6 +122,47 @@
       <p class="text-xs text-slate-500">Leave the dropdown blank to keep the survey hidden from all tracks.</p>
     </div>
   </section>
+
+  <% if SurveyOffering.data_source_ready? && survey.persisted? && survey.offerings.any? %>
+    <section class="c-card space-y-6">
+      <header class="space-y-1">
+        <h2 class="text-lg font-semibold text-slate-900">Review meeting dates</h2>
+        <p class="text-sm text-slate-600">Edit the review meeting window shown to students (per offering).</p>
+      </header>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Track</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Class of</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Stage</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Review start</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Review end</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            <% sorted_offerings = survey.offerings.sort_by { |row| [row.track.to_s, row.class_of.to_i, row.stage.to_s] } %>
+            <%= form.fields_for :offerings, sorted_offerings do |offering_fields| %>
+              <% offering = offering_fields.object %>
+              <tr>
+                <td class="px-4 py-3 text-slate-800"><%= offering.track %></td>
+                <td class="px-4 py-3 text-slate-800"><%= offering.class_of.presence || "All" %></td>
+                <td class="px-4 py-3 text-slate-800"><%= offering.stage.to_s.titleize %></td>
+                <td class="px-4 py-3">
+                  <%= offering_fields.hidden_field :id %>
+                  <%= offering_fields.date_field :review_meetings_start, class: input_classes %>
+                </td>
+                <td class="px-4 py-3">
+                  <%= offering_fields.date_field :review_meetings_end, class: input_classes %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
 
   <% if survey.new_record? && survey.sections.empty? %>
     <% survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
@@ -162,7 +230,7 @@
           <% end %>
         </div>
 
-        <% new_section = survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
+        <% new_section = survey.sections.build(title: "Untitled section", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
         <% new_section.form_uid ||= "NEW_SECTION_UID" %>
         <% section_template = capture do %>
           <%= form.fields_for :sections, new_section, child_index: "NEW_SECTION" do |section_fields| %>
@@ -194,8 +262,16 @@
           <% end %>
         </div>
 
-        <% new_category = survey.categories.build(name: "", description: "") %>
-        <% new_category.questions.build(question_text: "", question_order: 1) if new_category.questions.empty? %>
+        <% new_category = survey.categories.build(name: "New Category", description: "") %>
+        <% if new_category.questions.empty? %>
+          <% new_category.questions.build(
+               question_text: "New question",
+               question_type: (@question_types.first || Question.question_types.keys.first),
+               question_order: 1,
+               is_required: false,
+               has_evidence_field: false
+             ) %>
+        <% end %>
         <% category_template = capture do %>
           <%= form.fields_for :categories, new_category, child_index: "NEW_CATEGORY" do |category_fields| %>
             <%= render "admin/surveys/category_fields",

@@ -7,6 +7,36 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
     sign_in @student_user
   end
 
+  test "show renders newly added sections even when they have no categories" do
+    survey = Survey.new(title: "Section Visibility #{SecureRandom.hex(4)}", semester: "Fall 2025")
+
+    category = survey.categories.build(name: "Category A", description: "")
+    category.questions.build(
+      question_text: "Q1",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: true
+    )
+    survey.save!
+
+    section_with_category = survey.sections.create!(title: "Section A", description: "", position: 0)
+    category.update!(section: section_with_category)
+    survey.sections.create!(title: "New Empty Section", description: "", position: 1)
+
+    SurveyAssignment.create!(
+      survey: survey,
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      assigned_at: Time.current,
+      available_from: 1.day.ago,
+      available_until: 7.days.from_now
+    )
+
+    get survey_path(survey)
+    assert_response :success
+    assert_match(/New Empty Section/, response.body)
+  end
+
   test "submit renders unprocessable_entity when required answer missing and persists partial answers" do
     survey = Survey.new(title: "Required Survey #{SecureRandom.hex(4)}", semester: "Fall 2025")
     category = survey.categories.build(name: "General", description: "")
@@ -87,7 +117,7 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
       advisor_id: @student.advisor_id,
       assigned_at: 2.days.ago,
       completed_at: 1.day.ago,
-      due_date: 1.day.ago
+      available_until: 1.day.ago
     )
 
     post save_progress_survey_path(survey), params: { answers: { q1.id.to_s => "ignored" } }
@@ -108,7 +138,7 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
       assigned_at: 2.days.ago
     )
 
-    assignment.update!(completed_at: Time.current, due_date: 2.days.from_now)
+    assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
 
     post save_progress_survey_path(survey), params: { answers: {} }
 
@@ -130,7 +160,7 @@ class SurveysControllerAdditionalTest < ActionDispatch::IntegrationTest
       assigned_at: 2.days.ago
     )
 
-    assignment.update!(completed_at: 2.days.ago, due_date: 1.day.ago)
+    assignment.update!(completed_at: 2.days.ago, available_until: 1.day.ago)
 
     post submit_survey_path(survey), params: { answers: {} }
 

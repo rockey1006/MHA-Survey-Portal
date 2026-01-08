@@ -10,7 +10,7 @@
 # - advisor_email: must match a seeded advisor account
 #
 # Optional:
-# - program_year: integer (default 1)
+# - program_year: integer cohort year (e.g., 2026/2027)
 # - pending: boolean (default false)
 # - multi_semester: boolean (default false)
 
@@ -18,77 +18,77 @@
 - email: avery.harrison25@tamu.edu
   name: Avery Harrison
   track: Residential
-  advisor_email: rainsuds@tamu.edu
-  program_year: 2
+  advisor_email: sarah115@tamu.edu
+  program_year: 2026
   multi_semester: true
 
 - email: liam.daniels25@tamu.edu
   name: Liam Daniels
   track: Residential
-  advisor_email: rainsuds@tamu.edu
-  program_year: 2
+  advisor_email: sarah115@tamu.edu
+  program_year: 2026
   multi_semester: true
 
 - email: zoe.elliott24@tamu.edu
   name: Zoe Elliott
   track: Residential
-  advisor_email: rainsuds@tamu.edu
-  program_year: 1
+  advisor_email: sarah115@tamu.edu
+  program_year: 2027
 
 - email: mila.perez25@tamu.edu
   name: Mila Perez
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
-  program_year: 2
+  advisor_email: probinson@tamu.edu
+  program_year: 2026
   multi_semester: true
 
 - email: carter.andrews25@tamu.edu
   name: Carter Andrews
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
-  program_year: 1
+  advisor_email: probinson@tamu.edu
+  program_year: 2027
 
 - email: sloan.reese24@tamu.edu
   name: Sloan Reese
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
-  program_year: 1
+  advisor_email: probinson@tamu.edu
+  program_year: 2027
 
 - email: nova.mitchell25@tamu.edu
   name: Nova Mitchell
   track: Residential
-  advisor_email: rainsuds@tamu.edu
-  program_year: 1
+  advisor_email: sarah115@tamu.edu
+  program_year: 2027
 
 - email: emery.walsh24@tamu.edu
   name: Emery Walsh
   track: Residential
-  advisor_email: rainsuds@tamu.edu
-  program_year: 1
+  advisor_email: sarah115@tamu.edu
+  program_year: 2027
 
 - email: kiara.hughes25@tamu.edu
   name: Kiara Hughes
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
-  program_year: 2
+  advisor_email: probinson@tamu.edu
+  program_year: 2026
   multi_semester: true
 
 - email: judah.nguyen24@tamu.edu
   name: Judah Nguyen
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
-  program_year: 1
+  advisor_email: probinson@tamu.edu
+  program_year: 2027
 
 - email: logan.ramsey25@tamu.edu
   name: Logan Ramsey
   track: Residential
-  advisor_email: rainsuds@tamu.edu
-  program_year: 1
+  advisor_email: sarah115@tamu.edu
+  program_year: 2027
   pending: true
 
 - email: isla.merritt25@tamu.edu
   name: Isla Merritt
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
-  program_year: 1
+  advisor_email: probinson@tamu.edu
+  program_year: 2027
   pending: true

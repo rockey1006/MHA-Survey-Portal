@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_08_153000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,11 +52,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.bigint "program_semester_id", null: false
     t.string "track", null: false
     t.integer "program_year"
+    t.integer "class_of"
     t.string "competency_title", null: false
     t.integer "target_level", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["program_semester_id", "track", "program_year", "competency_title"], name: "index_competency_targets_unique", unique: true
+    t.index ["program_semester_id", "track", "program_year", "class_of", "competency_title"], name: "index_competency_targets_unique", unique: true
     t.index ["program_semester_id"], name: "index_competency_target_levels_on_program_semester_id"
   end
 
@@ -197,7 +198,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.datetime "updated_at", null: false
     t.string "major"
     t.integer "program_year"
+    t.string "assignment_group"
     t.index ["advisor_id"], name: "index_students_on_advisor_id"
+    t.index ["assignment_group"], name: "index_students_on_assignment_group"
     t.index ["program_year"], name: "index_students_on_program_year"
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
@@ -207,11 +210,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.bigint "student_id", null: false
     t.bigint "advisor_id"
     t.datetime "assigned_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.datetime "due_date"
+    t.datetime "available_from"
+    t.datetime "available_until"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["due_date", "completed_at"], name: "index_survey_assignments_due_date"
+    t.boolean "manual", default: false, null: false
+    t.index ["manual"], name: "index_survey_assignments_on_manual"
     t.index ["survey_id", "student_id"], name: "index_survey_assignments_on_survey_and_student", unique: true
     t.index ["survey_id"], name: "index_survey_assignments_on_survey_id"
   end
@@ -223,7 +228,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["admin_id"], name: "index_survey_change_logs_on_admin_id"
     t.index ["survey_id"], name: "index_survey_change_logs_on_survey_id"
   end
 
@@ -234,6 +238,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["survey_id"], name: "index_survey_legends_on_survey_id", unique: true
+  end
+
+  create_table "survey_offerings", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.string "track", null: false
+    t.integer "class_of"
+    t.string "stage", null: false
+    t.string "assignment_group"
+    t.datetime "portfolio_due_date"
+    t.datetime "available_from"
+    t.datetime "available_until"
+    t.date "review_meetings_start"
+    t.date "review_meetings_end"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["survey_id", "track", "class_of", "stage", "assignment_group"], name: "index_survey_offerings_unique", unique: true
+    t.index ["survey_id"], name: "index_survey_offerings_on_survey_id"
+    t.index ["track", "class_of", "active"], name: "index_survey_offerings_on_track_class_of_active"
+    t.index ["track", "class_of", "assignment_group", "active"], name: "index_survey_offerings_on_track_class_of_group_active"
   end
 
   create_table "survey_response_versions", force: :cascade do |t|
@@ -281,10 +305,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
     t.boolean "is_active", default: true, null: false
     t.bigint "created_by_id"
     t.bigint "program_semester_id", null: false
-    t.datetime "due_date"
+    t.datetime "available_from"
+    t.datetime "available_until"
     t.index "lower((title)::text), program_semester_id", name: "index_surveys_on_lower_title_and_program_semester", unique: true
+    t.index ["available_from"], name: "index_surveys_on_available_from"
+    t.index ["available_until"], name: "index_surveys_on_available_until"
     t.index ["created_by_id"], name: "index_surveys_on_created_by_id"
-    t.index ["due_date"], name: "index_surveys_on_due_date"
     t.index ["is_active"], name: "index_surveys_on_is_active"
     t.index ["program_semester_id"], name: "index_surveys_on_program_semester_id"
     t.index ["track"], name: "index_surveys_on_track"
@@ -336,6 +362,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_14_100000) do
   add_foreign_key "survey_change_logs", "surveys", on_delete: :nullify
   add_foreign_key "survey_change_logs", "users", column: "admin_id"
   add_foreign_key "survey_legends", "surveys"
+  add_foreign_key "survey_offerings", "surveys", on_delete: :cascade
   add_foreign_key "survey_response_versions", "students", primary_key: "student_id"
   add_foreign_key "survey_response_versions", "survey_assignments"
   add_foreign_key "survey_response_versions", "surveys"

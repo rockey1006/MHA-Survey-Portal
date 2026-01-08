@@ -109,25 +109,15 @@ module ApplicationHelper
     "#{base} #{variant}"
   end
 
-  # Returns a human-friendly due date label for survey summaries.
+  # Returns a human-friendly availability label for survey summaries.
   #
-  # @param due_date [Time, Date, nil]
+  # @param available_until [Time, Date, nil]
   # @return [String]
-  def survey_due_note(due_date)
-    return "No due date" if due_date.blank?
+  def survey_availability_note(available_until)
+    return "No deadline" if available_until.blank?
 
-    date = due_date.to_date
-    today = Time.zone.today
-
-    formatted_date = format_calendar_date(date)
-
-    if date < today
-      "Overdue · #{formatted_date}"
-    elsif date == today
-      "Due today"
-    else
-      "Due #{formatted_date}"
-    end
+    date = available_until.to_date
+    "Closes #{date.strftime('%B')} #{date.day}, #{date.year}"
   end
 
   # Formats a date like "January 9, 2026" (no leading zero).
@@ -137,6 +127,30 @@ module ApplicationHelper
   def format_calendar_date(value)
     date = value.to_date
     "#{date.strftime('%B')} #{date.day}, #{date.year}"
+  end
+
+  # Returns a human-friendly review meeting date/range for a survey offering.
+  #
+  # @param offering [SurveyOffering, nil]
+  # @return [String, nil]
+  def review_meetings_note(offering)
+    return if offering.blank?
+
+    start_date = offering.review_meetings_start
+    end_date = offering.review_meetings_end
+    return if start_date.blank? && end_date.blank?
+
+    if start_date.present? && end_date.present?
+      start_label = format_calendar_date(start_date)
+      end_label = format_calendar_date(end_date)
+      return start_label if start_label == end_label
+
+      "#{start_label} – #{end_label}"
+    elsif start_date.present?
+      format_calendar_date(start_date)
+    else
+      format_calendar_date(end_date)
+    end
   end
 
   # Generates a concise summary string from survey audit metadata.

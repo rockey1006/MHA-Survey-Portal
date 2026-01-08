@@ -1,6 +1,7 @@
 # Logical grouping for survey categories, used to inject instructional headers.
 class SurveySection < ApplicationRecord
   MHA_COMPETENCY_SECTION_TITLE = "MHA Competency Self-Assessment".freeze
+  DEFAULT_TITLE = "Untitled section".freeze
   attr_accessor :form_uid
 
   attribute :position, :integer, default: nil
@@ -20,7 +21,8 @@ class SurveySection < ApplicationRecord
 
   scope :ordered, -> { order(:position, :id) }
 
-  before_validation :assign_position, on: :create
+  before_validation :normalize_title
+  before_validation :assign_position
 
   # True when this section represents the standard MHA competency block.
   # @return [Boolean]
@@ -31,9 +33,19 @@ class SurveySection < ApplicationRecord
   private
 
   def assign_position
-    return if position.present? || survey.blank?
+    return if position.present?
 
-    highest_position = survey.sections.maximum(:position)
+    if survey.blank?
+      self.position = 0
+      return
+    end
+
+    highest_position = survey.sections.where.not(id: id).maximum(:position)
     self.position = highest_position ? highest_position + 1 : 0
+  end
+
+  def normalize_title
+    self.title = title.to_s.strip
+    self.title = DEFAULT_TITLE if title.blank?
   end
 end

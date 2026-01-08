@@ -21,7 +21,8 @@ class Admin::SurveysController < Admin::BaseController
       "semester" => "program_semesters.name",
       "updated_at" => "surveys.updated_at",
       "question_count" => "question_count",
-      "category_count" => "category_count"
+      "category_count" => "category_count",
+      "section_count" => "section_count"
     }
 
     @sort_column = params[:sort].presence_in(allowed_sort_columns.keys) || "updated_at"
@@ -48,9 +49,10 @@ class Admin::SurveysController < Admin::BaseController
     active_scope = active_scope.distinct
 
     active_scope = active_scope
-      .left_joins(:categories, :questions)
+      .left_joins(:categories, :questions, :sections)
       .select(
         "surveys.*, " \
+        "COUNT(DISTINCT survey_sections.id) AS section_count, " \
         "COUNT(DISTINCT categories.id) AS category_count, " \
         "COUNT(DISTINCT questions.id) AS question_count"
       )
@@ -120,6 +122,7 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def update
+    autosave_request = params[:autosave].to_s == "1"
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
@@ -129,12 +132,39 @@ class Admin::SurveysController < Admin::BaseController
                              {}
     end
 
-    previous_due_date = @survey.due_date
+    previous_available_from = @survey.available_from
+    previous_available_until = @survey.available_until
 
-    @survey.assign_attributes(survey_params)
+    if autosave_request && Rails.env.development?
+      raw = params[:survey].is_a?(ActionController::Parameters) ? params[:survey] : ActionController::Parameters.new
+      sections_keys = raw[:sections_attributes].is_a?(ActionController::Parameters) ? raw[:sections_attributes].keys : []
+      categories_keys = raw[:categories_attributes].is_a?(ActionController::Parameters) ? raw[:categories_attributes].keys : []
+      questions_count = 0
+      if raw[:categories_attributes].is_a?(ActionController::Parameters)
+        raw[:categories_attributes].each_value do |cat|
+          next unless cat.is_a?(ActionController::Parameters)
+          qa = cat[:questions_attributes]
+          questions_count += qa.keys.size if qa.is_a?(ActionController::Parameters)
+        end
+      end
+
+      Rails.logger.info(
+        "[autosave] survey=#{@survey.id} incoming sections=#{sections_keys.size} categories=#{categories_keys.size} questions=#{questions_count}"
+      )
+    end
+
+    permitted_params = survey_params
+    scrub_stale_section_attributes!(permitted_params)
+
+    @survey.assign_attributes(permitted_params)
     resolve_category_sections(@survey)
 
     if @survey.save
+      if autosave_request && Rails.env.development?
+        Rails.logger.info(
+          "[autosave] survey=#{@survey.id} persisted sections=#{@survey.sections.size} categories=#{@survey.categories.size} questions=#{@survey.questions.size}"
+        )
+      end
       if before_target_levels.present?
         after_target_levels = @survey.questions.reload.pluck(:id, :program_target_level).to_h
 
@@ -172,10 +202,31 @@ class Admin::SurveysController < Admin::BaseController
         end
       end
 
-      if previous_due_date != @survey.due_date
-        SurveyAssignment
-          .where(survey_id: @survey.id, completed_at: nil)
-          .update_all(due_date: @survey.due_date, updated_at: Time.current)
+      if previous_available_from != @survey.available_from ||
+          previous_available_until != @survey.available_until
+        has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
+
+        if has_offerings
+          updates = {
+            available_from: @survey.available_from,
+            available_until: @survey.available_until,
+            updated_at: Time.current
+          }
+
+          if SurveyOffering.column_names.include?("portfolio_due_date")
+            updates[:portfolio_due_date] = @survey.available_until
+          end
+
+          SurveyOffering.where(survey_id: @survey.id).update_all(updates)
+        else
+          SurveyAssignment
+            .where(survey_id: @survey.id, completed_at: nil)
+            .update_all(
+              available_from: @survey.available_from,
+              available_until: @survey.available_until,
+              updated_at: Time.current
+            )
+        end
 
         ReconcileSurveyAssignmentsJob.perform_later(survey_id: @survey.id)
       end
@@ -187,10 +238,42 @@ class Admin::SurveysController < Admin::BaseController
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
       redirect_to admin_surveys_path, notice: "Survey updated successfully."
     else
+      Rails.logger.info("[autosave] survey=#{@survey.id} save FAILED: #{@survey.errors.full_messages.to_sentence}") if autosave_request && Rails.env.development?
       build_default_structure(@survey)
       ensure_section_form_state(@survey)
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  # Rails nested attributes will raise ActiveRecord::RecordNotFound if the form
+  # submits an id that no longer exists for this survey (e.g., stale DOM after
+  # deletes + reload races). Drop those entries so updates remain idempotent.
+  def scrub_stale_section_attributes!(permitted_params)
+    sections = permitted_params[:sections_attributes]
+    return unless sections.present?
+
+    sections_hash = sections.respond_to?(:to_h) ? sections.to_h : sections
+    return unless sections_hash.is_a?(Hash)
+
+    valid_ids = @survey.sections.pluck(:id).map(&:to_s).to_set
+
+    scrubbed = {}
+    sections_hash.each do |key, attrs|
+      next unless attrs.present?
+
+      attrs_hash = attrs.respond_to?(:to_h) ? attrs.to_h : attrs
+      next unless attrs_hash.is_a?(Hash)
+
+      submitted_id = attrs_hash[:id] || attrs_hash["id"]
+      if submitted_id.present? && !valid_ids.include?(submitted_id.to_s)
+        Rails.logger.info("[survey_update] dropping stale section id=#{submitted_id} for survey=#{@survey.id}") if Rails.env.development?
+        next
+      end
+
+      scrubbed[key] = attrs
+    end
+
+    permitted_params[:sections_attributes] = scrubbed
   end
 
   # Deletes a survey and records the action in the change log.
@@ -270,7 +353,9 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def set_survey
-    @survey = Survey.includes(:sections, categories: :section).find(params[:id])
+    relation = Survey.includes(:sections, categories: :section)
+    relation = relation.includes(:offerings) if SurveyOffering.data_source_ready?
+    @survey = relation.find(params[:id])
   end
 
   def purge_incomplete_assignments!(survey)
@@ -312,12 +397,25 @@ class Admin::SurveysController < Admin::BaseController
     question_attributes << :parent_question_id if Question.new.respond_to?(:parent_question_id)
     question_attributes << :sub_question_order if Question.new.respond_to?(:sub_question_order)
 
-    params.require(:survey).permit(
+    permitted = params.require(:survey).permit(
       :title,
       :description,
       :semester,
-      :due_date,
+      :available_from,
+      :available_until,
       :is_active,
+      track_list: [],
+      offerings_attributes: [
+        :id,
+        :review_meetings_start,
+        :review_meetings_end
+      ],
+      legend_attributes: [
+        :id,
+        :title,
+        :body,
+        :_destroy
+      ],
       categories_attributes: [
         :id,
         :name,
@@ -338,14 +436,19 @@ class Admin::SurveysController < Admin::BaseController
         :_destroy
       ]
     )
+
+    permitted.delete(:track_list)
+    permitted
   end
 
   # Extracts and normalizes track selections from the submitted parameters.
   #
   # @return [Array<String>] list of unique track identifiers chosen by the admin
   def selected_tracks
-    permitted = params.fetch(:survey, {}).permit(track_list: [])
-    Array(permitted[:track_list])
+    raw = params[:survey]
+    values = raw.is_a?(ActionController::Parameters) ? raw[:track_list] : nil
+
+    Array(values)
       .map { |value| Survey.canonical_track(value) }
       .compact
       .uniq
@@ -414,11 +517,16 @@ class Admin::SurveysController < Admin::BaseController
   # @param survey [Survey]
   # @return [Hash]
   def survey_snapshot(survey)
+    snapshot_time = lambda do |value|
+      value&.in_time_zone&.strftime("%Y-%m-%d %H:%M")
+    end
+
     {
       title: survey.title,
       semester: survey.semester,
       description: survey.description,
-      due_date: survey.due_date&.to_date,
+      available_from: snapshot_time.call(survey.available_from),
+      available_until: snapshot_time.call(survey.available_until),
       is_active: survey.is_active,
       tracks: survey.track_list,
       categories: survey.categories.map do |category|
@@ -439,7 +547,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [String]
   def change_summary(before, after, tracks)
     diffs = []
-    %i[title semester description due_date is_active].each do |attribute|
+    %i[title semester description available_from available_until is_active].each do |attribute|
       before_value = before[attribute]
       after_value = after[attribute]
       next if before_value == after_value

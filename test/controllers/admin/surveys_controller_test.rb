@@ -98,20 +98,75 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
-  test "updating survey due date updates existing assignments and reconciles auto assignments" do
+  test "updating survey available_until updates existing assignments and reconciles auto assignments" do
     assignment = survey_assignments(:residential_assignment)
     assert_equal @survey.id, assignment.survey_id
 
-    new_due_date = 10.days.from_now.to_date
+    new_available_until = 10.days.from_now.to_date
 
     assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
-      patch admin_survey_path(@survey), params: { survey: { due_date: new_due_date.to_s } }
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
     end
 
     assert_redirected_to admin_surveys_path
 
     assignment.reload
-    assert_equal new_due_date, assignment.due_date.to_date
+    assert_equal new_available_until, assignment.available_until.to_date
+  end
+
+  test "updating survey available_until propagates to offerings when offerings exist" do
+    offering = SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: 2026,
+      stage: "final",
+      available_from: 5.days.ago,
+      available_until: 10.days.from_now,
+      portfolio_due_date: 10.days.from_now,
+      active: true
+    )
+
+    new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
+
+    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    offering.reload
+    assert_equal new_available_until.to_i, offering.available_until.to_i
+    assert_equal new_available_until.to_i, offering.portfolio_due_date.to_i
+  end
+
+  test "update can edit review meeting dates on survey offerings" do
+    offering = SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: 2026,
+      stage: "final",
+      review_meetings_start: Date.new(2026, 3, 21),
+      review_meetings_end: Date.new(2026, 4, 17),
+      active: true
+    )
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        offerings_attributes: {
+          "0" => {
+            id: offering.id,
+            review_meetings_start: "2026-03-22",
+            review_meetings_end: "2026-04-18"
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    offering.reload
+    assert_equal Date.new(2026, 3, 22), offering.review_meetings_start
+    assert_equal Date.new(2026, 4, 18), offering.review_meetings_end
   end
 
   test "warns when target levels change for surveys with submitted students" do
@@ -163,6 +218,111 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_surveys_path
     assert flash[:warning].blank?
+  end
+
+  test "update can add a section when new section position submits blank" do
+    assert_difference "SurveySection.count", 1 do
+      patch admin_survey_path(@survey), params: {
+        survey: {
+          sections_attributes: {
+            "0" => {
+              title: "New section",
+              description: "",
+              position: "",
+              form_uid: "section-temp-test"
+            }
+          }
+        }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    @survey.reload
+    new_section = @survey.sections.find_by(title: "New section")
+    assert new_section.present?
+    assert new_section.position.is_a?(Integer)
+  end
+
+  test "update can add a new category with a question and preview shows it" do
+    category_name = "Added category"
+    question_text = "Added question text"
+
+    assert_difference [ "Category.count", "Question.count" ], 1 do
+      patch admin_survey_path(@survey), params: {
+        survey: {
+          categories_attributes: {
+            "0" => {
+              name: category_name,
+              description: "",
+              section_form_uid: "",
+              questions_attributes: {
+                "0" => {
+                  question_text: question_text,
+                  question_type: "short_answer",
+                  question_order: 1,
+                  is_required: false,
+                  has_evidence_field: false
+                }
+              }
+            }
+          }
+        }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    get preview_admin_survey_path(@survey)
+    assert_response :success
+    assert_includes response.body, category_name
+    assert_includes response.body, question_text
+  end
+
+  test "update can add a new section and assign a new category to it; preview shows both" do
+    section_uid = "section-temp-test-123"
+    section_title = "Added section"
+    category_name = "Added category in section"
+    question_text = "Added question in section"
+
+    assert_difference [ "SurveySection.count", "Category.count", "Question.count" ], 1 do
+      patch admin_survey_path(@survey), params: {
+        survey: {
+          sections_attributes: {
+            "0" => {
+              title: section_title,
+              description: "",
+              position: "",
+              form_uid: section_uid
+            }
+          },
+          categories_attributes: {
+            "0" => {
+              name: category_name,
+              description: "",
+              section_form_uid: section_uid,
+              questions_attributes: {
+                "0" => {
+                  question_text: question_text,
+                  question_type: "short_answer",
+                  question_order: 1,
+                  is_required: false,
+                  has_evidence_field: false
+                }
+              }
+            }
+          }
+        }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    get preview_admin_survey_path(@survey)
+    assert_response :success
+    assert_includes response.body, section_title
+    assert_includes response.body, category_name
+    assert_includes response.body, question_text
   end
 
   # === Index Action ===

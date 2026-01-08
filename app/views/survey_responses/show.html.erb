@@ -2,8 +2,8 @@
   <% return_to = @return_to.presence %>
   <% back_path = return_to.presence || student_dashboard_path %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && @survey_response&.student.present? && (current_user.id == @survey_response.student.user&.id) %>
-  <% due_date = defined?(@survey_assignment) ? @survey_assignment&.due_date : nil %>
-  <% can_edit_by_due_date = due_date.blank? || due_date >= Time.current %>
+  <% available_until = defined?(@survey_assignment) ? @survey_assignment&.available_until : nil %>
+  <% can_edit_by_due_date = available_until.blank? || available_until >= Time.current %>
 
   <div class="c-toolbar c-toolbar--spaced">
     <div class="c-toolbar__row">

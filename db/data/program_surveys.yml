@@ -47,7 +47,8 @@ mha_competency_dropdown_options: &mha_competency_dropdown_options
 templates:
   mha_section: &mha_section
     title: "MHA Competency Self-Assessment"
-    description: "Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Click on the information button for a description of the 1-5 proficiency scale."
+    description: >-
+      Please review each of the 17 competencies that make up the MHA Competency Model and determine your level of proficiency (achievement) at this point in your program. Please note that the (end of the) Program Target level is provided for each competency to assist you in your self-assessment and a comment section is available to record a note to your Faculty Advisor. A note should be provided if your self-assessment is below or above the target course level (see course syllabi for course targets). Refer to the sidebar for a description of the 1-5 proficiency scale.
 
   professional_snapshot_section: &professional_snapshot_section
     title: "Professional Snapshot"
@@ -252,41 +253,51 @@ common_categories: &common_categories
         order: 1
 
 survey_base: &survey_base
-  program_semester: "Fall 2025"
-  due_date: "2025-12-08"
+  program_semester: "Spring 2026"
+  available_from: "2026-01-05 09:00"
+  available_until: "2026-04-28"
   legend:
     title: "Rating Scale Reference"
     body: *mha_competency_tooltip
   is_active: true
   categories: *common_categories
 
+# Track-specific base templates (anchors only; not seeded directly).
+executive_track_survey_base: &executive_track_survey_base
+  <<: *survey_base
+  description: "Semester activity and competency tracking."
+  tracks:
+    - "Executive"
+
+residential_track_survey_base: &residential_track_survey_base
+  <<: *survey_base
+  description: "Semester activity and competency tracking."
+  tracks:
+    - "Residential"
+
 surveys:
-  - &executive_survey_base
-    <<: *survey_base
-    title: "Executive Survey"
-    description: "Semester activity and competency tracking."
-    tracks:
-      - "Executive"
-
-  - &residential_survey_base
-    <<: *survey_base
-    title: "Residential Survey"
-    description: "Semester activity and competency tracking."
-    tracks:
-      - "Residential"
-
-  - <<: *executive_survey_base
-    program_semester: "Spring 2025"
-    due_date: "2025-04-29"
-
-  - <<: *residential_survey_base
-    program_semester: "Spring 2025"
-    due_date: "2025-04-29"
-
-  - <<: *executive_survey_base
+  # Stage-based surveys (portfolio schedule-driven).
+  - <<: *residential_track_survey_base
+    title: "RMHA Initial Competency Survey"
     program_semester: "Spring 2026"
-    due_date: "2026-04-28"
+    available_until: "2026-01-16"
 
-  - <<: *residential_survey_base
+  - <<: *residential_track_survey_base
+    title: "RMHA Mid-point Competency Survey"
     program_semester: "Spring 2026"
-    due_date: "2026-04-28"
+    available_until: "2026-01-16"
+
+  - <<: *residential_track_survey_base
+    title: "RMHA Final Competency Survey"
+    program_semester: "Spring 2026"
+    available_until: "2026-03-20"
+
+  - <<: *executive_track_survey_base
+    title: "EMHA Mid-point Competency Survey"
+    program_semester: "Spring 2026"
+    available_until: "2026-05-31"
+
+  - <<: *executive_track_survey_base
+    title: "EMHA Final Competency Survey"
+    program_semester: "Spring 2026"
+    available_until: "2026-03-20"

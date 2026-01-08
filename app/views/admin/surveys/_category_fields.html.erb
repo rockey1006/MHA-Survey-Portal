@@ -15,6 +15,7 @@
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="flex-1 space-y-2">
       <%= category_fields.hidden_field :id %>
+      <%= category_fields.hidden_field :_destroy, value: 0 %>
       <% if position_supported %>
         <%= category_fields.hidden_field :position %>
       <% end %>
@@ -44,20 +45,12 @@
       <%# Display order is controlled via drag-and-drop. %>
     </div>
 
-    <% if category.persisted? %>
-      <label class="inline-flex items-center gap-2 text-sm font-semibold text-rose-600">
-        <%= category_fields.check_box :_destroy, class: checkbox_classes %>
-        <span aria-hidden="true">🗑️</span>
-        <span>Remove</span>
-      </label>
-    <% else %>
-      <button type="button"
-              class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %> text-rose-600"
-              data-action="category-fields#remove">
-        <span aria-hidden="true">🗑️</span>
-        <span>Remove</span>
-      </button>
-    <% end %>
+    <button type="button"
+            class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %> text-rose-600"
+            data-action="category-fields#remove">
+      <span aria-hidden="true">🗑️</span>
+      <span>Remove</span>
+    </button>
   </div>
 
   <div class="space-y-5">
@@ -103,7 +96,13 @@
         <% end %>
       </div>
 
-      <% new_question = category.questions.build(question_text: "", question_order: (category.questions.maximum(:question_order) || 0) + 1) %>
+      <% new_question = category.questions.build(
+           question_text: "New question",
+           question_type: (@question_types.first || Question.question_types.keys.first),
+           question_order: (category.questions.maximum(:question_order) || 0) + 1,
+           is_required: false,
+           has_evidence_field: false
+         ) %>
       <% template = capture do %>
         <%= category_fields.fields_for(:questions, new_question, child_index: "NEW_QUESTION") do |question_fields| %>
           <%= render "admin/surveys/question_fields",

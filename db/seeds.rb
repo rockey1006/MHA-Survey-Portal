@@ -572,22 +572,22 @@ if ActiveRecord::Base.connection.data_source_exists?("survey_offerings")
   puts "• Syncing survey offerings (program/cohort/stage schedule)"
 
   stage_surveys_by_title = {
-    "RMHA Initial Survey" => { track: "Residential", stage: "initial" },
-    "RMHA Mid-point Survey" => { track: "Residential", stage: "midpoint" },
-    "RMHA Final Survey" => { track: "Residential", stage: "final" },
-    "EMHA Mid-point Survey" => { track: "Executive", stage: "midpoint" },
-    "EMHA Final Survey" => { track: "Executive", stage: "final" }
+    "RMHA Initial Competency Survey" => { track: "Residential", stage: "initial" },
+    "RMHA Mid-point Competency Survey" => { track: "Residential", stage: "midpoint" },
+    "RMHA Final Competency Survey" => { track: "Residential", stage: "final" },
+    "EMHA Mid-point Competency Survey" => { track: "Executive", stage: "midpoint" },
+    "EMHA Final Competency Survey" => { track: "Executive", stage: "final" }
   }
 
   schedule_rows = [
     # RMHA
-    { title: "RMHA Initial Survey", class_of: 2027, portfolio_due_date: "2026-01-16", review_start: "2026-01-20", review_end: "2026-02-16" },
-    { title: "RMHA Mid-point Survey", class_of: 2026, portfolio_due_date: "2026-01-16", review_start: nil, review_end: nil },
-    { title: "RMHA Final Survey", class_of: 2026, portfolio_due_date: "2026-03-20", review_start: "2026-03-20", review_end: "2026-04-17" },
+    { title: "RMHA Initial Competency Survey", class_of: 2027, portfolio_due_date: "2026-01-16", review_start: "2026-01-20", review_end: "2026-02-16" },
+    { title: "RMHA Mid-point Competency Survey", class_of: 2026, portfolio_due_date: "2026-01-16", review_start: nil, review_end: nil },
+    { title: "RMHA Final Competency Survey", class_of: 2026, portfolio_due_date: "2026-03-20", review_start: "2026-03-20", review_end: "2026-04-17" },
 
     # EMHA
-    { title: "EMHA Mid-point Survey", class_of: 2027, portfolio_due_date: "2026-05-31", review_start: "2026-06-01", review_end: "2026-08-04" },
-    { title: "EMHA Final Survey", class_of: 2026, portfolio_due_date: "2026-03-20", review_start: "2026-03-21", review_end: "2026-04-17" }
+    { title: "EMHA Mid-point Competency Survey", class_of: 2027, portfolio_due_date: "2026-05-31", review_start: "2026-06-01", review_end: "2026-08-04" },
+    { title: "EMHA Final Competency Survey", class_of: 2026, portfolio_due_date: "2026-03-20", review_start: "2026-03-21", review_end: "2026-04-17" }
   ]
 
   schedule_rows.each do |row|
@@ -600,12 +600,17 @@ if ActiveRecord::Base.connection.data_source_exists?("survey_offerings")
       next
     end
 
-    offering = SurveyOffering.find_or_initialize_by(
+    offering_lookup = {
       survey: survey,
       track: config[:track],
       class_of: row[:class_of],
       stage: config[:stage]
-    )
+    }
+    if SurveyOffering.column_names.include?("assignment_group")
+      offering_lookup[:assignment_group] = nil
+    end
+
+    offering = SurveyOffering.find_or_initialize_by(offering_lookup)
 
     availability_start = Time.zone.parse("2026-01-05 09:00")
     offering.available_from = availability_start if offering.respond_to?(:available_from)

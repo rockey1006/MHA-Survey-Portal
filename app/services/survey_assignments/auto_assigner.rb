@@ -55,7 +55,11 @@ module SurveyAssignments
 
     def surveys_for_student
       if SurveyOffering.data_source_ready? && SurveyOffering.active.exists?
-        offerings = SurveyOffering.for_student(track_key: track, class_of: class_of)
+        offerings = SurveyOffering.for_student(
+          track_key: track,
+          class_of: class_of,
+          assignment_group: student.respond_to?(:assignment_group) ? student.assignment_group : nil
+        )
           .includes(:survey)
 
         surveys = offerings.map(&:survey).compact.uniq
@@ -112,18 +116,18 @@ module SurveyAssignments
       when "residential"
         case cohort
         when 2027
-          [ "RMHA Initial Survey" ]
+          [ "RMHA Initial Competency Survey" ]
         when 2026
-          [ "RMHA Mid-point Survey", "RMHA Final Survey" ]
+          [ "RMHA Mid-point Competency Survey", "RMHA Final Competency Survey" ]
         else
           []
         end
       when "executive"
         case cohort
         when 2027
-          [ "EMHA Mid-point Survey" ]
+          [ "EMHA Mid-point Competency Survey" ]
         when 2026
-          [ "EMHA Final Survey" ]
+          [ "EMHA Final Competency Survey" ]
         else
           []
         end

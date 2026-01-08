@@ -68,6 +68,12 @@
                                                                         Click a track tag to change.                                                                        
                                                                     </div>
                                                                 </th>
+                                                                <th class="table-header-track" style="min-width: 14rem;">
+                                                                    Assignment Group
+                                                                    <div class="text-xs text-slate-500 font-normal">
+                                                                        Click a group tag to change.
+                                                                    </div>
+                                                                </th>
                                                                 <th class="table-header-current-role" style="min-width: 16rem;">
                                                                     Advisor
                                                                     <div class="text-xs text-slate-500 font-normal">
@@ -85,6 +91,9 @@
                                 <% current_advisor_id = student.advisor_id.present? ? student.advisor_id.to_s : "" %>
                                 <% track_key = student.track.presence || "" %>
                                 <% track_label = track_key.present? ? track_key.titleize : "Unassigned" %>
+                                <% assignment_group_value = student.respond_to?(:assignment_group) ? student.assignment_group.to_s.strip : "" %>
+                                <% assignment_group_value = assignment_group_value.presence || "" %>
+                                <% assignment_group_label = assignment_group_value.present? ? assignment_group_value : "Unassigned" %>
 
                                 <tr class="c-table-row" data-student-row="<%= student.student_id %>">
                                     <td class="user-avatar-cell">
@@ -120,6 +129,22 @@
                                                         student_name: user&.name || "Student ##{student.student_id}"
                                                     },
                                                     id: "track_select_#{student.student_id}" %>
+                                        </div>
+                                    </td>
+
+                                    <td class="user-track-cell" style="min-width: 14rem;">
+                                        <div class="role-badge track inline-flex assignment-group-badge-clickable" id="assignment_group_badge_<%= student.student_id %>" tabindex="0" style="cursor:pointer;"><%= assignment_group_label %></div>
+                                        <div class="mt-2 c-select-wrapper" id="assignment_group_select_wrapper_<%= student.student_id %>" style="display:none;">
+                                            <%= select_tag "assignment_group_updates[#{student.student_id}]",
+                                                    options_for_select(@assignment_group_select_options, assignment_group_value),
+                                                    class: "c-select assignment-group-select w-full",
+                                                    data: {
+                                                        student_id: student.student_id,
+                                                        original_assignment_group: assignment_group_value,
+                                                        original_assignment_group_name: assignment_group_label,
+                                                        student_name: user&.name || "Student ##{student.student_id}"
+                                                    },
+                                                    id: "assignment_group_select_#{student.student_id}" %>
                                         </div>
                                     </td>
 
@@ -259,6 +284,10 @@
                     messages.push(`Track: ${entry.track.from} → ${entry.track.to}`);
                 }
 
+                if (entry && entry.assignmentGroup) {
+                    messages.push(`Group: ${entry.assignmentGroup.from} → ${entry.assignmentGroup.to}`);
+                }
+
                 if (messages.length > 0) {
                     indicator.textContent = messages.join(' | ');
                     indicator.className = 'c-change-indicator changed';
@@ -294,7 +323,7 @@
             }
 
             function setChange(studentId, type, payload) {
-                const existing = changeRegistry.get(studentId) || { studentName: (payload && payload.studentName) || `Student ${studentId}`, advisor: null, track: null };
+                const existing = changeRegistry.get(studentId) || { studentName: (payload && payload.studentName) || `Student ${studentId}`, advisor: null, track: null, assignmentGroup: null };
 
                 if (payload) {
                     existing.studentName = payload.studentName || existing.studentName;
@@ -303,7 +332,7 @@
                     existing[type] = null;
                 }
 
-                if (!existing.advisor && !existing.track) {
+                if (!existing.advisor && !existing.track && !existing.assignmentGroup) {
                     changeRegistry.delete(studentId);
                 } else {
                     changeRegistry.set(studentId, existing);
@@ -429,6 +458,64 @@
                 });
             });
 
+            form.querySelectorAll('.assignment-group-select').forEach(select => {
+                const studentId = select.dataset.studentId;
+                const originalGroup = select.dataset.originalAssignmentGroup || '';
+                const originalGroupName = select.dataset.originalAssignmentGroupName || 'Unassigned';
+                const studentName = select.dataset.studentName || `Student ${studentId}`;
+
+                const badge = document.getElementById(`assignment_group_badge_${studentId}`);
+                const selectWrapper = document.getElementById(`assignment_group_select_wrapper_${studentId}`);
+
+                select.value = originalGroup;
+
+                if (badge && selectWrapper) {
+                    badge.addEventListener('click', function() {
+                        badge.style.display = 'none';
+                        selectWrapper.style.display = '';
+                        select.focus();
+                    });
+
+                    badge.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            badge.click();
+                            e.preventDefault();
+                        }
+                    });
+                }
+
+                function hideGroupSelectAndUpdateBadge() {
+                    if (!badge || !selectWrapper) return;
+                    const selectedOption = select.options[select.selectedIndex];
+                    badge.textContent = selectedOption ? selectedOption.text.trim() : 'Unassigned';
+                    badge.style.display = '';
+                    selectWrapper.style.display = 'none';
+                }
+
+                select.addEventListener('change', function() {
+                    const newGroup = this.value || '';
+                    const selectedOption = this.options[this.selectedIndex];
+                    const newGroupName = selectedOption ? selectedOption.text.trim() : 'Unassigned';
+
+                    if (newGroup !== originalGroup) {
+                        setChange(studentId, 'assignmentGroup', {
+                            from: originalGroupName,
+                            to: newGroupName,
+                            value: newGroup,
+                            studentName: studentName
+                        });
+                    } else {
+                        setChange(studentId, 'assignmentGroup', null);
+                    }
+
+                    hideGroupSelectAndUpdateBadge();
+                });
+
+                select.addEventListener('blur', function() {
+                    setTimeout(hideGroupSelectAndUpdateBadge, 100);
+                });
+            });
+
             saveButton.addEventListener('click', function(e) {
                 if (this.disabled) {
                     e.preventDefault();
@@ -454,6 +541,10 @@
                     }
                     if (entry.track) {
                         changeLines.push(`• ${entry.studentName}: Track ${entry.track.from} → ${entry.track.to}`);
+                        fieldChangeCount += 1;
+                    }
+                    if (entry.assignmentGroup) {
+                        changeLines.push(`• ${entry.studentName}: Group ${entry.assignmentGroup.from} → ${entry.assignmentGroup.to}`);
                         fieldChangeCount += 1;
                     }
                 });

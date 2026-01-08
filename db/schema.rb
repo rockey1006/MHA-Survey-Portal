@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_06_133000) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_08_153000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -198,7 +198,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_06_133000) do
     t.datetime "updated_at", null: false
     t.string "major"
     t.integer "program_year"
+    t.string "assignment_group"
     t.index ["advisor_id"], name: "index_students_on_advisor_id"
+    t.index ["assignment_group"], name: "index_students_on_assignment_group"
     t.index ["program_year"], name: "index_students_on_program_year"
     t.index ["uin"], name: "index_students_on_uin", unique: true, where: "(uin IS NOT NULL)"
   end
@@ -243,6 +245,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_06_133000) do
     t.string "track", null: false
     t.integer "class_of"
     t.string "stage", null: false
+    t.string "assignment_group"
     t.datetime "portfolio_due_date"
     t.datetime "available_from"
     t.datetime "available_until"
@@ -251,9 +254,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_06_133000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["survey_id", "track", "class_of", "stage"], name: "index_survey_offerings_unique", unique: true
+    t.index ["survey_id", "track", "class_of", "stage", "assignment_group"], name: "index_survey_offerings_unique", unique: true
     t.index ["survey_id"], name: "index_survey_offerings_on_survey_id"
     t.index ["track", "class_of", "active"], name: "index_survey_offerings_on_track_class_of_active"
+    t.index ["track", "class_of", "assignment_group", "active"], name: "index_survey_offerings_on_track_class_of_group_active"
   end
 
   create_table "survey_response_versions", force: :cascade do |t|

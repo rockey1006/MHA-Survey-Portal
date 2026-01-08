@@ -72,11 +72,13 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.bigint :advisor_id
       t.string :major
       t.integer :program_year
+      t.string :assignment_group
       t.enum :track, enum_type: :student_tracks, null: false, default: "Residential"
       t.enum :classification, enum_type: :student_classifications, null: false, default: "G1"
       t.timestamps
 
       t.index :advisor_id
+      t.index :assignment_group
       t.index :program_year
       t.index :uin, unique: true, where: "uin IS NOT NULL"
     end
@@ -264,6 +266,7 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.string :track, null: false
       t.integer :class_of
       t.string :stage, null: false
+      t.string :assignment_group
       t.datetime :portfolio_due_date
       t.datetime :available_from
       t.datetime :available_until
@@ -272,8 +275,9 @@ class AlignSchemaWithTarget < ActiveRecord::Migration[8.0]
       t.boolean :active, null: false, default: true
       t.timestamps
     end
-    add_index :survey_offerings, %i[survey_id track class_of stage], unique: true, name: "index_survey_offerings_unique"
+    add_index :survey_offerings, %i[survey_id track class_of stage assignment_group], unique: true, name: "index_survey_offerings_unique"
     add_index :survey_offerings, %i[track class_of active], name: "index_survey_offerings_on_track_class_of_active"
+    add_index :survey_offerings, %i[track class_of assignment_group active], name: "index_survey_offerings_on_track_class_of_group_active"
 
   # Join table (with attributes): assigns surveys to students and advisors.
   create_table :survey_assignments do |t|

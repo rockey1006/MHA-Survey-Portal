@@ -28,20 +28,30 @@ class SurveyOffering < ApplicationRecord
     false
   end
 
-  def self.for_student(track_key:, class_of:)
+  def self.for_student(track_key:, class_of:, assignment_group: nil)
     return none if track_key.blank? || class_of.blank?
 
     track_label = ProgramTrack.name_for_key(track_key) || track_key.to_s
 
     reference_time = Time.zone&.now || Time.current
 
-    active
+    scope = active
       .where("LOWER(survey_offerings.track) = ?", track_label.to_s.downcase)
       .where("class_of IS NULL OR class_of = ?", class_of.to_i)
       .available_at(reference_time)
       .joins(survey: :program_semester)
       .merge(Survey.active)
       .where(program_semesters: { current: true })
+
+    group = assignment_group.to_s.strip
+    if group.present?
+      grouped = scope.where(assignment_group: group)
+      return grouped if grouped.exists?
+
+      return scope.where(assignment_group: nil)
+    end
+
+    scope.where(assignment_group: nil)
   end
 
   private

@@ -300,4 +300,4 @@ surveys:
   - <<: *executive_track_survey_base
     title: "EMHA Final Survey"
     program_semester: "Spring 2026"
-    available_until: ~
+    available_until: "2026-03-20"

@@ -21,6 +21,7 @@ class Survey < ApplicationRecord
   accepts_nested_attributes_for :categories, allow_destroy: true
   accepts_nested_attributes_for :legend, update_only: true, allow_destroy: true
   accepts_nested_attributes_for :sections, allow_destroy: true
+  accepts_nested_attributes_for :offerings
 
   before_validation :normalize_title
   before_validation :assign_program_semester_from_semester_name

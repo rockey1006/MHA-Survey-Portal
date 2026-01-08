@@ -123,6 +123,47 @@
     </div>
   </section>
 
+  <% if SurveyOffering.data_source_ready? && survey.persisted? && survey.offerings.any? %>
+    <section class="c-card space-y-6">
+      <header class="space-y-1">
+        <h2 class="text-lg font-semibold text-slate-900">Review meeting dates</h2>
+        <p class="text-sm text-slate-600">Edit the review meeting window shown to students (per offering).</p>
+      </header>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Track</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Class of</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Stage</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Review start</th>
+              <th class="px-4 py-3 text-left font-semibold text-slate-700">Review end</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            <% sorted_offerings = survey.offerings.sort_by { |row| [row.track.to_s, row.class_of.to_i, row.stage.to_s] } %>
+            <%= form.fields_for :offerings, sorted_offerings do |offering_fields| %>
+              <% offering = offering_fields.object %>
+              <tr>
+                <td class="px-4 py-3 text-slate-800"><%= offering.track %></td>
+                <td class="px-4 py-3 text-slate-800"><%= offering.class_of.presence || "All" %></td>
+                <td class="px-4 py-3 text-slate-800"><%= offering.stage.to_s.titleize %></td>
+                <td class="px-4 py-3">
+                  <%= offering_fields.hidden_field :id %>
+                  <%= offering_fields.date_field :review_meetings_start, class: input_classes %>
+                </td>
+                <td class="px-4 py-3">
+                  <%= offering_fields.date_field :review_meetings_end, class: input_classes %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+
   <% if survey.new_record? && survey.sections.empty? %>
     <% survey.sections.build(title: "", description: "", position: (survey.sections.map(&:position).compact.max || -1) + 1) %>
   <% end %>

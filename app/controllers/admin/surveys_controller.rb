@@ -206,7 +206,19 @@ class Admin::SurveysController < Admin::BaseController
           previous_available_until != @survey.available_until
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
 
-        unless has_offerings
+        if has_offerings
+          updates = {
+            available_from: @survey.available_from,
+            available_until: @survey.available_until,
+            updated_at: Time.current
+          }
+
+          if SurveyOffering.column_names.include?("portfolio_due_date")
+            updates[:portfolio_due_date] = @survey.available_until
+          end
+
+          SurveyOffering.where(survey_id: @survey.id).update_all(updates)
+        else
           SurveyAssignment
             .where(survey_id: @survey.id, completed_at: nil)
             .update_all(
@@ -341,7 +353,9 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def set_survey
-    @survey = Survey.includes(:sections, categories: :section).find(params[:id])
+    relation = Survey.includes(:sections, categories: :section)
+    relation = relation.includes(:offerings) if SurveyOffering.data_source_ready?
+    @survey = relation.find(params[:id])
   end
 
   def purge_incomplete_assignments!(survey)
@@ -391,6 +405,11 @@ class Admin::SurveysController < Admin::BaseController
       :available_until,
       :is_active,
       track_list: [],
+      offerings_attributes: [
+        :id,
+        :review_meetings_start,
+        :review_meetings_end
+      ],
       legend_attributes: [
         :id,
         :title,

@@ -114,6 +114,61 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal new_available_until, assignment.available_until.to_date
   end
 
+  test "updating survey available_until propagates to offerings when offerings exist" do
+    offering = SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: 2026,
+      stage: "final",
+      available_from: 5.days.ago,
+      available_until: 10.days.from_now,
+      portfolio_due_date: 10.days.from_now,
+      active: true
+    )
+
+    new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
+
+    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    offering.reload
+    assert_equal new_available_until.to_i, offering.available_until.to_i
+    assert_equal new_available_until.to_i, offering.portfolio_due_date.to_i
+  end
+
+  test "update can edit review meeting dates on survey offerings" do
+    offering = SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: 2026,
+      stage: "final",
+      review_meetings_start: Date.new(2026, 3, 21),
+      review_meetings_end: Date.new(2026, 4, 17),
+      active: true
+    )
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        offerings_attributes: {
+          "0" => {
+            id: offering.id,
+            review_meetings_start: "2026-03-22",
+            review_meetings_end: "2026-04-18"
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    offering.reload
+    assert_equal Date.new(2026, 3, 22), offering.review_meetings_start
+    assert_equal Date.new(2026, 4, 18), offering.review_meetings_end
+  end
+
   test "warns when target levels change for surveys with submitted students" do
     completed_assignment = survey_assignments(:completed_residential_assignment)
     assert_equal @survey.id, completed_assignment.survey_id

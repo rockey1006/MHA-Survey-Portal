@@ -122,6 +122,22 @@ end
 # Lookup table used by demo student seeding.
 advisors_by_email = User.advisors.includes(:advisor_profile).index_by { |u| u.email.to_s.downcase }
 
+# Remove demo-only advisor accounts that should not exist.
+# Keep this non-destructive: only delete when there are no advisees.
+if seed_demo_data && (Rails.env.development? || Rails.env.test?)
+  clark_user = User.find_by(email: "advisor.clark@tamu.edu")
+  clark_profile = clark_user&.advisor_profile
+  if clark_profile
+    if clark_profile.advisees.exists?
+      warn "• Advisor Clark (advisor.clark@tamu.edu) still has advisees; skipping deletion"
+    else
+      clark_user.destroy!
+      advisors_by_email.delete("advisor.clark@tamu.edu")
+      puts "• Removed Advisor Clark (advisor.clark@tamu.edu)"
+    end
+  end
+end
+
 if seed_demo_data
   puts "• Creating administrative accounts"
   admin_accounts = [

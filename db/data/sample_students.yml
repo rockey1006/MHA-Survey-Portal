@@ -38,20 +38,20 @@
 - email: mila.perez25@tamu.edu
   name: Mila Perez
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
+  advisor_email: probinson@tamu.edu
   program_year: 2026
   multi_semester: true
 
 - email: carter.andrews25@tamu.edu
   name: Carter Andrews
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
+  advisor_email: probinson@tamu.edu
   program_year: 2027
 
 - email: sloan.reese24@tamu.edu
   name: Sloan Reese
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
+  advisor_email: probinson@tamu.edu
   program_year: 2027
 
 - email: nova.mitchell25@tamu.edu
@@ -69,14 +69,14 @@
 - email: kiara.hughes25@tamu.edu
   name: Kiara Hughes
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
+  advisor_email: probinson@tamu.edu
   program_year: 2026
   multi_semester: true
 
 - email: judah.nguyen24@tamu.edu
   name: Judah Nguyen
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
+  advisor_email: probinson@tamu.edu
   program_year: 2027
 
 - email: logan.ramsey25@tamu.edu
@@ -89,6 +89,6 @@
 - email: isla.merritt25@tamu.edu
   name: Isla Merritt
   track: Executive
-  advisor_email: advisor.clark@tamu.edu
+  advisor_email: probinson@tamu.edu
   program_year: 2027
   pending: true

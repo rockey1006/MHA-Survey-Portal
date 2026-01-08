@@ -85,11 +85,13 @@ module SurveyAssignments
 
       scheduled_titles = scheduled_titles_for(track: track, class_of: class_of)
       if scheduled_titles.any?
-        return Survey.active
+        scheduled_scope = Survey.active
           .joins(:program_semester)
           .where("LOWER(program_semesters.name) = ?", current_semester.downcase)
           .where(title: scheduled_titles)
           .distinct
+
+        return scheduled_scope if scheduled_scope.exists?
       end
 
       Survey.active

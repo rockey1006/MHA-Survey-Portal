@@ -80,6 +80,9 @@ export default class extends Controller {
   }
 
   uniqueToken() {
-    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
+    // Rails strong parameters filters nested-attribute hash keys unless they
+    // look like numeric indexes (e.g., "0", "1700000000").
+    // Use digits only so newly-added sections are not silently dropped.
+    return `${Date.now()}${Math.floor(Math.random() * 1_000_000_000)}`
   }
 }

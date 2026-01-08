@@ -15,6 +15,13 @@ export default class extends Controller {
     this.hasPendingChanges = false
     this.lastSaveSucceeded = true
     this.lastSaveWasValidationError = false
+    this.lastValidationMessage = null
+    this.saveQueuedDuringSave = false
+    this.changeVersion = 0
+    this.didRefreshAfterAutosave = false
+    this.refreshQueued = false
+    this.allowImmediateSubmit = false
+    this.submitAfterReloadKey = `survey_autosave_submit_after_reload:${this.element.action}`
 
     this.handleFormChange = this.handleFormChange.bind(this)
     this.handleSubmit = this.handleSubmit.bind(this)
@@ -33,6 +40,7 @@ export default class extends Controller {
     document.addEventListener("turbo:before-visit", this.handleTurboBeforeVisit)
     document.addEventListener("turbo:before-cache", this.handleTurboBeforeCache)
 
+    this.resumeSubmitAfterReloadIfNeeded()
     this.updateStatus("All changes saved", "idle")
   }
 
@@ -62,13 +70,75 @@ export default class extends Controller {
     this.queueSave({ immediate: true })
   }
 
-  handleSubmit() {
+  async handleSubmit(event) {
+    // Allow a single programmatic submit without re-entering our guard logic.
+    if (this.allowImmediateSubmit) {
+      this.allowImmediateSubmit = false
+      this.isSubmitting = true
+      this.clearPendingSave()
+      return
+    }
+
+    if (this.isSubmitting) return
+
+    // If there are unsynced nested records (blank ids), submitting the form
+    // will re-create them (duplicates). Force a refresh so the server-rendered
+    // form contains the persisted IDs.
+    if (this.hasBlankNestedIds()) {
+      event?.preventDefault?.()
+      sessionStorage.setItem(this.submitAfterReloadKey, "1")
+      window.location.reload()
+      return
+    }
+
+    // If an autosave is in-flight or pending, flush it first so the submit
+    // reflects the latest state and doesn't race two writes.
+    if (this.isSaving || this.hasPendingChanges || this.pendingTimeout) {
+      event?.preventDefault?.()
+      this.clearPendingSave()
+      await this.performSave()
+
+      if (!this.lastSaveSucceeded || this.hasPendingChanges) {
+        const suffix = this.lastValidationMessage ? ` — ${this.lastValidationMessage}` : ""
+        this.updateStatus(`Cannot save${suffix}`, "error")
+        return
+      }
+
+      if (this.hasBlankNestedIds()) {
+        sessionStorage.setItem(this.submitAfterReloadKey, "1")
+        window.location.reload()
+        return
+      }
+
+      this.allowImmediateSubmit = true
+      this.element.requestSubmit()
+      return
+    }
+
     this.isSubmitting = true
     this.clearPendingSave()
   }
 
+  resumeSubmitAfterReloadIfNeeded() {
+    try {
+      const shouldSubmit = sessionStorage.getItem(this.submitAfterReloadKey) === "1"
+      if (!shouldSubmit) return
+
+      sessionStorage.removeItem(this.submitAfterReloadKey)
+
+      // If the form still contains blank ids, we are not safe to submit yet.
+      if (this.hasBlankNestedIds()) return
+
+      this.allowImmediateSubmit = true
+      setTimeout(() => this.element.requestSubmit(), 0)
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
   queueSave({ immediate } = {}) {
     this.hasPendingChanges = true
+    this.changeVersion += 1
     this.updateStatus("Saving…", "saving")
     this.clearPendingSave()
 
@@ -84,7 +154,16 @@ export default class extends Controller {
   }
 
   async performSave() {
-    if (this.isSaving || this.isSubmitting) return
+    if (this.isSubmitting) return
+
+    // Avoid dropping updates that occur while a save is already in-flight.
+    // If another change arrives during a save, queue a follow-up save.
+    if (this.isSaving) {
+      this.saveQueuedDuringSave = true
+      return
+    }
+
+    const versionAtStart = this.changeVersion
 
     this.isSaving = true
     this.updateStatus("Saving…", "saving")
@@ -112,7 +191,11 @@ export default class extends Controller {
         this.lastSaveSucceeded = false
         // Validation errors won't succeed without user edits; don't spin.
         if (this.lastSaveWasValidationError) {
-          this.updateStatus("Cannot save — fix the errors in the form", "error")
+          const body = await response.text().catch(() => "")
+          const validationMessage = this.extractFirstErrorMessage(body)
+          this.lastValidationMessage = validationMessage
+          const suffix = validationMessage ? ` — ${validationMessage}` : ""
+          this.updateStatus(`Cannot save${suffix}`, "error")
           this.hasPendingChanges = true
           return
         }
@@ -121,9 +204,19 @@ export default class extends Controller {
       }
 
       this.lastSavedAt = new Date()
-      this.hasPendingChanges = false
+      if (versionAtStart === this.changeVersion) {
+        this.hasPendingChanges = false
+      }
       this.lastSaveSucceeded = true
+      this.lastValidationMessage = null
       this.updateStatus(this.formatSavedMessage(this.lastSavedAt), "saved")
+
+      // Autosave creates nested records server-side but does not update the DOM
+      // with the new IDs. Without a refresh, subsequent autosaves/submits will
+      // re-send blank ids and duplicate records.
+      if (!this.didRefreshAfterAutosave && this.hasBlankNestedIds()) {
+        this.refreshQueued = true
+      }
     } catch (error) {
       if (error.name === "AbortError") return
 
@@ -134,6 +227,27 @@ export default class extends Controller {
       this.pendingTimeout = setTimeout(() => this.performSave(), this.debounceDuration)
     } finally {
       this.isSaving = false
+
+      const needsFollowUpSave = this.saveQueuedDuringSave || versionAtStart !== this.changeVersion
+      if (needsFollowUpSave) {
+        this.saveQueuedDuringSave = false
+
+        if (!this.isSubmitting && this.hasPendingChanges) {
+          // Run immediately; any debounce will already have been canceled.
+          setTimeout(() => this.performSave(), 0)
+        }
+
+        // Do not refresh while a follow-up save is queued; that can discard
+        // changes that occurred during the in-flight request.
+        return
+      }
+
+      if (this.refreshQueued && !this.didRefreshAfterAutosave && this.hasBlankNestedIds()) {
+        this.refreshQueued = false
+        this.didRefreshAfterAutosave = true
+        this.updateStatus("Saved — refreshing…", "saved")
+        setTimeout(() => window.location.reload(), 150)
+      }
     }
   }
 
@@ -210,7 +324,8 @@ export default class extends Controller {
     if (!this.lastSaveSucceeded || this.hasPendingChanges) {
       // Stay on the page so the admin can resolve validation errors; otherwise
       // navigating (e.g., to Preview) makes it look like the builder saved.
-      this.updateStatus("Fix errors before leaving this page", "error")
+      const suffix = this.lastValidationMessage ? ` — ${this.lastValidationMessage}` : ""
+      this.updateStatus(`Fix errors before leaving this page${suffix}`, "error")
       return
     }
 
@@ -228,5 +343,43 @@ export default class extends Controller {
   handleTurboBeforeCache() {
     // Turbo caches pages; make sure any pending edits are flushed first.
     this.handleBeforeUnload()
+  }
+
+  hasBlankNestedIds() {
+    // Look for nested id fields with blank values (new records).
+    const selectors = [
+      'input[name^="survey[sections_attributes]"][name$="[id]"]',
+      'input[name^="survey[categories_attributes]"][name$="[id]"]',
+      'input[name^="survey[categories_attributes]"][name*="[questions_attributes]"][name$="[id]"]'
+    ]
+
+    return selectors.some((selector) => {
+      return Array.from(this.element.querySelectorAll(selector)).some((input) => {
+        if (!input) return false
+        const value = (input.value || "").trim()
+        return value.length === 0
+      })
+    })
+  }
+
+  extractFirstErrorMessage(html) {
+    if (!html) return null
+
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(html, "text/html")
+
+      // Prefer the standard error list in the admin survey form.
+      const firstLi = doc.querySelector(".bg-rose-50 li")
+      const text = firstLi?.textContent?.trim()
+      if (text) return text
+
+      const headline = doc.querySelector(".bg-rose-50 h2")?.textContent?.trim()
+      if (headline) return headline
+    } catch {
+      // Ignore parse errors.
+    }
+
+    return null
   }
 }

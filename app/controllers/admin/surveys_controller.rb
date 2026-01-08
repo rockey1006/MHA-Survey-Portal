@@ -120,6 +120,7 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def update
+    autosave_request = params[:autosave].to_s == "1"
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
@@ -132,10 +133,33 @@ class Admin::SurveysController < Admin::BaseController
     previous_available_from = @survey.available_from
     previous_available_until = @survey.available_until
 
+    if autosave_request && Rails.env.development?
+      raw = params[:survey].is_a?(ActionController::Parameters) ? params[:survey] : ActionController::Parameters.new
+      sections_keys = raw[:sections_attributes].is_a?(ActionController::Parameters) ? raw[:sections_attributes].keys : []
+      categories_keys = raw[:categories_attributes].is_a?(ActionController::Parameters) ? raw[:categories_attributes].keys : []
+      questions_count = 0
+      if raw[:categories_attributes].is_a?(ActionController::Parameters)
+        raw[:categories_attributes].each_value do |cat|
+          next unless cat.is_a?(ActionController::Parameters)
+          qa = cat[:questions_attributes]
+          questions_count += qa.keys.size if qa.is_a?(ActionController::Parameters)
+        end
+      end
+
+      Rails.logger.info(
+        "[autosave] survey=#{@survey.id} incoming sections=#{sections_keys.size} categories=#{categories_keys.size} questions=#{questions_count}"
+      )
+    end
+
     @survey.assign_attributes(survey_params)
     resolve_category_sections(@survey)
 
     if @survey.save
+      if autosave_request && Rails.env.development?
+        Rails.logger.info(
+          "[autosave] survey=#{@survey.id} persisted sections=#{@survey.sections.size} categories=#{@survey.categories.size} questions=#{@survey.questions.size}"
+        )
+      end
       if before_target_levels.present?
         after_target_levels = @survey.questions.reload.pluck(:id, :program_target_level).to_h
 
@@ -197,6 +221,7 @@ class Admin::SurveysController < Admin::BaseController
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
       redirect_to admin_surveys_path, notice: "Survey updated successfully."
     else
+      Rails.logger.info("[autosave] survey=#{@survey.id} save FAILED: #{@survey.errors.full_messages.to_sentence}") if autosave_request && Rails.env.development?
       build_default_structure(@survey)
       ensure_section_form_state(@survey)
       render :edit, status: :unprocessable_entity
@@ -322,13 +347,14 @@ class Admin::SurveysController < Admin::BaseController
     question_attributes << :parent_question_id if Question.new.respond_to?(:parent_question_id)
     question_attributes << :sub_question_order if Question.new.respond_to?(:sub_question_order)
 
-    params.require(:survey).permit(
+    permitted = params.require(:survey).permit(
       :title,
       :description,
       :semester,
       :available_from,
       :available_until,
       :is_active,
+      track_list: [],
       legend_attributes: [
         :id,
         :title,
@@ -355,14 +381,19 @@ class Admin::SurveysController < Admin::BaseController
         :_destroy
       ]
     )
+
+    permitted.delete(:track_list)
+    permitted
   end
 
   # Extracts and normalizes track selections from the submitted parameters.
   #
   # @return [Array<String>] list of unique track identifiers chosen by the admin
   def selected_tracks
-    permitted = params.fetch(:survey, {}).permit(track_list: [])
-    Array(permitted[:track_list])
+    raw = params[:survey]
+    values = raw.is_a?(ActionController::Parameters) ? raw[:track_list] : nil
+
+    Array(values)
       .map { |value| Survey.canonical_track(value) }
       .compact
       .uniq

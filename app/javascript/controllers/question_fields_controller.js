@@ -33,6 +33,7 @@ export default class extends Controller {
   }
 
   uniqueToken() {
-    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`
+    // Must be digits-only so Rails strong params keeps nested attributes.
+    return `${Date.now()}${Math.floor(Math.random() * 1_000_000_000)}`
   }
 }

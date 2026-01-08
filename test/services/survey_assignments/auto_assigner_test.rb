@@ -74,7 +74,7 @@ module SurveyAssignments
       refute_includes @student.survey_assignments.pluck(:survey_id), surveys(:spring_2025).id
     end
 
-    test "auto-assigns offerings even when portfolio due date is blank" do
+    test "auto-assigns offerings even when portfolio deadline is blank" do
       SurveyOffering.create!(
         survey: surveys(:fall_2025),
         track: "Residential",

@@ -61,7 +61,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
     assert assigns(:current_semester_label).present?
   end
 
-  test "show sets editing notice when assignment completed but due date not passed" do
+  test "show sets editing notice when assignment completed but survey has not closed" do
     sign_in @student_user
 
     assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: @student.student_id)
@@ -75,7 +75,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
     assert flash[:notice].to_s.include?("editing a submitted survey"), "Expected edit notice when revising"
   end
 
-  test "show redirects to read-only response when due date passed" do
+  test "show redirects to read-only response when survey is closed" do
     sign_in @student_user
 
     assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: @student.student_id)

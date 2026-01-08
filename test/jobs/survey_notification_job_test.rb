@@ -147,7 +147,7 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
 
     notification = Notification.last
     assert_equal @assignment.student.user, notification.user
-    assert_equal "Competency Survey Due Soon", notification.title
+    assert_equal "Competency Survey Closing Soon", notification.title
     assert_match @assignment.survey.title, notification.message
     assert_match /closes in/, notification.message
   end
@@ -160,7 +160,7 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
     end
   end
 
-  test "due soon event skips assignments without due date" do
+  test "due soon event skips assignments without a closing time" do
     @assignment.update!(available_until: nil)
 
     assert_no_difference -> { Notification.count } do
@@ -169,7 +169,7 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
   end
 
   # Test :past_due event
-  test "past due event notifies student about overdue survey" do
+  test "past due event notifies student when survey closes" do
     @assignment.update!(available_until: 2.days.ago)
 
     assert_difference -> { Notification.count }, 1 do
@@ -178,7 +178,7 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
 
     notification = Notification.last
     assert_equal @assignment.student.user, notification.user
-    assert_equal "Competency Survey Past Due", notification.title
+    assert_equal "Competency Survey Closed", notification.title
     assert_match @assignment.survey.title, notification.message
     assert_match /now closed/i, notification.message
   end
@@ -191,7 +191,7 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
     end
   end
 
-  test "past due event skips assignments without due date" do
+  test "past due event skips assignments without a closing time" do
     @assignment.update!(available_until: nil)
 
     assert_no_difference -> { Notification.count } do

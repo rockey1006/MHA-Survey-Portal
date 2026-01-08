@@ -151,7 +151,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to survey_response_path(survey_response)
   end
 
-  test "save_progress is blocked after submission even before due date" do
+  test "save_progress is blocked after submission even before survey closes" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
     assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
@@ -174,7 +174,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to survey_response_path(survey_response)
   end
 
-  test "show allows revisions before due date" do
+  test "show allows revisions before survey closes" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
     assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
@@ -184,7 +184,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "show allows revisions when due date is not set" do
+  test "show allows revisions when closing time is not set" do
     sign_in @student_user
     assignment = survey_assignments(:residential_assignment)
     assignment.update!(completed_at: Time.current, available_until: nil)

@@ -3,14 +3,14 @@
   <% back_path = return_to.presence || student_dashboard_path %>
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && @survey_response&.student.present? && (current_user.id == @survey_response.student.user&.id) %>
   <% available_until = defined?(@survey_assignment) ? @survey_assignment&.available_until : nil %>
-  <% can_edit_by_due_date = available_until.blank? || available_until >= Time.current %>
+  <% can_edit_by_closing_time = available_until.blank? || available_until >= Time.current %>
 
   <div class="c-toolbar c-toolbar--spaced">
     <div class="c-toolbar__row">
       <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
       <% if viewer_is_student_owner %>
         <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || @selected_version.blank? || @selected_version == @versions.last %>
-        <% can_edit = viewing_latest_version && can_edit_by_due_date %>
+        <% can_edit = viewing_latest_version && can_edit_by_closing_time %>
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
@@ -79,7 +79,7 @@
       <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
       <% if viewer_is_student_owner %>
         <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || @selected_version.blank? || @selected_version == @versions.last %>
-        <% can_edit = viewing_latest_version && can_edit_by_due_date %>
+        <% can_edit = viewing_latest_version && can_edit_by_closing_time %>
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>

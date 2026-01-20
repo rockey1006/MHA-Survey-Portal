@@ -55,6 +55,23 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, ">#{other.title}</span>"
   end
 
+  test "student records only lists students for survey track" do
+    sign_in @admin
+
+    residential_survey = surveys(:fall_2025)
+    executive_survey = surveys(:fall_2025_executive)
+
+    get student_records_path(survey_id: residential_survey.id)
+    assert_response :success
+    assert_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
+
+    get student_records_path(survey_id: executive_survey.id)
+    assert_response :success
+    assert_includes response.body, users(:other_student).name
+    assert_not_includes response.body, users(:student).name
+  end
+
   test "admin can filter surveys by keyword" do
     sign_in @admin
 
@@ -153,7 +170,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
   test "student record status is unassigned when no assignment exists" do
     student = students(:student)
-    survey = surveys(:spring_2025)
+    survey = surveys(:spring_2026_residential)
 
     controller = StudentRecordsController.new
     records = controller.send(:build_student_records, [ student ])

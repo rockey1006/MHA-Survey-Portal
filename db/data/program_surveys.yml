@@ -67,7 +67,7 @@ templates:
     required: false
 
   evidence_question: &evidence_question
-    text: "Please provide a link to your (Google Drive) MHA Portfolio as evidence for this survey."
+    text: "Please provide a link to your MHA Portfolio (Google Sites) as evidence for this survey."
     type: "evidence"
     required: true
 

@@ -114,10 +114,11 @@ class StudentRecordsController < ApplicationController
       {
         semester: semester.presence || "Unscheduled",
         surveys: grouped[semester].map do |survey|
+          students_for_survey = filter_students_for_survey(students, survey)
           {
             survey: survey,
             rows: begin
-              rows = students.map do |student|
+              rows = students_for_survey.map do |student|
                 responses = responses_matrix[student.student_id][survey.id]
                 answered_ids = responses.map { |entry| entry[:question_id] }.uniq
                 survey_response = SurveyResponse.build(student: student, survey: survey)
@@ -164,7 +165,7 @@ class StudentRecordsController < ApplicationController
   end
 
   def filtered_surveys
-    scope = survey_filter_scope.includes(:questions)
+    scope = survey_filter_scope.includes(:questions, :track_assignments)
 
     if @survey_filter_id.present?
       scope = scope.where(id: @survey_filter_id)
@@ -175,7 +176,7 @@ class StudentRecordsController < ApplicationController
 
   def survey_filter_scope
     scope = Survey
-            .includes(:program_semester)
+            .includes(:program_semester, :track_assignments)
             .order(created_at: :desc)
 
     if @semester_filter.present?
@@ -187,6 +188,40 @@ class StudentRecordsController < ApplicationController
     end
 
     scope.distinct
+  end
+
+  def filter_students_for_survey(students, survey)
+    survey_track_keys = survey_track_keys(survey)
+    return students if survey_track_keys.blank?
+
+    students.select do |student|
+      student_track_key = ProgramTrack.canonical_key(student&.track)
+      survey_track_keys.include?(student_track_key)
+    end
+  end
+
+  def survey_track_keys(survey)
+    track_values = if survey.respond_to?(:track_list)
+      survey.track_list
+    else
+      []
+    end
+
+    keys = Array(track_values)
+           .compact
+           .map { |value| ProgramTrack.canonical_key(value) }
+           .compact
+           .uniq
+    return keys if keys.any?
+
+    legacy_key = ProgramTrack.canonical_key(survey&.track)
+    return [ legacy_key ] if legacy_key.present?
+
+    title = survey&.title.to_s.downcase
+    return [ "executive" ] if title.include?("executive")
+    return [ "residential" ] if title.include?("residential")
+
+    []
   end
 
   def normalize_status_filter(value)

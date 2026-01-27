@@ -1,6 +1,7 @@
 # View helpers supporting feedback pages.
 module FeedbacksHelper
      DEFAULT_PROFICIENCY_PAIRS = [
+          [ "Not able to assess (0)", "0" ],
           [ "Beginner (1)", "1" ],
           [ "Emerging (2)", "2" ],
           [ "Capable (3)", "3" ],
@@ -27,8 +28,6 @@ module FeedbacksHelper
           int_value = numeric.round
           return nil unless int_value.between?(0, 5)
 
-          return nil if int_value.zero?
-
           int_value.to_s
      end
 
@@ -52,9 +51,9 @@ module FeedbacksHelper
           numeric_values = value_strings.select { |v| v.match?(/\A[1-5]\z/) }
           base = DEFAULT_PROFICIENCY_PAIRS if base.blank? || numeric_values.size < 5
 
-          # Ensure the advisor score dropdown is always 1–5 (blank means not assessed),
-          # even if older survey config includes a 0 option.
-          base.reject { |(_label, value)| value.to_s == "0" }
+          # Ensure the advisor score dropdown is always 0–5 (blank means not assessed).
+          has_zero = base.any? { |(_label, value)| value.to_s == "0" }
+          has_zero ? base : [["#{NOT_ASSESSABLE_LABEL} (0)", "0"]] + base
      end
 
      # Maps a stored score into a label for display.

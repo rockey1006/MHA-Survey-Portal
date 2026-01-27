@@ -5,6 +5,7 @@ module CompositeReportsHelper
   TRUNCATION_SUFFIX = "... (truncated for PDF, view full response in the app)"
 
   DEFAULT_PROFICIENCY_OPTION_PAIRS = [
+    [ "Not able to assess (0)", "0" ],
     [ "Mastery (5)", "5" ],
     [ "Experienced (4)", "4" ],
     [ "Capable (3)", "3" ],
@@ -75,7 +76,8 @@ module CompositeReportsHelper
     end
 
     base = DEFAULT_PROFICIENCY_OPTION_PAIRS if base.blank?
-    base.reject { |(_label, value)| value.to_s == "0" }
+    has_zero = base.any? { |(_label, value)| value.to_s == "0" }
+    has_zero ? base : [["Not able to assess (0)", "0"]] + base
   end
 
   # Normalizes stored feedback scores into a dropdown value string.
@@ -84,8 +86,6 @@ module CompositeReportsHelper
 
     int_value = score.to_f.round
     return nil unless int_value.between?(0, 5)
-
-    return nil if int_value.zero?
 
     int_value.to_s
   end

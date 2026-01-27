@@ -338,13 +338,22 @@ class Admin::SurveysController < Admin::BaseController
   #
   # @return [void]
   def preview
-    preview_student = OpenStruct.new(student_id: 0, advisor: nil, user: nil)
+    offering_scope = @survey.offerings
+    preview_offering = offering_scope.where.not(class_of: nil).order(:class_of).first || offering_scope.order(:class_of).first
+    preview_track = preview_offering&.track || @survey.track_list.first
+    preview_class_of = preview_offering&.class_of
+    preview_student = OpenStruct.new(
+      student_id: 0,
+      advisor: nil,
+      user: nil,
+      track: preview_track,
+      program_year: preview_class_of
+    )
     @preview_survey_response = SurveyResponse.new(
       student: preview_student,
       survey: @survey,
       answers_override: {}
     )
-    @survey.log_change!(admin: current_user, action: "preview", description: "Previewed from admin panel")
   end
 
   private

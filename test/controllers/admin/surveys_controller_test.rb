@@ -968,16 +968,12 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
   # === Preview Action ===
 
-  test "preview renders successfully and logs preview" do
-    assert_difference "SurveyChangeLog.count" do
+  test "preview renders successfully without logging" do
+    assert_no_difference "SurveyChangeLog.count" do
       get preview_admin_survey_path(@survey)
     end
 
     assert_response :success
-
-    log = SurveyChangeLog.order(:created_at).last
-    assert_equal "preview", log.action
-    assert_equal @survey, log.survey
   end
 
   test "preview with categories and questions" do

@@ -80,7 +80,7 @@ class FeedbackTest < ActiveSupport::TestCase
     assert_equal 2, Feedback.where(student_id: student.student_id, survey_id: survey.id).count
   end
 
-  test "average_score must be within 1..5 when provided" do
+  test "average_score must be within 0..5 when provided" do
     user = User.create!(email: "stu-range@example.com", name: "Student Range", role: "student")
     student = user.student_profile
 
@@ -102,9 +102,9 @@ class FeedbackTest < ActiveSupport::TestCase
     assert Feedback.new(base_attrs.merge(average_score: 1)).valid?
     assert Feedback.new(base_attrs.merge(average_score: 5)).valid?
     assert Feedback.new(base_attrs.merge(average_score: 4.8)).valid?
+    assert Feedback.new(base_attrs.merge(average_score: 0)).valid?
 
     refute Feedback.new(base_attrs.merge(average_score: -0.1)).valid?
-    refute Feedback.new(base_attrs.merge(average_score: 0)).valid?
     refute Feedback.new(base_attrs.merge(average_score: 5.1)).valid?
   end
 

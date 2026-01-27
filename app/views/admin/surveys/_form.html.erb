@@ -5,8 +5,7 @@
 
 <%= form_with(model: [:admin, survey],
               local: true,
-              class: "survey-form w-full space-y-8",
-              data: { controller: "survey-autosave", "survey-autosave-debounce-value": 4000 }) do |form| %>
+              class: "survey-form w-full space-y-8") do |form| %>
   <% if survey.errors.any? %>
     <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
       <h2 class="mb-2 text-base font-semibold"><%= pluralize(survey.errors.count, "error") %> prevented this survey from being saved:</h2>
@@ -26,7 +25,7 @@
       </div>
 
       <div class="text-xs text-slate-500" aria-live="polite">
-        <span data-survey-autosave-target="status">All changes saved</span>
+        <span>Autosave disabled</span>
       </div>
     </div>
   </header>

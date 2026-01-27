@@ -146,60 +146,6 @@
         <% question_number = section_question_numbers[number_key] %>
         <% questions_by_id = ordered_questions.index_by(&:id) %>
 
-        <% if show_inline_feedback %>
-          <% feedback_entries.each do |feedback_entry| %>
-            <% next unless feedback_entry.question_id.present? %>
-            <% question = questions_by_id[feedback_entry.question_id] %>
-            <% next unless question %>
-            <% target_level = effective_competency_target_level(question: question, survey: survey, student: student) %>
-            <% next unless question.question_type == "dropdown" && target_level.present? %>
-            <% timestamp = feedback_entry.updated_at || feedback_entry.created_at %>
-            <% selected_proficiency = normalize_proficiency_value(feedback_entry.average_score) %>
-            <div class="question-block">
-              <div class="question-header">
-                <span class="question-number">Q<%= (section_question_numbers[number_key] += 1) %></span>
-                <div class="question-heading">
-                  <div class="question-body"><%= question.question_text %></div>
-                  <div class="target-level-wrap">
-                    <span class="target-level-badge">Target Level: <%= target_level %>/5</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="feedback-block">
-                <div class="feedback-header">
-                  <div><strong>Advisor feedback</strong> <span class="muted">(<%= feedback_entry.advisor&.display_name || "—" %>)</span></div>
-                  <div class="feedback-score">
-                    <% if selected_proficiency.present? %>
-                      <select class="pdf-select" disabled>
-                        <option value=""></option>
-                        <% proficiency_option_pairs_for(question).each do |label, value| %>
-                          <option value="<%= value %>" <%= value.to_s == selected_proficiency.to_s ? "selected" : "" %>><%= label %></option>
-                        <% end %>
-                      </select>
-                    <% else %>
-                      —
-                    <% end %>
-                  </div>
-                </div>
-
-                <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback_entry.comments) %>
-                <div class="feedback-comments">
-                  <% if comments_text.present? %>
-                    <%= simple_format(comments_text) %>
-                    <% if comments_truncated %>
-                      <div class="truncation-note">Full feedback available in the Health application.</div>
-                    <% end %>
-                  <% else %>
-                    <div class="feedback-empty">No feedback provided</div>
-                  <% end %>
-                </div>
-                <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
-              </div>
-            </div>
-          <% end %>
-        <% end %>
-
         <% ordered_questions.each_with_index do |question, index| %>
           <%# Hide conditional subquestions (e.g. Employment follow-ups) unless parent is answered "Yes" %>
           <% if question.sub_question? %>
@@ -220,7 +166,9 @@
 
           <% effective_target_level = effective_competency_target_level(question: question, survey: survey, student: student) %>
           <% is_competency_rating_row = show_inline_feedback && competency_rating_question_ids.include?(question.id) && question.question_type == "dropdown" && effective_target_level.present? %>
-          <% next if is_competency_rating_row %>
+          <% if is_competency_rating_row %>
+            <% next %>
+          <% end %>
 
           <% question_number = (section_question_numbers[number_key] += 1) unless question.sub_question? %>
           <div class="question-block">

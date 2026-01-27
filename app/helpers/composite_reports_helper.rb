@@ -82,9 +82,9 @@ module CompositeReportsHelper
     insert_after_value = "1"
     insert_index = base.index { |(_label, value)| value.to_s == insert_after_value }
     if insert_index
-      base.dup.insert(insert_index + 1, ["Not able to assess (0)", "0"])
+      base.dup.insert(insert_index + 1, [ "Not able to assess (0)", "0" ])
     else
-      base.dup << ["Not able to assess (0)", "0"]
+      base.dup << [ "Not able to assess (0)", "0" ]
     end
   end
 

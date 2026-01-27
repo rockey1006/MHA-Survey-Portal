@@ -51,16 +51,16 @@ module FeedbacksHelper
           numeric_values = value_strings.select { |v| v.match?(/\A[1-5]\z/) }
           base = DEFAULT_PROFICIENCY_PAIRS if base.blank? || numeric_values.size < 5
 
-          # Ensure the advisor score dropdown is always 0–5 (blank means not assessed).
+           # Ensure the advisor score dropdown is always 0–5 (blank means not assessed).
            has_zero = base.any? { |(_label, value)| value.to_s == "0" }
            return base if has_zero
 
            insert_after_value = "1"
            insert_index = base.index { |(_label, value)| value.to_s == insert_after_value }
            if insert_index
-                base.dup.insert(insert_index + 1, ["#{NOT_ASSESSABLE_LABEL} (0)", "0"])
+                base.dup.insert(insert_index + 1, [ "#{NOT_ASSESSABLE_LABEL} (0)", "0" ])
            else
-                base.dup << ["#{NOT_ASSESSABLE_LABEL} (0)", "0"]
+                base.dup << [ "#{NOT_ASSESSABLE_LABEL} (0)", "0" ]
            end
      end
 

@@ -393,7 +393,7 @@
                         <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-2">
                           <div class="flex flex-wrap items-center justify-between gap-3">
                             <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — #<%= question_number %></h5>
-                            <p class="text-xs text-slate-600">Score: <%= fb.average_score.present? ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
+                            <p class="text-xs text-slate-600">Score: <%= fb.average_score != nil ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
                           </div>
                           <% if fb.comments.present? %>
                             <div class="text-sm text-slate-700 whitespace-pre-wrap break-words"><%= fb.comments %></div>

@@ -35,6 +35,11 @@ class FeedbacksController < ApplicationController
   def create
     Rails.logger.debug "[FeedbacksController#create] params_keys=#{params.keys.inspect} ratings_present=#{params[:ratings].present?} feedback_present=#{params[:feedback].present?}"
     @advisor = current_advisor_profile
+    resolved_advisor_id = @advisor&.advisor_id || @student&.advisor_id
+    if resolved_advisor_id.blank? && current_user&.role_admin?
+      admin_advisor = Advisor.find_or_create_by!(advisor_id: current_user.id)
+      resolved_advisor_id = admin_advisor.advisor_id
+    end
     # Support two modes:
     # 1) batch per-category ratings via params[:ratings]
     # 2) per-category single feedback via nested feedback params
@@ -64,13 +69,13 @@ class FeedbacksController < ApplicationController
           question = Question.find_by(id: qid)
 
           fb = if attrs["id"].present?
-            Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
+            Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: resolved_advisor_id)
           else
             Feedback.new(student_id: @student.student_id,
               survey_id: @survey.id,
               question_id: qid,
               category_id: question&.category_id,
-              advisor_id: @advisor&.advisor_id)
+              advisor_id: resolved_advisor_id)
           end
 
           Rails.logger.debug "[FeedbacksController#create] found fb=#{fb.inspect} attrs=#{attrs.inspect}"
@@ -84,8 +89,13 @@ class FeedbacksController < ApplicationController
           fb.comments = attrs["comments"].presence
           fb.survey_id = @survey.id
           fb.student_id = @student.student_id
-          fb.advisor_id = @advisor&.advisor_id
+          fb.advisor_id = resolved_advisor_id
           fb.question_id = qid
+
+          if fb.advisor_id.blank?
+            batch_errors[qid] = [ "Advisor not assigned for this student." ]
+            next
+          end
 
           if attrs["lock_version"].present?
             fb.lock_version = attrs["lock_version"].to_i

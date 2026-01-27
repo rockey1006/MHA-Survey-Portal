@@ -146,6 +146,60 @@
         <% question_number = section_question_numbers[number_key] %>
         <% questions_by_id = ordered_questions.index_by(&:id) %>
 
+        <% if show_inline_feedback %>
+          <% feedback_entries.each do |feedback_entry| %>
+            <% next unless feedback_entry.question_id.present? %>
+            <% question = questions_by_id[feedback_entry.question_id] %>
+            <% next unless question %>
+            <% target_level = effective_competency_target_level(question: question, survey: survey, student: student) %>
+            <% next unless question.question_type == "dropdown" && target_level.present? %>
+            <% timestamp = feedback_entry.updated_at || feedback_entry.created_at %>
+            <% selected_proficiency = normalize_proficiency_value(feedback_entry.average_score) %>
+            <div class="question-block">
+              <div class="question-header">
+                <span class="question-number">Q<%= (section_question_numbers[number_key] += 1) %></span>
+                <div class="question-heading">
+                  <div class="question-body"><%= question.question_text %></div>
+                  <div class="target-level-wrap">
+                    <span class="target-level-badge">Target Level: <%= target_level %>/5</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="feedback-block">
+                <div class="feedback-header">
+                  <div><strong>Advisor feedback</strong> <span class="muted">(<%= feedback_entry.advisor&.display_name || "—" %>)</span></div>
+                  <div class="feedback-score">
+                    <% if selected_proficiency.present? %>
+                      <select class="pdf-select" disabled>
+                        <option value=""></option>
+                        <% proficiency_option_pairs_for(question).each do |label, value| %>
+                          <option value="<%= value %>" <%= value.to_s == selected_proficiency.to_s ? "selected" : "" %>><%= label %></option>
+                        <% end %>
+                      </select>
+                    <% else %>
+                      —
+                    <% end %>
+                  </div>
+                </div>
+
+                <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback_entry.comments) %>
+                <div class="feedback-comments">
+                  <% if comments_text.present? %>
+                    <%= simple_format(comments_text) %>
+                    <% if comments_truncated %>
+                      <div class="truncation-note">Full feedback available in the Health application.</div>
+                    <% end %>
+                  <% else %>
+                    <div class="feedback-empty">No feedback provided</div>
+                  <% end %>
+                </div>
+                <div class="feedback-meta muted">Updated: <%= timestamp ? timestamp.strftime("%Y-%m-%d") : "—" %></div>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+
         <% ordered_questions.each_with_index do |question, index| %>
           <%# Hide conditional subquestions (e.g. Employment follow-ups) unless parent is answered "Yes" %>
           <% if question.sub_question? %>
@@ -367,7 +421,7 @@
             <div class="feedback-header">
               <div><strong>Advisor:</strong> <%= feedback.advisor&.display_name || "—" %></div>
               <div class="feedback-score">
-                Score: <%= feedback.average_score.present? ? format('%.2f', feedback.average_score.to_f) : "—" %>
+                Score: <%= feedback.average_score != nil ? format('%.2f', feedback.average_score.to_f) : "—" %>
               </div>
             </div>
             <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback.comments) %>
@@ -392,7 +446,7 @@
 <%# Advisor feedback summary (PDF only). Render only when we have 2+ scored feedback entries with target levels. %>
 <%
   questions_by_id_for_summary = categories.flat_map(&:questions).index_by(&:id)
-  feedback_rows_for_summary = feedbacks_by_category.values.flatten.select { |entry| entry.question_id.present? && entry.average_score.present? }
+  feedback_rows_for_summary = feedbacks_by_category.values.flatten.select { |entry| entry.question_id.present? && entry.average_score != nil }
   scored_feedback_count = feedback_rows_for_summary.size
 
   summary_total = 0
@@ -417,7 +471,7 @@
   summary_below_pct = summary_total.positive? ? ((summary_below.to_f / summary_total) * 100).round(1) : 0.0
 %>
 
-<% if scored_feedback_count > 1 %>
+<% if scored_feedback_count >= 1 %>
   <section class="c-card summary-card" data-advisor-feedback-summary>
     <div class="advisor-summary__header">
       <h3 class="advisor-summary__title">Summary Statistics</h3>
@@ -440,7 +494,7 @@
       <div class="advisor-summary__card advisor-summary__card--below">
         <div class="advisor-summary__cardRow">
           <div class="advisor-summary__meta">
-            <div class="advisor-summary__label">Below Target</div>
+            <div class="advisor-summary__label">Below End of Program Target</div>
             <div class="advisor-summary__percent">(<%= summary_below_pct %>%)</div>
           </div>
           <div class="advisor-summary__value">

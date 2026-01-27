@@ -1,12 +1,12 @@
 # View helpers supporting feedback pages.
 module FeedbacksHelper
      DEFAULT_PROFICIENCY_PAIRS = [
-          [ "Not able to assess (0)", "0" ],
-          [ "Beginner (1)", "1" ],
-          [ "Emerging (2)", "2" ],
-          [ "Capable (3)", "3" ],
+          [ "Mastery (5)", "5" ],
           [ "Experienced (4)", "4" ],
-          [ "Mastery (5)", "5" ]
+          [ "Capable (3)", "3" ],
+          [ "Emerging (2)", "2" ],
+          [ "Beginner (1)", "1" ],
+          [ "Not able to assess (0)", "0" ]
      ].freeze
      NOT_ASSESSABLE_LABEL = "Not able to assess".freeze
 
@@ -52,8 +52,16 @@ module FeedbacksHelper
           base = DEFAULT_PROFICIENCY_PAIRS if base.blank? || numeric_values.size < 5
 
           # Ensure the advisor score dropdown is always 0–5 (blank means not assessed).
-          has_zero = base.any? { |(_label, value)| value.to_s == "0" }
-          has_zero ? base : [["#{NOT_ASSESSABLE_LABEL} (0)", "0"]] + base
+           has_zero = base.any? { |(_label, value)| value.to_s == "0" }
+           return base if has_zero
+
+           insert_after_value = "1"
+           insert_index = base.index { |(_label, value)| value.to_s == insert_after_value }
+           if insert_index
+                base.dup.insert(insert_index + 1, ["#{NOT_ASSESSABLE_LABEL} (0)", "0"])
+           else
+                base.dup << ["#{NOT_ASSESSABLE_LABEL} (0)", "0"]
+           end
      end
 
      # Maps a stored score into a label for display.

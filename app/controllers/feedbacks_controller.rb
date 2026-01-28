@@ -35,6 +35,11 @@ class FeedbacksController < ApplicationController
   def create
     Rails.logger.debug "[FeedbacksController#create] params_keys=#{params.keys.inspect} ratings_present=#{params[:ratings].present?} feedback_present=#{params[:feedback].present?}"
     @advisor = current_advisor_profile
+    resolved_advisor_id = @advisor&.advisor_id || @student&.advisor_id
+    if resolved_advisor_id.blank? && current_user&.role_admin?
+      admin_advisor = Advisor.find_or_create_by!(advisor_id: current_user.id)
+      resolved_advisor_id = admin_advisor.advisor_id
+    end
     # Support two modes:
     # 1) batch per-category ratings via params[:ratings]
     # 2) per-category single feedback via nested feedback params
@@ -64,13 +69,13 @@ class FeedbacksController < ApplicationController
           question = Question.find_by(id: qid)
 
           fb = if attrs["id"].present?
-            Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: @advisor&.advisor_id)
+            Feedback.find_by(id: attrs["id"], student_id: @student.student_id, survey_id: @survey.id, advisor_id: resolved_advisor_id)
           else
             Feedback.new(student_id: @student.student_id,
               survey_id: @survey.id,
               question_id: qid,
               category_id: question&.category_id,
-              advisor_id: @advisor&.advisor_id)
+              advisor_id: resolved_advisor_id)
           end
 
           Rails.logger.debug "[FeedbacksController#create] found fb=#{fb.inspect} attrs=#{attrs.inspect}"
@@ -84,8 +89,13 @@ class FeedbacksController < ApplicationController
           fb.comments = attrs["comments"].presence
           fb.survey_id = @survey.id
           fb.student_id = @student.student_id
-          fb.advisor_id = @advisor&.advisor_id
+          fb.advisor_id = resolved_advisor_id
           fb.question_id = qid
+
+          if fb.advisor_id.blank?
+            batch_errors[qid] = [ "Advisor not assigned for this student." ]
+            next
+          end
 
           if attrs["lock_version"].present?
             fb.lock_version = attrs["lock_version"].to_i
@@ -142,7 +152,7 @@ class FeedbacksController < ApplicationController
             return
           end
           respond_to do |format|
-            format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
+            format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
             format.json { render json: { ok: true }, status: :created }
           end
           return
@@ -162,7 +172,7 @@ class FeedbacksController < ApplicationController
       @feedback = saved_feedbacks.first
 
       respond_to do |format|
-        format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
+        format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
         format.json { render json: saved_feedbacks, status: :created }
       end
       return
@@ -184,7 +194,7 @@ class FeedbacksController < ApplicationController
       if params[:confidential_advisor_note].present?
         save_confidential_advisor_note_from_params!
         respond_to do |format|
-          format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
+          format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
           format.json { render json: { ok: true }, status: :created }
         end
         return
@@ -210,7 +220,7 @@ class FeedbacksController < ApplicationController
           format.json { render json: { error: "conflict" }, status: :conflict }
           return
         end
-        format.html { redirect_to after_save_redirect_path, notice: "Saved.", status: :see_other }
+        format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
         format.json { render json: @feedback, status: :created, location: @feedback }
       else
         load_feedback_new_context
@@ -402,6 +412,12 @@ class FeedbacksController < ApplicationController
 
   def after_save_redirect_path
     safe_return_to_param
+  end
+
+  def feedback_saved_notice
+    student_name = @student&.full_name.presence || @student&.user&.display_name.presence || @student&.email || "Student"
+    survey_name = @survey&.title.presence || "Survey"
+    "Saved feedback for #{student_name} on #{survey_name}."
   end
 
   def safe_return_to_param

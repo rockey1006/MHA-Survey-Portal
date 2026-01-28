@@ -25,6 +25,10 @@ module Assignments
         @students = @students.where(track: Student.tracks[track_key])
       end
 
+      @track_options = ProgramTrack.names
+      @year_options = assignable_students.where.not(program_year: nil).distinct.order(:program_year).pluck(:program_year)
+      @default_track_label = track_key.present? ? Student.tracks[track_key] : nil
+
       student_ids = @students.pluck(:student_id)
       @assignments_by_student_id =
         SurveyAssignment
@@ -57,11 +61,27 @@ module Assignments
 
     # Assigns the survey to all eligible students in the survey's track.
     def assign_all
-      students = eligible_students_for_track
+      students = assignable_students
+      track_filter = params[:track].presence
+      year_filter = params[:program_year].presence
+
+      if track_filter.present?
+        canonical = ProgramTrack.canonical_key(track_filter)
+        track_label = ProgramTrack.name_for_key(canonical) || track_filter.to_s.strip
+        students = students.where(track: track_label)
+      end
+
+      if year_filter.present?
+        students = students.where(program_year: year_filter.to_i)
+      end
+
+      if track_filter.blank? && year_filter.blank?
+        students = eligible_students_for_track
+      end
 
       if students.blank?
         redirect_to assignments_survey_path(@survey),
-                    alert: "No students available in the #{survey_track_key&.titleize || 'selected'} track."
+                    alert: "No students available for the selected assignment group."
         return
       end
 
@@ -80,8 +100,11 @@ module Assignments
         end
       end
 
+      group_label = []
+      group_label << (track_filter.present? ? track_filter.to_s.strip : (survey_track_key&.titleize || "selected track"))
+      group_label << "Class of #{year_filter}" if year_filter.present?
       redirect_to assignments_surveys_path,
-                  notice: "Assigned '#{@survey.title}' to #{created_count} student#{'s' unless created_count == 1} in the #{survey_track_key.titleize} track at #{timestamp_str}."
+          notice: "Assigned '#{@survey.title}' to #{created_count} student#{'s' unless created_count == 1} in #{group_label.compact.join(' • ')} at #{timestamp_str}."
     rescue ActiveRecord::RecordInvalid => e
       redirect_to assignments_survey_path(@survey), alert: e.record.errors.full_messages.to_sentence
     end

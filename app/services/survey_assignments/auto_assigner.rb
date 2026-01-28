@@ -111,22 +111,24 @@ module SurveyAssignments
 
       normalized_track = track.to_s.strip.downcase
       cohort = class_of.to_i
+      current_year = current_program_year
+      return [] if current_year.blank?
 
       case normalized_track
       when "residential"
         case cohort
-        when 2027
+        when current_year + 1
           [ "RMHA Initial Competency Survey" ]
-        when 2026
+        when current_year
           [ "RMHA Mid-point Competency Survey", "RMHA Final Competency Survey" ]
         else
           []
         end
       when "executive"
         case cohort
-        when 2027
+        when current_year + 1
           [ "EMHA Mid-point Competency Survey" ]
-        when 2026
+        when current_year
           [ "EMHA Final Competency Survey" ]
         else
           []
@@ -190,6 +192,12 @@ module SurveyAssignments
 
     def assignment_scope
       SurveyAssignment.where(student_id: student.student_id)
+    end
+
+    def current_program_year
+      semester_name = ProgramSemester.current&.name.to_s
+      year_match = semester_name.match(/(\d{4})/)
+      year_match ? year_match[1].to_i : nil
     end
 
     def reset_student_assignment_cache!

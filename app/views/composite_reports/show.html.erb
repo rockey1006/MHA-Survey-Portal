@@ -166,7 +166,9 @@
 
           <% effective_target_level = effective_competency_target_level(question: question, survey: survey, student: student) %>
           <% is_competency_rating_row = show_inline_feedback && competency_rating_question_ids.include?(question.id) && question.question_type == "dropdown" && effective_target_level.present? %>
-          <% next if is_competency_rating_row %>
+          <% if is_competency_rating_row %>
+            <% next %>
+          <% end %>
 
           <% question_number = (section_question_numbers[number_key] += 1) unless question.sub_question? %>
           <div class="question-block">
@@ -367,7 +369,7 @@
             <div class="feedback-header">
               <div><strong>Advisor:</strong> <%= feedback.advisor&.display_name || "—" %></div>
               <div class="feedback-score">
-                Score: <%= feedback.average_score.present? ? format('%.2f', feedback.average_score.to_f) : "—" %>
+                Score: <%= feedback.average_score != nil ? format('%.2f', feedback.average_score.to_f) : "—" %>
               </div>
             </div>
             <% comments_text, comments_truncated = truncate_for_composite_pdf(feedback.comments) %>
@@ -392,7 +394,7 @@
 <%# Advisor feedback summary (PDF only). Render only when we have 2+ scored feedback entries with target levels. %>
 <%
   questions_by_id_for_summary = categories.flat_map(&:questions).index_by(&:id)
-  feedback_rows_for_summary = feedbacks_by_category.values.flatten.select { |entry| entry.question_id.present? && entry.average_score.present? }
+  feedback_rows_for_summary = feedbacks_by_category.values.flatten.select { |entry| entry.question_id.present? && entry.average_score != nil }
   scored_feedback_count = feedback_rows_for_summary.size
 
   summary_total = 0
@@ -417,7 +419,7 @@
   summary_below_pct = summary_total.positive? ? ((summary_below.to_f / summary_total) * 100).round(1) : 0.0
 %>
 
-<% if scored_feedback_count > 1 %>
+<% if scored_feedback_count >= 1 %>
   <section class="c-card summary-card" data-advisor-feedback-summary>
     <div class="advisor-summary__header">
       <h3 class="advisor-summary__title">Summary Statistics</h3>
@@ -440,7 +442,7 @@
       <div class="advisor-summary__card advisor-summary__card--below">
         <div class="advisor-summary__cardRow">
           <div class="advisor-summary__meta">
-            <div class="advisor-summary__label">Below Target</div>
+            <div class="advisor-summary__label">Below End of Program Target</div>
             <div class="advisor-summary__percent">(<%= summary_below_pct %>%)</div>
           </div>
           <div class="advisor-summary__value">
@@ -452,7 +454,7 @@
 
     <div class="advisor-summary__footer">
       <p class="advisor-summary__note">
-        Based on advisor scores (1–5) compared to each question’s program target level.
+        Based on advisor scores (0–5) compared to each question’s program target level.
       </p>
     </div>
   </section>

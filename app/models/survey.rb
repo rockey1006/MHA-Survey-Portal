@@ -94,7 +94,12 @@ class Survey < ApplicationRecord
   # @param description [String, nil]
   # @return [SurveyChangeLog]
   def log_change!(admin:, action:, description: nil)
-    survey_change_logs.create!(admin: admin, action: action, description: description)
+    survey_change_logs.create!(
+      admin: admin,
+      action: action,
+      description: description,
+      survey_title_snapshot: title
+    )
   end
 
   private

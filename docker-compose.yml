@@ -30,6 +30,7 @@ services:
       - "3000:3000"
     volumes:
       - .:/csce431/501_health:cached
+      - bundle-cache:/usr/local/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
@@ -51,6 +52,7 @@ services:
       BUNDLE_WITHOUT: ""
     volumes:
       - .:/csce431/501_health:cached
+      - bundle-cache:/usr/local/bundle
     working_dir: /csce431/501_health
     depends_on:
       - db
@@ -58,3 +60,4 @@ services:
 
 volumes:
   db-data:
+  bundle-cache:

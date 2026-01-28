@@ -9,7 +9,8 @@ module CompositeReportsHelper
     [ "Experienced (4)", "4" ],
     [ "Capable (3)", "3" ],
     [ "Emerging (2)", "2" ],
-    [ "Beginner (1)", "1" ]
+    [ "Beginner (1)", "1" ],
+    [ "Not able to assess (0)", "0" ]
   ].freeze
 
   # Truncates long text responses to keep PDF generation manageable on low-memory dynos.
@@ -75,7 +76,16 @@ module CompositeReportsHelper
     end
 
     base = DEFAULT_PROFICIENCY_OPTION_PAIRS if base.blank?
-    base.reject { |(_label, value)| value.to_s == "0" }
+    has_zero = base.any? { |(_label, value)| value.to_s == "0" }
+    return base if has_zero
+
+    insert_after_value = "1"
+    insert_index = base.index { |(_label, value)| value.to_s == insert_after_value }
+    if insert_index
+      base.dup.insert(insert_index + 1, [ "Not able to assess (0)", "0" ])
+    else
+      base.dup << [ "Not able to assess (0)", "0" ]
+    end
   end
 
   # Normalizes stored feedback scores into a dropdown value string.
@@ -84,8 +94,6 @@ module CompositeReportsHelper
 
     int_value = score.to_f.round
     return nil unless int_value.between?(0, 5)
-
-    return nil if int_value.zero?
 
     int_value.to_s
   end

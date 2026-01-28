@@ -357,7 +357,7 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "batch create rejects 0 score" do
+  test "batch create accepts 0 score" do
     q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Q1", question_order: 1, question_type: "short_answer")
 
     params = {
@@ -368,11 +368,11 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_no_difference "Feedback.count" do
+    assert_difference "Feedback.count", 1 do
       post feedbacks_path, params: params
     end
 
-    assert_response :unprocessable_entity
+    assert_response :see_other
   end
 
   test "batch create with no valid ratings returns error" do

@@ -6,7 +6,7 @@
   <style>
     /* Base typography */
     @page { margin: 1.2cm 1.2cm; }
-    html, body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #24303a; font-size: 13px; line-height: 1.35; }
+    html, body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #24303a; font-size: 11.5px; line-height: 1.3; }
     * { box-sizing: border-box; }
     /* wkhtmltopdf fixed elements overlay content; reserve space for footer */
     body { padding-bottom: 26px; }
@@ -25,15 +25,15 @@
     .pdf-meta-block { margin-top: -6px; margin-bottom: 10px; text-align: right; font-size: 12px; color: #586069; line-height: 1.4; }
 
     /* Info box (use table layout for wkhtmltopdf reliability) */
-    .user-info { border: 1px solid #e2e8f0; background: #ffffff; padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; display: table; width: 100%; }
+    .user-info { border: none; background: #ffffff; padding: 6px 8px; border-radius: 0; margin-bottom: 10px; display: table; width: 100%; }
     .user-info .col { display: table-cell; width: 50%; vertical-align: top; padding-right: 14px; }
     .user-info .col:last-child { padding-right: 0; }
     .user-info .label { font-size: 11px; color: #6b7785; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
     .user-info .value { font-weight: 600; color: #102a43; }
 
-    h1.survey-title { font-size: 20px; margin: 0 0 8px 0; color: #0f172a; }
-    h2.section-title { font-size: 16px; margin: 18px 0 10px 0; color: #0f172a; }
-    h3.category-title { font-size: 14px; margin: 0 0 6px 0; color: #0f172a; }
+    h1.survey-title { font-size: 18px; margin: 0 0 6px 0; color: #0f172a; }
+    h2.section-title { font-size: 14px; margin: 14px 0 8px 0; color: #0f172a; }
+    h3.category-title { font-size: 12.5px; margin: 0 0 5px 0; color: #0f172a; }
 
     .metrics-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
     .metric-card { border: 1px solid #e2e8f0; background: #ffffff; padding: 10px 12px; border-radius: 10px; min-width: 150px; }
@@ -41,15 +41,15 @@
     .metric-value { font-size: 14px; font-weight: 600; color: #102a43; }
 
     /* Advisor summary (PDF) */
-    .advisor-summary { border: 1px solid #50586C; background: #DCE2F0; border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; }
+    .advisor-summary { border: none; background: #DCE2F0; border-radius: 0; padding: 10px 12px; margin-bottom: 12px; }
     /* Summary Statistics should be a normal card (no advisor palette). */
-    .summary-card { border: 1px solid #e2e8f0; background: #ffffff; border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; }
+    .summary-card { border: none; background: #ffffff; border-radius: 0; padding: 10px 12px; margin-bottom: 12px; }
     .advisor-summary__header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
     .advisor-summary__title { font-size: 14px; margin: 0; color: #0f172a; }
     .advisor-summary__hint { margin: 0; font-size: 11px; color: #6b7785; }
     /* Use table layout for wkhtmltopdf reliability (flex can stack). */
     .advisor-summary__grid { display: table; width: 100%; border-collapse: separate; border-spacing: 10px 0; }
-    .advisor-summary__card { display: table-cell; width: 50%; vertical-align: top; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; background: #f8fafc; }
+    .advisor-summary__card { display: table-cell; width: 50%; vertical-align: top; border: none; border-radius: 0; padding: 8px 10px; background: #f8fafc; }
     .advisor-summary__cardRow { display: flex; justify-content: space-between; gap: 10px; }
     .advisor-summary__label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
     .advisor-summary__percent { font-size: 11px; color: #6b7785; }
@@ -57,28 +57,28 @@
     .advisor-summary__footer { margin-top: 10px; }
     .advisor-summary__note { margin: 0; font-size: 11px; color: #6b7785; }
 
-    .pdf-section { margin-bottom: 18px; }
-    .section-card { border: 1px solid #815854; border-radius: 12px; padding: 12px 14px; margin: 12px 0; background: #F9EBDE; }
+    .pdf-section { margin-bottom: 18px; page-break-inside: avoid; break-inside: avoid; }
+    .section-card { border: none; border-radius: 0; padding: 8px 10px; margin: 8px 0; background: #F9EBDE; page-break-inside: auto; break-inside: auto; }
     .section-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #815854; margin-bottom: 4px; }
     .section-name { font-size: 16px; font-weight: 800; color: #0f172a; }
     .section-description { font-size: 12px; color: #334155; }
     .section-description p { margin: 6px 0 0 0; }
 
-    .category-block { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; }
+    .category-block { border: none; border-radius: 0; padding: 8px 10px; margin-bottom: 8px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
     .category-header { margin-bottom: 6px; }
     .category-description { font-size: 12px; color: #475569; }
     .category-description p { margin: 0 0 6px 0; }
 
-    .question-block { padding: 10px 0; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid; }
-    .question-header { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
+    .question-block { padding: 4px 0; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid; }
+    .question-header { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 2px; }
     .question-number { color: #500000; font-weight: 800; min-width: 28px; }
     .question-heading { display: flex; justify-content: space-between; gap: 10px; width: 100%; }
     .question-body { font-weight: 700; color: #0f172a; }
     .target-level-wrap { margin-left: auto; text-align: right; white-space: nowrap; }
     .target-level-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #0f172a; background: #f1f5f9; border: 1px solid #e2e8f0; }
-    .question-description { font-size: 12px; color: #475569; margin: 4px 0 6px 36px; }
-    .question-description p { margin: 0 0 6px 0; }
-    .question-answer { font-size: 12px; color: #102a43; margin-bottom: 4px; }
+    .question-description { font-size: 12px; color: #475569; margin: 2px 0 4px 36px; }
+    .question-description p { margin: 0 0 4px 0; }
+    .question-answer { font-size: 12px; color: #102a43; margin-bottom: 2px; }
     .question-meta { font-size: 11px; color: #6b7280; display: flex; gap: 12px; }
 
     .choice-list { list-style: none; padding: 0; margin: 6px 0 0 0; }
@@ -101,21 +101,21 @@
   .truncation-note { font-size: 11px; color: #94a3b8; margin-top: 4px; }
 
     /* Advisor feedback blocks should match the advisor palette used on-screen. */
-    .feedback-category { border: 1px solid #50586C; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: #ffffff; }
-    .feedback-block { border: 1px solid #50586C; border-left-width: 4px; border-left-color: #50586C; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: #DCE2F0; }
-    .feedback-header { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: #0f172a; margin-bottom: 6px; }
+    .feedback-category { border: none; border-radius: 0; padding: 8px 10px; margin-bottom: 8px; background: #ffffff; page-break-inside: avoid; break-inside: avoid; }
+    .feedback-block { border: none; border-left-width: 0; border-left-color: transparent; border-radius: 0; padding: 6px 8px; margin-bottom: 4px; background: #DCE2F0; page-break-inside: avoid; break-inside: avoid; }
+    .feedback-header { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #0f172a; margin-bottom: 4px; }
     .feedback-score { font-weight: 800; color: #500000; }
     .feedback-comments { font-size: 12px; color: #102a43; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
-    .feedback-comments p { margin: 0 0 6px 0; overflow-wrap: anywhere; word-break: break-word; }
+    .feedback-comments p { margin: 0 0 4px 0; overflow-wrap: anywhere; word-break: break-word; }
     .feedback-empty { font-size: 12px; color: #64748b; font-style: italic; }
-    .feedback-meta { margin-top: 4px; font-size: 11px; }
+    .feedback-meta { margin-top: 2px; font-size: 11px; }
 
     /* Competency summary table */
-    .competency-table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 12px; page-break-inside: auto; }
+    .competency-table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 12px; page-break-inside: avoid; break-inside: avoid; }
     .competency-table thead { display: table-header-group; }
     .competency-table tfoot { display: table-footer-group; }
     .competency-table tr { page-break-inside: avoid; break-inside: avoid; }
-    .competency-table th, .competency-table td { border: 1px solid #e2e8f0; padding: 8px 10px; vertical-align: top; page-break-inside: avoid; }
+    .competency-table th, .competency-table td { border: 1px solid #e2e8f0; padding: 6px 8px; vertical-align: top; page-break-inside: avoid; }
     .competency-table th { background: #f8fafc; color: #0f172a; font-weight: 700; }
     .competency-table td.numeric { text-align: center; white-space: nowrap; }
     .competency-table td:first-child { word-break: break-word; overflow-wrap: anywhere; }

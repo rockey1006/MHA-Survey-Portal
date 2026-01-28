@@ -85,6 +85,18 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
+# Ensure gems are installed when running ad-hoc commands in the dev image
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'set -e' \
+    'if [ -f Gemfile ]; then' \
+    '  bundle check || bundle install' \
+    'fi' \
+    'exec "$@"' \
+    > /usr/local/bin/dev-entrypoint && chmod +x /usr/local/bin/dev-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint"]
+
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 #RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 

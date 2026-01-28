@@ -779,7 +779,7 @@ class DashboardsController < ApplicationController
       .order(created_at: :desc)
       .limit(10)
       .each do |log|
-        survey_title = log.survey&.title.presence || "Survey ##{log.survey_id}" || "Survey"
+        survey_title = log.survey_title_snapshot.presence || log.survey&.title.presence || "Survey ##{log.survey_id}" || "Survey"
         admin_name = log.admin&.display_name.presence || log.admin&.email || "Admin"
 
         action_label = case log.action

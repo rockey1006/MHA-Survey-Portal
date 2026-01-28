@@ -12,11 +12,44 @@
       <p class="section-subtitle">Survey #<%= @survey_number %>: <%= @survey.title %></p>
     </div>
 
+    <section class="c-card c-card--flush mb-6">
+      <div class="px-4 py-5 sm:px-6">
+        <h2 class="text-lg font-semibold text-slate-900">Assign to a group</h2>
+        <p class="text-sm text-slate-600">Choose a track, class year, or both to assign this survey in bulk.</p>
+      </div>
+      <div class="px-4 pb-6 sm:px-6">
+        <%= form_with url: assign_all_assignments_survey_path(@survey), method: :post, local: true, class: "grid gap-4 md:grid-cols-3" do %>
+          <div class="space-y-2">
+            <label for="bulk_track" class="block text-sm font-medium text-slate-700">Track</label>
+            <%= select_tag :track,
+                           options_for_select([ ["All tracks", ""] ] + Array(@track_options).map { |track| [track, track] }, @default_track_label),
+                           id: "bulk_track",
+                           class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+          </div>
+
+          <div class="space-y-2">
+            <label for="bulk_program_year" class="block text-sm font-medium text-slate-700">Class year</label>
+            <%= select_tag :program_year,
+                           options_for_select([ ["All years", ""] ] + Array(@year_options).map { |year| ["Class of #{year}", year] }),
+                           id: "bulk_program_year",
+                           class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+          </div>
+
+          <div class="flex items-end">
+            <%= submit_tag "Assign to group",
+                           class: tailwind_button_classes(:primary),
+                           data: { turbo_confirm: "Assign “#{@survey.title}” to the selected group?",
+                                   confirm:       "Assign “#{@survey.title}” to the selected group?" } %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
     <% if @students.present? %>
       <div class="c-card c-card--flush">
         <%= render TableComponent.new(
-          headers: ["Student", "Email", "Track", "Status", "Closes", "Action"],
-          right_align: [5]
+          headers: ["Student", "Email", "Track", "Class Year", "Status", "Closes", "Action"],
+          right_align: [6]
         ) do %>
           <% @students.each do |student| %>
             <% assignment = @assignments_by_student_id&.[](student.student_id) %>
@@ -34,6 +67,10 @@
 
               <td class="px-4 py-3 text-sm text-slate-700">
                 <%= student.track.present? ? student.track.titleize : "—" %>
+              </td>
+
+              <td class="px-4 py-3 text-sm text-slate-700">
+                <%= student.program_year.presence || "—" %>
               </td>
 
               <td class="px-4 py-3 text-sm text-slate-700">
@@ -77,13 +114,5 @@
 
 
 
-    <div style="margin-top: 1rem;" class="flex justify-end">
-      <%= button_to "Assign to all in this track",
-                    assign_all_assignments_survey_path(@survey),
-                    method: :post,
-                    data: { turbo_confirm: "Assign “#{@survey.title}” to ALL students in this track?",
-                            confirm:       "Assign “#{@survey.title}” to ALL students in this track?" },
-                    class: tailwind_button_classes(:primary) %>
-    </div>
   </section>
 </main>

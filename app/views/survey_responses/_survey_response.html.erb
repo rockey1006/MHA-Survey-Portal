@@ -5,6 +5,9 @@
 <% answer_param_key = editable ? "answers" : "readonly_answers" %>
 <% other_param_key = editable ? "other_answers" : "readonly_other_answers" %>
 <% input_disabled = !editable %>
+<% viewer_is_student_owner = local_assigns.fetch(:viewer_is_student_owner) do
+     defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id)
+   end %>
 
 <div class="space-y-8">
   <style>
@@ -21,10 +24,14 @@
   </style>
 
   <% survey_name = survey&.title.presence || "Survey ##{survey&.id}" %>
+  <% student_name = sr&.student&.full_name.to_s.strip.presence || sr&.student&.user&.display_name.to_s.strip.presence || sr&.student&.user&.name.to_s.strip.presence || sr&.student&.user&.email.to_s.strip.presence %>
 
   <header class="c-card survey-header mb-6">
     <div class="space-y-2">
       <h1 class="text-2xl font-semibold tracking-tight text-slate-900"><%= survey_name %></h1>
+      <% if student_name.present? && !viewer_is_student_owner %>
+        <p class="text-sm text-slate-700">Student: <span class="font-semibold"><%= student_name %></span></p>
+      <% end %>
       <p class="text-sm text-slate-600">
         Semester: <%= survey&.semester.presence || "TBD" %> · Tracks: <%= survey&.track_list.presence&.join(", ") || "Unassigned" %>
       </p>
@@ -40,7 +47,6 @@
 
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
   <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
-  <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && sr&.student.present? && (current_user.id == sr.student.user&.id) %>
   <%# Avoid relying on a potentially partially-loaded association proxy.
       This ensures newly-added categories/questions show up immediately in preview/read-only.
   %>
@@ -387,7 +393,7 @@
                         <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-2">
                           <div class="flex flex-wrap items-center justify-between gap-3">
                             <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — #<%= question_number %></h5>
-                            <p class="text-xs text-slate-600">Score: <%= fb.average_score.present? ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
+                            <p class="text-xs text-slate-600">Score: <%= fb.average_score != nil ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
                           </div>
                           <% if fb.comments.present? %>
                             <div class="text-sm text-slate-700 whitespace-pre-wrap break-words"><%= fb.comments %></div>
@@ -418,12 +424,12 @@
                     <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-3">
                     <div class="flex items-center justify-between gap-3">
                       <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
-                      <p class="text-xs text-slate-500">Score 1–5, feedback optional</p>
+                      <p class="text-xs text-slate-500">Score 0–5, feedback optional</p>
                     </div>
 
                       <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (1–5)</label>
+                        <label class="mb-1 block text-xs font-medium text-slate-600" for="ratings_<%= feedback_question_id %>_average_score">Score (0–5)</label>
                         <%= render "shared/proficiency_select",
                                    id: "ratings_#{feedback_question_id}_average_score",
                                    name: "ratings[#{feedback_question_id}][average_score]",

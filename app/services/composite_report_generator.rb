@@ -182,6 +182,8 @@ class CompositeReportGenerator
   end
 
   def build_pdf_file(html)
+    zoom = ENV.fetch("WKHTMLTOPDF_ZOOM", "1.0")
+    dpi = ENV.fetch("WKHTMLTOPDF_DPI", "192")
     WickedPdf.new.pdf_from_string(
       html,
       encoding: "UTF-8",
@@ -195,9 +197,10 @@ class CompositeReportGenerator
       quiet: true,
       extra: [
         "--enable-local-file-access",
-        "--dpi", "192",
+        "--dpi", dpi.to_s,
         "--image-dpi", "300",
         "--image-quality", "95",
+        "--zoom", zoom.to_s,
         "--no-outline",
         "--javascript-delay", "500"
       ],
@@ -262,12 +265,7 @@ class CompositeReportGenerator
   end
 
   def feedback_scope
-    base = Feedback.where(student_id: student.student_id, survey_id: survey.id).includes(:category, :advisor)
-    if advisor&.advisor_id
-      base.where(advisor_id: advisor.advisor_id)
-    else
-      base
-    end
+    Feedback.where(student_id: student.student_id, survey_id: survey.id).includes(:category, :advisor)
   end
 
   def feedback_records

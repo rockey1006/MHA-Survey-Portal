@@ -262,12 +262,7 @@ class CompositeReportGenerator
   end
 
   def feedback_scope
-    base = Feedback.where(student_id: student.student_id, survey_id: survey.id).includes(:category, :advisor)
-    if advisor&.advisor_id
-      base.where(advisor_id: advisor.advisor_id)
-    else
-      base
-    end
+    Feedback.where(student_id: student.student_id, survey_id: survey.id).includes(:category, :advisor)
   end
 
   def feedback_records

@@ -21,6 +21,8 @@ class FeedbacksController < ApplicationController
   #
   # @return [void]
   def new
+    @submission_intent = normalize_submission_intent(params[:submission_intent])
+    @saved_popup = params[:saved].to_s == "1"
     load_feedback_new_context
   end
 
@@ -33,6 +35,7 @@ class FeedbacksController < ApplicationController
   #
   # @return [void]
   def create
+    @submission_intent = normalize_submission_intent(params[:submission_intent])
     Rails.logger.debug "[FeedbacksController#create] params_keys=#{params.keys.inspect} ratings_present=#{params[:ratings].present?} feedback_present=#{params[:feedback].present?}"
     @advisor = current_advisor_profile
     resolved_advisor_id = @advisor&.advisor_id || @student&.advisor_id
@@ -52,6 +55,25 @@ class FeedbacksController < ApplicationController
                     values.to_h.slice("id", "lock_version", "average_score", "comments")
         end
         memo[cat_id] = allowed
+      end
+
+      if submit_intent?
+        @missing_rating_question_ids = missing_required_rating_question_ids(ratings)
+        if @missing_rating_question_ids.any?
+          @feedback = Feedback.new
+          load_feedback_new_context
+          flash.now[:alert] = "Please complete all required Advisor Rating fields before submitting."
+          respond_to do |format|
+            format.html { render :new, status: :unprocessable_entity }
+            format.json do
+              render json: {
+                error: "missing_required_advisor_ratings",
+                missing_question_ids: @missing_rating_question_ids
+              }, status: :unprocessable_entity
+            end
+          end
+          return
+        end
       end
 
       batch_errors = {}
@@ -152,7 +174,8 @@ class FeedbacksController < ApplicationController
             return
           end
           respond_to do |format|
-            format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
+            sync_feedback_submission_state!(resolved_advisor_id)
+            format.html { redirect_to feedback_success_redirect_path, notice: feedback_saved_notice, status: :see_other }
             format.json { render json: { ok: true }, status: :created }
           end
           return
@@ -170,9 +193,10 @@ class FeedbacksController < ApplicationController
       end
 
       @feedback = saved_feedbacks.first
+      sync_feedback_submission_state!(resolved_advisor_id)
 
       respond_to do |format|
-        format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
+        format.html { redirect_to feedback_success_redirect_path, notice: feedback_saved_notice, status: :see_other }
         format.json { render json: saved_feedbacks, status: :created }
       end
       return
@@ -193,8 +217,9 @@ class FeedbacksController < ApplicationController
       # Support note-only submissions even when the feedback UI posts no ratings.
       if params[:confidential_advisor_note].present?
         save_confidential_advisor_note_from_params!
+        sync_feedback_submission_state!(resolved_advisor_id)
         respond_to do |format|
-          format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
+          format.html { redirect_to feedback_success_redirect_path, notice: feedback_saved_notice, status: :see_other }
           format.json { render json: { ok: true }, status: :created }
         end
         return
@@ -213,6 +238,7 @@ class FeedbacksController < ApplicationController
       if @feedback.save
         begin
           save_confidential_advisor_note_from_params!
+          sync_feedback_submission_state!(@feedback.advisor_id)
         rescue ActiveRecord::StaleObjectError
           load_feedback_new_context
           flash.now[:alert] = "This note was updated by someone else. Refresh and try again."
@@ -220,7 +246,7 @@ class FeedbacksController < ApplicationController
           format.json { render json: { error: "conflict" }, status: :conflict }
           return
         end
-        format.html { redirect_to after_save_redirect_path, notice: feedback_saved_notice, status: :see_other }
+        format.html { redirect_to feedback_success_redirect_path, notice: feedback_saved_notice, status: :see_other }
         format.json { render json: @feedback, status: :created, location: @feedback }
       else
         load_feedback_new_context
@@ -410,14 +436,87 @@ class FeedbacksController < ApplicationController
     nil
   end
 
-  def after_save_redirect_path
-    safe_return_to_param
-  end
-
   def feedback_saved_notice
     student_name = @student&.full_name.presence || @student&.user&.display_name.presence || @student&.email || "Student"
     survey_name = @survey&.title.presence || "Survey"
-    "Saved feedback for #{student_name} on #{survey_name}."
+    if submit_intent?
+      "Submitted feedback for #{student_name} on #{survey_name}."
+    else
+      "Saved draft feedback for #{student_name} on #{survey_name}."
+    end
+  end
+
+  def feedback_success_redirect_path
+    safe_return_to_param
+  end
+
+  def normalize_submission_intent(raw_value)
+    value = raw_value.to_s.strip.downcase
+    return "save" if value == "save"
+    return "submit" if value == "submit"
+
+    "submit"
+  end
+
+  def submit_intent?
+    @submission_intent == "submit"
+  end
+
+  def required_feedback_question_ids
+    survey_questions = @survey.questions.includes(category: :section)
+    survey_questions
+      .select do |question|
+        !question.sub_question? &&
+          (!question.respond_to?(:has_feedback?) || question.has_feedback?) &&
+          question.category&.section&.mha_competency?
+      end
+      .map(&:id)
+      .uniq
+  end
+
+  def missing_required_rating_question_ids(ratings_hash)
+    provided_rating_ids = ratings_hash.each_with_object([]) do |(question_id, attributes), memo|
+      score = attributes.to_h["average_score"].to_s
+      memo << question_id.to_i if score.present?
+    end
+
+    required_feedback_question_ids - provided_rating_ids
+  end
+
+  def sync_feedback_submission_state!(advisor_id)
+    return if advisor_id.blank?
+
+    pair_feedback_scope = Feedback.where(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: advisor_id
+    )
+
+    has_feedback_data = pair_feedback_scope.where(
+      "average_score IS NOT NULL OR (comments IS NOT NULL AND comments <> '')"
+    ).exists?
+
+    has_confidential_note = ConfidentialAdvisorNote.where(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: advisor_id
+    ).exists?
+
+    submission = AdvisorFeedbackSubmission.find_or_initialize_by(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: advisor_id
+    )
+
+    if !has_feedback_data && !has_confidential_note
+      submission.destroy if submission.persisted?
+      return
+    end
+
+    now = Time.current
+    submission.last_saved_at = now
+    submission.submitted_at = submit_intent? ? now : nil
+    submission.save!
   end
 
   def safe_return_to_param

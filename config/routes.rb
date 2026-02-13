@@ -32,6 +32,7 @@ Rails.application.routes.draw do
   post "switch_role", to: "dashboards#switch_role", as: :switch_role
 
   get "student_records", to: "student_records#index", as: :student_records
+  get "student_records/export_excel", to: "student_records#export_excel", as: :export_student_records_excel
 
   get "manage_students", to: "dashboards#manage_students", as: :manage_students
   patch "manage_students", to: "dashboards#update_student_advisors", as: :update_student_advisors
@@ -44,6 +45,8 @@ Rails.application.routes.draw do
   # Admin-specific management routes
   get "manage_members", to: "dashboards#manage_members", as: :manage_members
   patch "update_roles", to: "dashboards#update_roles", as: :update_roles
+  delete "manage_members", to: "dashboards#destroy_members", as: :remove_members
+  delete "manage_members/:id", to: "dashboards#destroy_member", as: :remove_member
   get "debug_users", to: "dashboards#debug_users", as: :debug_users
 
   # Admin-only: start impersonating a student; while impersonating, allow exit.

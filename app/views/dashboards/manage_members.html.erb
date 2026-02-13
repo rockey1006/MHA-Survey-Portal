@@ -5,13 +5,6 @@
       <div class="shrink-0">
         <%= link_to "← Back", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
       </div>
-      <div class="flex-1">
-        <form class="flex w-full items-center gap-2" action="<%= manage_members_path %>" accept-charset="UTF-8" method="get">
-          <label class="sr-only" for="q">Search</label>
-          <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, or UID" class="flex-1 min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-          <button name="button" type="submit" class="btn btn-secondary">Search</button>
-        </form>
-      </div>
     </div>
   </div>
   <section class="c-card dashboard-section">
@@ -46,6 +39,15 @@
         </div>
       </div>
 
+      <div class="my-6">
+        <div class="mb-2 text-sm font-semibold text-slate-700">Search members</div>
+        <form class="flex w-full items-center gap-2" action="<%= manage_members_path %>" accept-charset="UTF-8" method="get">
+          <label class="sr-only" for="q">Search</label>
+          <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, or UID" class="flex-1 min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <button name="button" type="submit" class="btn btn-secondary">Search</button>
+        </form>
+      </div>
+
       <!-- Member Management Form -->
     <%= form_with url: update_roles_path, method: :patch, local: true, id: "role-management-form", data: { turbo: false }, remote: false do |form| %>
       <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
@@ -54,6 +56,7 @@
         <table class="c-table">
           <thead>
             <tr>
+              <th class="table-header-select">Select</th>
               <th class="table-header-avatar">Avatar</th>
               <th class="table-header-name">Name</th>
               <th class="table-header-current-role">
@@ -68,6 +71,17 @@
           <tbody>
             <% @users.each do |user| %>
               <tr class="c-table-row <%= 'current-user' if user == current_user %>">
+                  <td class="px-3 py-3 text-center align-middle">
+                    <% if user == current_user %>
+                      <span class="c-help">-</span>
+                    <% else %>
+                      <input type="checkbox"
+                             class="member-select-checkbox h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                             value="<%= user.id %>"
+                             data-user-id="<%= user.id %>"
+                             aria-label="Select <%= user.email %> for removal" />
+                    <% end %>
+                  </td>
                   <td class="user-avatar-cell">
                     <div class="c-table-avatar"
                          <% if user.avatar_url.present? %>
@@ -81,9 +95,6 @@
                     <div class="mt-1 text-xs text-slate-500">
                       Email: <%= user.email.presence || "—" %>
                     </div>
-                    <% if user == current_user %>
-                      <span class="c-help">You</span>
-                    <% end %>
                   </td>
                   <td class="user-current-role-cell">
                     <div class="role-edit-container" data-user-id="<%= user.id %>">
@@ -113,7 +124,7 @@
                   </td>
                   <td class="user-actions-cell">
                     <% if user == current_user %>
-                      <span class="c-help">-</span>
+                      <span class="c-help">You</span>
                     <% else %>
                       <span class="c-change-indicator" data-user-id="<%= user.id %>">
                         No changes
@@ -128,18 +139,32 @@
 
         <!-- Action Buttons -->
       <div class="c-toolbar mt-6">
-        <div class="c-toolbar__row items-center w-full gap-3 justify-end">
-          <div class="flex-1">
-            <div class="text-sm text-slate-600" id="changes-summary" style="display: none;">
-              <span id="role-changes-count" class="c-change-indicator changed">0 changes pending</span>
-            </div>
+        <div class="c-toolbar__row items-center w-full gap-3 justify-between">
+          <div class="shrink-0">
+            <%= link_to "Cancel", admin_dashboard_path, class: tailwind_button_classes(:secondary) %>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <%= link_to "Cancel", admin_dashboard_path, class: tailwind_button_classes(:secondary) %>
+            <div class="text-sm text-slate-600" id="changes-summary" style="display: none;">
+              <span id="role-changes-count" class="c-change-indicator changed whitespace-nowrap">0 changes pending</span>
+            </div>
+            <%= button_tag "Delete Selected",
+                           type: :submit,
+                           form: "batch-remove-form",
+                           class: tailwind_button_classes(:danger),
+                           id: "delete-selected-btn",
+                           disabled: true %>
             <%= form.submit "Save Changes", class: tailwind_button_classes(:primary), id: "save-changes-btn", disabled: true %>
           </div>
         </div>
       </div>
+    <% end %>
+
+    <%= form_with url: remove_members_path,
+                  method: :delete,
+                  local: true,
+                  id: "batch-remove-form",
+                  data: { turbo: false } do %>
+      <%= hidden_field_tag :user_ids, "", id: "batch-remove-user-ids" %>
     <% end %>
   </section>
 </main>
@@ -158,6 +183,10 @@
         const saveButton = document.getElementById('save-changes-btn');
         const changesSummary = document.getElementById('changes-summary');
         const changesCount = document.getElementById('role-changes-count');
+        const batchRemoveForm = document.getElementById('batch-remove-form');
+        const batchRemoveInput = document.getElementById('batch-remove-user-ids');
+        const batchRemoveButton = document.getElementById('delete-selected-btn');
+        const memberCheckboxes = Array.from(form.querySelectorAll('.member-select-checkbox'));
 
         if (!saveButton || !changesSummary || !changesCount) {
           return;
@@ -186,6 +215,41 @@
             changesSummary.style.display = 'none';
             saveButton.removeAttribute('data-has-changes');
           }
+        }
+
+        function selectedMemberIds() {
+          return memberCheckboxes
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
+        }
+
+        function updateBatchRemoveUI() {
+          const selectedIds = selectedMemberIds();
+
+          if (batchRemoveInput) {
+            batchRemoveInput.value = selectedIds.join(',');
+          }
+
+          if (batchRemoveButton) {
+            batchRemoveButton.disabled = selectedIds.length === 0;
+            batchRemoveButton.textContent = selectedIds.length > 0
+              ? `Delete Selected (${selectedIds.length})`
+              : 'Delete Selected';
+          }
+
+          memberCheckboxes.forEach(checkbox => {
+            const userId = checkbox.dataset.userId;
+            const indicator = findIndicator(userId);
+            if (!indicator || pendingChanges[userId]) return;
+
+            if (checkbox.checked) {
+              indicator.textContent = 'Selected for removal';
+              indicator.className = 'c-change-indicator changed';
+            } else {
+              indicator.textContent = 'No changes';
+              indicator.className = 'c-change-indicator';
+            }
+          });
         }
 
         form.querySelectorAll('.c-select').forEach(select => {
@@ -247,11 +311,42 @@
             }
             updateUI();
             hideSelectAndUpdateBadge();
+            updateBatchRemoveUI();
           });
           select.addEventListener('blur', function() {
             setTimeout(hideSelectAndUpdateBadge, 100); // allow change event to fire first
           });
         });
+
+        memberCheckboxes.forEach(checkbox => {
+          checkbox.addEventListener('change', function() {
+            updateBatchRemoveUI();
+          });
+        });
+
+        if (batchRemoveForm) {
+          batchRemoveForm.addEventListener('submit', function(e) {
+            const selectedIds = selectedMemberIds();
+            if (selectedIds.length === 0) {
+              e.preventDefault();
+              alert('Select at least one member to remove.');
+              return false;
+            }
+
+            const confirmMessage = `You are about to permanently remove ${selectedIds.length} member${selectedIds.length > 1 ? 's' : ''}. This cannot be undone. Continue?`;
+            if (!confirm(confirmMessage)) {
+              e.preventDefault();
+              return false;
+            }
+
+            if (batchRemoveButton) {
+              batchRemoveButton.disabled = true;
+              batchRemoveButton.textContent = 'Deleting...';
+            }
+
+            return true;
+          });
+        }
 
         saveButton.addEventListener('click', function(e) {
           if (this.disabled) {
@@ -288,6 +383,7 @@
         });
 
         updateUI();
+        updateBatchRemoveUI();
       }
 
       document.addEventListener('turbo:load', initManageMembers);

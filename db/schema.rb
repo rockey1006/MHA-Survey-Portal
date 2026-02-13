@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_27_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_13_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -30,6 +30,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_27_090000) do
   create_table "admins", primary_key: "admin_id", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "advisor_feedback_submissions", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "survey_id", null: false
+    t.bigint "advisor_id", null: false
+    t.datetime "last_saved_at"
+    t.datetime "submitted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["student_id", "survey_id", "advisor_id"], name: "index_feedback_submissions_on_student_survey_advisor", unique: true
+    t.index ["submitted_at"], name: "index_advisor_feedback_submissions_on_submitted_at"
   end
 
   create_table "advisors", primary_key: "advisor_id", force: :cascade do |t|

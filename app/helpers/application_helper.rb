@@ -93,20 +93,42 @@ module ApplicationHelper
   # @param status [String, Symbol]
   # @return [String]
   def survey_status_badge_classes(status)
-    base = "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide"
+    unified_badge_classes(status)
+  end
 
-    variant = case status.to_s.downcase
-    when "completed"
-      "border-emerald-200 bg-emerald-50 text-emerald-700"
-    when "assigned"
-      "border-amber-200 bg-amber-50 text-amber-700"
-    when "unassigned"
-      "border-slate-200 bg-slate-100 text-slate-600"
-    else
-      "border-slate-200 bg-slate-100 text-slate-600"
+  # Returns CSS classes for feedback status badge.
+  #
+  # @param status [String, Symbol]
+  # @return [String]
+  def feedback_status_badge_classes(status)
+    unified_badge_classes(status)
+  end
+
+  # Returns lifecycle label for a survey in student-record contexts.
+  #
+  # @param survey [Survey]
+  # @param rows [Array<Hash>] survey rows from StudentRecordsController
+  # @return [String]
+  def survey_lifecycle_label(survey, rows)
+    return "Archived" unless survey&.is_active?
+
+    row_list = Array(rows)
+    return "Active" if row_list.blank?
+
+    has_open_assignment = row_list.any? do |row|
+      deadline = row[:available_until]
+      deadline.blank? || deadline >= Time.current
     end
 
-    "#{base} #{variant}"
+    has_open_assignment ? "Active" : "Closed"
+  end
+
+  # Returns CSS classes for survey lifecycle badge.
+  #
+  # @param label [String]
+  # @return [String]
+  def survey_lifecycle_badge_classes(label)
+    unified_badge_classes(label)
   end
 
   # Returns a human-friendly availability label for survey summaries.
@@ -255,6 +277,39 @@ module ApplicationHelper
   end
 
   private
+
+  # Builds a unified badge class string with only three visual variants.
+  # The badge text itself remains the caller-provided input.
+  #
+  # @param value [String, Symbol]
+  # @return [String]
+  def unified_badge_classes(value)
+    base = "inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide shadow-sm whitespace-nowrap"
+
+    variant = case badge_tone(value)
+    when :success
+      "border-emerald-200 bg-emerald-50 text-emerald-700"
+    when :warning
+      "border-amber-200 bg-amber-50 text-amber-700"
+    else
+      "border-slate-200 bg-slate-100 text-slate-600"
+    end
+
+    "#{base} #{variant}"
+  end
+
+  # Resolves one of three badge tones from a free-form label.
+  #
+  # @param value [String, Symbol]
+  # @return [Symbol]
+  def badge_tone(value)
+    text = value.to_s.downcase
+
+    return :success if text.in?(%w[completed submitted active])
+    return :warning if text.in?(%w[assigned draft closed])
+
+    :neutral
+  end
 
   # Humanizes single audit attribute values for display.
   #

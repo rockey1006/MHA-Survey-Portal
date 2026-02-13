@@ -1,3 +1,5 @@
+require "caxlsx"
+
 # Provides rollup views of survey completion status across students for staff
 # members (advisors and admins).
 class StudentRecordsController < ApplicationController
@@ -7,6 +9,26 @@ class StudentRecordsController < ApplicationController
   #
   # @return [void]
   def index
+    load_index_context
+    flash.now[:notice] = "Canceled feedback editing." if params[:cancelled_feedback].to_s == "1"
+  end
+
+  # Exports Student Records as an Excel workbook with one worksheet per survey.
+  #
+  # @return [void]
+  def export_excel
+    load_index_context
+
+    package = build_student_records_workbook(@student_records)
+    send_data package.to_stream.read,
+              filename: "student-records-#{Time.current.strftime('%Y%m%d-%H%M%S')}.xlsx",
+              disposition: "attachment",
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  end
+
+  private
+
+  def load_index_context
     @search_query = params[:q].to_s.strip
     @survey_query = params[:survey_query].to_s.strip
     @survey_filter_id = params[:survey_id].to_s.strip.presence
@@ -29,8 +51,6 @@ class StudentRecordsController < ApplicationController
     @students = load_students
     @student_records = build_student_records(@students)
   end
-
-  private
 
   # Ensures only advisors and admins can access student records.
   #
@@ -90,6 +110,7 @@ class StudentRecordsController < ApplicationController
     feedback_lookup = load_feedback_lookup(student_ids, survey_ids)
     assignments_lookup = load_assignment_lookup(student_ids, survey_ids)
     admin_update_lookup = load_admin_update_lookup(student_ids, survey_ids)
+    feedback_submission_lookup = load_feedback_submission_lookup(student_ids, survey_ids)
 
     responses_matrix = Hash.new do |hash, student_id|
       hash[student_id] = Hash.new { |inner, survey_id| inner[survey_id] = [] }
@@ -125,8 +146,24 @@ class StudentRecordsController < ApplicationController
 
                 feedbacks_for_pair = Array(feedback_lookup.dig(student.student_id, survey.id))
                 feedback_last_updated = feedbacks_for_pair.filter_map(&:updated_at).max
+                feedback_required_total = required_feedback_question_ids_for_survey(survey).size
+                feedback_rated_count = feedbacks_for_pair
+                                          .select { |feedback| feedback.average_score.present? }
+                                          .map(&:question_id)
+                                          .compact
+                                          .uniq
+                                          .size
+                feedback_submission = feedback_submission_lookup[[ student.student_id, survey.id ]]
+                feedback_status_label, feedback_status_timestamp = feedback_status_for_row(
+                  feedbacks_for_pair: feedbacks_for_pair,
+                  feedback_last_updated: feedback_last_updated,
+                  feedback_required_total: feedback_required_total,
+                  feedback_rated_count: feedback_rated_count,
+                  feedback_submission: feedback_submission
+                )
 
                 assignment = assignments_lookup.dig(student.student_id, survey.id)
+                assigned_at = assignment&.created_at
                 completed_at = assignment&.completed_at
                 available_until = assignment&.available_until
                 status_text = if assignment.nil?
@@ -141,6 +178,7 @@ class StudentRecordsController < ApplicationController
                   student: student,
                   advisor: student.advisor,
                   status: status_text,
+                  assigned_at: assigned_at,
                   completed_at: completed_at,
                   available_until: available_until,
                   admin_updated_at: admin_update_lookup[[ student.student_id, survey.id ]],
@@ -148,7 +186,9 @@ class StudentRecordsController < ApplicationController
                   survey_response: survey_response,
                   download_token: survey_response.signed_download_token,
                   feedbacks: feedbacks_for_pair,
-                  feedback_last_updated_at: feedback_last_updated
+                  feedback_last_updated_at: feedback_last_updated,
+                  feedback_status_label: feedback_status_label,
+                  feedback_status_timestamp: feedback_status_timestamp
                 }
               end
 
@@ -461,5 +501,123 @@ class StudentRecordsController < ApplicationController
       .where(student_id: student_ids, survey_id: survey_ids, event: %w[admin_edited admin_deleted])
       .group(:student_id, :survey_id)
       .maximum(:created_at)
+  end
+
+  def load_feedback_submission_lookup(student_ids, survey_ids)
+    return {} if student_ids.blank? || survey_ids.blank?
+
+    AdvisorFeedbackSubmission
+      .where(student_id: student_ids, survey_id: survey_ids)
+      .order(updated_at: :desc)
+      .each_with_object({}) do |submission, memo|
+        key = [ submission.student_id, submission.survey_id ]
+        memo[key] ||= submission
+      end
+  end
+
+  def required_feedback_question_ids_for_survey(survey)
+    @required_feedback_question_ids_by_survey ||= {}
+    @required_feedback_question_ids_by_survey[survey.id] ||= begin
+      survey.questions
+            .includes(category: :section)
+            .select do |question|
+              !question.sub_question? &&
+                (!question.respond_to?(:has_feedback?) || question.has_feedback?) &&
+                question.category&.section&.mha_competency?
+            end
+            .map(&:id)
+            .uniq
+    end
+  end
+
+  def feedback_status_for_row(feedbacks_for_pair:, feedback_last_updated:, feedback_required_total:, feedback_rated_count:, feedback_submission:)
+    if feedback_submission&.submitted_at.present?
+      return [ "Submitted", feedback_submission.submitted_at ]
+    end
+
+    has_any_feedback_data = feedbacks_for_pair.any? do |feedback|
+      feedback.average_score.present? || feedback.comments.present?
+    end
+
+    has_any_draft = has_any_feedback_data || feedback_submission.present?
+    return [ "No Feedback", nil ] unless has_any_draft
+
+    total = [ feedback_required_total, feedback_rated_count, 1 ].max
+    [ "Draft (#{feedback_rated_count}/#{total} completed)", feedback_last_updated || feedback_submission&.last_saved_at ]
+  end
+
+  def build_student_records_workbook(student_records)
+    package = Axlsx::Package.new
+    workbook = package.workbook
+    used_sheet_names = {}
+
+    Array(student_records).each do |semester_block|
+      semester_name = semester_block[:semester]
+
+      Array(semester_block[:surveys]).each do |survey_block|
+        survey = survey_block[:survey]
+        rows = Array(survey_block[:rows])
+        base_name = survey.title.to_s.strip.presence || "Survey #{survey.id}"
+        sheet_name = unique_worksheet_name(base_name, used_sheet_names)
+
+        workbook.add_worksheet(name: sheet_name) do |sheet|
+          sheet.add_row [ "Survey", survey.title ]
+          sheet.add_row [ "Semester", semester_name ]
+          sheet.add_row []
+          sheet.add_row [
+            "Student",
+            "Student Email",
+            "UIN",
+            "Advisor",
+            "Track",
+            "Program Year",
+            "Survey Status",
+            "Completed At",
+            "Feedback Status",
+            "Feedback Updated At"
+          ]
+
+          rows.each do |row|
+            student = row[:student]
+            advisor = row[:advisor]
+
+            sheet.add_row [
+              student&.user&.name,
+              student&.user&.email,
+              student&.uin,
+              advisor&.name,
+              student&.track,
+              row_program_year(row),
+              row[:status],
+              row[:completed_at]&.iso8601,
+              row[:feedback_status_label],
+              row[:feedback_status_timestamp]&.iso8601
+            ]
+          end
+        end
+      end
+    end
+
+    package
+  end
+
+  def unique_worksheet_name(base_name, used_sheet_names)
+    cleaned = base_name.gsub(/[\[\]\:\*\?\/\\]/, " ").squish
+    cleaned = "Sheet" if cleaned.blank?
+    cleaned = cleaned[0, 31]
+
+    return cleaned.tap { used_sheet_names[cleaned] = true } unless used_sheet_names[cleaned]
+
+    suffix = 2
+    loop do
+      suffix_text = " (#{suffix})"
+      prefix_limit = 31 - suffix_text.length
+      candidate = "#{cleaned[0, prefix_limit]}#{suffix_text}"
+      unless used_sheet_names[candidate]
+        used_sheet_names[candidate] = true
+        return candidate
+      end
+      suffix += 1
+    end
   end
 end

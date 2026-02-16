@@ -107,8 +107,7 @@
                    aria-labelledby="confidential-note-tab-<%= idx %>"
                    data-tabs-target="panel"
                    data-tab-id="note-tab-<%= idx %>"
-                   class="reports-tab__body space-y-3 <%= idx == default_idx ? "" : "hidden" %>"
-                    <%= 'hidden="hidden"' unless idx == default_idx %>>
+                    class="reports-tab__body space-y-3 <%= idx == default_idx ? "" : "hidden" %>">
                 <% if editable %>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600" for="confidential_advisor_note_body">Note</label>

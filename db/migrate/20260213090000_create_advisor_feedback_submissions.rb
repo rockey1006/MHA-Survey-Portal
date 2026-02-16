@@ -18,11 +18,14 @@ class CreateAdvisorFeedbackSubmissions < ActiveRecord::Migration[8.0]
 
     add_foreign_key :advisor_feedback_submissions, :students,
                     column: :student_id,
-                    primary_key: :student_id
+                    primary_key: :student_id,
+                    on_delete: :cascade
     add_foreign_key :advisor_feedback_submissions, :surveys,
-                    column: :survey_id
+                    column: :survey_id,
+                    on_delete: :cascade
     add_foreign_key :advisor_feedback_submissions, :advisors,
                     column: :advisor_id,
-                    primary_key: :advisor_id
+                    primary_key: :advisor_id,
+                    on_delete: :cascade
   end
 end

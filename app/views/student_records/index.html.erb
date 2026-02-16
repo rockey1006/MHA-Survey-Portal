@@ -309,7 +309,7 @@
                                   assigned_at
                                 end %>
                                 <% if status_timestamp.present? %>
-                                  <div class="mt-1 text-xs text-slate-500"><%= status_timestamp.strftime("%B %-d, %Y %H:%M") %></div>
+                                  <div class="mt-1 text-xs text-slate-500"><%= l(status_timestamp, format: :long) %></div>
                                 <% end %>
                               </td>
 

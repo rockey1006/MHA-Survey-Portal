@@ -268,7 +268,7 @@ class DashboardsController < ApplicationController
   #
   # @return [void]
   def destroy_member
-    ensure_admin!
+    return unless ensure_admin!
 
     user = User.find_by(id: params[:id])
     unless user
@@ -308,7 +308,7 @@ class DashboardsController < ApplicationController
   #
   # @return [void]
   def destroy_members
-    ensure_admin!
+    return unless ensure_admin!
 
     member_ids = normalize_member_ids(params[:user_ids])
     if member_ids.empty?

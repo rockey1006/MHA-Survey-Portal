@@ -15,5 +15,17 @@ class CreateAdvisorFeedbackSubmissions < ActiveRecord::Migration[8.0]
               unique: true,
               name: "index_feedback_submissions_on_student_survey_advisor"
     add_index :advisor_feedback_submissions, :submitted_at
+
+    add_foreign_key :advisor_feedback_submissions, :students,
+                    column: :student_id,
+                    primary_key: :student_id,
+                    on_delete: :cascade
+    add_foreign_key :advisor_feedback_submissions, :surveys,
+                    column: :survey_id,
+                    on_delete: :cascade
+    add_foreign_key :advisor_feedback_submissions, :advisors,
+                    column: :advisor_id,
+                    primary_key: :advisor_id,
+                    on_delete: :cascade
   end
 end

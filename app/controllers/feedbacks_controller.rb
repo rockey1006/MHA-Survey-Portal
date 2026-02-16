@@ -457,7 +457,7 @@ class FeedbacksController < ApplicationController
     return "save" if value == "save"
     return "submit" if value == "submit"
 
-    "submit"
+    "save"
   end
 
   def submit_intent?
@@ -517,7 +517,7 @@ class FeedbacksController < ApplicationController
 
     now = Time.current
     submission.last_saved_at = now
-    submission.submitted_at = submit_intent? ? now : nil
+    submission.submitted_at = now if submit_intent?
     submission.save!
   end
 

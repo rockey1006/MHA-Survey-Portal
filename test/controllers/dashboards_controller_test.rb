@@ -236,6 +236,54 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/removed member/i, flash[:notice].to_s)
   end
 
+  test "destroy_member requires admin (blocks students)" do
+    sign_in @student
+
+    assert_no_difference -> { User.count } do
+      delete remove_member_path(@other_student)
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_nil flash[:alert] # Students get silent redirect
+  end
+
+  test "destroy_member requires admin (blocks advisors)" do
+    sign_in @advisor
+
+    assert_no_difference -> { User.count } do
+      delete remove_member_path(@other_student)
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
+  test "destroy_members requires admin (blocks students)" do
+    sign_in @student
+
+    assert_no_difference -> { User.count } do
+      delete remove_members_path, params: { user_ids: [ @other_student.id ] }
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_nil flash[:alert] # Students get silent redirect
+  end
+
+  test "destroy_members requires admin (blocks advisors)" do
+    sign_in @advisor
+
+    assert_no_difference -> { User.count } do
+      delete remove_members_path, params: { user_ids: [ @other_student.id ] }
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
   test "debug_users returns expected json" do
     sign_in @admin
     get debug_users_path

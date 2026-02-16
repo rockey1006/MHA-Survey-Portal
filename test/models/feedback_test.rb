@@ -13,7 +13,7 @@ class FeedbackTest < ActiveSupport::TestCase
     clear_performed_jobs
   end
 
-  test "saving score/comments enqueues feedback notification job" do
+  test "saving score/comments does not auto-enqueue feedback notification job" do
     student_user = User.create!(email: "stu-notify@example.com", name: "Student Notify", role: "student")
     student = student_user.student_profile
 
@@ -32,9 +32,8 @@ class FeedbackTest < ActiveSupport::TestCase
       assigned_at: Time.current
     )
 
-    fb = nil
-    assert_enqueued_jobs 1, only: SurveyNotificationJob do
-      fb = Feedback.create!(
+    assert_no_enqueued_jobs only: SurveyNotificationJob do
+      Feedback.create!(
         student_id: student.student_id,
         advisor_id: advisor.advisor_id,
         survey_id: survey.id,
@@ -43,8 +42,6 @@ class FeedbackTest < ActiveSupport::TestCase
         comments: "Nice work"
       )
     end
-
-    assert_enqueued_with(job: SurveyNotificationJob, args: [ { event: :feedback_received, feedback_id: fb.id } ])
   end
 
   test "can create multiple feedback rows and accept numeric average_score" do

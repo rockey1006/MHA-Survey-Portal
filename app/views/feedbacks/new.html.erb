@@ -108,7 +108,7 @@
                    data-tabs-target="panel"
                    data-tab-id="note-tab-<%= idx %>"
                    class="reports-tab__body space-y-3 <%= idx == default_idx ? "" : "hidden" %>"
-                   <%= idx == default_idx ? "" : "hidden" %>>
+                    <%= 'hidden="hidden"' unless idx == default_idx %>>
                 <% if editable %>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600" for="confidential_advisor_note_body">Note</label>
@@ -253,6 +253,9 @@
     }
 
     function bind() {
+      if (document.body && document.body.dataset.feedbackNewBound === 'true') return;
+      if (document.body) document.body.dataset.feedbackNewBound = 'true';
+
       updateAdvisorFeedbackSummary();
 
       var form = document.querySelector('form[data-feedback-editor="true"]');
@@ -362,7 +365,6 @@
     }
 
     document.addEventListener('turbo:load', bind);
-    document.addEventListener('DOMContentLoaded', bind);
   })();
 </script>
 

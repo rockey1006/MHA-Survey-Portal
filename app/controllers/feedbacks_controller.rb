@@ -194,6 +194,7 @@ class FeedbacksController < ApplicationController
 
       @feedback = saved_feedbacks.first
       sync_feedback_submission_state!(resolved_advisor_id)
+      enqueue_feedback_received_notification!(@feedback)
 
       respond_to do |format|
         format.html { redirect_to feedback_success_redirect_path, notice: feedback_saved_notice, status: :see_other }
@@ -239,6 +240,7 @@ class FeedbacksController < ApplicationController
         begin
           save_confidential_advisor_note_from_params!
           sync_feedback_submission_state!(@feedback.advisor_id)
+          enqueue_feedback_received_notification!(@feedback)
         rescue ActiveRecord::StaleObjectError
           load_feedback_new_context
           flash.now[:alert] = "This note was updated by someone else. Refresh and try again."
@@ -525,5 +527,14 @@ class FeedbacksController < ApplicationController
 
     # Only allow local (relative) paths to avoid open redirects.
     return_to.start_with?("/") && !return_to.start_with?("//") ? return_to : student_records_path
+  end
+
+  def enqueue_feedback_received_notification!(feedback)
+    return unless submit_intent?
+    return unless feedback&.id
+
+    SurveyNotificationJob.perform_later(event: :feedback_received, feedback_id: feedback.id)
+  rescue StandardError => e
+    Rails.logger.warn("Feedback notification enqueue failed for Feedback #{feedback&.id}: #{e.class} - #{e.message}")
   end
 end

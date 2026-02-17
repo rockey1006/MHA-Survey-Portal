@@ -265,8 +265,8 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
 
     sr = SurveyResponse.build(student: @student, survey: survey)
 
-    SurveyResponseVersion.stub(:capture_current!, ->(**_) {}) do
-      Notification.stub(:deliver!, ->(**_) {}) do
+    SurveyResponseVersion.stub(:capture_current!, ->(**_) { }) do
+      Notification.stub(:deliver!, ->(**_) { }) do
         delete :destroy, params: { id: sr.id }
       end
     end
@@ -324,7 +324,7 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
 
     sr = SurveyResponse.build(student: @student, survey: survey)
 
-    Notification.stub(:deliver!, ->(**_) {}) do
+    Notification.stub(:deliver!, ->(**_) { }) do
       delete :destroy, params: { id: sr.id }
     end
 

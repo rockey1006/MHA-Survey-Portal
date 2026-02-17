@@ -52,7 +52,6 @@ class SurveysController < ApplicationController
   # @return [void]
   def show
     @return_to = safe_return_to_param
-  Rails.logger.info "[EVIDENCE DEBUG] show: session[:invalid_evidence]=#{session[:invalid_evidence].inspect}" # debug session evidence
       # Avoid relying on a potentially partially-loaded association proxy.
       # This ensures newly-added categories/questions show up immediately.
       scope = Category.where(survey_id: @survey.id).includes(:section, :questions)
@@ -77,15 +76,10 @@ class SurveysController < ApplicationController
       end
     end
 
-    Rails.logger.info "[SHOW DEBUG] Student ID: #{student&.student_id}"
-    Rails.logger.info "[SHOW DEBUG] Survey ID: #{@survey.id}"
-
     if student
       responses = StudentQuestion
                     .where(student_id: student.student_id, question_id: @survey.questions.select(:id))
                     .includes(:question)
-
-      Rails.logger.info "[SHOW DEBUG] Found #{responses.count} saved responses"
 
       responses.each do |response|
         ans = response.answer
@@ -108,12 +102,8 @@ class SurveysController < ApplicationController
           # Use string key to match view's expectation
           @existing_answers[response.question_id.to_s] = ans
         end
-        Rails.logger.info "[SHOW DEBUG] Question #{response.question_id}: #{ans.inspect}"
       end
     end
-
-    Rails.logger.info "[SHOW DEBUG] Total existing answers: #{@existing_answers.size}"
-    Rails.logger.info "[SHOW DEBUG] Answer keys: #{@existing_answers.keys.inspect}"
 
     @category_groups.each do |category|
       category.questions.each do |question|
@@ -142,7 +132,6 @@ class SurveysController < ApplicationController
   #
   # @return [void]
   def submit
-  Rails.logger.info "[EVIDENCE DEBUG] SurveysController#submit called"
     student = current_student
 
     unless student
@@ -227,21 +216,15 @@ class SurveysController < ApplicationController
         missing_required << question
       end
 
-      # Debug evidence question type and value
-      if submitted_value.present?
-        Rails.logger.info "[EVIDENCE DEBUG] QID: #{question.id}, TYPE: #{question.question_type.inspect}, VALUE: #{submitted_value.inspect}"
-      end
       # Only validate evidence questions for Google-hosted links
       if question.question_type == "evidence" && submitted_value.present?
         value_str = submitted_value.is_a?(String) ? submitted_value : submitted_value.to_s
         # 1) basic format check
         if value_str !~ StudentQuestion::GOOGLE_URL_REGEX
-          Rails.logger.info "[EVIDENCE DEBUG] INVALID evidence format for QID: #{question.id} VALUE: #{value_str.inspect}"
           invalid_links << question
         else
           # 2) accessibility check (HEAD with redirects, GET fallback)
           accessible, reason = evidence_accessible?(value_str)
-          Rails.logger.info "[EVIDENCE DEBUG] access check QID: #{question.id} url=#{value_str} => accessible=#{accessible} reason=#{reason}"
           invalid_links << question unless accessible
         end
       end
@@ -480,10 +463,6 @@ class SurveysController < ApplicationController
     questions_map = @survey.questions.index_by(&:id)
     allowed_question_ids = questions_map.keys
 
-    Rails.logger.info "[SAVE_PROGRESS DEBUG] Student ID: #{student.student_id}"
-    Rails.logger.info "[SAVE_PROGRESS DEBUG] Answers received: #{answers.inspect}"
-    Rails.logger.info "[SAVE_PROGRESS DEBUG] Allowed question IDs: #{allowed_question_ids.inspect}"
-
     saved_count = 0
     ActiveRecord::Base.transaction do
       allowed_question_ids.each do |question_id|
@@ -496,8 +475,6 @@ class SurveysController < ApplicationController
             submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
           end
         end
-        Rails.logger.info "[SAVE_PROGRESS DEBUG] Question #{question_id}: value=#{submitted_value.inspect}"
-
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
@@ -506,18 +483,12 @@ class SurveysController < ApplicationController
           # Skip validations when saving progress; validations happen on submit
           if record.save(validate: false)
             saved_count += 1
-            Rails.logger.info "[SAVE_PROGRESS DEBUG] Saved question #{question_id} with value: #{submitted_value} (validations skipped)"
-          else
-            Rails.logger.warn "[SAVE_PROGRESS DEBUG] Failed to save question #{question_id} during save_progress (validations skipped)"
           end
         elsif record.persisted?
           record.destroy!
-          Rails.logger.info "[SAVE_PROGRESS DEBUG] Destroyed empty answer for question #{question_id}"
         end
       end
     end
-
-    Rails.logger.info "[SAVE_PROGRESS DEBUG] Total saved: #{saved_count} answers"
 
     survey_response = SurveyResponse.build(student: student, survey: @survey)
     progress_summary = survey_response.progress_summary
@@ -670,8 +641,7 @@ class SurveysController < ApplicationController
             end
           rescue Net::OpenTimeout, Net::ReadTimeout
             return [ false, :timeout ]
-          rescue StandardError => e
-            Rails.logger.info "[EVIDENCE DEBUG] sniff exception ignored: #{e.class}: #{e.message}"
+          rescue StandardError
           end
           return [ true, :ok ]
         when Net::HTTPRedirection
@@ -717,8 +687,7 @@ class SurveysController < ApplicationController
               end
             rescue Net::OpenTimeout, Net::ReadTimeout
               return [ false, :timeout ]
-            rescue StandardError => e
-              Rails.logger.info "[EVIDENCE DEBUG] sniff exception ignored: #{e.class}: #{e.message}"
+            rescue StandardError
             end
             return [ true, :ok ]
           else
@@ -729,8 +698,7 @@ class SurveysController < ApplicationController
         end
       rescue Net::OpenTimeout, Net::ReadTimeout
         return [ false, :timeout ]
-      rescue StandardError => e
-        Rails.logger.warn "[EVIDENCE DEBUG] exception during access check: #{e.class}: #{e.message}"
+      rescue StandardError
         return [ false, :error ]
       end
     end

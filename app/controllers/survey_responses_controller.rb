@@ -197,13 +197,14 @@ class SurveyResponsesController < ApplicationController
     result = nil
 
     begin
+      pdf_source_response = latest_valid_pdf_survey_response
       generator = CompositeReportGenerator.new(
-        survey_response: @survey_response,
+        survey_response: pdf_source_response,
         cache: false,
         viewer_mode: composite_pdf_viewer_mode
       )
       result = generator.render
-      filename = survey_pdf_filename(@survey_response)
+      filename = survey_pdf_filename(pdf_source_response)
       stream_pdf_result(result, filename, unavailable_message: unavailable_message)
     rescue CompositeReportGenerator::MissingDependency
       render plain: "Server-side PDF generation unavailable. WickedPdf not configured.", status: :service_unavailable
@@ -220,6 +221,29 @@ class SurveyResponsesController < ApplicationController
     ensure
       result&.cleanup!
     end
+  end
+
+  def latest_valid_pdf_survey_response
+    versions = SurveyResponseVersion
+                 .for_pair(student_id: @survey_response.student_id, survey_id: @survey_response.survey_id)
+                 .chronological
+
+    return @survey_response if versions.blank?
+
+    preferred_version = versions
+      .where(event: %w[submitted revised admin_edited])
+      .order(created_at: :desc, id: :desc)
+      .first
+
+    selected_version = preferred_version || versions.last
+    return @survey_response unless selected_version
+
+    SurveyResponse.new(
+      student: @survey_response.student,
+      survey: @survey_response.survey,
+      answers_override: selected_version.answers,
+      as_of: selected_version.created_at
+    )
   end
 
   # Streams a composite PDF aggregating student responses and advisor feedback.

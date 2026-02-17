@@ -624,6 +624,77 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     Object.send(:remove_const, :WickedPdf) unless wickedpdf_defined
   end
 
+  test "download uses latest submitted version instead of live draft answers" do
+    sign_in @admin
+
+    semester = program_semesters(:fall_2025)
+    survey = Survey.new(
+      title: "Download Version Source Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: true
+    )
+    category = survey.categories.build(name: "Cat", description: "")
+    evidence_question = category.questions.build(
+      question_text: "Evidence",
+      question_order: 1,
+      question_type: "evidence",
+      is_required: false
+    )
+    survey.save!
+
+    StudentQuestion.create!(
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      question: evidence_question,
+      response_value: "https://sites.google.com/tamu.edu/bad-draft/home"
+    )
+
+    SurveyResponseVersion.create!(
+      student_id: @student.student_id,
+      survey_id: survey.id,
+      advisor_id: @student.advisor_id,
+      actor_user_id: @admin.id,
+      actor_role: @admin.role,
+      event: "submitted",
+      answers: { evidence_question.id.to_s => "https://sites.google.com/tamu.edu/good-submitted/home" }
+    )
+
+    sr = SurveyResponse.build(student: @student, survey: survey)
+
+    wickedpdf_defined = defined?(WickedPdf)
+    Object.const_set(:WickedPdf, Class.new) unless wickedpdf_defined
+
+    tmp = Tempfile.new([ "version_pdf", ".pdf" ])
+    tmp.binmode
+    tmp.write("%PDF-1.4\n%fake\n")
+    tmp.flush
+
+    result = Struct.new(:path) do
+      def cleanup!; end
+    end
+    fake_result = result.new(tmp.path)
+    captured_evidence_link = nil
+
+    CompositeReportGenerator.stub(:new, ->(survey_response:, **_) {
+      captured_evidence_link = survey_response.answers[evidence_question.id]
+      Struct.new(:result) do
+        def render
+          result
+        end
+      end.new(fake_result)
+    }) do
+      get :download, params: { id: sr.id }
+    end
+
+    assert_response :success
+    assert_equal "https://sites.google.com/tamu.edu/good-submitted/home", captured_evidence_link
+  ensure
+    tmp&.close
+    tmp&.unlink
+    Object.send(:remove_const, :WickedPdf) unless wickedpdf_defined
+  end
+
   test "download streams a PDF when WickedPdf is present and generator succeeds" do
     sign_in @admin
     sr = SurveyResponse.build(student: @student, survey: @survey)

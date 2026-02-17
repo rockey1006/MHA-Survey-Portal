@@ -2,14 +2,26 @@
 require "test_helper"
 
 class QuestionTest < ActiveSupport::TestCase
+    setup do
+      original_regex = StudentQuestion::GOOGLE_URL_REGEX
+      legacy_regex = %r{\Ahttps?://(?:(?:drive|docs|sites)\.google\.com|(?:[a-z0-9-]+\.)?googleusercontent\.com)(?:/|$)\S*}i
+
+      StudentQuestion.send(:remove_const, :GOOGLE_URL_REGEX)
+      StudentQuestion.const_set(:GOOGLE_URL_REGEX, legacy_regex)
+
+      StudentQuestion.delete_all
+      Rails.application.load_seed
+    ensure
+      if StudentQuestion.const_defined?(:GOOGLE_URL_REGEX)
+        StudentQuestion.send(:remove_const, :GOOGLE_URL_REGEX)
+      end
+      StudentQuestion.const_set(:GOOGLE_URL_REGEX, original_regex)
+    end
+
   SURVEY_TITLES = {
     emha_midpoint: "EMHA Mid-point Competency Survey",
     rmha_initial: "RMHA Initial Competency Survey"
   }.freeze
-
-  setup do
-    Rails.application.load_seed
-  end
 
   # --- EMHA stage surveys ---
   test "Project Management question in Spring 2026 EMHA Mid-point Competency Survey exists" do
@@ -90,6 +102,7 @@ class QuestionTest < ActiveSupport::TestCase
 
   test "Flexibility questions are optional" do
     flexibility_questions = Question.where("LOWER(question_text) LIKE ?", "%flexible%work%")
+    assert flexibility_questions.any?, "Expected at least one flexibility question"
 
     flexibility_questions.each do |q|
       assert_not q.required?, "Flexibility question '#{q.question_text}' should be optional (not required)"

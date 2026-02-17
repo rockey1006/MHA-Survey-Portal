@@ -110,7 +110,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
           id: @survey.id,
           answers: {
             @required_q.id.to_s => "ok",
-            @evidence_q.id.to_s => "https://drive.google.com/file/d/abc"
+            @evidence_q.id.to_s => "https://sites.google.com/tamu.edu/demo/home"
           }
         }
       end
@@ -133,7 +133,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
               answers: {
                 @required_q.id.to_s => "ok",
                 @dropdown_q.id.to_s => "A",
-                @evidence_q.id.to_s => "https://drive.google.com/file/d/abc"
+                @evidence_q.id.to_s => "https://sites.google.com/tamu.edu/demo/home"
               }
             }
           end
@@ -158,7 +158,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
             answers: {
               @required_q.id.to_s => "ok",
               @dropdown_q.id.to_s => "A",
-              @evidence_q.id.to_s => "https://drive.google.com/file/d/abc"
+              @evidence_q.id.to_s => "https://sites.google.com/tamu.edu/demo/home"
             }
           }
         end
@@ -176,7 +176,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
       student_id: @student.student_id,
       advisor_id: @student.advisor_id,
       question_id: @evidence_q.id,
-      answer: { "link" => "https://drive.google.com/file/d/abc" }
+      answer: { "link" => "https://sites.google.com/tamu.edu/demo/home" }
     )
     StudentQuestion.create!(
       student_id: @student.student_id,
@@ -190,7 +190,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
     end
 
     assert_response :success
-    assert_equal "https://drive.google.com/file/d/abc", assigns(:existing_answers)[@evidence_q.id.to_s]
+    assert_equal "https://sites.google.com/tamu.edu/demo/home", assigns(:existing_answers)[@evidence_q.id.to_s]
     assert_equal "Other", assigns(:existing_answers)[@dropdown_q.id.to_s]
     assert_equal "details", assigns(:other_answers)[@dropdown_q.id.to_s]
   end
@@ -276,7 +276,7 @@ class SurveysControllerUnitTest < ActionController::TestCase
       student_id: @student.student_id,
       advisor_id: @student.advisor_id,
       question_id: @evidence_q.id,
-      answer: "https://drive.google.com/file/d/old"
+      answer: "https://sites.google.com/tamu.edu/old/home"
     )
 
     @controller.stub(:current_student, @student) do
@@ -327,9 +327,9 @@ class SurveysControllerUnitTest < ActionController::TestCase
     # invalid URI
     assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "not a url")
     # non-HTTPS
-    assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "http://drive.google.com/file/d/abc")
+    assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "http://sites.google.com/tamu.edu/demo/home")
 
-    url = "https://drive.google.com/file/d/abc"
+    url = "https://sites.google.com/tamu.edu/demo/home"
     stub_request(:head, url).to_return(status: 302, headers: { "Location" => "https://accounts.google.com/signin" })
     assert_equal [ false, :forbidden ], @controller.send(:evidence_accessible?, url)
   end

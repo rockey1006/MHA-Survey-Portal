@@ -25,37 +25,19 @@ class SurveysControllerEvidenceAccessibleTest < ActiveSupport::TestCase
   end
 
   test "evidence_accessible? returns invalid for non-https urls" do
-    assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "http://drive.google.com/file/d/abc")
+    assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "http://sites.google.com/tamu.edu/demo/home")
   end
 
-  test "evidence_accessible? returns invalid for non-google hosts" do
+  test "evidence_accessible? returns invalid for non-sites hosts" do
     assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "https://example.com/file")
   end
 
-  test "evidence_accessible? returns ok for docs export endpoint success" do
-    export_success = https_success("hello")
-
-    http_queue = [
-      FakeHttp.new([ export_success ])
-    ]
-
-    Net::HTTP.stub(:new, ->(_host, _port) { http_queue.shift || FakeHttp.new([]) }) do
-      assert_equal [ true, :ok ], @controller.send(:evidence_accessible?, "https://docs.google.com/document/d/abc123/edit")
-    end
+  test "evidence_accessible? returns invalid for docs links" do
+    assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "https://docs.google.com/document/d/abc123/edit")
   end
 
-  test "evidence_accessible? falls back after docs export forbidden and returns ok on generic head" do
-    export_forbidden = Net::HTTPForbidden.new("1.1", "403", "Forbidden")
-    head_success = https_success
-
-    http_queue = [
-      FakeHttp.new([ export_forbidden ]),
-      FakeHttp.new([ head_success ])
-    ]
-
-    Net::HTTP.stub(:new, ->(_host, _port) { http_queue.shift || FakeHttp.new([]) }) do
-      assert_equal [ true, :ok ], @controller.send(:evidence_accessible?, "https://docs.google.com/document/d/abc123/edit")
-    end
+  test "evidence_accessible? returns invalid for drive links" do
+    assert_equal [ false, :invalid ], @controller.send(:evidence_accessible?, "https://drive.google.com/file/d/abc")
   end
 
   test "evidence_accessible? returns forbidden when sniff body indicates access is required" do
@@ -68,7 +50,7 @@ class SurveysControllerEvidenceAccessibleTest < ActiveSupport::TestCase
     ]
 
     Net::HTTP.stub(:new, ->(_host, _port) { http_queue.shift || FakeHttp.new([]) }) do
-      assert_equal [ false, :forbidden ], @controller.send(:evidence_accessible?, "https://drive.google.com/file/d/abc")
+      assert_equal [ false, :forbidden ], @controller.send(:evidence_accessible?, "https://sites.google.com/tamu.edu/demo/home")
     end
   end
 
@@ -79,22 +61,22 @@ class SurveysControllerEvidenceAccessibleTest < ActiveSupport::TestCase
     http_queue = [ FakeHttp.new([ redirect ]) ]
 
     Net::HTTP.stub(:new, ->(_host, _port) { http_queue.shift || FakeHttp.new([]) }) do
-      assert_equal [ false, :forbidden ], @controller.send(:evidence_accessible?, "https://drive.google.com/file/d/abc")
+      assert_equal [ false, :forbidden ], @controller.send(:evidence_accessible?, "https://sites.google.com/tamu.edu/demo/home")
     end
   end
 
   test "evidence_accessible? returns too_many_redirects after repeated allowlisted redirects" do
     r1 = Net::HTTPFound.new("1.1", "302", "Found")
-    r1["location"] = "https://drive.google.com/file/d/1"
+    r1["location"] = "https://sites.google.com/tamu.edu/r1/home"
 
     r2 = Net::HTTPFound.new("1.1", "302", "Found")
-    r2["location"] = "https://drive.google.com/file/d/2"
+    r2["location"] = "https://sites.google.com/tamu.edu/r2/home"
 
     r3 = Net::HTTPFound.new("1.1", "302", "Found")
-    r3["location"] = "https://drive.google.com/file/d/3"
+    r3["location"] = "https://sites.google.com/tamu.edu/r3/home"
 
     r4 = Net::HTTPFound.new("1.1", "302", "Found")
-    r4["location"] = "https://drive.google.com/file/d/4"
+    r4["location"] = "https://sites.google.com/tamu.edu/r4/home"
 
     http_queue = [
       FakeHttp.new([ r1 ]),
@@ -104,7 +86,7 @@ class SurveysControllerEvidenceAccessibleTest < ActiveSupport::TestCase
     ]
 
     Net::HTTP.stub(:new, ->(_host, _port) { http_queue.shift || FakeHttp.new([]) }) do
-      assert_equal [ false, :too_many_redirects ], @controller.send(:evidence_accessible?, "https://drive.google.com/file/d/abc")
+      assert_equal [ false, :too_many_redirects ], @controller.send(:evidence_accessible?, "https://sites.google.com/tamu.edu/demo/home")
     end
   end
 
@@ -119,7 +101,7 @@ class SurveysControllerEvidenceAccessibleTest < ActiveSupport::TestCase
     ]
 
     Net::HTTP.stub(:new, ->(_host, _port) { http_queue.shift || FakeHttp.new([]) }) do
-      assert_equal [ true, :ok ], @controller.send(:evidence_accessible?, "https://drive.google.com/file/d/abc")
+      assert_equal [ true, :ok ], @controller.send(:evidence_accessible?, "https://sites.google.com/tamu.edu/demo/home")
     end
   end
 

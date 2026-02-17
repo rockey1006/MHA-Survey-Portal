@@ -1,0 +1,8 @@
+submitted_feedback:
+  student: student
+  survey: fall_2025
+  advisor: advisor
+  last_saved_at: <%= 2.days.ago %>
+  submitted_at: <%= 1.day.ago %>
+  created_at: <%= Time.zone.now %>
+  updated_at: <%= Time.zone.now %>

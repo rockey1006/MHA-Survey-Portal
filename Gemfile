@@ -20,6 +20,7 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
+gem "csv"
 
 # View components (extract reusable UI into Ruby components)
 gem "view_component"

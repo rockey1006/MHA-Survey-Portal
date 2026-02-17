@@ -47,6 +47,7 @@
 
   <% include_feedback_form = local_assigns.key?(:include_feedback_form) ? local_assigns[:include_feedback_form] : false %>
   <% passed_existing_feedbacks = local_assigns.key?(:existing_feedbacks_by_question) ? local_assigns[:existing_feedbacks_by_question] : @existing_feedbacks_by_question %>
+  <% missing_feedback_question_ids = Array(local_assigns[:missing_feedback_question_ids] || @missing_rating_question_ids).map(&:to_i) %>
   <%# Avoid relying on a potentially partially-loaded association proxy.
       This ensures newly-added categories/questions show up immediately in preview/read-only.
   %>
@@ -54,9 +55,17 @@
 
   <%# Read-only survey response pages should show advisor feedback directly under the
       parent + sub-question group (when feedback exists). %>
-  <% feedbacks = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id)
-                       .includes(:question, :advisor)
-                       .order(updated_at: :desc, created_at: :desc) %>
+  <% feedback_scope = Feedback.where(student_id: sr&.student_id, survey_id: survey&.id) %>
+  <% if viewer_is_student_owner %>
+    <% submitted_advisor_ids = AdvisorFeedbackSubmission
+                                .submitted
+                                .where(student_id: sr&.student_id, survey_id: survey&.id)
+                                .pluck(:advisor_id) %>
+    <% feedback_scope = feedback_scope.where(advisor_id: submitted_advisor_ids) %>
+  <% end %>
+  <% feedbacks = feedback_scope
+                   .includes(:question, :advisor)
+                   .order(updated_at: :desc, created_at: :desc) %>
   <% per_question_map = {} %>
   <% per_category_legacy = {} %>
   <% feedbacks.each do |fb| %>
@@ -421,6 +430,7 @@
                     <% existing_q = (feedback_question_id && passed_existing_feedbacks) ? passed_existing_feedbacks[feedback_question_id] : nil %>
                     <% question_prefix = section&.mha_competency? ? "#" : "Q" %>
                     <% if supports_feedback %>
+                    <% missing_score = missing_feedback_question_ids.include?(feedback_question_id.to_i) %>
                     <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-3">
                     <div class="flex items-center justify-between gap-3">
                       <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — <%= question_prefix %><%= question_number %></h5>
@@ -437,9 +447,14 @@
                                    selected: normalize_proficiency_value(existing_q&.average_score),
                                    data: {
                                      advisor_feedback_score: true,
+                                     required_advisor_rating: true,
+                                     feedback_question_id: feedback_question_id,
                                      program_target_level: effective_competency_target_level(question: feedback_question, survey: survey, student: sr&.student)
                                    },
-                                   class_name: "w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                                   class_name: "w-full max-w-xs rounded-md border #{missing_score ? 'border-rose-500 ring-1 ring-rose-200' : 'border-slate-300'} bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                        <% if missing_score %>
+                          <p class="mt-1 text-xs text-rose-600">Advisor Rating is required before submission.</p>
+                        <% end %>
                       </div>
 
                       <div class="md:col-span-2" data-controller="character-counter">

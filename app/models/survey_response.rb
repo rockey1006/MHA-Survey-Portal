@@ -171,7 +171,8 @@ class SurveyResponse
     return @question_responses if defined?(@question_responses)
 
     if @answers_override
-      question_ids = @answers_override.keys.map(&:to_i)
+      override_answers = normalized_answers_override
+      question_ids = override_answers.keys.select { |key| key.is_a?(Integer) }
       questions = Question.includes(:category).where(id: question_ids).index_by(&:id)
       timestamp = @as_of || Time.current
 
@@ -182,7 +183,7 @@ class SurveyResponse
         OpenStruct.new(
           question_id: qid,
           question: question,
-          answer: @answers_override[qid.to_s],
+          answer: override_answers[qid],
           created_at: timestamp,
           updated_at: timestamp
         )
@@ -197,7 +198,7 @@ class SurveyResponse
 
   # @return [Hash{Integer => Object}] answers keyed by question id
   def answers
-    return @answers_override if @answers_override
+    return normalized_answers_override if @answers_override
 
     @answers ||= question_responses.index_by(&:question_id).transform_values(&:answer)
   end
@@ -267,6 +268,20 @@ class SurveyResponse
       value.any?(&:present?)
     else
       value.present?
+    end
+  end
+
+  def normalized_answers_override
+    @normalized_answers_override ||= begin
+      raw = @answers_override || {}
+      raw.each_with_object({}) do |(key, value), memo|
+        normalized_key = if key.is_a?(String) && key.match?(/\A\d+\z/)
+          key.to_i
+        else
+          key
+        end
+        memo[normalized_key] = value
+      end
     end
   end
 end

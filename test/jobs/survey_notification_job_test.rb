@@ -106,6 +106,19 @@ class SurveyNotificationJobTest < ActiveJob::TestCase
     end
   end
 
+  test "feedback received event skips when feedback is draft" do
+    feedback = feedbacks(:advisor_feedback)
+    AdvisorFeedbackSubmission.where(
+      student_id: feedback.student_id,
+      survey_id: feedback.survey_id,
+      advisor_id: feedback.advisor_id
+    ).delete_all
+
+    assert_no_difference -> { Notification.count } do
+      SurveyNotificationJob.perform_now(event: :feedback_received, feedback_id: feedback.id)
+    end
+  end
+
   # Test :student_revised_after_feedback event
   test "student revised after feedback notifies advisor and admins" do
     assert User.admins.exists?

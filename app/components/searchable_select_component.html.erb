@@ -1,7 +1,7 @@
 <div class="space-y-2" data-combobox="true">
   <label for="<%= "#{id}-display" %>" class="block text-sm font-semibold text-slate-800"><%= label %></label>
 
-  <input type="hidden" name="<%= name %>" value="" data-combobox-value="true" <%= required ? "required" : "" %> />
+  <input type="hidden" name="<%= name %>" value="" data-combobox-value="true" />
 
   <div class="relative">
     <input
@@ -13,6 +13,7 @@
       data-combobox-input="true"
       aria-autocomplete="list"
       aria-expanded="false"
+      <%= required ? "required" : "" %>
     />
 
     <div

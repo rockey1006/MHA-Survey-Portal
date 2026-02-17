@@ -177,6 +177,113 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/no role changes were needed/i, flash[:notice].to_s)
   end
 
+  test "destroy_member removes selected member" do
+    sign_in @admin
+
+    assert_difference -> { User.count }, -1 do
+      delete remove_member_path(@other_student)
+    end
+
+    assert_redirected_to manage_members_path
+    follow_redirect!
+    assert_match(/removed member/i, flash[:notice].to_s)
+  end
+
+  test "destroy_member prevents removing current admin" do
+    sign_in @admin
+
+    assert_no_difference -> { User.count } do
+      delete remove_member_path(@admin)
+    end
+
+    assert_redirected_to manage_members_path
+    follow_redirect!
+    assert_match(/cannot remove your own account/i, flash[:alert].to_s)
+  end
+
+  test "destroy_members removes selected members in batch" do
+    sign_in @admin
+
+    assert_difference -> { User.count }, -1 do
+      delete remove_members_path, params: { user_ids: [ @other_student.id ] }
+    end
+
+    assert_redirected_to manage_members_path
+    follow_redirect!
+    assert_match(/removed 1 member/i, flash[:notice].to_s)
+  end
+
+  test "destroy_member removes member even when survey response versions reference assignments" do
+    sign_in @admin
+
+    student_profile = students(:student)
+    assignment = survey_assignments(:residential_assignment)
+
+    SurveyResponseVersion.create!(
+      student_id: student_profile.student_id,
+      survey: surveys(:fall_2025),
+      survey_assignment: assignment,
+      event: "test_snapshot",
+      answers: { "q1" => "3" }
+    )
+
+    assert_difference -> { User.count }, -1 do
+      delete remove_member_path(users(:student))
+    end
+
+    assert_redirected_to manage_members_path
+    follow_redirect!
+    assert_match(/removed member/i, flash[:notice].to_s)
+  end
+
+  test "destroy_member requires admin (blocks students)" do
+    sign_in @student
+
+    assert_no_difference -> { User.count } do
+      delete remove_member_path(@other_student)
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_nil flash[:alert] # Students get silent redirect
+  end
+
+  test "destroy_member requires admin (blocks advisors)" do
+    sign_in @advisor
+
+    assert_no_difference -> { User.count } do
+      delete remove_member_path(@other_student)
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
+  test "destroy_members requires admin (blocks students)" do
+    sign_in @student
+
+    assert_no_difference -> { User.count } do
+      delete remove_members_path, params: { user_ids: [ @other_student.id ] }
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_nil flash[:alert] # Students get silent redirect
+  end
+
+  test "destroy_members requires admin (blocks advisors)" do
+    sign_in @advisor
+
+    assert_no_difference -> { User.count } do
+      delete remove_members_path, params: { user_ids: [ @other_student.id ] }
+    end
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
   test "debug_users returns expected json" do
     sign_in @admin
     get debug_users_path

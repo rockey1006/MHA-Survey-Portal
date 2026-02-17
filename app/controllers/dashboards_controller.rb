@@ -264,6 +264,108 @@ class DashboardsController < ApplicationController
     end
   end
 
+  # Removes a member account entirely from the system.
+  #
+  # @return [void]
+  def destroy_member
+    return unless ensure_admin!
+
+    user = User.find_by(id: params[:id])
+    unless user
+      redirect_to manage_members_path, alert: "Member not found."
+      return
+    end
+
+    if user == current_user
+      redirect_to manage_members_path, alert: "You cannot remove your own account."
+      return
+    end
+
+    removed_user_id = user.id
+    removed_email = user.email
+    removed_role = user.role
+
+    safely_destroy_member!(user)
+
+    AdminActivityLog.record!(
+      admin: current_user,
+      action: "member_removal",
+      description: "Removed member #{removed_email}.",
+      metadata: {
+        removed_user_id: removed_user_id,
+        removed_user_email: removed_email,
+        removed_user_role: removed_role
+      }
+    )
+
+    redirect_to manage_members_path, notice: "Removed member #{removed_email}."
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::InvalidForeignKey => e
+    Rails.logger.error "Failed to remove user #{params[:id]}: #{e.class} #{e.message}"
+    redirect_to manage_members_path, alert: "Unable to remove member: #{e.message}"
+  end
+
+  # Removes multiple member accounts from the system.
+  #
+  # @return [void]
+  def destroy_members
+    return unless ensure_admin!
+
+    member_ids = normalize_member_ids(params[:user_ids])
+    if member_ids.empty?
+      redirect_to manage_members_path, alert: "No members were selected for removal."
+      return
+    end
+
+    users_by_id = User.where(id: member_ids).index_by(&:id)
+    removed = []
+    failed = []
+
+    member_ids.each do |member_id|
+      user = users_by_id[member_id]
+      unless user
+        failed << "User ID #{member_id}: not found"
+        next
+      end
+
+      if user == current_user
+        failed << "#{user.email}: cannot remove your own account"
+        next
+      end
+
+      begin
+        removed_user_id = user.id
+        removed_email = user.email
+        removed_role = user.role
+
+        safely_destroy_member!(user)
+
+        removed << removed_email
+        AdminActivityLog.record!(
+          admin: current_user,
+          action: "member_removal",
+          description: "Removed member #{removed_email}.",
+          metadata: {
+            removed_user_id: removed_user_id,
+            removed_user_email: removed_email,
+            removed_user_role: removed_role,
+            batch: true
+          }
+        )
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::InvalidForeignKey => e
+        Rails.logger.error "Failed to remove user #{member_id}: #{e.class} #{e.message}"
+        failed << "#{user.email}: #{e.message}"
+      end
+    end
+
+    if removed.present?
+      message = "Removed #{removed.size} member#{'s' if removed.size != 1}."
+      message += " Failures: #{failed.join(', ')}" if failed.present?
+      redirect_to manage_members_path, notice: message
+    else
+      redirect_to manage_members_path, alert: "Unable to remove selected members: #{failed.join(', ')}"
+    end
+  end
+
   # Returns a JSON payload summarizing users and role counts for troubleshooting.
   #
   # @return [void]
@@ -320,6 +422,49 @@ class DashboardsController < ApplicationController
     end
 
     redirect_to dashboard_path_for_role(new_role)
+  end
+
+  def normalize_member_ids(raw_ids)
+    values = case raw_ids
+    when String
+      raw_ids.split(/[\s,]+/)
+    when Array
+      raw_ids
+    else
+      []
+    end
+
+    values.filter_map do |value|
+      numeric = value.to_s.strip
+      next if numeric.blank?
+
+      id = numeric.to_i
+      id.positive? ? id : nil
+    end.uniq
+  end
+
+  def safely_destroy_member!(user)
+    ActiveRecord::Base.transaction do
+      purge_member_survey_response_versions!(user)
+      user.destroy!
+    end
+  end
+
+  def purge_member_survey_response_versions!(user)
+    student_ids = []
+    student_ids << user.student_profile.student_id if user.student_profile.present?
+
+    if user.advisor_profile.present?
+      student_ids.concat(user.advisor_profile.advisees.pluck(:student_id))
+    end
+
+    student_ids = student_ids.compact.uniq
+    return if student_ids.empty?
+
+    assignment_ids = SurveyAssignment.where(student_id: student_ids).pluck(:id)
+    version_scope = SurveyResponseVersion.where(student_id: student_ids)
+    version_scope = version_scope.or(SurveyResponseVersion.where(survey_assignment_id: assignment_ids)) if assignment_ids.any?
+    version_scope.delete_all
   end
 
   # Lists students and advisors for assignment management.

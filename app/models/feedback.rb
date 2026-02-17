@@ -12,6 +12,8 @@ class Feedback < ApplicationRecord
   belongs_to :question, optional: true
   belongs_to :survey
 
+  validates :category, presence: true
+
   validates :average_score,
             numericality: {
               greater_than_or_equal_to: 0,
@@ -25,16 +27,5 @@ class Feedback < ApplicationRecord
   # constraint is enforced at a composite level in the DB and/or via
   # application logic; allow multiple Feedback records per survey here.
 
-  after_commit :enqueue_feedback_received_notification, on: [ :create, :update ]
-
   private
-
-  def enqueue_feedback_received_notification
-    changed_keys = previous_changes.keys
-    return unless (changed_keys & %w[average_score comments]).any?
-
-    SurveyNotificationJob.perform_later(event: :feedback_received, feedback_id: id)
-  rescue StandardError => e
-    Rails.logger.warn("Feedback notification enqueue failed for Feedback #{id}: #{e.class} - #{e.message}")
-  end
 end

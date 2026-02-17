@@ -1,10 +1,32 @@
 <div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
   <div class="survey-grid grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
     <div class="space-y-8 lg:min-w-0">
-      <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id), local: true, data: { turbo: false }, class: "space-y-8 survey-form" do |f| %>
+      <%= form_with url: feedbacks_path(survey_id: @survey.id, student_id: @student.id),
+                    local: true,
+                    data: {
+                      turbo: false,
+                      feedback_editor: true,
+                      save_popup: (@saved_popup ? "1" : "0")
+                    },
+                    class: "space-y-8 survey-form" do |f| %>
         <% back_path = @return_to.presence || student_records_path %>
+        <% cancel_path = begin
+          uri = URI.parse(back_path)
+          query = Rack::Utils.parse_nested_query(uri.query).merge("cancelled_feedback" => "1")
+          uri.query = query.to_query
+          uri.to_s
+        rescue StandardError
+          student_records_path(cancelled_feedback: "1")
+        end %>
         <%= hidden_field_tag :return_to, back_path %>
-        <%= render partial: 'survey_responses/survey_response', locals: { survey_response: @survey_response, include_feedback_form: true, existing_feedbacks_by_question: @existing_feedbacks_by_question } %>
+        <%= hidden_field_tag :submission_intent, "save", data: { feedback_intent_input: true } %>
+        <%= render partial: 'survey_responses/survey_response',
+                   locals: {
+                     survey_response: @survey_response,
+                     include_feedback_form: true,
+                     existing_feedbacks_by_question: @existing_feedbacks_by_question,
+                     missing_feedback_question_ids: @missing_rating_question_ids
+                   } %>
 
         <section class="c-card" data-advisor-feedback-summary>
           <div class="advisor-summary__header">
@@ -85,8 +107,7 @@
                    aria-labelledby="confidential-note-tab-<%= idx %>"
                    data-tabs-target="panel"
                    data-tab-id="note-tab-<%= idx %>"
-                   class="reports-tab__body space-y-3 <%= idx == default_idx ? "" : "hidden" %>"
-                   <%= idx == default_idx ? "" : "hidden" %>>
+                    class="reports-tab__body space-y-3 <%= idx == default_idx ? "" : "hidden" %>">
                 <% if editable %>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600" for="confidential_advisor_note_body">Note</label>
@@ -114,8 +135,21 @@
 
         <div class="c-toolbar mt-8">
           <div class="c-toolbar__row justify-between w-full">
-            <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
-            <%= f.submit "Submit", class: tailwind_button_classes(:primary) %>
+            <%= link_to "Cancel",
+                        cancel_path,
+                        class: tailwind_button_classes(:secondary),
+                        data: { feedback_cancel: true } %>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <%= button_tag "Save",
+                             type: :submit,
+                             class: tailwind_button_classes(:secondary),
+                             data: { feedback_save_button: true, submission_intent: "save" } %>
+              <%= button_tag "Submit",
+                             type: :submit,
+                             class: tailwind_button_classes(:primary),
+                             data: { feedback_submit_button: true, submission_intent: "submit" } %>
+            </div>
           </div>
         </div>
       <% end %>
@@ -167,13 +201,82 @@
       if (belowPctEl) belowPctEl.textContent = "(" + formatPercent(below, total) + ")";
     }
 
+    function serializeForm(form) {
+      var values = [];
+      var elements = Array.prototype.slice.call(form.elements || []);
+
+      elements.forEach(function(el) {
+        if (!el || el.disabled || !el.name) return;
+        var tag = (el.tagName || '').toLowerCase();
+        var type = (el.type || '').toLowerCase();
+        if (type === 'hidden' || type === 'submit' || type === 'button' || type === 'reset') return;
+
+        if (type === 'radio') {
+          if (!el.checked) return;
+          values.push(el.name + '=' + (el.value || ''));
+          return;
+        }
+
+        if (type === 'checkbox') {
+          values.push(el.name + '=' + (el.checked ? (el.value || 'on') : ''));
+          return;
+        }
+
+        if (tag === 'select' && el.multiple) {
+          var selected = Array.prototype.slice.call(el.selectedOptions || []).map(function(option) { return option.value; }).sort().join('|');
+          values.push(el.name + '=' + selected);
+          return;
+        }
+
+        values.push(el.name + '=' + (el.value || ''));
+      });
+
+      values.sort();
+      return JSON.stringify(values);
+    }
+
+    function markMissingRequiredRatings(form) {
+      var missing = [];
+      var requiredSelects = form.querySelectorAll('[data-required-advisor-rating="true"]');
+
+      requiredSelects.forEach(function(select) {
+        var value = (select.value || '').trim();
+        var hasValue = value.length > 0;
+        select.classList.toggle('border-rose-500', !hasValue);
+        select.classList.toggle('ring-1', !hasValue);
+        select.classList.toggle('ring-rose-200', !hasValue);
+        if (!hasValue) missing.push(select);
+      });
+
+      return missing;
+    }
+
     function bind() {
+      if (document.body && document.body.dataset.feedbackNewBound === 'true') return;
+      if (document.body) document.body.dataset.feedbackNewBound = 'true';
+
       updateAdvisorFeedbackSummary();
+
+      var form = document.querySelector('form[data-feedback-editor="true"]');
+      var isSubmitting = false;
+      var bypassBeforeUnload = false;
+      var baseline = form ? serializeForm(form) : null;
+
+      if (form && form.dataset.savePopup === '1') {
+        alert('Work saved. The student will not be able to see the content yet.');
+        form.dataset.savePopup = '0';
+      }
+
+      function isDirty() {
+        if (!form) return false;
+        return serializeForm(form) !== baseline;
+      }
 
       document.addEventListener('input', function(e) {
         var target = e.target;
         if (target && target.matches && target.matches('[data-advisor-feedback-score="true"]')) {
           updateAdvisorFeedbackSummary();
+          target.classList.remove('border-rose-500', 'ring-1', 'ring-rose-200');
         }
       });
 
@@ -181,12 +284,86 @@
         var target = e.target;
         if (target && target.matches && target.matches('[data-advisor-feedback-score="true"]')) {
           updateAdvisorFeedbackSummary();
+          target.classList.remove('border-rose-500', 'ring-1', 'ring-rose-200');
         }
+      });
+
+      if (form) {
+        var saveButton = form.querySelector('[data-feedback-save-button="true"]');
+        var submitButton = form.querySelector('[data-feedback-submit-button="true"]');
+
+        form.addEventListener('submit', function(event) {
+          var intentInput = form.querySelector('[data-feedback-intent-input="true"]');
+          var submitter = event.submitter;
+          var intentFromButton = submitter && submitter.dataset ? submitter.dataset.submissionIntent : null;
+          var intent = intentFromButton || (intentInput ? intentInput.value : null) || 'save';
+
+          if (intentInput) {
+            intentInput.value = intent;
+          }
+
+          if (intent === 'submit') {
+            var missingRatings = markMissingRequiredRatings(form);
+            if (missingRatings.length > 0) {
+              event.preventDefault();
+              alert('Please complete all required Advisor Rating fields before submitting.');
+              missingRatings[0].focus();
+              return;
+            }
+          }
+
+          isSubmitting = true;
+        });
+
+        document.addEventListener('keydown', function(event) {
+          var modifierPressed = event.ctrlKey || event.metaKey;
+          if (!modifierPressed || event.altKey || event.shiftKey) return;
+
+          var key = (event.key || '').toLowerCase();
+
+          if (key === 's') {
+            event.preventDefault();
+            if (saveButton) {
+              form.requestSubmit(saveButton);
+            } else {
+              form.requestSubmit();
+            }
+            return;
+          }
+
+          if (key === 'enter') {
+            event.preventDefault();
+            if (submitButton) {
+              form.requestSubmit(submitButton);
+            }
+          }
+        });
+
+        var cancelLinks = document.querySelectorAll('[data-feedback-cancel="true"]');
+        cancelLinks.forEach(function(link) {
+          link.addEventListener('click', function(event) {
+            if (!isDirty()) return;
+
+            var confirmed = window.confirm('Are you sure you want to leave? Any unsaved progress will be lost.');
+            if (!confirmed) {
+              event.preventDefault();
+              return;
+            }
+
+            bypassBeforeUnload = true;
+          });
+        });
+      }
+
+      window.addEventListener('beforeunload', function(event) {
+        if (isSubmitting || bypassBeforeUnload || !isDirty()) return;
+
+        event.preventDefault();
+        event.returnValue = 'Are you sure you want to leave? Any unsaved progress will be lost.';
       });
     }
 
     document.addEventListener('turbo:load', bind);
-    document.addEventListener('DOMContentLoaded', bind);
   })();
 </script>
 

@@ -104,6 +104,13 @@ class SurveyNotificationJob < ApplicationJob
     return if feedback_id.blank?
 
     feedback = Feedback.includes(:survey, student: :user, advisor: :user).find(feedback_id)
+    submission = AdvisorFeedbackSubmission.submitted.find_by(
+      student_id: feedback.student_id,
+      survey_id: feedback.survey_id,
+      advisor_id: feedback.advisor_id
+    )
+    return unless submission
+
     assignment = assignment_scope.find_by(student_id: feedback.student_id, survey_id: feedback.survey_id)
     return unless assignment
 

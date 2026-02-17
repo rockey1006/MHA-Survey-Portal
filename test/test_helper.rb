@@ -71,6 +71,7 @@ class ActiveSupport::TestCase
   include FactoryBot::Syntax::Methods
   parallelize(workers: 1)
   fixtures :admins,
+           :advisor_feedback_submissions,
            :advisors,
            :categories,
            :program_semesters,

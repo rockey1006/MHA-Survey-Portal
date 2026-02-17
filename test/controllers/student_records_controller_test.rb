@@ -15,7 +15,16 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, users(:student).name
     assert_includes response.body, users(:other_student).name
     assert_includes response.body, students(:student).program_year.to_s
-    assert_includes response.body, "Has feedback"
+    assert_includes response.body, "Submitted"
+  end
+
+  test "admin can export current student records view as xlsx" do
+    sign_in @admin
+
+    get export_student_records_excel_path(q: users(:student).name)
+    assert_response :success
+    assert_equal "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.media_type
+    assert_includes response.headers["Content-Disposition"], ".xlsx"
   end
 
   test "advisor only sees their assigned students" do

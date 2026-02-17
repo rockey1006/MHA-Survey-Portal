@@ -3,6 +3,7 @@ module Assignments
   # them assign/unassign surveys to students.
   class SurveysController < BaseController
     before_action :set_survey, only: %i[show assign assign_all unassign]
+    before_action :ensure_survey_active_for_mutation!, only: %i[assign assign_all unassign]
 
     # Lists surveys with their categories and questions.
     def index
@@ -124,10 +125,11 @@ module Assignments
         student_id: student.student_id,
         question_id: @survey.questions.select(:id)
       )
+      has_responses = scope.exists?
 
-      if scope.exists?
+      if assignment.present? || has_responses
         ActiveRecord::Base.transaction do
-          scope.delete_all
+          scope.delete_all if has_responses
           assignment&.destroy!
           Notification.deliver!(
             user: student.user,
@@ -249,6 +251,13 @@ module Assignments
       I18n.l(Time.current, format: :long)
     rescue I18n::MissingTranslationData, I18n::InvalidLocale
       Time.current.to_fs(:long)
+    end
+
+    def ensure_survey_active_for_mutation!
+      return if @survey.is_active?
+
+      redirect_to assignments_survey_path(@survey),
+                  alert: "This survey is archived and cannot be modified."
     end
   end
 end

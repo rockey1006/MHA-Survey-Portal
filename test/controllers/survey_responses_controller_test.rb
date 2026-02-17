@@ -156,7 +156,7 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     assert_nil StudentQuestion.find_by(student_id: @student.student_id, question_id: q2.id)
   end
 
-  test "destroy clears saved answers, resets completion, and notifies student" do
+  test "destroy clears saved answers, unassigns archived surveys, and notifies student" do
     sign_in @admin
 
     semester = program_semesters(:fall_2025)
@@ -191,6 +191,23 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
       response_value: "old"
     )
 
+    Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: survey.id,
+      question_id: q1.id,
+      category_id: q1.category_id,
+      advisor_id: @student.advisor_id,
+      average_score: 4,
+      comments: "feedback to delete"
+    )
+
+    AdvisorFeedbackSubmission.create!(
+      student_id: @student.student_id,
+      survey_id: survey.id,
+      advisor_id: @student.advisor_id,
+      last_saved_at: Time.current
+    )
+
     sr = SurveyResponse.build(student: @student, survey: survey)
 
     captured = false
@@ -206,7 +223,119 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     assert captured, "Expected SurveyResponseVersion.capture_current! to run"
     assert delivered, "Expected Notification.deliver! to run"
     assert_nil StudentQuestion.find_by(student_id: @student.student_id, question_id: q1.id)
+    assert_equal 0, Feedback.where(student_id: @student.student_id, survey_id: survey.id).count
+    assert_equal 0, AdvisorFeedbackSubmission.where(student_id: @student.student_id, survey_id: survey.id).count
+    assert_nil SurveyAssignment.find_by(id: assignment.id)
+  end
+
+  test "destroy clears saved answers and keeps active survey assignment as uncompleted" do
+    sign_in @admin
+
+    semester = program_semesters(:fall_2025)
+    survey = Survey.new(
+      title: "Admin Destroy Active Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: true
+    )
+    category = survey.categories.build(name: "Cat", description: "")
+    q1 = category.questions.build(
+      question_text: "Q1",
+      question_order: 0,
+      question_type: "short_answer",
+      is_required: false
+    )
+
+    survey.save!
+
+    assignment = SurveyAssignment.create!(
+      survey: survey,
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      assigned_at: 1.day.ago,
+      completed_at: Time.current
+    )
+
+    StudentQuestion.create!(
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      question: q1,
+      response_value: "old"
+    )
+
+    sr = SurveyResponse.build(student: @student, survey: survey)
+
+    SurveyResponseVersion.stub(:capture_current!, ->(**_) {}) do
+      Notification.stub(:deliver!, ->(**_) {}) do
+        delete :destroy, params: { id: sr.id }
+      end
+    end
+
+    assert_redirected_to student_records_path
+    assert_nil StudentQuestion.find_by(student_id: @student.student_id, question_id: q1.id)
     assert_nil assignment.reload.completed_at
+  end
+
+  test "destroy archived response clears version assignment references before removing assignment" do
+    sign_in @admin
+
+    semester = program_semesters(:fall_2025)
+    survey = Survey.new(
+      title: "Admin Destroy FK Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: false
+    )
+    category = survey.categories.build(name: "Cat", description: "")
+    q1 = category.questions.build(
+      question_text: "Q1",
+      question_order: 0,
+      question_type: "short_answer",
+      is_required: false
+    )
+
+    survey.save!
+
+    assignment = SurveyAssignment.create!(
+      survey: survey,
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      assigned_at: 1.day.ago,
+      completed_at: Time.current
+    )
+
+    StudentQuestion.create!(
+      student_id: @student.student_id,
+      advisor_id: @student.advisor_id,
+      question: q1,
+      response_value: "old"
+    )
+
+    historical_version = SurveyResponseVersion.create!(
+      student_id: @student.student_id,
+      survey_id: survey.id,
+      advisor_id: @student.advisor_id,
+      survey_assignment_id: assignment.id,
+      actor_user_id: @admin.id,
+      actor_role: @admin.role,
+      event: "submitted",
+      answers: { q1.id.to_s => "old" }
+    )
+
+    sr = SurveyResponse.build(student: @student, survey: survey)
+
+    Notification.stub(:deliver!, ->(**_) {}) do
+      delete :destroy, params: { id: sr.id }
+    end
+
+    assert_redirected_to student_records_path
+    assert_nil SurveyAssignment.find_by(id: assignment.id)
+    assert_nil historical_version.reload.survey_assignment_id
+
+    latest_version = SurveyResponseVersion.where(student_id: @student.student_id, survey_id: survey.id).order(:created_at).last
+    assert latest_version.present?
+    assert_equal "admin_deleted", latest_version.event
+    assert_nil latest_version.survey_assignment_id
   end
 
   test "set_survey_response via id param returns not found for bad id" do
@@ -233,6 +362,113 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     sr = SurveyResponse.build(student: @student, survey: @survey)
     get :show, params: { id: sr.id }
     assert_response :success
+  end
+
+  test "show marks unsubmitted advisor feedback as draft for admin viewers" do
+    sign_in @admin
+
+    section = SurveySection.create!(
+      survey: @survey,
+      title: SurveySection::MHA_COMPETENCY_SECTION_TITLE,
+      position: (@survey.sections.maximum(:position) || -1) + 1
+    )
+    category = Category.create!(
+      survey: @survey,
+      section: section,
+      name: "Draft Feedback Category",
+      description: ""
+    )
+    question = Question.create!(
+      category: category,
+      question_text: "Draft feedback question",
+      question_order: 999,
+      question_type: "short_answer",
+      is_required: false,
+      has_feedback: true
+    )
+    feedback = Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      question_id: question.id,
+      category_id: question.category_id,
+      advisor_id: @student.advisor_id,
+      average_score: 4,
+      comments: "Draft-only comment"
+    )
+
+    AdvisorFeedbackSubmission.where(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: feedback.advisor_id
+    ).delete_all
+    AdvisorFeedbackSubmission.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: feedback.advisor_id,
+      submitted_at: nil,
+      last_saved_at: Time.current
+    )
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :show, params: { id: sr.id }
+
+    assert_response :success
+    assert_includes response.body, "Draft"
+    assert_includes response.body, "only visible to advisors/admins until submitted"
+    assert_includes response.body, "Draft-only comment"
+  end
+
+  test "show hides unsubmitted advisor feedback from student viewers" do
+    sign_in @student_user
+
+    section = SurveySection.create!(
+      survey: @survey,
+      title: SurveySection::MHA_COMPETENCY_SECTION_TITLE,
+      position: (@survey.sections.maximum(:position) || -1) + 1
+    )
+    category = Category.create!(
+      survey: @survey,
+      section: section,
+      name: "Student Hidden Draft Category",
+      description: ""
+    )
+    question = Question.create!(
+      category: category,
+      question_text: "Student hidden draft question",
+      question_order: 1000,
+      question_type: "short_answer",
+      is_required: false,
+      has_feedback: true
+    )
+    feedback = Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      question_id: question.id,
+      category_id: question.category_id,
+      advisor_id: @student.advisor_id,
+      average_score: 3,
+      comments: "Student should not see this draft"
+    )
+
+    AdvisorFeedbackSubmission.where(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: feedback.advisor_id
+    ).delete_all
+    AdvisorFeedbackSubmission.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      advisor_id: feedback.advisor_id,
+      submitted_at: nil,
+      last_saved_at: Time.current
+    )
+
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+    get :show, params: { id: sr.id }
+
+    assert_response :success
+    assert_not_includes response.body, "Student should not see this draft"
+    assert_not_includes response.body, "only visible to advisors/admins until submitted"
   end
 
   test "authorize_view blocks advisors for unassigned students" do
@@ -312,6 +548,80 @@ class SurveyResponsesControllerUnitTest < ActionController::TestCase
     if @response.status == 503
       assert_includes @response.body.downcase, "server-side pdf generation unavailable"
     end
+  end
+
+  test "download uses student viewer mode for student users" do
+    sign_in @student_user
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+
+    wickedpdf_defined = defined?(WickedPdf)
+    Object.const_set(:WickedPdf, Class.new) unless wickedpdf_defined
+
+    tmp = Tempfile.new([ "student_pdf", ".pdf" ])
+    tmp.binmode
+    tmp.write("%PDF-1.4\n%fake\n")
+    tmp.flush
+
+    result = Struct.new(:path) do
+      def cleanup!; end
+    end
+    fake_result = result.new(tmp.path)
+    captured_viewer_mode = nil
+
+    CompositeReportGenerator.stub(:new, ->(survey_response:, cache:, viewer_mode:, **_) {
+      captured_viewer_mode = viewer_mode
+      Struct.new(:result) do
+        def render
+          result
+        end
+      end.new(fake_result)
+    }) do
+      get :download, params: { id: sr.id }
+    end
+
+    assert_response :success
+    assert_equal :student, captured_viewer_mode
+  ensure
+    tmp&.close
+    tmp&.unlink
+    Object.send(:remove_const, :WickedPdf) unless wickedpdf_defined
+  end
+
+  test "download uses staff viewer mode for admin users" do
+    sign_in @admin
+    sr = SurveyResponse.build(student: @student, survey: @survey)
+
+    wickedpdf_defined = defined?(WickedPdf)
+    Object.const_set(:WickedPdf, Class.new) unless wickedpdf_defined
+
+    tmp = Tempfile.new([ "staff_pdf", ".pdf" ])
+    tmp.binmode
+    tmp.write("%PDF-1.4\n%fake\n")
+    tmp.flush
+
+    result = Struct.new(:path) do
+      def cleanup!; end
+    end
+    fake_result = result.new(tmp.path)
+    captured_viewer_mode = nil
+
+    CompositeReportGenerator.stub(:new, ->(survey_response:, cache:, viewer_mode:, **_) {
+      captured_viewer_mode = viewer_mode
+      Struct.new(:result) do
+        def render
+          result
+        end
+      end.new(fake_result)
+    }) do
+      get :download, params: { id: sr.id }
+    end
+
+    assert_response :success
+    assert_equal :staff, captured_viewer_mode
+  ensure
+    tmp&.close
+    tmp&.unlink
+    Object.send(:remove_const, :WickedPdf) unless wickedpdf_defined
   end
 
   test "download streams a PDF when WickedPdf is present and generator succeeds" do

@@ -217,7 +217,7 @@ export default class extends Controller {
 
     if (type === "evidence") {
       this.responseTarget.innerHTML =
-        '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" placeholder="https://drive.google.com/..." disabled>'
+        '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" placeholder="https://sites.google.com/tamu.edu/..." disabled>'
       return
     }
 

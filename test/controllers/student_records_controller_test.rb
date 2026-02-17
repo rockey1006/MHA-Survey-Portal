@@ -121,6 +121,30 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, users(:other_student).name
   end
 
+  test "archived survey row uses review-only response link and keeps admin response actions" do
+    sign_in @admin
+
+    survey = surveys(:fall_2025)
+    student = students(:student)
+    survey.update!(is_active: false)
+
+    assignment = SurveyAssignment.find_or_initialize_by(survey_id: survey.id, student_id: student.student_id)
+    assignment.advisor_id ||= student.advisor_id
+    assignment.assigned_at ||= Time.current
+    assignment.completed_at ||= Time.current
+    assignment.save!
+
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+
+    get student_records_path(survey_id: survey.id)
+    assert_response :success
+
+    assert_includes response.body, survey_response_path(survey_response)
+    assert_not_includes response.body, new_feedback_path(survey_id: survey.id, student_id: student.student_id)
+    assert_includes response.body, 'aria-label="More actions"'
+    assert_includes response.body, "Edit Response"
+  end
+
   test "advisor search stays within assigned scope" do
     sign_in @advisor
 

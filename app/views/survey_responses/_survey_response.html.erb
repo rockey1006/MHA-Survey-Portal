@@ -66,6 +66,9 @@
   <% feedbacks = feedback_scope
                    .includes(:question, :advisor)
                    .order(updated_at: :desc, created_at: :desc) %>
+  <% feedback_submissions_by_advisor = AdvisorFeedbackSubmission
+                                        .where(student_id: sr&.student_id, survey_id: survey&.id)
+                                        .index_by(&:advisor_id) %>
   <% per_question_map = {} %>
   <% per_category_legacy = {} %>
   <% feedbacks.each do |fb| %>
@@ -340,7 +343,7 @@
                         <%= text_field_tag "#{answer_param_key}[#{question.id}]",
                                            link_value.to_s,
                                            id: "question-#{question.id}",
-                                           placeholder: "https://drive.google.com/...",
+                                           placeholder: "https://sites.google.com/tamu.edu/...",
                                            maxlength: StudentQuestion::TEXT_MAX_LENGTH,
                                            data: { "character-counter-target": "input", action: "input->character-counter#input" },
                                            class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
@@ -358,7 +361,7 @@
                         <%= text_field_tag "#{answer_param_key}[#{question.id}]",
                                            "",
                                            id: "question-#{question.id}",
-                                           placeholder: "https://drive.google.com/...",
+                                           placeholder: "https://sites.google.com/tamu.edu/...",
                                            maxlength: StudentQuestion::TEXT_MAX_LENGTH,
                                            data: { "character-counter-target": "input", action: "input->character-counter#input" },
                                            class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
@@ -399,13 +402,24 @@
                       <% next if viewer_is_student_owner && category.name.to_s.strip.downcase == 'employment information' %>
                       <% fb = feedback_question_id ? per_question_map[feedback_question_id] : nil %>
                       <% if fb.present? %>
+                        <% feedback_submission = fb.advisor_id.present? ? feedback_submissions_by_advisor[fb.advisor_id] : nil %>
+                        <% feedback_submitted = feedback_submission&.submitted_at.present? %>
+                        <% feedback_is_draft = !feedback_submitted %>
                         <article class="question-block advisor-feedback-card mt-3 rounded-lg border p-4 shadow-sm space-y-2">
                           <div class="flex flex-wrap items-center justify-between gap-3">
-                            <h5 class="text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — #<%= question_number %></h5>
-                            <p class="text-xs text-slate-600">Score: <%= fb.average_score != nil ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
+                            <h5 class="min-w-0 text-sm font-semibold tracking-tight text-slate-900">Advisor feedback — #<%= question_number %></h5>
+                            <div class="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2">
+                              <% if !viewer_is_student_owner && feedback_is_draft %>
+                                <span class="<%= feedback_status_badge_classes('Draft') %>">Draft</span>
+                              <% end %>
+                              <p class="text-xs text-slate-600 break-words">Score: <%= fb.average_score != nil ? proficiency_label_for(fb.average_score, feedback_question) : '—' %></p>
+                            </div>
                           </div>
                           <% if fb.comments.present? %>
                             <div class="text-sm text-slate-700 whitespace-pre-wrap break-words"><%= fb.comments %></div>
+                          <% end %>
+                          <% if !viewer_is_student_owner && feedback_is_draft %>
+                            <p class="text-xs text-amber-700">Draft feedback is only visible to advisors/admins until submitted.</p>
                           <% end %>
                           <div class="text-xs text-slate-500">By: <%= fb&.advisor&.user&.name || '—' %></div>
                         </article>

@@ -143,6 +143,7 @@ class SurveyResponsesController < ApplicationController
     survey = @survey_response.survey
     student = @survey_response.student
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: survey.id)
+    removed_assignment = false
 
     ActiveRecord::Base.transaction do
       # Capture what existed before deletion.
@@ -155,16 +156,28 @@ class SurveyResponsesController < ApplicationController
       )
 
       StudentQuestion.where(student_id: student.student_id, question_id: survey.questions.select(:id)).delete_all
-      assignment&.update!(completed_at: nil)
+      Feedback.where(student_id: student.student_id, survey_id: survey.id).delete_all
+      AdvisorFeedbackSubmission.where(student_id: student.student_id, survey_id: survey.id).delete_all
+
+      if assignment.present?
+        if survey.is_active?
+          assignment.update!(completed_at: nil)
+        else
+          SurveyResponseVersion.where(survey_assignment_id: assignment.id).update_all(survey_assignment_id: nil)
+          assignment.destroy!
+          removed_assignment = true
+        end
+      end
     end
 
     recipient = student.user
+    notification_target = removed_assignment ? survey : (assignment || survey)
     if recipient
       Notification.deliver!(
         user: recipient,
         title: "Survey response deleted",
         message: "An admin deleted your responses for '#{survey.title}'. If the survey has not closed yet, you may submit again.",
-        notifiable: assignment
+        notifiable: notification_target
       )
     end
 
@@ -184,7 +197,11 @@ class SurveyResponsesController < ApplicationController
     result = nil
 
     begin
-      generator = CompositeReportGenerator.new(survey_response: @survey_response, cache: false)
+      generator = CompositeReportGenerator.new(
+        survey_response: @survey_response,
+        cache: false,
+        viewer_mode: composite_pdf_viewer_mode
+      )
       result = generator.render
       filename = survey_pdf_filename(@survey_response)
       stream_pdf_result(result, filename, unavailable_message: unavailable_message)
@@ -247,6 +264,23 @@ class SurveyResponsesController < ApplicationController
     return nil unless value.start_with?("/") && !value.start_with?("//")
 
     value
+  end
+
+  def composite_pdf_viewer_mode
+    user = current_user
+    if user&.respond_to?(:role_student?) && user.role_student?
+      return :student
+    end
+
+    if user&.respond_to?(:role_admin?) && user.role_admin?
+      return :staff
+    end
+
+    if user&.respond_to?(:role_advisor?) && user.role_advisor?
+      return :staff
+    end
+
+    params[:token].present? ? :student : :staff
   end
 
   # Finds the survey response by signed token or ID parameter.

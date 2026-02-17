@@ -286,7 +286,8 @@ class Admin::SurveysController < Admin::BaseController
     redirect_to admin_surveys_path, notice: "Survey deleted successfully."
   end
 
-  # Archives a survey, removing any track assignments and recording the action.
+  # Archives a survey while preserving its track configuration for future
+  # reactivation and recording the action.
   #
   # @return [void]
   def archive
@@ -297,13 +298,12 @@ class Admin::SurveysController < Admin::BaseController
         @survey.lock!
         removed_assignments = purge_incomplete_assignments!(@survey)
         @survey.update!(is_active: false)
-        @survey.assign_tracks!([])
       end
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed => e
       redirect_to edit_admin_survey_path(@survey), alert: e.message and return
     end
 
-    summary = "Survey archived and unassigned from all tracks"
+    summary = "Survey archived"
     if removed_assignments.positive?
       assignment_label = removed_assignments == 1 ? "assignment" : "assignments"
       summary += "; removed #{removed_assignments} pending #{assignment_label}"
@@ -370,12 +370,10 @@ class Admin::SurveysController < Admin::BaseController
   def purge_incomplete_assignments!(survey)
     assignments = survey.survey_assignments.incomplete
     return 0 unless assignments.exists?
-
-    question_ids = survey.questions.select(:id)
     removed = 0
 
     assignments.find_each do |assignment|
-      StudentQuestion.where(student_id: assignment.student_id, question_id: question_ids).delete_all
+      SurveyResponseVersion.where(survey_assignment_id: assignment.id).update_all(survey_assignment_id: nil)
       assignment.destroy!
       removed += 1
     end

@@ -227,6 +227,32 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert SurveyAssignment.find_by(survey: @survey, student: student).completed_at?
   end
 
+  test "unassign removes assignment even when responses were deleted" do
+    StudentQuestion.delete_all
+    Notification.delete_all
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
+    )
+
+    assert_no_difference "StudentQuestion.count" do
+      assert_difference "Notification.count", 1 do
+        assert_difference "SurveyAssignment.count", -1 do
+          delete unassign_assignments_survey_path(@survey), params: { student_id: student.student_id }
+        end
+      end
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Unassigned", flash[:notice]
+    assert_nil SurveyAssignment.find_by(survey: @survey, student: student)
+  end
+
   test "show explains why completed surveys cannot be unassigned" do
     student = students(:student)
     SurveyAssignment.where(survey: @survey, student: student).delete_all
@@ -241,5 +267,41 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     get assignments_survey_path(@survey)
     assert_response :success
     assert_includes response.body, "title=\"Completed surveys can’t be unassigned.\""
+  end
+
+  test "assign is blocked when survey is archived" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+    @survey.update!(is_active: false)
+
+    assert_no_difference "StudentQuestion.count" do
+      assert_no_difference "SurveyAssignment.count" do
+        post assign_assignments_survey_path(@survey), params: { student_id: students(:student).student_id }
+      end
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "survey is archived", flash[:alert].to_s.downcase
+  end
+
+  test "unassign is blocked when survey is archived" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
+    )
+    @survey.update!(is_active: false)
+
+    assert_no_difference "SurveyAssignment.count" do
+      delete unassign_assignments_survey_path(@survey), params: { student_id: student.student_id }
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "survey is archived", flash[:alert].to_s.downcase
   end
 end

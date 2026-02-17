@@ -883,12 +883,12 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
   # === Archive Action ===
 
-  test "archives survey and removes track assignments" do
+  test "archives survey and preserves track assignments" do
     assert @survey.is_active?
     assert @survey.track_list.any?
 
     prior_assignment_count = SurveyTrackAssignment.count
-    prior_tracks = @survey.track_list.size
+    prior_tracks = @survey.track_list.sort
 
     assert_difference "SurveyChangeLog.count" do
       patch archive_admin_survey_path(@survey)
@@ -898,9 +898,9 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     @survey.reload
     refute @survey.is_active?
-    assert_empty @survey.track_list
-    assert_equal prior_assignment_count - prior_tracks, SurveyTrackAssignment.count
-    assert_empty SurveyTrackAssignment.where(survey: @survey)
+    assert_equal prior_tracks, @survey.track_list.sort
+    assert_equal prior_assignment_count, SurveyTrackAssignment.count
+    assert_equal prior_tracks, SurveyTrackAssignment.where(survey: @survey).pluck(:track).sort
 
     log = SurveyChangeLog.order(:created_at).last
     assert_equal "archive", log.action
@@ -917,7 +917,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     refute @survey.is_active?
   end
 
-  test "archive removes incomplete assignments but keeps completed records" do
+  test "archive removes incomplete assignments and preserves existing responses" do
     incomplete_assignment = survey_assignments(:residential_assignment)
     completed_assignment = survey_assignments(:completed_residential_assignment)
     question = questions(:fall_q1)
@@ -931,7 +931,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_surveys_path
     refute SurveyAssignment.exists?(incomplete_assignment.id)
-    refute StudentQuestion.exists?(student_id: incomplete_assignment.student_id, question_id: question.id)
+    assert StudentQuestion.exists?(student_id: incomplete_assignment.student_id, question_id: question.id)
     assert SurveyAssignment.exists?(completed_assignment.id)
     assert StudentQuestion.exists?(student_id: completed_assignment.student_id, question_id: question.id)
   end

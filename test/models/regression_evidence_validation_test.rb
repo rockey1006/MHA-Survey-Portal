@@ -1,7 +1,7 @@
 require "test_helper"
 
 class RegressionEvidenceValidationTest < ActiveSupport::TestCase
-  test "evidence question rejects non-drive links on submit" do
+  test "evidence question rejects non-sites links on submit" do
     survey = surveys(:fall_2025)
     category = survey.categories.first || survey.categories.create!(name: "Temp", description: "Temp")
     evidence_question = survey.questions.find_by(question_type: "evidence")
@@ -18,10 +18,13 @@ class RegressionEvidenceValidationTest < ActiveSupport::TestCase
 
     sq = StudentQuestion.new(student_id: student.student_id, question: evidence_question)
     sq.response_value = "https://example.com/not-drive"
-    refute sq.valid?, "Expected evidence validation to reject non-drive links"
-    assert_includes sq.errors[:response_value], "must be a publicly shareable Google link"
+    refute sq.valid?, "Expected evidence validation to reject non-sites links"
+    assert_includes sq.errors[:response_value], "must be a published Google Sites link"
 
     sq.response_value = "https://drive.google.com/file/d/abc/view"
-    assert sq.valid?, "Expected evidence validation to accept drive links"
+    refute sq.valid?, "Expected evidence validation to reject drive links"
+
+    sq.response_value = "https://sites.google.com/view/demo/page"
+    assert sq.valid?, "Expected evidence validation to accept sites links"
   end
 end

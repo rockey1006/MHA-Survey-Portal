@@ -47,7 +47,7 @@
     <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
       <p class="font-medium">Please fix the highlighted items:</p>
       <ul class="mt-1 list-disc pl-5">
-        <li>One or more evidence links require Google sharing set to "Anyone with the link can view."</li>
+        <li>Use a published Google Sites link only (sites.google.com).</li>
       </ul>
     </div>
   <% end %>
@@ -271,13 +271,15 @@
                                    evidence_value,
                                    maxlength: StudentQuestion::TEXT_MAX_LENGTH,
                                    id: "question-#{question.id}",
-                                   placeholder: "https://drive.google.com/...",
+                                   placeholder: "https://sites.google.com/tamu.edu/...",
                                    data: { "character-counter-target": "input", action: "input->character-counter#input" },
                                    class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
                 <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= evidence_value.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
               </div>
               <% if invalid_evidence_error %>
-                <div class="text-xs text-red-600 mt-1">Link is invalid or not publicly accessible</div>
+                <div class="text-xs text-red-600 mt-1">
+                  Use a published Google Sites link. In Google Sites: Publish → Manage (Who can view) → set to "Anyone with the link" or "Anyone at tamu.edu with the link" → Publish again.
+                </div>
               <% elsif missing_required_error %>
                 <div class="text-xs text-red-600 mt-1">This question is required</div>
               <% end %>

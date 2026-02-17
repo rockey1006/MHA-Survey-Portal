@@ -34,10 +34,11 @@ class CompositeReportGenerator
 
   include ActiveSupport::NumberHelper
 
-  def initialize(survey_response:, cache: true, logger: Rails.logger)
+  def initialize(survey_response:, cache: true, logger: Rails.logger, viewer_mode: :staff)
     @survey_response = survey_response
     @cache_enabled = cache
     @logger = logger || Rails.logger
+    @viewer_mode = viewer_mode.to_sym
   end
 
   # Renders (or retrieves) the PDF payload for the survey response composite report.
@@ -220,6 +221,7 @@ class CompositeReportGenerator
       responses_by_question: responses_by_question,
       answers_by_question: answers_by_question,
       feedbacks_by_category: feedbacks_by_category,
+      feedback_submission_by_advisor: feedback_submission_by_advisor,
       feedback_summary: feedback_summary,
       evidence_history_by_category: evidence_history_by_category,
       generated_at: generated_at,
@@ -265,7 +267,21 @@ class CompositeReportGenerator
   end
 
   def feedback_scope
-    Feedback.where(student_id: student.student_id, survey_id: survey.id).includes(:category, :advisor)
+    scope = Feedback.where(student_id: student.student_id, survey_id: survey.id).includes(:category, :advisor)
+    return scope unless viewer_mode == :student
+
+    submitted_advisor_ids = AdvisorFeedbackSubmission
+      .submitted
+      .where(student_id: student.student_id, survey_id: survey.id)
+      .pluck(:advisor_id)
+
+    scope.where(advisor_id: submitted_advisor_ids)
+  end
+
+  def feedback_submission_by_advisor
+    @feedback_submission_by_advisor ||= AdvisorFeedbackSubmission
+      .where(student_id: student.student_id, survey_id: survey.id)
+      .index_by(&:advisor_id)
   end
 
   def feedback_records
@@ -319,6 +335,10 @@ class CompositeReportGenerator
 
   def progress_summary
     @progress_summary ||= @survey_response.progress_summary
+  end
+
+  def viewer_mode
+    @viewer_mode
   end
 
   def log_html_size(html)

@@ -608,7 +608,7 @@ class SurveysController < ApplicationController
     end
   end
 
-  # Checks if a Google-hosted link (Drive/Docs/Sites) is publicly accessible.
+  # Checks if a Google Sites link is publicly accessible.
   # Returns [Boolean accessible, Symbol reason]
   def evidence_accessible?(url)
     require "uri"
@@ -623,7 +623,7 @@ class SurveysController < ApplicationController
     return [ false, :invalid ] unless uri.is_a?(URI::HTTPS)
 
   host = uri.host.to_s.downcase
-  allowlist_hosts = %w[drive.google.com docs.google.com sites.google.com]
+  allowlist_hosts = %w[sites.google.com]
   allowlist_suffixes = %w[googleusercontent.com]
   allowlisted_host = lambda do |candidate|
     candidate_host = candidate.to_s.downcase
@@ -634,49 +634,6 @@ class SurveysController < ApplicationController
     max_redirects = 3
     redirects = 0
     current_uri = uri
-
-  # Special handling for Google Docs document links: use export endpoint to test read-access
-  if host.end_with?("docs.google.com") && uri.path =~ %r{^/(document)/d/([A-Za-z0-9_-]+)}
-      doc_type = Regexp.last_match(1)
-      doc_id = Regexp.last_match(2)
-      export_uri = URI.parse("https://docs.google.com/#{doc_type}/d/#{doc_id}/export?format=txt")
-      begin
-        http = Net::HTTP.new(export_uri.host, export_uri.port)
-        http.use_ssl = true
-        http.open_timeout = 5
-        http.read_timeout = 5
-        req = Net::HTTP::Get.new(export_uri.request_uri)
-        req["Range"] = "bytes=0-1023"
-        req["User-Agent"] = "HealthProfessions/1.0"
-        resp = http.request(req)
-        case resp
-        when Net::HTTPSuccess
-          return [ true, :ok ]
-        when Net::HTTPRedirection
-          # If export redirects to non-allowlisted host, likely requires auth
-          location = resp["location"]
-          if location
-            new_host = (URI.parse(location).host.to_s)
-            unless allowlisted_host.call(new_host)
-              # Don't hard-fail here; fall back to generic checks in case export is restricted but page is public
-              Rails.logger.info "[EVIDENCE DEBUG] export redirect to non-allowlisted host: #{new_host}, will fall back to generic checks"
-            end
-          end
-        # fall through to generic logic
-        when Net::HTTPForbidden, Net::HTTPNotFound
-          # Some public docs may disable download/export; fall back to generic page checks
-          Rails.logger.info "[EVIDENCE DEBUG] export returned #{resp.code}, falling back to generic checks"
-        # fall through
-        else
-             # fall through to generic logic
-        end
-      rescue Net::OpenTimeout, Net::ReadTimeout
-        return [ false, :timeout ]
-      rescue StandardError => e
-        Rails.logger.info "[EVIDENCE DEBUG] export check exception ignored: #{e.class}: #{e.message}"
-           # fall through
-      end
-  end
 
     loop do
       begin

@@ -30,8 +30,6 @@ export default class extends Controller {
   ]
 
   connect() {
-    this.defaultDueDateValue = this.hasDueDateInputTarget ? this.dueDateInputTarget.value : ""
-
     this.checkboxTargets.forEach((checkbox) => {
       checkbox.checked = false
     })
@@ -121,17 +119,13 @@ export default class extends Controller {
     }
 
     const dueDate = this.hasDueDateInputTarget ? this.dueDateInputTarget.value.toString().trim() : ""
-    if (dueDate.length === 0) {
-      event.preventDefault()
-      window.alert("Choose a due date before changing deadlines.")
-      return
-    }
+    const dueLabel = dueDate.length > 0 ? dueDate : "the survey default deadline"
 
     const track = (this.hasTrackFilterTarget ? this.trackFilterTarget.value : "").trim() || "selected track"
     const year = (this.hasYearFilterTarget ? this.yearFilterTarget.value : "").trim()
     const scope = year.length > 0 ? `${track}, Class of ${year}` : track
 
-    const summary = `You are about to change student deadlines for ${selectedIds.length} student${selectedIds.length === 1 ? "" : "s"} in ${scope} to ${dueDate}.\n\nThis updates selected students' assignment deadlines, not the survey deadline. To change the survey deadline for everyone, use Survey Builder.\n\nProceed?`
+    const summary = `You are about to change student deadlines for ${selectedIds.length} student${selectedIds.length === 1 ? "" : "s"} in ${scope} to ${dueLabel}.\n\nThis updates selected students' assignment deadlines, not the survey deadline. To change the survey deadline for everyone, use Survey Builder.\n\nProceed?`
 
     if (!window.confirm(summary)) {
       event.preventDefault()
@@ -171,7 +165,7 @@ export default class extends Controller {
     }
 
     if (this.hasDueDateInputTarget) {
-      this.dueDateInputTarget.value = this.defaultDueDateValue || ""
+      this.dueDateInputTarget.value = ""
     }
 
     this.rowTargets.forEach((row) => {

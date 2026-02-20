@@ -283,8 +283,10 @@ module Assignments
 
     # Extends deadlines for a selected student group.
     def extend_group_deadline
-      extension_deadline = parsed_extension_available_until
-      if extension_deadline.nil?
+      raw_deadline = params[:new_available_until].to_s.strip
+      extension_deadline = raw_deadline.present? ? parsed_extension_available_until : @survey.available_until
+
+      if raw_deadline.present? && extension_deadline.nil?
         redirect_to assignments_survey_path(@survey),
                     alert: "Please provide a valid group deadline to apply the change."
         return
@@ -326,8 +328,9 @@ module Assignments
       group_label = []
       group_label << (track_filter.present? ? track_filter.to_s.strip : (survey_track_key&.titleize || "selected track"))
       group_label << "Class of #{year_filter}" if year_filter.present?
+      deadline_label = extension_deadline.present? ? format_timestamp(extension_deadline) : "No deadline"
       redirect_to assignments_survey_path(@survey),
-                  notice: "Changed '#{@survey.title}' deadline for #{processed_count} student#{'s' unless processed_count == 1} in #{group_label.compact.join(' • ')} to #{format_timestamp(extension_deadline)}."
+          notice: "Changed '#{@survey.title}' deadline for #{processed_count} student#{'s' unless processed_count == 1} in #{group_label.compact.join(' • ')} to #{deadline_label}."
     end
 
     private

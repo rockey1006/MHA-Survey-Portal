@@ -671,6 +671,33 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal original_deadline.to_i, assignment.reload.available_until.to_i
   end
 
+  test "extend_group_deadline uses survey default deadline when input is blank" do
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    selected_student = students(:student)
+    survey_default_deadline = Time.zone.local(2036, 6, 1, 16, 0)
+    @survey.update!(available_until: survey_default_deadline)
+
+    selected_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: selected_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      student_ids: [ selected_student.student_id ],
+      new_available_until: ""
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Changed", flash[:notice]
+    assert_equal survey_default_deadline.to_i, selected_assignment.reload.available_until.to_i
+  end
+
   test "reopen clears completion for selected assignments" do
     SurveyAssignment.delete_all
 

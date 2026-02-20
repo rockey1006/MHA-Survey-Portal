@@ -505,6 +505,46 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, expected_due
   end
 
+  test "student dashboard prioritizes assignment custom deadline over survey deadline" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = surveys(:fall_2025)
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = Time.current
+    end
+
+    survey.update!(available_until: Time.zone.local(2033, 1, 10, 9, 0))
+    assignment.update!(available_until: Time.zone.local(2033, 2, 15, 17, 30), manual: true)
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Due: #{assignment.available_until.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+    assert_not_includes response.body, "Due: #{survey.available_until.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+  end
+
+  test "student dashboard falls back to survey deadline when assignment deadline is blank" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = surveys(:fall_2025)
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = Time.current
+    end
+
+    survey_deadline = Time.zone.local(2034, 3, 20, 14, 45)
+    survey.update!(available_until: survey_deadline)
+    assignment.update!(available_until: nil)
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Due: #{survey_deadline.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+  end
+
   test "student dashboard disables edit for archived completed surveys" do
     sign_in @student
 

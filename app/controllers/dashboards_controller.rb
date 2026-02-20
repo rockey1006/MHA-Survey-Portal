@@ -102,8 +102,8 @@ class DashboardsController < ApplicationController
       # Only consider a survey "Completed" when it was submitted, not just answered
       assignment = assignments[survey.id]
       completed_at = assignment&.completed_at
-      available_from = assignment&.available_from
-      available_until = assignment&.available_until
+      available_from = assignment&.available_from.presence || survey.available_from
+      available_until = assignment&.available_until.presence || survey.available_until
 
       survey_response = SurveyResponse.build(student: @student, survey: survey)
       survey_summary = {

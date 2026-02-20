@@ -170,19 +170,28 @@ module SurveyAssignments
         assignment.advisor_id ||= student.advisor_id
         assignment.assigned_at ||= Time.zone.now
 
+        manual_assignment = assignment.persisted? &&
+                            SurveyAssignment.column_names.include?("manual") &&
+                            assignment.respond_to?(:manual?) &&
+                            assignment.manual?
+
         if assignment.respond_to?(:available_from) && survey.respond_to?(:available_from)
-          assignment.available_from = if offering_available_from.key?(survey.id)
-            offering_available_from[survey.id]
-          else
-            survey.available_from
+          unless manual_assignment && assignment.available_from.present?
+            assignment.available_from = if offering_available_from.key?(survey.id)
+              offering_available_from[survey.id]
+            else
+              survey.available_from
+            end
           end
         end
 
         if assignment.respond_to?(:available_until) && survey.respond_to?(:available_until)
-          assignment.available_until = if offering_available_until.key?(survey.id)
-            offering_available_until[survey.id]
-          else
-            survey.available_until
+          unless manual_assignment && assignment.available_until.present?
+            assignment.available_until = if offering_available_until.key?(survey.id)
+              offering_available_until[survey.id]
+            else
+              survey.available_until
+            end
           end
         end
 

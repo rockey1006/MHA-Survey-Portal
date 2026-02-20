@@ -77,8 +77,9 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
     get student_records_path(survey_id: executive_survey.id)
     assert_response :success
-    assert_includes response.body, users(:other_student).name
     assert_not_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
+    assert_includes response.body, "No students currently in this track."
   end
 
   test "admin can filter surveys by keyword" do
@@ -93,14 +94,21 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, residential_title
   end
 
-  test "admin can filter student records by status" do
+  test "student records hide unassigned rows by default" do
+    sign_in @admin
+
+    get student_records_path
+    assert_response :success
+    assert_not_includes response.body, ">Unassigned</span>"
+  end
+
+  test "unassigned status filter renders no rows" do
     sign_in @admin
 
     get student_records_path(status: "unassigned")
     assert_response :success
-    # "Completed" can appear in seeded student names; assert against status badges.
-    assert_includes response.body, ">Unassigned</span>"
-    assert_not_includes response.body, ">Completed</span>"
+    assert_not_includes response.body, ">Unassigned</span>"
+    assert_includes response.body, "No students currently in this track."
   end
 
   test "admin can filter students by track" do
@@ -201,17 +209,14 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_in_delta completion_time.to_i, row_after[:completed_at].to_i, 1
   end
 
-  test "student record status is unassigned when no assignment exists" do
+  test "student record excludes rows when no assignment exists" do
     student = students(:student)
     survey = surveys(:spring_2026_residential)
 
     controller = StudentRecordsController.new
     records = controller.send(:build_student_records, [ student ])
     row = find_row(records, student, survey)
-    assert_not_nil row, "Expected to find a student row for an unassigned survey"
-    assert_equal "Unassigned", row[:status]
-    assert_nil row[:completed_at]
-    assert_nil row[:available_until]
+    assert_nil row, "Expected unassigned student row to be omitted from student records"
   end
 
   private

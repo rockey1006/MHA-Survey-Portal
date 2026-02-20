@@ -68,7 +68,7 @@
               <%= label_tag :status, "Status", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
               <%= select_tag :status,
                              options_for_select(
-                               [["All", ""], ["Completed", "completed"], ["Assigned", "assigned"], ["Unassigned", "unassigned"]],
+                                [["All", ""], ["Completed", "completed"], ["Assigned", "assigned"]],
                                @status_filter
                              ),
                              class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>

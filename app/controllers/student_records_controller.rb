@@ -139,7 +139,7 @@ class StudentRecordsController < ApplicationController
           {
             survey: survey,
             rows: begin
-              rows = students_for_survey.map do |student|
+              rows = students_for_survey.filter_map do |student|
                 responses = responses_matrix[student.student_id][survey.id]
                 answered_ids = responses.map { |entry| entry[:question_id] }.uniq
                 survey_response = SurveyResponse.build(student: student, survey: survey)
@@ -163,12 +163,12 @@ class StudentRecordsController < ApplicationController
                 )
 
                 assignment = assignments_lookup.dig(student.student_id, survey.id)
+                next if assignment.nil?
+
                 assigned_at = assignment&.created_at
                 completed_at = assignment&.completed_at
                 available_until = assignment&.available_until
-                status_text = if assignment.nil?
-                  "Unassigned"
-                elsif completed_at.present?
+                status_text = if completed_at.present?
                   "Completed"
                 else
                   "Assigned"

@@ -69,6 +69,10 @@ module Assignments
     def assign
       student = assignable_students.find_by!(student_id: params[:student_id])
 
+      if params[:available_until].present? && parsed_available_until.present? && !ensure_deadline_not_before_survey!(parsed_available_until)
+        return
+      end
+
       ActiveRecord::Base.transaction do
         @survey.questions.find_each do |question|
           StudentQuestion.find_or_create_by!(student_id: student.student_id, question_id: question.id) do |record|
@@ -96,6 +100,10 @@ module Assignments
       if students.blank?
         redirect_to assignments_survey_path(@survey),
                     alert: "No students available for the selected assignment group."
+        return
+      end
+
+      if params[:available_until].present? && parsed_available_until.present? && !ensure_deadline_not_before_survey!(parsed_available_until)
         return
       end
 
@@ -274,6 +282,8 @@ module Assignments
         return
       end
 
+      return unless ensure_deadline_not_before_survey!(extension_deadline)
+
       assignment.update!(available_until: extension_deadline)
       redirect_to assignments_survey_path(@survey),
                   notice: "Changed '#{@survey.title}' deadline for #{student.full_name || student.user.email} to #{format_timestamp(extension_deadline)}."
@@ -289,6 +299,10 @@ module Assignments
       if raw_deadline.present? && extension_deadline.nil?
         redirect_to assignments_survey_path(@survey),
                     alert: "Please provide a valid group deadline to apply the change."
+        return
+      end
+
+      if raw_deadline.present? && extension_deadline.present? && !ensure_deadline_not_before_survey!(extension_deadline)
         return
       end
 
@@ -498,6 +512,15 @@ module Assignments
 
       redirect_to assignments_survey_path(@survey),
                   alert: "This survey is archived and cannot be modified."
+    end
+
+    def ensure_deadline_not_before_survey!(deadline)
+      return true if deadline.blank? || @survey.available_until.blank?
+      return true if deadline >= @survey.available_until
+
+      redirect_to assignments_survey_path(@survey),
+                  alert: "Student due date cannot be earlier than the survey due date."
+      false
     end
   end
 end

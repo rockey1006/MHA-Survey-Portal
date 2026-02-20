@@ -83,6 +83,23 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_match "Assigned", flash[:notice]
   end
 
+  test "assign rejects custom student deadline earlier than survey deadline" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+
+    survey_deadline = 10.days.from_now.change(hour: 23, min: 59, sec: 0)
+    @survey.update!(available_until: survey_deadline)
+
+    post assign_assignments_survey_path(@survey), params: {
+      student_id: students(:student).student_id,
+      available_until: 1.day.from_now.change(hour: 9, min: 0, sec: 0).strftime("%Y-%m-%d %H:%M")
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "cannot be earlier than the survey due date", flash[:alert].to_s.downcase
+    refute SurveyAssignment.exists?(survey_id: @survey.id, student_id: students(:student).student_id)
+  end
+
   test "assign_all handles eligible students" do
     StudentQuestion.delete_all
     SurveyAssignment.delete_all
@@ -149,6 +166,41 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     created_assignment = SurveyAssignment.find_by!(survey: @survey, student: new_student)
     assert_equal expected_deadline, created_assignment.available_until
     assert_operator StudentQuestion.where(student: new_student, question_id: @survey.questions.select(:id)).count, :>, 0
+  end
+
+  test "assign_all rejects custom deadline earlier than survey deadline" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+    survey_deadline = Time.zone.local(2034, 7, 20, 23, 59)
+    @survey.update!(available_until: survey_deadline)
+
+    post assign_all_assignments_survey_path(@survey), params: {
+      student_ids: [ students(:student).student_id ],
+      available_until: "2034-07-10 10:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "cannot be earlier than the survey due date", flash[:alert].to_s.downcase
+    refute SurveyAssignment.exists?(survey_id: @survey.id, student_id: students(:student).student_id)
+  end
+
+  test "assign_all uses survey default deadline when no custom deadline is provided" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+    survey_deadline = Time.zone.local(2034, 9, 1, 18, 30)
+    @survey.update!(available_until: survey_deadline)
+
+    post assign_all_assignments_survey_path(@survey), params: {
+      student_ids: [ students(:student).student_id ]
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assignment = SurveyAssignment.find_by!(survey_id: @survey.id, student_id: students(:student).student_id)
+    assert_equal survey_deadline.to_i, assignment.available_until.to_i
   end
 
   test "assign_all alerts when no students match" do
@@ -515,6 +567,31 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal Time.zone.local(2030, 2, 10, 17, 30), assignment.reload.available_until
   end
 
+  test "extend_deadline rejects date earlier than survey deadline" do
+    SurveyAssignment.delete_all
+
+    survey_deadline = Time.zone.local(2035, 9, 15, 23, 59)
+    @survey.update!(available_until: survey_deadline)
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: survey_deadline + 2.days
+    )
+
+    patch extend_deadline_assignments_survey_path(@survey), params: {
+      student_id: student.student_id,
+      new_available_until: "2035-09-10 10:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "cannot be earlier than the survey due date", flash[:alert].to_s.downcase
+    assert_equal (survey_deadline + 2.days).to_i, assignment.reload.available_until.to_i
+  end
+
   test "extend_deadline is blocked for completed assignments" do
     SurveyAssignment.delete_all
 
@@ -671,6 +748,31 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal original_deadline.to_i, assignment.reload.available_until.to_i
   end
 
+  test "extend_group_deadline rejects date earlier than survey deadline" do
+    SurveyAssignment.delete_all
+
+    survey_deadline = Time.zone.local(2036, 2, 20, 23, 59)
+    @survey.update!(available_until: survey_deadline)
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: survey_deadline + 1.day
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      student_ids: [ student.student_id ],
+      new_available_until: "2036-02-15 09:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "cannot be earlier than the survey due date", flash[:alert].to_s.downcase
+    assert_equal (survey_deadline + 1.day).to_i, assignment.reload.available_until.to_i
+  end
+
   test "extend_group_deadline uses survey default deadline when input is blank" do
     SurveyAssignment.delete_all
 
@@ -696,6 +798,69 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to assignments_survey_path(@survey)
     assert_match "Changed", flash[:notice]
     assert_equal survey_default_deadline.to_i, selected_assignment.reload.available_until.to_i
+  end
+
+  test "extend_group_deadline with blank input sets no deadline when survey has no default" do
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+    @survey.update!(available_until: nil)
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 3.days.from_now
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      student_ids: [ student.student_id ],
+      new_available_until: ""
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "No deadline", flash[:notice]
+    assert_nil assignment.reload.available_until
+  end
+
+  test "extend_group_deadline respects combined track and year filters" do
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    included_student = students(:student)
+    excluded_student = students(:completed_student)
+    excluded_student.update_columns(program_year: included_student.program_year.to_i + 1)
+
+    included_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: included_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    excluded_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: excluded_student,
+      advisor: advisors(:other_advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      track: "Residential",
+      program_year: included_student.program_year,
+      student_ids: [ included_student.student_id, excluded_student.student_id ],
+      new_available_until: "2037-01-15 11:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    expected_deadline = Time.zone.local(2037, 1, 15, 11, 0)
+    assert_equal expected_deadline.to_i, included_assignment.reload.available_until.to_i
+    assert_not_equal expected_deadline.to_i, excluded_assignment.reload.available_until.to_i
   end
 
   test "reopen clears completion for selected assignments" do

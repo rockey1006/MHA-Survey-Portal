@@ -545,6 +545,45 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Due: #{survey_deadline.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
   end
 
+  test "student dashboard hides past-due incomplete surveys" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = Survey.new(
+      title: "Past Due Hidden Survey #{SecureRandom.hex(4)}",
+      program_semester: program_semesters(:fall_2025),
+      description: "",
+      is_active: true,
+      available_until: 1.day.ago
+    )
+    category = survey.categories.build(name: "Category", description: "")
+    category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    survey.save!
+
+    assignment = SurveyAssignment.create!(
+      survey: survey,
+      student: student_profile,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: nil,
+      available_until: 1.day.ago
+    )
+
+    past_due = 1.day.ago.change(sec: 0)
+    assignment.update!(completed_at: nil, available_until: past_due)
+
+    get student_dashboard_path
+
+    assert_response :success
+    refute_includes response.body, survey.title
+    refute_includes response.body, survey_path(survey)
+  end
+
   test "student dashboard disables edit for archived completed surveys" do
     sign_in @student
 

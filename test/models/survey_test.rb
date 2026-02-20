@@ -68,14 +68,6 @@ class SurveyTest < ActiveSupport::TestCase
       available_until: survey.available_until
     )
 
-    blank_assignment = SurveyAssignment.create!(
-      survey: survey,
-      student: students(:completed_student),
-      advisor: advisors(:other_advisor),
-      assigned_at: Time.current,
-      available_until: nil
-    )
-
     custom_deadline = Time.zone.local(2036, 10, 20, 17, 0)
     custom_assignment = SurveyAssignment.create!(
       survey: survey,
@@ -85,11 +77,20 @@ class SurveyTest < ActiveSupport::TestCase
       available_until: custom_deadline
     )
 
+    completed_inherited_assignment = SurveyAssignment.create!(
+      survey: survey,
+      student: students(:completed_student),
+      advisor: advisors(:other_advisor),
+      assigned_at: Time.current,
+      completed_at: 1.day.ago,
+      available_until: survey.available_until
+    )
+
     new_survey_deadline = Time.zone.local(2036, 11, 15, 9, 30)
     survey.update!(available_until: new_survey_deadline)
 
     assert_equal new_survey_deadline.to_i, inherited_assignment.reload.available_until.to_i
-    assert_equal new_survey_deadline.to_i, blank_assignment.reload.available_until.to_i
+    assert_equal new_survey_deadline.to_i, completed_inherited_assignment.reload.available_until.to_i
     assert_equal custom_deadline.to_i, custom_assignment.reload.available_until.to_i
   end
 
@@ -115,9 +116,19 @@ class SurveyTest < ActiveSupport::TestCase
       available_until: custom_deadline
     )
 
+    completed_inherited_assignment = SurveyAssignment.create!(
+      survey: survey,
+      student: students(:completed_student),
+      advisor: advisors(:other_advisor),
+      assigned_at: Time.current,
+      completed_at: Time.current,
+      available_until: survey.available_until
+    )
+
     survey.update!(available_until: nil)
 
     assert_nil inherited_assignment.reload.available_until
+    assert_nil completed_inherited_assignment.reload.available_until
     assert_equal custom_deadline.to_i, custom_assignment.reload.available_until.to_i
   end
 

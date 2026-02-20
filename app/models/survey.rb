@@ -183,7 +183,7 @@ class Survey < ApplicationRecord
   def sync_inherited_assignment_deadlines!
     previous_deadline, new_deadline = saved_change_to_available_until
 
-    scope = survey_assignments.incomplete
+    scope = survey_assignments
     scope = if previous_deadline.nil?
       scope.where(available_until: nil)
     else

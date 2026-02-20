@@ -1069,6 +1069,63 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "student edit is enabled only while survey is active and before deadline" do
+    sign_in @student_user
+
+    survey = surveys(:fall_2025)
+    student = students(:student)
+
+    SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student.student_id) do |assignment|
+      assignment.advisor_id = student.advisor_id
+      assignment.assigned_at = 1.day.ago
+    end.update!(available_until: 2.days.from_now)
+
+    survey.update!(is_active: true)
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+
+    get survey_response_path(survey_response)
+    assert_response :success
+    assert_select "a", text: "Edit"
+  end
+
+  test "student edit is disabled when assignment is past due" do
+    sign_in @student_user
+
+    survey = surveys(:fall_2025)
+    student = students(:student)
+
+    SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student.student_id) do |assignment|
+      assignment.advisor_id = student.advisor_id
+      assignment.assigned_at = 1.day.ago
+    end.update!(available_until: 1.day.ago)
+
+    survey.update!(is_active: true)
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+
+    get survey_response_path(survey_response)
+    assert_response :success
+    assert_select "button[disabled]", text: "Edit", minimum: 1
+  end
+
+  test "student edit is disabled when survey is archived" do
+    sign_in @student_user
+
+    survey = surveys(:fall_2025)
+    student = students(:student)
+
+    SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student.student_id) do |assignment|
+      assignment.advisor_id = student.advisor_id
+      assignment.assigned_at = 1.day.ago
+    end.update!(available_until: 2.days.from_now)
+
+    survey.update!(is_active: false)
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+
+    get survey_response_path(survey_response)
+    assert_response :success
+    assert_select "button[disabled]", text: "Edit", minimum: 1
+  end
+
   test "other students are blocked from viewing the response" do
     sign_in users(:other_student)
 

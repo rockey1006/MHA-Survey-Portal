@@ -561,6 +561,11 @@ class SurveysController < ApplicationController
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
     return unless assignment
 
+    unless @survey.is_active?
+      survey_response = SurveyResponse.build(student: student, survey: @survey)
+      redirect_to survey_response_path(survey_response), alert: "This survey is no longer available." and return
+    end
+
     case assignment.availability_status
     when :not_yet
       message = "This survey is not available yet."

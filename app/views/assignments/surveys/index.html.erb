@@ -40,8 +40,8 @@
 
       <div class="c-card c-card--flush">
         <%= render TableComponent.new(
-          headers: ["Survey", "Semester", "Status", "Questions", "Categories", "Tracks", "Updated", ""],
-          right_align: [7]
+          headers: ["Survey", "Semester", "Status", "Default Due", "Questions", "Categories", "Tracks", "Updated", ""],
+          right_align: [8]
         ) do %>
           <% @surveys.each do |survey| %>
             <% track_labels = survey.track_list %>
@@ -66,6 +66,10 @@
                 <% end %>
               </td>
 
+              <td class="px-4 py-3 text-sm text-slate-700">
+                <%= survey.available_until.present? ? format_calendar_date(survey.available_until) : "No deadline" %>
+              </td>
+
               <td class="px-4 py-3 text-sm text-slate-700"><%= survey.questions.size %></td>
               <td class="px-4 py-3 text-sm text-slate-700"><%= survey.categories.size %></td>
 
@@ -84,7 +88,11 @@
               <td class="px-4 py-3 text-sm text-slate-700"><%= l(survey.updated_at, format: :short) rescue "—" %></td>
 
               <td class="px-4 py-3 text-sm">
-                <%= link_to "Assign to Students", assignments_survey_path(survey), class: tailwind_button_classes(:secondary), data: { turbo: false } %>
+                <% if survey.is_active? %>
+                  <%= link_to "Assign to Students", assignments_survey_path(survey), class: tailwind_button_classes(:secondary), data: { turbo: false } %>
+                <% else %>
+                  <span class="text-xs text-slate-500">Archived</span>
+                <% end %>
               </td>
             </tr>
           <% end %>

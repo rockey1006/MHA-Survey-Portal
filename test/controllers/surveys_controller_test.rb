@@ -646,6 +646,70 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert response.redirect?
   end
 
+  test "show redirects to survey response when survey is archived" do
+    sign_in @student_user
+
+    assignment = SurveyAssignment.find_or_create_by!(
+      survey_id: @survey.id,
+      student_id: @student.student_id
+    ) do |a|
+      a.advisor_id = @student.advisor_id
+      a.assigned_at = 1.day.ago
+    end
+    assignment.update!(available_until: 2.days.from_now)
+    @survey.update!(is_active: false)
+
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    get survey_path(@survey)
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match(/no longer available/i, response.body)
+  end
+
+  test "submit redirects to survey response when survey is archived" do
+    sign_in @student_user
+
+    SurveyAssignment.find_or_create_by!(
+      survey_id: @survey.id,
+      student_id: @student.student_id
+    ) do |a|
+      a.advisor_id = @student.advisor_id
+      a.assigned_at = 1.day.ago
+    end
+    @survey.update!(is_active: false)
+
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    post submit_survey_path(@survey), params: { answers: {} }
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match(/no longer available/i, response.body)
+  end
+
+  test "save_progress redirects to survey response when survey is archived" do
+    sign_in @student_user
+
+    SurveyAssignment.find_or_create_by!(
+      survey_id: @survey.id,
+      student_id: @student.student_id
+    ) do |a|
+      a.advisor_id = @student.advisor_id
+      a.assigned_at = 1.day.ago
+    end
+    @survey.update!(is_active: false)
+
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    post save_progress_survey_path(@survey), params: { answers: {} }
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match(/no longer available/i, response.body)
+  end
+
   # Answer Format Tests
   test "show handles hash answers with text key" do
     sign_in @student_user

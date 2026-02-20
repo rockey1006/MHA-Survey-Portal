@@ -125,6 +125,10 @@ Rails.application.routes.draw do
       post   :assign,     on: :member
       post   :assign_all, on: :member
       delete :unassign,   on: :member
+      delete :unassign_selected, on: :member
+      patch  :extend_deadline, on: :member
+      patch  :extend_group_deadline, on: :member
+      patch  :reopen, on: :member
     end
   end
 

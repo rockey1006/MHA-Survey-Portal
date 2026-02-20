@@ -29,9 +29,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/csce431/501_health:cached
+      - .:/app:cached
       - bundle-cache:/usr/local/bundle
-    working_dir: /csce431/501_health
+    working_dir: /app
     depends_on:
       - db
     command: bash -lc "bundle check || bundle install; bin/rails db:prepare; rm -f tmp/pids/server.pid && bin/rails tailwindcss:build && bin/rails s -b 0.0.0.0 -p 3000"
@@ -51,9 +51,9 @@ services:
       RAILS_ENV: development
       BUNDLE_WITHOUT: ""
     volumes:
-      - .:/csce431/501_health:cached
+      - .:/app:cached
       - bundle-cache:/usr/local/bundle
-    working_dir: /csce431/501_health
+    working_dir: /app
     depends_on:
       - db
     command: bash -lc "bundle check || bundle install; bin/rails tailwindcss:watch"

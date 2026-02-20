@@ -306,7 +306,7 @@ module ApplicationHelper
     text = value.to_s.downcase
 
     return :success if text.in?(%w[completed submitted active])
-    return :warning if text.in?(%w[assigned draft closed])
+    return :warning if text.in?(%w[assigned draft closed late overdue in progress])
 
     :neutral
   end

@@ -96,8 +96,59 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to assignments_surveys_path
+    assert_redirected_to assignments_survey_path(@survey)
     assert_match "Assigned", flash[:notice]
+  end
+
+  test "assign_all respects selected student ids" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+    @survey.update!(track: "Residential")
+
+    selected_student = students(:student)
+    excluded_student = students(:other_student)
+
+    post assign_all_assignments_survey_path(@survey), params: {
+      track: "Residential",
+      student_ids: [ selected_student.student_id ]
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert SurveyAssignment.exists?(survey_id: @survey.id, student_id: selected_student.student_id)
+    refute SurveyAssignment.exists?(survey_id: @survey.id, student_id: excluded_student.student_id)
+  end
+
+  test "assign_all updates selected existing assignments and creates missing ones" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    existing_student = students(:student)
+    new_student = students(:other_student)
+
+    existing_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: existing_student,
+      advisor: advisors(:advisor),
+      assigned_at: 3.days.ago,
+      available_until: 3.days.from_now
+    )
+
+    post assign_all_assignments_survey_path(@survey), params: {
+      student_ids: [ existing_student.student_id, new_student.student_id ],
+      available_until: "2033-05-01 12:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Assigned", flash[:notice]
+
+    expected_deadline = Time.zone.local(2033, 5, 1, 12, 0)
+    assert_equal expected_deadline, existing_assignment.reload.available_until
+
+    created_assignment = SurveyAssignment.find_by!(survey: @survey, student: new_student)
+    assert_equal expected_deadline, created_assignment.available_until
+    assert_operator StudentQuestion.where(student: new_student, question_id: @survey.questions.select(:id)).count, :>, 0
   end
 
   test "assign_all alerts when no students match" do
@@ -253,7 +304,7 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_nil SurveyAssignment.find_by(survey: @survey, student: student)
   end
 
-  test "show explains why completed surveys cannot be unassigned" do
+  test "show hides unassign action for completed surveys" do
     student = students(:student)
     SurveyAssignment.where(survey: @survey, student: student).delete_all
     SurveyAssignment.create!(
@@ -266,7 +317,399 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     get assignments_survey_path(@survey)
     assert_response :success
-    assert_includes response.body, "title=\"Completed surveys can’t be unassigned.\""
+    assert_includes response.body, "Completed"
+    refute_includes response.body, "/unassign\""
+  end
+
+  test "unassign_selected removes only incomplete selected assignments" do
+    StudentQuestion.delete_all
+    Notification.delete_all
+    SurveyAssignment.delete_all
+    sign_in users(:admin)
+
+    incomplete_student = students(:student)
+    completed_student = students(:completed_student)
+
+    @survey.questions.find_each do |question|
+      StudentQuestion.create!(
+        student: incomplete_student,
+        question: question,
+        advisor_id: advisors(:advisor).advisor_id
+      )
+
+      StudentQuestion.create!(
+        student: completed_student,
+        question: question,
+        advisor_id: advisors(:advisor).advisor_id
+      )
+    end
+
+    SurveyAssignment.create!(
+      survey: @survey,
+      student: incomplete_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
+    )
+
+    SurveyAssignment.create!(
+      survey: @survey,
+      student: completed_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: Time.current
+    )
+
+    assert_difference "SurveyAssignment.count", -1 do
+      assert_difference "Notification.count", 1 do
+        delete unassign_selected_assignments_survey_path(@survey), params: {
+          track: "Residential",
+          student_ids: [ incomplete_student.student_id, completed_student.student_id ]
+        }
+      end
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Unassigned", flash[:notice]
+    assert_match "Skipped 1 completed assignment", flash[:notice]
+    assert_nil SurveyAssignment.find_by(survey: @survey, student: incomplete_student)
+    assert SurveyAssignment.find_by(survey: @survey, student: completed_student).completed_at?
+  end
+
+  test "unassign_selected works for selected students without track filter" do
+    StudentQuestion.delete_all
+    Notification.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    first_student = students(:student)
+    second_student = students(:other_student)
+
+    [ first_student, second_student ].each do |student|
+      @survey.questions.find_each do |question|
+        StudentQuestion.create!(
+          student: student,
+          question: question,
+          advisor_id: advisors(:advisor).advisor_id
+        )
+      end
+
+      SurveyAssignment.create!(
+        survey: @survey,
+        student: student,
+        advisor: advisors(:advisor),
+        assigned_at: Time.current
+      )
+    end
+
+    assert_difference "SurveyAssignment.count", -2 do
+      assert_difference "Notification.count", 2 do
+        delete unassign_selected_assignments_survey_path(@survey), params: {
+          student_ids: [ first_student.student_id, second_student.student_id ]
+        }
+      end
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Unassigned", flash[:notice]
+    assert_nil SurveyAssignment.find_by(survey: @survey, student: first_student)
+    assert_nil SurveyAssignment.find_by(survey: @survey, student: second_student)
+  end
+
+  test "unassign_selected removes assigned selections and ignores selected unassigned students" do
+    StudentQuestion.delete_all
+    Notification.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    assigned_student = students(:student)
+    unassigned_student = students(:other_student)
+
+    @survey.questions.find_each do |question|
+      StudentQuestion.create!(
+        student: assigned_student,
+        question: question,
+        advisor_id: advisors(:advisor).advisor_id
+      )
+    end
+
+    SurveyAssignment.create!(
+      survey: @survey,
+      student: assigned_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
+    )
+
+    assert_difference "SurveyAssignment.count", -1 do
+      assert_difference "Notification.count", 1 do
+        delete unassign_selected_assignments_survey_path(@survey), params: {
+          student_ids: [ assigned_student.student_id, unassigned_student.student_id ]
+        }
+      end
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Unassigned", flash[:notice]
+    assert_nil SurveyAssignment.find_by(survey: @survey, student: assigned_student)
+    assert_nil SurveyAssignment.find_by(survey: @survey, student: unassigned_student)
+  end
+
+  test "unassign_selected alerts when selected students are only completed assignments" do
+    StudentQuestion.delete_all
+    Notification.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    completed_student = students(:completed_student)
+
+    @survey.questions.find_each do |question|
+      StudentQuestion.create!(
+        student: completed_student,
+        question: question,
+        advisor_id: advisors(:advisor).advisor_id
+      )
+    end
+
+    completed_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: completed_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: Time.current
+    )
+
+    assert_no_difference "SurveyAssignment.count" do
+      assert_no_difference "Notification.count" do
+        delete unassign_selected_assignments_survey_path(@survey), params: {
+          student_ids: [ completed_student.student_id ]
+        }
+      end
+    end
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "No incomplete assignments matched", flash[:alert]
+    assert completed_assignment.reload.completed_at.present?
+  end
+
+  test "extend_deadline updates an incomplete assignment" do
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    patch extend_deadline_assignments_survey_path(@survey), params: {
+      student_id: student.student_id,
+      new_available_until: "2030-02-10 17:30"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Changed", flash[:notice]
+    assert_equal Time.zone.local(2030, 2, 10, 17, 30), assignment.reload.available_until
+  end
+
+  test "extend_deadline is blocked for completed assignments" do
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    original_deadline = assignment.available_until
+
+    patch extend_deadline_assignments_survey_path(@survey), params: {
+      student_id: student.student_id,
+      new_available_until: "2030-02-10 17:30"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Cannot change deadline for a completed survey", flash[:alert]
+    assert_equal original_deadline.to_i, assignment.reload.available_until.to_i
+  end
+
+  test "extend_group_deadline updates selected assignments including completed ones" do
+    SurveyAssignment.delete_all
+
+    residential_student = students(:student)
+    executive_student = students(:other_student)
+
+    residential_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: residential_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    executive_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: executive_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      track: "Residential",
+      student_ids: [ residential_student.student_id ],
+      new_available_until: "2031-04-11 09:15"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Changed", flash[:notice]
+    assert_equal Time.zone.local(2031, 4, 11, 9, 15), residential_assignment.reload.available_until
+    assert_not_equal Time.zone.local(2031, 4, 11, 9, 15), executive_assignment.reload.available_until
+    assert residential_assignment.completed_at.present?
+  end
+
+  test "extend_group_deadline assigns selected unassigned students with new deadline" do
+    StudentQuestion.delete_all
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    residential_student = students(:student)
+    unassigned_residential_student = students(:completed_student)
+
+    existing_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: residential_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      track: "Residential",
+      student_ids: [ residential_student.student_id, unassigned_residential_student.student_id ],
+      new_available_until: "2032-01-02 10:45"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Changed", flash[:notice]
+
+    expected_deadline = Time.zone.local(2032, 1, 2, 10, 45)
+    assert_equal expected_deadline, existing_assignment.reload.available_until
+
+    created_assignment = SurveyAssignment.find_by!(survey: @survey, student: unassigned_residential_student)
+    assert_equal expected_deadline, created_assignment.available_until
+    assert_operator StudentQuestion.where(student: unassigned_residential_student, question_id: @survey.questions.select(:id)).count, :>, 0
+  end
+
+  test "extend_group_deadline updates only selected students without track filter" do
+    SurveyAssignment.delete_all
+
+    sign_in users(:admin)
+
+    selected_student = students(:student)
+    unselected_student = students(:other_student)
+
+    selected_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: selected_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    unselected_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: unselected_student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      student_ids: [ selected_student.student_id ],
+      new_available_until: "2032-08-20 14:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Changed", flash[:notice]
+
+    expected_deadline = Time.zone.local(2032, 8, 20, 14, 0)
+    assert_equal expected_deadline, selected_assignment.reload.available_until
+    assert_not_equal expected_deadline, unselected_assignment.reload.available_until
+  end
+
+  test "extend_group_deadline alerts for invalid deadline input" do
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+
+    original_deadline = assignment.available_until
+
+    patch extend_group_deadline_assignments_survey_path(@survey), params: {
+      student_ids: [ student.student_id ],
+      new_available_until: "not-a-date"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Please provide a valid group deadline", flash[:alert]
+    assert_equal original_deadline.to_i, assignment.reload.available_until.to_i
+  end
+
+  test "reopen clears completion for selected assignments" do
+    SurveyAssignment.delete_all
+
+    first_student = students(:student)
+    second_student = students(:other_student)
+
+    first_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: first_student,
+      advisor: advisors(:advisor),
+      assigned_at: 10.days.ago,
+      completed_at: 1.day.ago,
+      available_until: 2.days.ago
+    )
+
+    second_assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: second_student,
+      advisor: advisors(:advisor),
+      assigned_at: 10.days.ago,
+      completed_at: 1.day.ago,
+      available_until: 2.days.ago
+    )
+
+    patch reopen_assignments_survey_path(@survey), params: {
+      track: "Residential",
+      student_ids: [ first_student.student_id ],
+      new_available_until: "2034-09-12 08:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Re-opened", flash[:notice]
+
+    first_assignment.reload
+    second_assignment.reload
+
+    assert_nil first_assignment.completed_at
+    assert_equal Time.zone.local(2034, 9, 12, 8, 0), first_assignment.available_until
+    assert second_assignment.completed_at.present?
   end
 
   test "assign is blocked when survey is archived" do
@@ -303,5 +746,53 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to assignments_survey_path(@survey)
     assert_match "survey is archived", flash[:alert].to_s.downcase
+  end
+
+  test "extend_deadline is blocked when survey is archived" do
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      available_until: 2.days.from_now
+    )
+    original_deadline = assignment.available_until
+    @survey.update!(is_active: false)
+
+    patch extend_deadline_assignments_survey_path(@survey), params: {
+      student_id: student.student_id,
+      new_available_until: "2032-01-20 10:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "survey is archived", flash[:alert].to_s.downcase
+    assert_equal original_deadline.to_i, assignment.reload.available_until.to_i
+  end
+
+  test "reopen is blocked when survey is archived" do
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: Time.current,
+      available_until: 2.days.ago
+    )
+    @survey.update!(is_active: false)
+
+    patch reopen_assignments_survey_path(@survey), params: {
+      student_ids: [ student.student_id ],
+      new_available_until: "2032-01-20 10:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "survey is archived", flash[:alert].to_s.downcase
+    assert assignment.reload.completed_at.present?
   end
 end

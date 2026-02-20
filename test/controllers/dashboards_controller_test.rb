@@ -501,8 +501,90 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
 
     assignment = survey_assignments(:residential_assignment)
-    expected_availability = ApplicationController.helpers.survey_availability_note(assignment.available_until)
-    assert_includes response.body, expected_availability
+    expected_due = "Due: #{assignment.available_until.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+    assert_includes response.body, expected_due
+  end
+
+  test "student dashboard disables edit for archived completed surveys" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = surveys(:fall_2025)
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = 1.day.ago
+    end
+
+    assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
+    survey.update!(is_active: false)
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Archived"
+    assert_includes response.body, "Completed"
+    assert_select "button[disabled]", text: "Edit", minimum: 1
+  ensure
+    survey.update!(is_active: true) if survey&.persisted?
+  end
+
+  test "student dashboard shows completion and survey lifecycle status tags" do
+    sign_in @student
+
+    student_profile = students(:student)
+    semester = program_semesters(:fall_2025)
+
+    in_progress_survey = Survey.new(
+      title: "In Progress Status Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: true
+    )
+    in_progress_category = in_progress_survey.categories.build(name: "Category", description: "")
+    in_progress_question = in_progress_category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    in_progress_survey.save!
+
+    not_started_survey = Survey.new(
+      title: "Not Started Status Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: true
+    )
+    not_started_category = not_started_survey.categories.build(name: "Category", description: "")
+    not_started_category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    not_started_survey.save!
+
+    SurveyAssignment.find_or_create_by!(survey_id: in_progress_survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = 1.day.ago
+    end
+
+    SurveyAssignment.find_or_create_by!(survey_id: not_started_survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = 1.day.ago
+    end
+
+    StudentQuestion.find_or_create_by!(student_id: student_profile.student_id, question_id: in_progress_question.id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.answer = "Partial response"
+    end
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Not Started"
+    assert_includes response.body, "In Progress"
+    assert_includes response.body, "Active"
   end
 
   test "student dashboard renders even when auto-assigner raises" do

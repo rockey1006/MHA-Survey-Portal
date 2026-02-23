@@ -16,7 +16,16 @@
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
-          <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true" title="<%= edit_disabled_hint %>">Edit</button>
+          <span
+            class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed"
+            aria-disabled="true"
+            tabindex="0"
+            role="button"
+            aria-describedby="edit-disabled-hint-top"
+          >
+            Edit
+          </span>
+          <span id="edit-disabled-hint-top" class="sr-only"><%= edit_disabled_hint %></span>
         <% end %>
       <% end %>
       <%= link_to "Download as PDF",
@@ -86,7 +95,16 @@
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
-          <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true" title="<%= edit_disabled_hint %>">Edit</button>
+          <span
+            class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed"
+            aria-disabled="true"
+            tabindex="0"
+            role="button"
+            aria-describedby="edit-disabled-hint-bottom"
+          >
+            Edit
+          </span>
+          <span id="edit-disabled-hint-bottom" class="sr-only"><%= edit_disabled_hint %></span>
         <% end %>
       <% end %>
       <%= link_to "Download as PDF",

@@ -34,7 +34,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
-    assert_includes response.body, "No assigned or completed students for this survey are assigned to you."
+    assert_includes response.body, "No student records for this survey are assigned to you."
 
     # Advisors can view Student Records but should not see admin-only edit/delete actions.
     assert_not_includes response.body, 'aria-label="More actions"'
@@ -85,7 +85,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
-    assert_includes response.body, "No assigned or completed students for this survey."
+    assert_includes response.body, "No student records match this survey yet."
   end
 
   test "admin can filter surveys by keyword" do
@@ -114,7 +114,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     get student_records_path(status: "unassigned")
     assert_response :success
     assert_not_includes response.body, ">Unassigned</span>"
-    assert_includes response.body, "No assigned or completed students for this survey."
+    assert_includes response.body, "No student records match this survey yet."
   end
 
   test "admin can filter students by track" do

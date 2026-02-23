@@ -194,9 +194,9 @@
                   ) do %>
                         <% if filtered_rows.blank? %>
                           <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
-                            "No assigned or completed students for this survey."
+                            "No student records match this survey yet."
                           else
-                            "No assigned or completed students for this survey are assigned to you."
+                            "No student records for this survey are assigned to you."
                           end %>
                           <tr>
                             <td colspan="10" class="px-4 py-6 text-center text-sm text-slate-500">

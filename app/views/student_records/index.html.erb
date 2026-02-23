@@ -164,29 +164,7 @@
             <div class="space-y-4 px-6 py-5">
               <% semester_block[:surveys].each do |survey_block| %>
                 <% survey = survey_block[:survey] %>
-
-                <% survey_track_key =
-                     if survey.respond_to?(:track) && survey.track.present?
-                       survey.track.to_s.downcase
-                     else
-                       t = survey.title.to_s.downcase
-                       if t.include?("executive")
-                         "executive"
-                       elsif t.include?("residential")
-                         "residential"
-                       else
-                         nil
-                       end
-                     end %>
-
-                <% filtered_rows =
-                     if survey_track_key.present?
-                       survey_block[:rows].select do |r|
-                         r[:student].track.to_s.downcase == survey_track_key
-                       end
-                     else
-                       survey_block[:rows]
-                     end %>
+                <% filtered_rows = survey_block[:rows] %>
 
                 <details class="c-surface overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" open>
                   <% survey_lifecycle = survey_lifecycle_label(survey, filtered_rows) %>
@@ -216,9 +194,9 @@
                   ) do %>
                         <% if filtered_rows.blank? %>
                           <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
-                            "No students currently in this track."
+                            "No assigned or completed students for this survey."
                           else
-                            "No students currently in this track are assigned to you."
+                            "No assigned or completed students for this survey are assigned to you."
                           end %>
                           <tr>
                             <td colspan="10" class="px-4 py-6 text-center text-sm text-slate-500">

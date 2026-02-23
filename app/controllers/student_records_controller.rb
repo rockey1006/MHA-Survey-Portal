@@ -231,13 +231,7 @@ class StudentRecordsController < ApplicationController
   end
 
   def filter_students_for_survey(students, survey)
-    survey_track_keys = survey_track_keys(survey)
-    return students if survey_track_keys.blank?
-
-    students.select do |student|
-      student_track_key = ProgramTrack.canonical_key(student&.track)
-      survey_track_keys.include?(student_track_key)
-    end
+    students
   end
 
   def survey_track_keys(survey)

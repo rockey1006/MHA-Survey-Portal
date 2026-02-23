@@ -34,7 +34,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
-    assert_includes response.body, "No students currently in this track are assigned to you."
+    assert_includes response.body, "No assigned or completed students for this survey are assigned to you."
 
     # Advisors can view Student Records but should not see admin-only edit/delete actions.
     assert_not_includes response.body, 'aria-label="More actions"'
@@ -69,17 +69,23 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
     residential_survey = surveys(:fall_2025)
     executive_survey = surveys(:fall_2025_executive)
+    mismatch_student = students(:other_student)
+
+    SurveyAssignment.find_or_create_by!(survey: residential_survey, student: mismatch_student) do |assignment|
+      assignment.advisor = advisors(:other_advisor)
+      assignment.assigned_at = Time.current
+    end
 
     get student_records_path(survey_id: residential_survey.id)
     assert_response :success
     assert_includes response.body, users(:student).name
-    assert_not_includes response.body, users(:other_student).name
+    assert_includes response.body, users(:other_student).name
 
     get student_records_path(survey_id: executive_survey.id)
     assert_response :success
     assert_not_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
-    assert_includes response.body, "No students currently in this track."
+    assert_includes response.body, "No assigned or completed students for this survey."
   end
 
   test "admin can filter surveys by keyword" do
@@ -108,7 +114,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     get student_records_path(status: "unassigned")
     assert_response :success
     assert_not_includes response.body, ">Unassigned</span>"
-    assert_includes response.body, "No students currently in this track."
+    assert_includes response.body, "No assigned or completed students for this survey."
   end
 
   test "admin can filter students by track" do

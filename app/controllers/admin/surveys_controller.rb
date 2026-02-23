@@ -297,7 +297,8 @@ class Admin::SurveysController < Admin::BaseController
       Survey.transaction do
         @survey.lock!
         removed_assignments = purge_incomplete_assignments!(@survey)
-        @survey.update!(is_active: false)
+        @survey.update!(is_active: false, available_until: nil)
+        @survey.survey_assignments.update_all(available_until: nil, updated_at: Time.current)
       end
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed => e
       redirect_to edit_admin_survey_path(@survey), alert: e.message and return

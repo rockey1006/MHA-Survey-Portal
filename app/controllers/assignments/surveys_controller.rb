@@ -44,7 +44,6 @@ module Assignments
           .index_by(&:student_id)
 
       @assigned_student_ids = @assignments_by_student_id.keys.to_set
-      @default_available_until_value = datetime_local_value(@survey.available_until)
 
       answer_counts =
         StudentQuestion

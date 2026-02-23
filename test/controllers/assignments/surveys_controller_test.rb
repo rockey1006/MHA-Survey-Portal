@@ -51,6 +51,16 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, users(:student).name
   end
 
+  test "show leaves bulk due date blank by default" do
+    @survey.update!(available_until: Time.zone.local(2035, 2, 15, 18, 0))
+
+    get assignments_survey_path(@survey)
+    assert_response :success
+
+    assert_match(/id="bulk_due_date"/, response.body)
+    refute_match(/id="bulk_due_date"[^>]*value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}"/, response.body)
+  end
+
   test "assign creates student questions and enqueues notification" do
     StudentQuestion.delete_all
     SurveyAssignment.delete_all

@@ -119,8 +119,8 @@
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Title", "title") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold"><%= sortable_header("Semester", "semester") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Tracks</th>
-                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Sections", "section_count") %></th>
-                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Categories", "category_count") %></th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Available Date</th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Due Date</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Questions", "question_count") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold"><%= sortable_header("Updated", "updated_at") %></th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Actions</th>
@@ -128,8 +128,6 @@
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-600">
               <% @active_surveys.each do |survey| %>
-                <% section_count = survey.respond_to?(:section_count) ? survey.section_count.to_i : survey.sections.size %>
-                <% category_count = survey.respond_to?(:category_count) ? survey.category_count.to_i : survey.categories.size %>
                 <% question_count = survey.respond_to?(:question_count) ? survey.question_count.to_i : survey.questions.size %>
                 <% tracks = survey.track_list %>
                 <tr class="hover:bg-slate-50">
@@ -149,8 +147,8 @@
                       <span class="text-xs font-medium text-amber-600">Unassigned</span>
                     <% end %>
                   </td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= section_count %></td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= category_count %></td>
+                  <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= survey.available_from.present? ? format_calendar_date(survey.available_from) : "No start date" %></td>
+                  <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= survey.available_until.present? ? format_calendar_date(survey.available_until) : "No due date" %></td>
                   <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= question_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
                   <td class="px-4 py-3 align-top">
@@ -192,8 +190,8 @@
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Title</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Semester</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Tracks</th>
-                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Sections</th>
-                <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Categories</th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Available Date</th>
+                <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Due Date</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Questions</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Updated</th>
                 <th scope="col" class="whitespace-nowrap px-4 py-3 text-right font-semibold">Actions</th>
@@ -201,8 +199,6 @@
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-600">
               <% @archived_surveys.each do |survey| %>
-                <% section_count = survey.sections.size %>
-                <% category_count = survey.respond_to?(:category_count) ? survey.category_count.to_i : survey.categories.size %>
                 <% question_count = survey.respond_to?(:question_count) ? survey.question_count.to_i : survey.questions.size %>
                 <% tracks = survey.track_list %>
                 <tr class="hover:bg-slate-50">
@@ -222,8 +218,8 @@
                       <span class="text-xs font-medium text-amber-600">Unassigned</span>
                     <% end %>
                   </td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= section_count %></td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= category_count %></td>
+                  <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= survey.available_from.present? ? format_calendar_date(survey.available_from) : "No start date" %></td>
+                  <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= survey.available_until.present? ? format_calendar_date(survey.available_until) : "No due date" %></td>
                   <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900"><%= question_count %></td>
                   <td class="whitespace-nowrap px-4 py-3 align-top text-right text-slate-500"><%= time_ago_in_words(survey.updated_at) %> ago</td>
                   <td class="px-4 py-3 align-top">

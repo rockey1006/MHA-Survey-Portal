@@ -361,6 +361,28 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "index shows available and due date columns for active surveys" do
+    available_from = Time.zone.local(2036, 3, 1, 9, 0)
+    available_until = Time.zone.local(2036, 3, 31, 23, 59)
+    @survey.update!(available_from: available_from, available_until: available_until)
+
+    get admin_surveys_path
+    assert_response :success
+
+    assert_includes response.body, "Available Date"
+    assert_includes response.body, "Due Date"
+    assert_includes response.body, "March 1, 2036"
+    assert_includes response.body, "March 31, 2036"
+  end
+
+  test "index shows no due date label for archived surveys" do
+    @survey.update!(is_active: false, available_until: nil)
+
+    get admin_surveys_path
+    assert_response :success
+    assert_includes response.body, "No due date"
+  end
+
   test "index with desc direction" do
     get admin_surveys_path, params: { direction: "desc" }
     assert_response :success
@@ -886,6 +908,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
   test "archives survey and preserves track assignments" do
     assert @survey.is_active?
     assert @survey.track_list.any?
+    @survey.update!(available_until: 14.days.from_now)
 
     prior_assignment_count = SurveyTrackAssignment.count
     prior_tracks = @survey.track_list.sort
@@ -898,6 +921,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     @survey.reload
     refute @survey.is_active?
+    assert_nil @survey.available_until
     assert_equal prior_tracks, @survey.track_list.sort
     assert_equal prior_assignment_count, SurveyTrackAssignment.count
     assert_equal prior_tracks, SurveyTrackAssignment.where(survey: @survey).pluck(:track).sort
@@ -921,6 +945,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     incomplete_assignment = survey_assignments(:residential_assignment)
     completed_assignment = survey_assignments(:completed_residential_assignment)
     question = questions(:fall_q1)
+    @survey.update!(available_until: 20.days.from_now)
 
     assert_nil incomplete_assignment.completed_at
     assert_not_nil completed_assignment.completed_at
@@ -930,9 +955,12 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     patch archive_admin_survey_path(@survey)
 
     assert_redirected_to admin_surveys_path
+    @survey.reload
+    assert_nil @survey.available_until
     refute SurveyAssignment.exists?(incomplete_assignment.id)
     assert StudentQuestion.exists?(student_id: incomplete_assignment.student_id, question_id: question.id)
     assert SurveyAssignment.exists?(completed_assignment.id)
+    assert_nil completed_assignment.reload.available_until
     assert StudentQuestion.exists?(student_id: completed_assignment.student_id, question_id: question.id)
   end
 

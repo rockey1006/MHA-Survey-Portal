@@ -110,7 +110,7 @@
           <div class="c-field">
             <label for="bulk_due_date" class="c-label">Due date</label>
             <%= datetime_field_tag :bulk_due_date,
-                                   @default_available_until_value,
+                                   nil,
                                    id: "bulk_due_date",
                                    disabled: !@survey.is_active?,
                                    class: "c-input",

@@ -914,6 +914,55 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert second_assignment.completed_at.present?
   end
 
+  test "reopen rejects invalid extension deadline input" do
+    SurveyAssignment.delete_all
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: 10.days.ago,
+      completed_at: 1.day.ago,
+      available_until: 2.days.ago
+    )
+
+    patch reopen_assignments_survey_path(@survey), params: {
+      student_ids: [ student.student_id ],
+      new_available_until: "not-a-date"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "Please provide a valid extension deadline", flash[:alert]
+    assert assignment.reload.completed_at.present?
+  end
+
+  test "reopen rejects extension deadline earlier than survey deadline" do
+    SurveyAssignment.delete_all
+
+    survey_deadline = Time.zone.local(2037, 5, 10, 23, 59)
+    @survey.update!(available_until: survey_deadline)
+
+    student = students(:student)
+    assignment = SurveyAssignment.create!(
+      survey: @survey,
+      student: student,
+      advisor: advisors(:advisor),
+      assigned_at: 10.days.ago,
+      completed_at: 1.day.ago,
+      available_until: survey_deadline + 1.day
+    )
+
+    patch reopen_assignments_survey_path(@survey), params: {
+      student_ids: [ student.student_id ],
+      new_available_until: "2037-05-01 10:00"
+    }
+
+    assert_redirected_to assignments_survey_path(@survey)
+    assert_match "cannot be earlier than the survey due date", flash[:alert].to_s.downcase
+    assert assignment.reload.completed_at.present?
+  end
+
   test "assign is blocked when survey is archived" do
     StudentQuestion.delete_all
     SurveyAssignment.delete_all

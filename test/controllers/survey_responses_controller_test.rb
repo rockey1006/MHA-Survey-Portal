@@ -1104,7 +1104,7 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
     get survey_response_path(survey_response)
     assert_response :success
-    assert_select "button[disabled]", text: "Edit", minimum: 1
+    assert_select "span[aria-disabled='true']", text: /Edit/, minimum: 1
   end
 
   test "student edit is disabled when survey is archived" do
@@ -1123,7 +1123,7 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
     get survey_response_path(survey_response)
     assert_response :success
-    assert_select "button[disabled]", text: "Edit", minimum: 1
+    assert_select "span[aria-disabled='true']", text: /Edit/, minimum: 1
   end
 
   test "other students are blocked from viewing the response" do

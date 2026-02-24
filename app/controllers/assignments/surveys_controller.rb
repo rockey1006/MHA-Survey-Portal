@@ -150,7 +150,18 @@ module Assignments
 
       update_attributes = { completed_at: nil, updated_at: Time.current }
       extension_deadline = parsed_extension_available_until
-      update_attributes[:available_until] = extension_deadline if extension_deadline.present?
+
+      if params[:new_available_until].present? && extension_deadline.blank?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "Please provide a valid extension deadline."
+        return
+      end
+
+      if extension_deadline.present?
+        return unless ensure_deadline_not_before_survey!(extension_deadline)
+
+        update_attributes[:available_until] = extension_deadline
+      end
 
       reopened_count = assignments.update_all(update_attributes)
 

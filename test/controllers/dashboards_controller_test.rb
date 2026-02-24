@@ -501,7 +501,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
 
     assignment = survey_assignments(:residential_assignment)
-    expected_due = "Due: #{assignment.available_until.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+    expected_due = "Due: #{I18n.l(assignment.available_until.in_time_zone, format: :long)}"
     assert_includes response.body, expected_due
   end
 
@@ -521,8 +521,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     get student_dashboard_path
 
     assert_response :success
-    assert_includes response.body, "Due: #{assignment.available_until.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
-    assert_not_includes response.body, "Due: #{survey.available_until.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+    assert_includes response.body, "Due: #{I18n.l(assignment.available_until.in_time_zone, format: :long)}"
+    assert_not_includes response.body, "Due: #{I18n.l(survey.available_until.in_time_zone, format: :long)}"
   end
 
   test "student dashboard falls back to survey deadline when assignment deadline is blank" do
@@ -542,7 +542,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     get student_dashboard_path
 
     assert_response :success
-    assert_includes response.body, "Due: #{survey_deadline.in_time_zone.strftime("%B %-d, %Y %I:%M %p")}"
+    assert_includes response.body, "Due: #{I18n.l(survey_deadline.in_time_zone, format: :long)}"
   end
 
   test "student dashboard hides past-due incomplete surveys" do
@@ -602,7 +602,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Archived"
     assert_includes response.body, "Completed"
-    assert_select "button[disabled]", text: "Edit", minimum: 1
+    assert_select "span[aria-disabled='true']", text: /Edit/, minimum: 1
   ensure
     survey.update!(is_active: true) if survey&.persisted?
   end

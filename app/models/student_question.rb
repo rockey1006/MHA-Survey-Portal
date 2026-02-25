@@ -17,8 +17,8 @@ class StudentQuestion < ApplicationRecord
   # Maximum allowed length for student-entered free-text fields.
   TEXT_MAX_LENGTH = 1000
 
-  # Pattern used to validate Google-hosted links (Drive, Docs, Sites, etc.) for evidence responses.
-  GOOGLE_URL_REGEX = %r{\Ahttps?://(?:(?:drive|docs|sites)\.google\.com|(?:[a-z0-9-]+\.)?googleusercontent\.com)(?:/|$)\S*}i
+  # Pattern used to validate Google Sites links for evidence responses.
+  GOOGLE_URL_REGEX = %r{\Ahttps?://sites\.google\.com(?:/|$)\S*}i
 
   # Returns the deserialized answer for the question, handling stored JSON.
   #
@@ -107,6 +107,6 @@ class StudentQuestion < ApplicationRecord
     end
 
     return if link_str.blank?
-    errors.add(:response_value, "must be a publicly shareable Google link") unless link_str =~ GOOGLE_URL_REGEX
+    errors.add(:response_value, "must be a published Google Sites link") unless link_str =~ GOOGLE_URL_REGEX
   end
 end

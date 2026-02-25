@@ -110,7 +110,7 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
       ev_q = Question.create!(category: cat, question_text: "Evidence question", question_order: 999, question_type: "evidence", is_required: false)
     end
 
-    sq = StudentQuestion.create!(student_id: student.student_id, question: ev_q, response_value: "https://drive.google.com/file/d/1")
+    sq = StudentQuestion.create!(student_id: student.student_id, question: ev_q, response_value: "https://sites.google.com/tamu.edu/demo/home")
     sr = SurveyResponse.new(student: student, survey: survey)
     grouped = sr.evidence_history_by_category
     assert_kind_of Hash, grouped

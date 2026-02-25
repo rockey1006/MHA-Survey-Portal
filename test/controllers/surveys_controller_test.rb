@@ -646,6 +646,70 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert response.redirect?
   end
 
+  test "show redirects to survey response when survey is archived" do
+    sign_in @student_user
+
+    assignment = SurveyAssignment.find_or_create_by!(
+      survey_id: @survey.id,
+      student_id: @student.student_id
+    ) do |a|
+      a.advisor_id = @student.advisor_id
+      a.assigned_at = 1.day.ago
+    end
+    assignment.update!(available_until: 2.days.from_now)
+    @survey.update!(is_active: false)
+
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    get survey_path(@survey)
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match(/no longer available/i, response.body)
+  end
+
+  test "submit redirects to survey response when survey is archived" do
+    sign_in @student_user
+
+    SurveyAssignment.find_or_create_by!(
+      survey_id: @survey.id,
+      student_id: @student.student_id
+    ) do |a|
+      a.advisor_id = @student.advisor_id
+      a.assigned_at = 1.day.ago
+    end
+    @survey.update!(is_active: false)
+
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    post submit_survey_path(@survey), params: { answers: {} }
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match(/no longer available/i, response.body)
+  end
+
+  test "save_progress redirects to survey response when survey is archived" do
+    sign_in @student_user
+
+    SurveyAssignment.find_or_create_by!(
+      survey_id: @survey.id,
+      student_id: @student.student_id
+    ) do |a|
+      a.advisor_id = @student.advisor_id
+      a.assigned_at = 1.day.ago
+    end
+    @survey.update!(is_active: false)
+
+    survey_response = SurveyResponse.build(student: @student, survey: @survey)
+
+    post save_progress_survey_path(@survey), params: { answers: {} }
+
+    assert_redirected_to survey_response_path(survey_response)
+    follow_redirect!
+    assert_match(/no longer available/i, response.body)
+  end
+
   # Answer Format Tests
   test "show handles hash answers with text key" do
     sign_in @student_user
@@ -675,7 +739,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       student_id: @student.student_id,
       question_id: question.id
     ) do |sq|
-      sq.answer = { "link" => "https://drive.google.com/file/d/123/view" }
+      sq.answer = { "link" => "https://sites.google.com/tamu.edu/demo/home" }
       sq.advisor_id = @student.advisor_id
     end
 
@@ -1102,14 +1166,14 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mock successful HTTP response
-    stub_request(:head, "https://drive.google.com/file/d/valid123/view")
+    stub_request(:head, "https://sites.google.com/tamu.edu/valid123/home")
       .to_return(status: 200)
-    stub_request(:get, "https://drive.google.com/file/d/valid123/view")
+    stub_request(:get, "https://sites.google.com/tamu.edu/valid123/home")
       .with(headers: { "Range" => "bytes=0-2047" })
       .to_return(status: 200, body: "This is a public file content")
 
     # Provide answers for all required questions
-    answers = { evidence_question.id.to_s => "https://drive.google.com/file/d/valid123/view" }
+    answers = { evidence_question.id.to_s => "https://sites.google.com/tamu.edu/valid123/home" }
     @survey.questions.each do |q|
       answers[q.id.to_s] = "Test answer" if q.is_required?
     end
@@ -1178,14 +1242,14 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mock HTTP response with public markers
-    stub_request(:head, "https://drive.google.com/file/d/public123/view")
+    stub_request(:head, "https://sites.google.com/tamu.edu/public123/home")
       .to_return(status: 200)
-    stub_request(:get, "https://drive.google.com/file/d/public123/view")
+    stub_request(:get, "https://sites.google.com/tamu.edu/public123/home")
       .with(headers: { "Range" => "bytes=0-2047" })
       .to_return(status: 200, body: "Open with Google Docs - anyone with the link can view this file")
 
     # Provide answers for all required questions
-    answers = { evidence_question.id.to_s => "https://drive.google.com/file/d/public123/view" }
+    answers = { evidence_question.id.to_s => "https://sites.google.com/tamu.edu/public123/home" }
     @survey.questions.each do |q|
       answers[q.id.to_s] = "Test answer" if q.is_required?
     end
@@ -1195,8 +1259,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  # Google Docs specific tests
-  test "submit validates Google Docs document via export endpoint" do
+  test "submit rejects Google Docs evidence links" do
     sign_in @student_user
     evidence_question = @survey.categories.first.questions.create!(
       question_text: "Upload evidence",
@@ -1204,29 +1267,19 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       is_required: false
     )
 
-    # Mock export endpoint to return success
-    stub_request(:get, "https://docs.google.com/document/d/abc123/export?format=txt")
-      .with(headers: { "Range" => "bytes=0-1023" })
-      .to_return(status: 200, body: "Document content")
-
-    # Provide answers for all required questions
-
-
     answers = { evidence_question.id.to_s => "https://docs.google.com/document/d/abc123/edit" }
-
 
     @survey.questions.each do |q|
       answers[q.id.to_s] = "Test answer" if q.is_required?
     end
 
-
-
     post submit_survey_path(@survey), params: { answers: answers }
 
-    assert_response :redirect
+    assert_response :unprocessable_entity
+    assert_includes assigns(:invalid_evidence), evidence_question.id
   end
 
-  test "submit falls back to page check when Docs export is restricted" do
+  test "submit rejects Docs links without running page checks" do
     sign_in @student_user
     evidence_question = @survey.categories.first.questions.create!(
       question_text: "Upload evidence",
@@ -1234,33 +1287,16 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       is_required: false
     )
 
-    # Mock export endpoint to return forbidden
-    stub_request(:get, "https://docs.google.com/document/d/abc123/export?format=txt")
-      .with(headers: { "Range" => "bytes=0-1023" })
-      .to_return(status: 403)
-    # Fall back to HEAD check
-    stub_request(:head, "https://docs.google.com/document/d/abc123/edit")
-      .to_return(status: 200)
-    # Sniff check
-    stub_request(:get, "https://docs.google.com/document/d/abc123/edit")
-      .with(headers: { "Range" => "bytes=0-2047" })
-      .to_return(status: 200, body: "View only - anyone with the link")
-
-    # Provide answers for all required questions
-
-
     answers = { evidence_question.id.to_s => "https://docs.google.com/document/d/abc123/edit" }
-
 
     @survey.questions.each do |q|
       answers[q.id.to_s] = "Test answer" if q.is_required?
     end
 
-
-
     post submit_survey_path(@survey), params: { answers: answers }
 
-    assert_response :redirect
+    assert_response :unprocessable_entity
+    assert_includes assigns(:invalid_evidence), evidence_question.id
   end
 
   test "submit rejects Google Docs with export timeout" do
@@ -1304,7 +1340,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mock redirect to googleusercontent.com
-    stub_request(:head, "https://drive.google.com/file/d/redirect123/view")
+    stub_request(:head, "https://sites.google.com/tamu.edu/redirect123/home")
       .to_return(status: 302, headers: { "Location" => "https://lh3.googleusercontent.com/actual-file" })
     stub_request(:head, "https://lh3.googleusercontent.com/actual-file")
       .to_return(status: 200)
@@ -1315,7 +1351,7 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     # Provide answers for all required questions
 
 
-    answers = { evidence_question.id.to_s => "https://drive.google.com/file/d/redirect123/view" }
+    answers = { evidence_question.id.to_s => "https://sites.google.com/tamu.edu/redirect123/home" }
 
 
     @survey.questions.each do |q|
@@ -1435,21 +1471,21 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     )
 
     # Mock HEAD returning 405 Method Not Allowed
-    stub_request(:head, "https://drive.google.com/file/d/nohead123/view")
+    stub_request(:head, "https://sites.google.com/tamu.edu/nohead123/home")
       .to_return(status: 405)
     # Fall back to minimal GET
-    stub_request(:get, "https://drive.google.com/file/d/nohead123/view")
+    stub_request(:get, "https://sites.google.com/tamu.edu/nohead123/home")
       .with(headers: { "Range" => "bytes=0-0" })
       .to_return(status: 200)
     # Sniff check
-    stub_request(:get, "https://drive.google.com/file/d/nohead123/view")
+    stub_request(:get, "https://sites.google.com/tamu.edu/nohead123/home")
       .with(headers: { "Range" => "bytes=0-2047" })
       .to_return(status: 200, body: "Public file content")
 
     # Provide answers for all required questions
 
 
-    answers = { evidence_question.id.to_s => "https://drive.google.com/file/d/nohead123/view" }
+    answers = { evidence_question.id.to_s => "https://sites.google.com/tamu.edu/nohead123/home" }
 
 
     @survey.questions.each do |q|

@@ -4,17 +4,28 @@
   <% viewer_is_student_owner = defined?(current_user) && current_user.present? && current_user.role == 'student' && @survey_response&.student.present? && (current_user.id == @survey_response.student.user&.id) %>
   <% available_until = defined?(@survey_assignment) ? @survey_assignment&.available_until : nil %>
   <% can_edit_by_closing_time = available_until.blank? || available_until >= Time.current %>
+  <% survey_active_for_edit = @survey_response&.survey&.is_active? %>
 
   <div class="c-toolbar c-toolbar--spaced">
     <div class="c-toolbar__row">
       <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
       <% if viewer_is_student_owner %>
         <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || @selected_version.blank? || @selected_version == @versions.last %>
-        <% can_edit = viewing_latest_version && can_edit_by_closing_time %>
+        <% can_edit = viewing_latest_version && can_edit_by_closing_time && survey_active_for_edit %>
+        <% edit_disabled_hint = !survey_active_for_edit ? "Edit disabled: this survey is archived." : (!can_edit_by_closing_time ? "Edit disabled: deadline has passed." : "Edit disabled for this version.") %>
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
-          <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
+          <span
+            class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed"
+            aria-disabled="true"
+            tabindex="0"
+            role="button"
+            aria-describedby="edit-disabled-hint-top"
+          >
+            Edit
+          </span>
+          <span id="edit-disabled-hint-top" class="sr-only"><%= edit_disabled_hint %></span>
         <% end %>
       <% end %>
       <%= link_to "Download as PDF",
@@ -79,11 +90,21 @@
       <%= link_to "← Back", back_path, class: tailwind_button_classes(:secondary) %>
       <% if viewer_is_student_owner %>
         <% viewing_latest_version = !(defined?(@versions) && @versions.present?) || @selected_version.blank? || @selected_version == @versions.last %>
-        <% can_edit = viewing_latest_version && can_edit_by_closing_time %>
+        <% can_edit = viewing_latest_version && can_edit_by_closing_time && survey_active_for_edit %>
+        <% edit_disabled_hint = !survey_active_for_edit ? "Edit disabled: this survey is archived." : (!can_edit_by_closing_time ? "Edit disabled: deadline has passed." : "Edit disabled for this version.") %>
         <% if can_edit %>
           <%= link_to "Edit", survey_path(@survey_response.survey, return_to: request.fullpath), class: tailwind_button_classes(:secondary) %>
         <% else %>
-          <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
+          <span
+            class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed"
+            aria-disabled="true"
+            tabindex="0"
+            role="button"
+            aria-describedby="edit-disabled-hint-bottom"
+          >
+            Edit
+          </span>
+          <span id="edit-disabled-hint-bottom" class="sr-only"><%= edit_disabled_hint %></span>
         <% end %>
       <% end %>
       <%= link_to "Download as PDF",

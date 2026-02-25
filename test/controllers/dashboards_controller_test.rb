@@ -501,8 +501,169 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
 
     assignment = survey_assignments(:residential_assignment)
-    expected_availability = ApplicationController.helpers.survey_availability_note(assignment.available_until)
-    assert_includes response.body, expected_availability
+    expected_due = "Due: #{I18n.l(assignment.available_until.in_time_zone, format: :long)}"
+    assert_includes response.body, expected_due
+  end
+
+  test "student dashboard prioritizes assignment custom deadline over survey deadline" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = surveys(:fall_2025)
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = Time.current
+    end
+
+    survey.update!(available_until: Time.zone.local(2033, 1, 10, 9, 0))
+    assignment.update!(available_until: Time.zone.local(2033, 2, 15, 17, 30), manual: true)
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Due: #{I18n.l(assignment.available_until.in_time_zone, format: :long)}"
+    assert_not_includes response.body, "Due: #{I18n.l(survey.available_until.in_time_zone, format: :long)}"
+  end
+
+  test "student dashboard falls back to survey deadline when assignment deadline is blank" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = surveys(:fall_2025)
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = Time.current
+    end
+
+    survey_deadline = Time.zone.local(2034, 3, 20, 14, 45)
+    survey.update!(available_until: survey_deadline)
+    assignment.update!(available_until: nil)
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Due: #{I18n.l(survey_deadline.in_time_zone, format: :long)}"
+  end
+
+  test "student dashboard hides past-due incomplete surveys" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = Survey.new(
+      title: "Past Due Hidden Survey #{SecureRandom.hex(4)}",
+      program_semester: program_semesters(:fall_2025),
+      description: "",
+      is_active: true,
+      available_until: 1.day.ago
+    )
+    category = survey.categories.build(name: "Category", description: "")
+    category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    survey.save!
+
+    assignment = SurveyAssignment.create!(
+      survey: survey,
+      student: student_profile,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: nil,
+      available_until: 1.day.ago
+    )
+
+    past_due = 1.day.ago.change(sec: 0)
+    assignment.update!(completed_at: nil, available_until: past_due)
+
+    get student_dashboard_path
+
+    assert_response :success
+    refute_includes response.body, survey.title
+    refute_includes response.body, survey_path(survey)
+  end
+
+  test "student dashboard disables edit for archived completed surveys" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = surveys(:fall_2025)
+    assignment = SurveyAssignment.find_or_create_by!(survey_id: survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = 1.day.ago
+    end
+
+    assignment.update!(completed_at: Time.current, available_until: 2.days.from_now)
+    survey.update!(is_active: false)
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Archived"
+    assert_includes response.body, "Completed"
+    assert_select "span[aria-disabled='true']", text: /Edit/, minimum: 1
+  ensure
+    survey.update!(is_active: true) if survey&.persisted?
+  end
+
+  test "student dashboard shows completion and survey lifecycle status tags" do
+    sign_in @student
+
+    student_profile = students(:student)
+    semester = program_semesters(:fall_2025)
+
+    in_progress_survey = Survey.new(
+      title: "In Progress Status Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: true
+    )
+    in_progress_category = in_progress_survey.categories.build(name: "Category", description: "")
+    in_progress_question = in_progress_category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    in_progress_survey.save!
+
+    not_started_survey = Survey.new(
+      title: "Not Started Status Survey #{SecureRandom.hex(4)}",
+      program_semester: semester,
+      description: "",
+      is_active: true
+    )
+    not_started_category = not_started_survey.categories.build(name: "Category", description: "")
+    not_started_category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    not_started_survey.save!
+
+    SurveyAssignment.find_or_create_by!(survey_id: in_progress_survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = 1.day.ago
+    end
+
+    SurveyAssignment.find_or_create_by!(survey_id: not_started_survey.id, student_id: student_profile.student_id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.assigned_at = 1.day.ago
+    end
+
+    StudentQuestion.find_or_create_by!(student_id: student_profile.student_id, question_id: in_progress_question.id) do |record|
+      record.advisor_id = student_profile.advisor_id
+      record.answer = "Partial response"
+    end
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Not Started"
+    assert_includes response.body, "In Progress"
+    assert_includes response.body, "Active"
   end
 
   test "student dashboard renders even when auto-assigner raises" do

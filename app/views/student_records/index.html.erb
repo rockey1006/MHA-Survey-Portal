@@ -68,7 +68,7 @@
               <%= label_tag :status, "Status", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
               <%= select_tag :status,
                              options_for_select(
-                               [["All", ""], ["Completed", "completed"], ["Assigned", "assigned"], ["Unassigned", "unassigned"]],
+                                [["All", ""], ["Completed", "completed"], ["Assigned", "assigned"]],
                                @status_filter
                              ),
                              class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
@@ -164,29 +164,7 @@
             <div class="space-y-4 px-6 py-5">
               <% semester_block[:surveys].each do |survey_block| %>
                 <% survey = survey_block[:survey] %>
-
-                <% survey_track_key =
-                     if survey.respond_to?(:track) && survey.track.present?
-                       survey.track.to_s.downcase
-                     else
-                       t = survey.title.to_s.downcase
-                       if t.include?("executive")
-                         "executive"
-                       elsif t.include?("residential")
-                         "residential"
-                       else
-                         nil
-                       end
-                     end %>
-
-                <% filtered_rows =
-                     if survey_track_key.present?
-                       survey_block[:rows].select do |r|
-                         r[:student].track.to_s.downcase == survey_track_key
-                       end
-                     else
-                       survey_block[:rows]
-                     end %>
+                <% filtered_rows = survey_block[:rows] %>
 
                 <details class="c-surface overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" open>
                   <% survey_lifecycle = survey_lifecycle_label(survey, filtered_rows) %>
@@ -216,9 +194,9 @@
                   ) do %>
                         <% if filtered_rows.blank? %>
                           <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
-                            "No students currently in this track."
+                            "No student records match this survey yet."
                           else
-                            "No students currently in this track are assigned to you."
+                            "No student records for this survey are assigned to you."
                           end %>
                           <tr>
                             <td colspan="10" class="px-4 py-6 text-center text-sm text-slate-500">
@@ -240,6 +218,7 @@
                             <% has_feedback            = feedback_entries.any? %>
                             <% feedback_status_label   = row[:feedback_status_label] %>
                             <% feedback_status_ts      = row[:feedback_status_timestamp] %>
+                            <% survey_archived         = survey.respond_to?(:is_active?) && !survey.is_active? %>
                             <% has_completed          = status_text == "Completed" %>
                             <% is_assigned           = status_text == "Assigned" %>
                             <% is_unassigned         = status_text == "Unassigned" %>
@@ -247,6 +226,7 @@
                             <% survey_link_params      = { survey_id: survey.id, student_id: student.student_id } %>
                             <% survey_link_params[:prefill] = true if has_feedback %>
                             <% survey_link             = new_feedback_path(survey_link_params) %>
+                            <% review_only_link        = survey_response.present? ? survey_response_path(survey_response, return_to: request.fullpath) : nil %>
                             <% admin_can_open          = current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
                             <% advisor_can_open        = current_advisor_profile&.advisor_id.present? && student.advisor_id.present? && current_advisor_profile.advisor_id == student.advisor_id %>
                             <% can_open                = admin_can_open || advisor_can_open %>
@@ -349,9 +329,19 @@
                               <td class="px-4 py-3 text-sm whitespace-nowrap">
                                 <% if has_completed %>
                                   <% if can_open %>
-                                    <%= link_to survey_label,
-                                                survey_link,
-                                                class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
+                                    <% if survey_archived %>
+                                      <% if review_only_link.present? %>
+                                        <%= link_to "Review",
+                                                    review_only_link,
+                                                    class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
+                                      <% else %>
+                                        <span class="text-xs text-slate-500">—</span>
+                                      <% end %>
+                                    <% else %>
+                                      <%= link_to survey_label,
+                                                  survey_link,
+                                                  class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
+                                    <% end %>
                                   <% else %>
                                     <span
                                       class="<%= "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>"
@@ -391,7 +381,7 @@
 
                                       <div class="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                                         <div class="py-1">
-                                          <%= link_to "Edit",
+                                          <%= link_to "Edit Response",
                                                       edit_survey_response_path(survey_response, return_to: request.fullpath),
                                                       class: "block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" %>
 

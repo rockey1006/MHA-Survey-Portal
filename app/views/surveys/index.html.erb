@@ -77,13 +77,23 @@
           <footer class="survey-card__footer">
             <% if assignment&.completed_at? %>
               <% survey_response = SurveyResponse.build(student: @student, survey: survey) %>
-              <% can_edit = assignment.available_until.blank? || assignment.available_until >= Time.current %>
+              <% can_edit = survey.is_active? && (assignment.available_until.blank? || assignment.available_until >= Time.current) %>
+              <% edit_disabled_hint = survey.is_active? ? "Edit disabled: deadline has passed." : "Edit disabled: this survey is archived." %>
               <%= link_to "View Submission", survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
               <%= link_to "Download PDF", download_survey_response_path(survey_response), class: tailwind_button_classes(:secondary) %>
               <% if can_edit %>
                 <%= link_to "Edit", survey_path(survey), class: tailwind_button_classes(:primary) %>
               <% else %>
-                  <button type="button" class="<%= tailwind_button_classes(:primary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
+                <span
+                  role="button"
+                  aria-disabled="true"
+                  tabindex="0"
+                  aria-describedby="edit-disabled-hint<%= survey.id %>"
+                  class="<%= tailwind_button_classes(:primary) %> opacity-50 cursor-not-allowed"
+                >
+                  Edit
+                </span>
+                <span id="edit-disabled-hint<%= survey.id %>" class="sr-only"><%= edit_disabled_hint %></span>
               <% end %>
             <% else %>
               <%= link_to "Open Survey", survey_path(survey), class: tailwind_button_classes(:primary) %>

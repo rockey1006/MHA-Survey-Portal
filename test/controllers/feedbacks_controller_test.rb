@@ -67,6 +67,15 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "new redirects when survey is archived" do
+    @survey.update!(is_active: false)
+
+    get new_feedback_path, params: { survey_id: @survey.id, student_id: @student.student_id }
+
+    assert_redirected_to student_records_path
+    assert_match "survey is archived", flash[:alert].to_s.downcase
+  end
+
   # === Edit Action ===
 
   test "edit renders form" do
@@ -97,6 +106,26 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to student_records_path
     after_count = Feedback.where(student_id: @student.student_id, survey_id: @survey.id).count
     assert_equal before_count + 2, after_count
+  end
+
+  test "batch create is blocked when survey is archived" do
+    @survey.update!(is_active: false)
+    q1 = @cat1.questions.first || @cat1.questions.create!(question_text: "Auto Q1", question_order: 1, question_type: "short_answer")
+
+    params = {
+      survey_id: @survey.id,
+      student_id: @student.student_id,
+      ratings: {
+        q1.id.to_s => { average_score: "4", comments: "Good" }
+      }
+    }
+
+    assert_no_difference "Feedback.count" do
+      post feedbacks_path, params: params
+    end
+
+    assert_redirected_to student_records_path
+    assert_match "survey is archived", flash[:alert].to_s.downcase
   end
 
   test "batch create with only score" do
@@ -645,6 +674,29 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert json["average_score"].present?
   end
 
+  test "update is blocked when feedback survey is archived" do
+    feedback = Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      category_id: @cat1.id,
+      advisor_id: @advisor.advisor_id,
+      average_score: 3,
+      comments: "Original"
+    )
+    @survey.update!(is_active: false)
+
+    patch feedback_path(feedback), params: {
+      feedback: {
+        comments: "Should not save"
+      }
+    }
+
+    assert_redirected_to student_records_path
+    assert_match "feedback is read-only", flash[:alert].to_s.downcase
+    feedback.reload
+    assert_equal "Original", feedback.comments
+  end
+
   # === Destroy Action ===
 
   test "destroy deletes feedback and redirects" do
@@ -679,6 +731,25 @@ class FeedbacksControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :no_content
+  end
+
+  test "destroy is blocked when feedback survey is archived" do
+    feedback = Feedback.create!(
+      student_id: @student.student_id,
+      survey_id: @survey.id,
+      category_id: @cat1.id,
+      advisor_id: @advisor.advisor_id,
+      average_score: 3,
+      comments: "To keep"
+    )
+    @survey.update!(is_active: false)
+
+    assert_no_difference "Feedback.count" do
+      delete feedback_path(feedback)
+    end
+
+    assert_redirected_to student_records_path
+    assert_match "feedback is read-only", flash[:alert].to_s.downcase
   end
 
   # === Edge Cases ===

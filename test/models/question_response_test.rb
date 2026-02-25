@@ -22,7 +22,7 @@ class StudentQuestionTest < ActiveSupport::TestCase
     assert_equal "Yes", sq.answer
   end
 
-  test "evidence questions require Google-hosted link" do
+  test "evidence questions require Google Sites link" do
     evidence_question = @category.questions.create!(
       question_text: "Provide evidence",
       question_order: 2,
@@ -34,10 +34,10 @@ class StudentQuestionTest < ActiveSupport::TestCase
     sq.answer = "https://example.com/not-drive"
 
     assert sq.invalid?
-    assert_includes sq.errors[:response_value], "must be a publicly shareable Google link"
+    assert_includes sq.errors[:response_value], "must be a published Google Sites link"
   end
 
-  test "valid Google Drive or Google Sites links are accepted for evidence questions" do
+  test "only Google Sites links are accepted for evidence questions" do
     evidence_question = @category.questions.create!(
       question_text: "Upload proof",
       question_order: 3,
@@ -48,7 +48,8 @@ class StudentQuestionTest < ActiveSupport::TestCase
     sq = StudentQuestion.new(student: @student, advisor: @advisor, question: evidence_question)
     sq.answer = "https://drive.google.com/file/d/12345/view"
 
-    assert sq.valid?
+    assert sq.invalid?
+    assert_includes sq.errors[:response_value], "must be a published Google Sites link"
 
     sq.answer = "https://sites.google.com/view/sample/page"
     assert sq.valid?, sq.errors.full_messages.to_sentence

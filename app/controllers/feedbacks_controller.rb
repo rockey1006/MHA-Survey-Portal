@@ -3,6 +3,7 @@
 class FeedbacksController < ApplicationController
   before_action :set_feedback, only: %i[ show edit update destroy ]
   before_action :set_survey_and_student, only: %i[new create]
+  before_action :ensure_survey_active_for_feedback!, only: %i[new create edit update destroy]
 
   # Lists all feedback entries.
   #
@@ -388,6 +389,13 @@ class FeedbacksController < ApplicationController
 
     @survey = Survey.find(survey_id)
     @student = Student.find(student_id)
+  end
+
+  def ensure_survey_active_for_feedback!
+    survey = @survey || @feedback&.survey
+    return if survey&.is_active?
+
+    redirect_to student_records_path, alert: "This survey is archived and feedback is read-only."
   end
 
   def save_confidential_advisor_note_from_params!

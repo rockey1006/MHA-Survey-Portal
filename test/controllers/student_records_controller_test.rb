@@ -34,7 +34,7 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
-    assert_includes response.body, "No students currently in this track are assigned to you."
+    assert_includes response.body, "No student records for this survey are assigned to you."
 
     # Advisors can view Student Records but should not see admin-only edit/delete actions.
     assert_not_includes response.body, 'aria-label="More actions"'
@@ -69,16 +69,23 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
 
     residential_survey = surveys(:fall_2025)
     executive_survey = surveys(:fall_2025_executive)
+    mismatch_student = students(:other_student)
+
+    SurveyAssignment.find_or_create_by!(survey: residential_survey, student: mismatch_student) do |assignment|
+      assignment.advisor = advisors(:other_advisor)
+      assignment.assigned_at = Time.current
+    end
 
     get student_records_path(survey_id: residential_survey.id)
     assert_response :success
     assert_includes response.body, users(:student).name
-    assert_not_includes response.body, users(:other_student).name
+    assert_includes response.body, users(:other_student).name
 
     get student_records_path(survey_id: executive_survey.id)
     assert_response :success
-    assert_includes response.body, users(:other_student).name
     assert_not_includes response.body, users(:student).name
+    assert_not_includes response.body, users(:other_student).name
+    assert_includes response.body, "No student records match this survey yet."
   end
 
   test "admin can filter surveys by keyword" do
@@ -93,14 +100,21 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, residential_title
   end
 
-  test "admin can filter student records by status" do
+  test "student records hide unassigned rows by default" do
+    sign_in @admin
+
+    get student_records_path
+    assert_response :success
+    assert_not_includes response.body, ">Unassigned</span>"
+  end
+
+  test "unassigned status filter renders no rows" do
     sign_in @admin
 
     get student_records_path(status: "unassigned")
     assert_response :success
-    # "Completed" can appear in seeded student names; assert against status badges.
-    assert_includes response.body, ">Unassigned</span>"
-    assert_not_includes response.body, ">Completed</span>"
+    assert_not_includes response.body, ">Unassigned</span>"
+    assert_includes response.body, "No student records match this survey yet."
   end
 
   test "admin can filter students by track" do
@@ -119,6 +133,30 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, users(:student).name
     assert_not_includes response.body, users(:other_student).name
+  end
+
+  test "archived survey row uses review-only response link and keeps admin response actions" do
+    sign_in @admin
+
+    survey = surveys(:fall_2025)
+    student = students(:student)
+    survey.update!(is_active: false)
+
+    assignment = SurveyAssignment.find_or_initialize_by(survey_id: survey.id, student_id: student.student_id)
+    assignment.advisor_id ||= student.advisor_id
+    assignment.assigned_at ||= Time.current
+    assignment.completed_at ||= Time.current
+    assignment.save!
+
+    survey_response = SurveyResponse.build(student: student, survey: survey)
+
+    get student_records_path(survey_id: survey.id)
+    assert_response :success
+
+    assert_includes response.body, survey_response_path(survey_response)
+    assert_not_includes response.body, new_feedback_path(survey_id: survey.id, student_id: student.student_id)
+    assert_includes response.body, 'aria-label="More actions"'
+    assert_includes response.body, "Edit Response"
   end
 
   test "advisor search stays within assigned scope" do
@@ -177,17 +215,14 @@ class StudentRecordsControllerTest < ActionDispatch::IntegrationTest
     assert_in_delta completion_time.to_i, row_after[:completed_at].to_i, 1
   end
 
-  test "student record status is unassigned when no assignment exists" do
+  test "student record excludes rows when no assignment exists" do
     student = students(:student)
     survey = surveys(:spring_2026_residential)
 
     controller = StudentRecordsController.new
     records = controller.send(:build_student_records, [ student ])
     row = find_row(records, student, survey)
-    assert_not_nil row, "Expected to find a student row for an unassigned survey"
-    assert_equal "Unassigned", row[:status]
-    assert_nil row[:completed_at]
-    assert_nil row[:available_until]
+    assert_nil row, "Expected unassigned student row to be omitted from student records"
   end
 
   private

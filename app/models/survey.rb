@@ -25,6 +25,7 @@ class Survey < ApplicationRecord
 
   before_validation :normalize_title
   before_validation :assign_program_semester_from_semester_name
+  after_update_commit :sync_inherited_assignment_deadlines!, if: :saved_change_to_available_until?
 
   validates :title,
             presence: true,
@@ -177,5 +178,18 @@ class Survey < ApplicationRecord
 
     self.program_semester = ProgramSemester.find_by_name_case_insensitive(name) ||
                             ProgramSemester.create!(name: name)
+  end
+
+  def sync_inherited_assignment_deadlines!
+    previous_deadline, new_deadline = saved_change_to_available_until
+
+    scope = survey_assignments.where(manual: false)
+    scope = if previous_deadline.nil?
+      scope.where(available_until: nil)
+    else
+      scope.where(available_until: [ previous_deadline, nil ])
+    end
+
+    scope.update_all(available_until: new_deadline, updated_at: Time.current)
   end
 end

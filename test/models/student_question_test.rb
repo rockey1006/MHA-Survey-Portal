@@ -1,11 +1,11 @@
 require "test_helper"
 
 class StudentQuestionTest < ActiveSupport::TestCase
-  test "google url regex accepts Google domains and rejects others" do
+  test "google url regex accepts google sites domains and rejects others" do
     drive_link = "https://drive.google.com/file/d/1abcdef/view?usp=sharing"
     sites_link = "https://sites.google.com/view/sample-site/home"
     bad = "https://example.com/not-drive"
-    assert_match StudentQuestion::GOOGLE_URL_REGEX, drive_link
+    refute_match StudentQuestion::GOOGLE_URL_REGEX, drive_link
     assert_match StudentQuestion::GOOGLE_URL_REGEX, sites_link
     refute_match StudentQuestion::GOOGLE_URL_REGEX, bad
   end
@@ -40,7 +40,7 @@ class StudentQuestionTest < ActiveSupport::TestCase
     assert_equal "padded answer", sq.reload.response_value
   end
 
-  test "evidence link validation requires google hosted url" do
+  test "evidence link validation requires google sites url" do
     student = students(:student)
     category = categories(:clinical_skills)
     evidence_question = category.questions.create!(
@@ -57,10 +57,11 @@ class StudentQuestionTest < ActiveSupport::TestCase
     )
 
     refute sq.valid?
-    assert_includes sq.errors[:response_value], "must be a publicly shareable Google link"
+    assert_includes sq.errors[:response_value], "must be a published Google Sites link"
 
     sq.response_value = "https://drive.google.com/file/d/123/view"
-    assert sq.valid?, sq.errors.full_messages.to_sentence
+    refute sq.valid?
+    assert_includes sq.errors[:response_value], "must be a published Google Sites link"
 
     sq.response_value = "https://sites.google.com/view/demo/page"
     assert sq.valid?, sq.errors.full_messages.to_sentence

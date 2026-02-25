@@ -2,7 +2,14 @@ module Assignments
   # Provides admins and advisors with read access to survey definitions and lets
   # them assign/unassign surveys to students.
   class SurveysController < BaseController
-    before_action :set_survey, only: %i[show assign assign_all unassign]
+    REMINDER_NOTIFICATION_TITLES = [
+      "New Competency Survey Assigned",
+      "Competency Survey Closing Soon",
+      "Competency Survey Closed"
+    ].freeze
+
+    before_action :set_survey, only: %i[show assign assign_all unassign unassign_selected extend_deadline extend_group_deadline reopen]
+    before_action :ensure_survey_active_for_mutation!, only: %i[assign assign_all unassign unassign_selected extend_deadline extend_group_deadline reopen]
 
     # Lists surveys with their categories and questions.
     def index
@@ -37,11 +44,33 @@ module Assignments
           .index_by(&:student_id)
 
       @assigned_student_ids = @assignments_by_student_id.keys.to_set
+
+      answer_counts =
+        StudentQuestion
+          .joins(question: :category)
+          .where(student_id: student_ids, categories: { survey_id: @survey.id })
+          .group(:student_id)
+          .count
+      @answer_counts_by_student_id = answer_counts
+
+      assignment_ids = @assignments_by_student_id.values.map(&:id)
+      @last_notified_at_by_assignment_id = if assignment_ids.any?
+        Notification
+          .where(notifiable_type: "SurveyAssignment", notifiable_id: assignment_ids, title: REMINDER_NOTIFICATION_TITLES)
+          .group(:notifiable_id)
+          .maximum(:updated_at)
+      else
+        {}
+      end
     end
 
     # Assigns the selected survey to a single student.
     def assign
       student = assignable_students.find_by!(student_id: params[:student_id])
+
+      if params[:available_until].present? && parsed_available_until.present? && !ensure_deadline_not_before_survey!(parsed_available_until)
+        return
+      end
 
       ActiveRecord::Base.transaction do
         @survey.questions.find_each do |question|
@@ -61,23 +90,11 @@ module Assignments
 
     # Assigns the survey to all eligible students in the survey's track.
     def assign_all
-      students = assignable_students
       track_filter = params[:track].presence
       year_filter = params[:program_year].presence
-
-      if track_filter.present?
-        canonical = ProgramTrack.canonical_key(track_filter)
-        track_label = ProgramTrack.name_for_key(canonical) || track_filter.to_s.strip
-        students = students.where(track: track_label)
-      end
-
-      if year_filter.present?
-        students = students.where(program_year: year_filter.to_i)
-      end
-
-      if track_filter.blank? && year_filter.blank?
-        students = eligible_students_for_track
-      end
+      students = students_for_bulk_action(track_filter:, year_filter:)
+      selected_ids = selected_student_ids
+      students = students.where(student_id: selected_ids) if selected_ids.present?
 
       if students.blank?
         redirect_to assignments_survey_path(@survey),
@@ -85,7 +102,11 @@ module Assignments
         return
       end
 
-      created_count = 0
+      if params[:available_until].present? && parsed_available_until.present? && !ensure_deadline_not_before_survey!(parsed_available_until)
+        return
+      end
+
+      processed_count = 0
 
       ActiveRecord::Base.transaction do
         students.find_each do |student|
@@ -95,18 +116,67 @@ module Assignments
             end
           end
 
-          _assignment, created = upsert_assignment_for(student)
-          created_count += 1 if created
+          upsert_assignment_for(student)
+          processed_count += 1
         end
       end
 
       group_label = []
       group_label << (track_filter.present? ? track_filter.to_s.strip : (survey_track_key&.titleize || "selected track"))
       group_label << "Class of #{year_filter}" if year_filter.present?
-      redirect_to assignments_surveys_path,
-          notice: "Assigned '#{@survey.title}' to #{created_count} student#{'s' unless created_count == 1} in #{group_label.compact.join(' • ')} at #{timestamp_str}."
+        redirect_to assignments_survey_path(@survey),
+          notice: "Assigned '#{@survey.title}' to #{processed_count} student#{'s' unless processed_count == 1} in #{group_label.compact.join(' • ')} at #{timestamp_str}."
     rescue ActiveRecord::RecordInvalid => e
       redirect_to assignments_survey_path(@survey), alert: e.record.errors.full_messages.to_sentence
+    end
+
+    # Reopens (unlocks) assignments for selected students by clearing completion.
+    def reopen
+      track_filter = params[:track].presence
+      year_filter = params[:program_year].presence
+
+      students = students_for_bulk_action(track_filter:, year_filter:)
+      selected_ids = selected_student_ids
+      students = students.where(student_id: selected_ids) if selected_ids.present?
+
+      student_ids = students.pluck(:student_id)
+      assignments = SurveyAssignment.where(survey_id: @survey.id, student_id: student_ids)
+
+      if assignments.blank?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "No assignments matched the selected students for re-opening."
+        return
+      end
+
+      update_attributes = { completed_at: nil, updated_at: Time.current }
+      extension_deadline = parsed_extension_available_until
+
+      if params[:new_available_until].present? && extension_deadline.blank?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "Please provide a valid extension deadline."
+        return
+      end
+
+      if extension_deadline.present?
+        return unless ensure_deadline_not_before_survey!(extension_deadline)
+
+        update_attributes[:available_until] = extension_deadline
+      end
+
+      reopened_count = assignments.update_all(update_attributes)
+
+      if reopened_count.zero?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "No assignments were re-opened for the selected students."
+        return
+      end
+
+      group_label = []
+      group_label << (track_filter.present? ? track_filter.to_s.strip : (survey_track_key&.titleize || "selected track"))
+      group_label << "Class of #{year_filter}" if year_filter.present?
+
+      redirect_to assignments_survey_path(@survey),
+                  notice: "Re-opened '#{@survey.title}' for #{reopened_count} student#{'s' unless reopened_count == 1} in #{group_label.compact.join(' • ')}."
     end
 
     # Unassigns the survey from a single student.
@@ -124,10 +194,11 @@ module Assignments
         student_id: student.student_id,
         question_id: @survey.questions.select(:id)
       )
+      has_responses = scope.exists?
 
-      if scope.exists?
+      if assignment.present? || has_responses
         ActiveRecord::Base.transaction do
-          scope.delete_all
+          scope.delete_all if has_responses
           assignment&.destroy!
           Notification.deliver!(
             user: student.user,
@@ -141,6 +212,149 @@ module Assignments
       else
         redirect_to assignments_survey_path(@survey), alert: "No assignment found for that student."
       end
+    end
+
+    # Unassigns the survey for selected students in bulk.
+    def unassign_selected
+      track_filter = params[:track].presence
+      year_filter = params[:program_year].presence
+      students = students_for_bulk_action(track_filter:, year_filter:)
+      selected_ids = selected_student_ids
+      students = students.where(student_id: selected_ids) if selected_ids.present?
+
+      student_ids = students.pluck(:student_id)
+      assignments = SurveyAssignment.where(survey_id: @survey.id, student_id: student_ids)
+      completed_student_ids = assignments.where.not(completed_at: nil).pluck(:student_id)
+      removable_assignments = assignments.where(completed_at: nil)
+
+      if removable_assignments.blank?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "No incomplete assignments matched the selected students for unassignment."
+        return
+      end
+
+      removable_student_ids = removable_assignments.pluck(:student_id)
+      student_records_by_id = students.where(student_id: removable_student_ids).includes(:user).index_by(&:student_id)
+
+      removed_count = 0
+
+      ActiveRecord::Base.transaction do
+        StudentQuestion.where(student_id: removable_student_ids, question_id: @survey.questions.select(:id)).delete_all
+
+        removable_assignments.find_each do |assignment|
+          assignment.destroy!
+          student = student_records_by_id[assignment.student_id]
+          if student&.user.present?
+            Notification.deliver!(
+              user: student.user,
+              title: "Survey Unassigned",
+              message: "#{current_user.name} removed '#{@survey.title}' from your assignments.",
+              notifiable: @survey
+            )
+          end
+          removed_count += 1
+        end
+      end
+
+      if removed_count.zero?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "No assignments were unassigned for the selected students."
+        return
+      end
+
+      skipped_count = completed_student_ids.uniq.count
+      notice = "Unassigned '#{@survey.title}' from #{removed_count} student#{'s' unless removed_count == 1} at #{timestamp_str}."
+      notice += " Skipped #{skipped_count} completed assignment#{'s' unless skipped_count == 1}." if skipped_count.positive?
+
+      redirect_to assignments_survey_path(@survey), notice: notice
+    end
+
+    # Extends the deadline for one assigned student.
+    def extend_deadline
+      student = assignable_students.find_by!(student_id: params[:student_id])
+      assignment = SurveyAssignment.find_by(survey_id: @survey.id, student_id: student.student_id)
+
+      if assignment.nil?
+        redirect_to assignments_survey_path(@survey), alert: "No assignment found for that student."
+        return
+      end
+
+      if assignment.completed_at?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "Cannot change deadline for a completed survey for #{student.full_name || student.user.email}."
+        return
+      end
+
+      extension_deadline = parsed_extension_available_until
+      if extension_deadline.nil?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "Please provide a valid deadline to change this assignment."
+        return
+      end
+
+      return unless ensure_deadline_not_before_survey!(extension_deadline)
+
+      assignment.update!(available_until: extension_deadline)
+      redirect_to assignments_survey_path(@survey),
+                  notice: "Changed '#{@survey.title}' deadline for #{student.full_name || student.user.email} to #{format_timestamp(extension_deadline)}."
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to assignments_survey_path(@survey), alert: e.record.errors.full_messages.to_sentence
+    end
+
+    # Extends deadlines for a selected student group.
+    def extend_group_deadline
+      raw_deadline = params[:new_available_until].to_s.strip
+      extension_deadline = raw_deadline.present? ? parsed_extension_available_until : @survey.available_until
+
+      if raw_deadline.present? && extension_deadline.nil?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "Please provide a valid group deadline to apply the change."
+        return
+      end
+
+      if raw_deadline.present? && extension_deadline.present? && !ensure_deadline_not_before_survey!(extension_deadline)
+        return
+      end
+
+      track_filter = params[:track].presence
+      year_filter = params[:program_year].presence
+      students = students_for_bulk_action(track_filter:, year_filter:)
+      selected_ids = selected_student_ids
+      students = students.where(student_id: selected_ids) if selected_ids.present?
+      if students.blank?
+        redirect_to assignments_survey_path(@survey),
+                    alert: "No assignments matched the selected group for deadline change."
+        return
+      end
+
+      processed_count = 0
+
+      ActiveRecord::Base.transaction do
+        students.find_each do |student|
+          @survey.questions.find_each do |question|
+            StudentQuestion.find_or_create_by!(student_id: student.student_id, question_id: question.id) do |record|
+              record.advisor_id = current_advisor_profile&.advisor_id
+            end
+          end
+
+          assignment = SurveyAssignment.find_or_initialize_by(survey_id: @survey.id, student_id: student.student_id)
+          assignment.manual = true if assignment.respond_to?(:manual=)
+          assignment.advisor_id ||= current_advisor_profile&.advisor_id
+          assignment.assigned_at ||= Time.current
+          assignment.available_from ||= @survey.available_from
+          assignment.available_until = extension_deadline
+          assignment.save! if assignment.new_record? || assignment.changed?
+
+          processed_count += 1
+        end
+      end
+
+      group_label = []
+      group_label << (track_filter.present? ? track_filter.to_s.strip : (survey_track_key&.titleize || "selected track"))
+      group_label << "Class of #{year_filter}" if year_filter.present?
+      deadline_label = extension_deadline.present? ? format_timestamp(extension_deadline) : "No deadline"
+      redirect_to assignments_survey_path(@survey),
+          notice: "Changed '#{@survey.title}' deadline for #{processed_count} student#{'s' unless processed_count == 1} in #{group_label.compact.join(' • ')} to #{deadline_label}."
     end
 
     private
@@ -164,6 +378,29 @@ module Assignments
       return scope.none unless key.present? && Student.tracks.key?(key)
 
       scope.where(track: Student.tracks[key])
+    end
+
+    def students_for_bulk_action(track_filter:, year_filter:)
+      students = assignable_students
+
+      if track_filter.present?
+        canonical = ProgramTrack.canonical_key(track_filter)
+        track_label = ProgramTrack.name_for_key(canonical) || track_filter.to_s.strip
+        students = students.where(track: track_label)
+      end
+
+      if year_filter.present?
+        students = students.where(program_year: year_filter.to_i)
+      end
+
+      if track_filter.blank? && year_filter.blank?
+        key = survey_track_key
+        return students.where(track: Student.tracks[key]) if key.present? && Student.tracks.key?(key)
+
+        return students
+      end
+
+      students
     end
 
     def survey_track_key
@@ -245,10 +482,55 @@ module Assignments
       end
     end
 
+    def parsed_extension_available_until
+      return @parsed_extension_available_until if instance_variable_defined?(:@parsed_extension_available_until)
+
+      raw_value = params[:new_available_until].presence
+      @parsed_extension_available_until = begin
+        raw_value ? Time.zone.parse(raw_value) : nil
+      rescue ArgumentError
+        nil
+      end
+    end
+
+    def selected_student_ids
+      raw_values = Array(params[:student_ids]).flatten
+      values = raw_values.flat_map { |item| item.to_s.split(",") }
+      values.map { |value| value.to_s.strip }.reject(&:blank?).uniq
+    end
+
+    def datetime_local_value(value)
+      return if value.blank?
+
+      value.in_time_zone.strftime("%Y-%m-%dT%H:%M")
+    end
+
+    def format_timestamp(value)
+      I18n.l(value, format: :long)
+    rescue I18n::MissingTranslationData, I18n::InvalidLocale
+      value.to_fs(:long)
+    end
+
     def timestamp_str
       I18n.l(Time.current, format: :long)
     rescue I18n::MissingTranslationData, I18n::InvalidLocale
       Time.current.to_fs(:long)
+    end
+
+    def ensure_survey_active_for_mutation!
+      return if @survey.is_active?
+
+      redirect_to assignments_survey_path(@survey),
+                  alert: "This survey is archived and cannot be modified."
+    end
+
+    def ensure_deadline_not_before_survey!(deadline)
+      return true if deadline.blank? || @survey.available_until.blank?
+      return true if deadline >= @survey.available_until
+
+      redirect_to assignments_survey_path(@survey),
+                  alert: "Student due date cannot be earlier than the survey due date."
+      false
     end
   end
 end

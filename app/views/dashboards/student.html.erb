@@ -7,7 +7,7 @@
       <!-- To-Do Section -->
       <section class="c-card c-card--hover">
         <h2 class="section-title">
-          <div class="section-icon"></div>
+          <div class="c-icon--survey" aria-hidden="true"></div>
           To-do
         </h2>
         
@@ -17,11 +17,13 @@
               <% survey = entry[:survey] %>
               <% offering = @offerings_by_survey_id[survey.id] %>
               <div class="c-list-item">
-                <div class="c-icon--survey" aria-hidden="true"></div>
-                <div class="survey-title"><%= survey.title %></div>
+                <div class="survey-title" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                  <span><%= survey.title %></span>
+                  <span class="<%= survey_status_badge_classes(survey.is_active? ? 'Active' : 'Archived') %>"><%= survey.is_active? ? "Active" : "Archived" %></span>
+                </div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
-                    Semester: <%= survey.semester %>
+                    <%= survey.semester %>
                   </div>
                 <% end %>
                 <% if (review_note = review_meetings_note(offering)).present? %>
@@ -30,21 +32,31 @@
                   </div>
                 <% end %>
                 <% progress = entry[:progress] || {} %>
+                <% completion_status = if entry[:completed_at].present?
+                    "Completed"
+                  elsif progress[:answered_total].to_i.positive?
+                    "In Progress"
+                  else
+                    "Not Started"
+                  end %>
                 <div class="survey-meta">
-                  Status: <%= entry[:status] %>
-                  &bull;
-                  <%= survey_availability_note(entry[:available_until]) %>
-                  <% total_questions = progress[:total_questions].to_i %>
-                  <% answered_total = progress[:answered_total].to_i %>
-                  <% if total_questions.positive? %>
+                  <% if entry[:available_until].present? %>
+                    Due: <%= l(entry[:available_until].in_time_zone, format: :long) %>
+                  <% else %>
+                    Due: Not set
+                  <% end %>
+                </div>
+                <div class="survey-meta">
+                  <% total_required = progress[:total_required].to_i %>
+                  <% answered_required = progress[:answered_required].to_i %>
+                  <% if total_required.positive? %>
                     <span class="survey-progress">
-                      &bull;
-                      <%= answered_total %>/<%= total_questions %> answered
-                      <% if progress[:total_required].to_i.positive? %>
-                        <span class="survey-progress-detail">(required <%= progress[:answered_required].to_i %>/<%= progress[:total_required].to_i %>)</span>
-                      <% end %>
+                      <%= answered_required %> of <%= total_required %> required questions answered
                     </span>
                   <% end %>
+                </div>
+                <div class="survey-meta" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                  <span class="<%= survey_status_badge_classes(completion_status) %>"><%= completion_status %></span>
                 </div>
                 <div class="survey-actions">
                   <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
@@ -62,7 +74,7 @@
       <!-- Completed Surveys Section -->
       <section class="c-card c-card--hover">
         <h2 class="section-title">
-          <div class="section-icon"></div>
+          <div class="c-icon--survey" aria-hidden="true"></div>
           Completed Surveys
         </h2>
 
@@ -74,13 +86,16 @@
               <% survey_response = entry[:survey_response] %>
               <% download_token = entry[:download_token] %>
               <% available_until = entry[:available_until] %>
-              <% can_edit = available_until.blank? || available_until >= Time.current %>
+              <% can_edit = survey.is_active? && (available_until.blank? || available_until >= Time.current) %>
+              <% edit_disabled_hint = survey.is_active? ? "Edit disabled: deadline has passed." : "Edit disabled: this survey is archived." %>
               <div class="completed-item">
-                <div class="c-icon--survey" aria-hidden="true"></div>
-                <div class="survey-title"><%= survey.title %></div>
+                <div class="survey-title" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                  <span><%= survey.title %></span>
+                  <span class="<%= survey_status_badge_classes(survey.is_active? ? 'Active' : 'Archived') %>"><%= survey.is_active? ? "Active" : "Archived" %></span>
+                </div>
                 <% if survey.semester.present? %>
                   <div class="survey-meta" style="font-size: 0.85rem; color: #4b5563;">
-                    Semester: <%= survey.semester %>
+                    <%= survey.semester %>
                   </div>
                 <% end %>
                 <% if (review_note = review_meetings_note(offering)).present? %>
@@ -89,31 +104,33 @@
                   </div>
                 <% end %>
                 <% progress = entry[:progress] || {} %>
+                <% completion_status = if entry[:completed_at].present?
+                    "Completed"
+                  elsif progress[:answered_total].to_i.positive?
+                    "In Progress"
+                  else
+                    "Not Started"
+                  end %>
                 <div class="survey-meta">
-                  <% submitted_at = entry[:completed_at] %>
-                  <% admin_updated_at = entry[:admin_updated_at] %>
-                  <% if admin_updated_at.present? %>
-                    Submitted on <%= submitted_at&.to_date || 'N/A' %>
-                    &bull;
-                    Admin updated on <%= admin_updated_at.to_date %>
+                  <% if available_until.present? %>
+                    Due: <%= l(available_until.in_time_zone, format: :long) %>
                   <% else %>
-                    Completed on <%= submitted_at&.to_date || 'N/A' %>
+                    Due: Not set
                   <% end %>
-                  &bull;
-                  <%= survey_availability_note(available_until) %>
                 </div>
 
                 <div class="survey-meta">
-                  <% total_questions = progress[:total_questions].to_i %>
-                  <% answered_total = progress[:answered_total].to_i %>
-                  <% if total_questions.positive? %>
+                  <% total_required = progress[:total_required].to_i %>
+                  <% answered_required = progress[:answered_required].to_i %>
+                  <% if total_required.positive? %>
                     <span class="survey-progress">
-                      <%= answered_total %>/<%= total_questions %> answered
-                      <% if progress[:total_required].to_i.positive? %>
-                        <span class="survey-progress-detail">(required <%= progress[:answered_required].to_i %>/<%= progress[:total_required].to_i %>)</span>
-                      <% end %>
+                      <%= answered_required %> of <%= total_required %> required questions answered
                     </span>
                   <% end %>
+                </div>
+
+                <div class="survey-meta" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                  <span class="<%= survey_status_badge_classes(completion_status) %>"><%= completion_status %></span>
                 </div>
                 <div class="survey-actions">
                   <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
@@ -121,7 +138,15 @@
                     <% if can_edit %>
                       <%= link_to 'Edit', survey_path(survey), class: tailwind_button_classes(:secondary) %>
                     <% else %>
-                        <button type="button" class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed" disabled aria-disabled="true">Edit</button>
+                        <span
+                          class="<%= tailwind_button_classes(:secondary) %> opacity-50 cursor-not-allowed"
+                          role="button"
+                          aria-disabled="true"
+                          tabindex="0"
+                          aria-describedby="edit-disabled-hint-completed<%= survey.id %>">
+                          Edit
+                        </span>
+                        <span id="edit-disabled-hint-completed<%= survey.id %>" class="sr-only"><%= edit_disabled_hint %></span>
                     <% end %>
                     <%= link_to 'Download PDF', download_survey_response_path(survey_response, token: download_token), class: tailwind_button_classes(:primary), target: "_blank", rel: "noopener noreferrer" %>
                   </div>

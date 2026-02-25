@@ -639,6 +639,136 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+/* === Reusable dashboard row/layout patterns ============================ */
+
+.c-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+}
+
+.c-muted-meta {
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+}
+
+.c-panel-header {
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.c-panel-header--with-border {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.c-panel-body {
+  padding: 0 var(--spacing-xl) var(--spacing-xl);
+}
+
+.c-panel-title {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.c-panel-subtitle {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+}
+
+.c-callout {
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--gray-200);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+}
+
+.c-callout--warning {
+  border-color: rgba(255, 107, 53, 0.35);
+  background-color: rgba(255, 107, 53, 0.08);
+  color: #8a4b1f;
+}
+
+.c-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+  align-items: end;
+}
+
+.c-label--placeholder {
+  opacity: 0;
+}
+
+.c-selection-row {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.c-selection-row__left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.c-actions-row {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.c-actions-row__item {
+  width: 100%;
+}
+
+.c-actions-row__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.c-actions-row--split {
+  justify-content: space-between;
+}
+
+@media (min-width: 768px) {
+  .c-actions-row {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .c-actions-row__item {
+    width: auto;
+  }
+
+  .c-actions-row__group {
+    flex-direction: row;
+    width: auto;
+  }
+
+  .c-actions-row--split {
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .c-actions-row__item--sm {
+    width: 12rem;
+  }
+
+  .c-actions-row__item--md {
+    width: 14rem;
+  }
+}
+
 /* === Buttons / links =====================================================
  *
  * NOTE: Core .btn styles and variants already live in 60_components_accessibility.css.

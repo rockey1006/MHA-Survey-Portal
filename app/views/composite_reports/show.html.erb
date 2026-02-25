@@ -311,9 +311,15 @@
           <% if show_inline_feedback && end_of_parent_group && feedback_for_parent.present? %>
             <% timestamp = feedback_for_parent.updated_at || feedback_for_parent.created_at %>
             <% selected_proficiency = normalize_proficiency_value(feedback_for_parent.average_score) %>
+            <% submission = feedback_submission_by_advisor[feedback_for_parent.advisor_id] if feedback_for_parent.advisor_id.present? %>
+            <% feedback_status = submission&.submitted_at.present? ? "Submitted" : "Draft" %>
             <div class="feedback-block">
               <div class="feedback-header">
-                <div><strong>Advisor feedback</strong> <span class="muted">(<%= feedback_for_parent.advisor&.display_name || "—" %>)</span></div>
+                <div>
+                  <strong>Advisor feedback</strong>
+                  <span class="muted">(<%= feedback_for_parent.advisor&.display_name || "—" %>)</span>
+                  <span class="badge <%= feedback_status == 'Submitted' ? 'badge-success' : 'badge-warning' %>"><%= feedback_status %></span>
+                </div>
                 <div class="feedback-score">
                   <% if selected_proficiency.present? %>
                     <select class="pdf-select" disabled>
@@ -365,9 +371,14 @@
 
         <% feedback_entries.each do |feedback| %>
           <% timestamp = feedback.updated_at || feedback.created_at %>
+          <% submission = feedback_submission_by_advisor[feedback.advisor_id] if feedback.advisor_id.present? %>
+          <% feedback_status = submission&.submitted_at.present? ? "Submitted" : "Draft" %>
           <div class="feedback-block">
             <div class="feedback-header">
-              <div><strong>Advisor:</strong> <%= feedback.advisor&.display_name || "—" %></div>
+              <div>
+                <strong>Advisor:</strong> <%= feedback.advisor&.display_name || "—" %>
+                <span class="badge <%= feedback_status == 'Submitted' ? 'badge-success' : 'badge-warning' %>"><%= feedback_status %></span>
+              </div>
               <div class="feedback-score">
                 Score: <%= feedback.average_score != nil ? format('%.2f', feedback.average_score.to_f) : "—" %>
               </div>

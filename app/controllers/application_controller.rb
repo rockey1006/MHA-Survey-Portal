@@ -8,6 +8,7 @@ class ApplicationController < ActionController::Base
   before_action :enforce_read_only_when_impersonating
   before_action :check_student_profile_complete
   before_action :load_notification_state, if: :user_signed_in?
+  rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_authenticity_token
   allow_browser versions: :modern
 
   helper_method :current_student, :current_advisor_profile, :impersonating?, :impersonator_user, :impersonation_kind, :safe_return_to_param
@@ -148,5 +149,33 @@ class ApplicationController < ActionController::Base
     end
 
     redirect_back fallback_location:, alert: "Read-only while impersonating."
+  end
+
+  def handle_invalid_authenticity_token(exception)
+    payload = {
+      request_id: request.request_id,
+      method: request.request_method,
+      path: request.fullpath,
+      user_id: current_user&.id,
+      user_email: current_user&.email,
+      student_id: current_student&.student_id,
+      referer: request.referer,
+      origin: request.headers["Origin"],
+      user_agent: request.user_agent,
+      remote_ip: request.remote_ip
+    }
+
+    Rails.logger.warn("[CSRF] Invalid authenticity token: #{payload.to_json}")
+    Rails.logger.warn("[CSRF] Exception: #{exception.class}: #{exception.message}")
+
+    reset_session
+
+    respond_to do |format|
+      format.html do
+        redirect_to new_user_session_path, alert: "Your session expired or became invalid. Please sign in again and resubmit your survey."
+      end
+      format.json { render json: { error: "Invalid authenticity token" }, status: :unprocessable_entity }
+      format.any { head :unprocessable_entity }
+    end
   end
 end

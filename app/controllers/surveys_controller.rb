@@ -139,6 +139,10 @@ class SurveysController < ApplicationController
       return
     end
 
+    Rails.logger.info(
+      "[SUBMIT] Received submit request request_id=#{request.request_id} survey_id=#{@survey.id} student_id=#{student.student_id} user_id=#{current_user&.id}"
+    )
+
     assignment = SurveyAssignment.find_by(student_id: student.student_id, survey_id: @survey.id)
     if assignment&.completed_at? && !assignment.can_edit_now?
       survey_response = SurveyResponse.build(student: student, survey: @survey)
@@ -231,6 +235,11 @@ class SurveysController < ApplicationController
     end
 
     if missing_required.any? || invalid_links.any?
+      Rails.logger.warn(
+        "[SUBMIT VALIDATION] request_id=#{request.request_id} survey_id=#{@survey.id} student_id=#{student.student_id} " \
+        "missing_required_question_ids=#{missing_required.map(&:id)} invalid_evidence_question_ids=#{invalid_links.map(&:id)}"
+      )
+
       # Avoid relying on a potentially partially-loaded association proxy.
       # This ensures newly-added categories/questions show up immediately.
       scope = Category.where(survey_id: @survey.id).includes(:section, :questions)

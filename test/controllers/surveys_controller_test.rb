@@ -277,8 +277,8 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     get survey_path(@survey)
     assert_response :success
 
-    assert_match(/#{Regexp.escape(competency_title)}.*Target Level: 4\/5/m, response.body)
-    refute_match(/#{Regexp.escape(competency_title)}.*Target Level: 1\/5/m, response.body)
+    assert_match(/#{Regexp.escape(competency_title)}.*End of Program Target Level: 4\/5/m, response.body)
+    refute_match(/#{Regexp.escape(competency_title)}.*End of Program Target Level: 1\/5/m, response.body)
   end
 
   # Authentication Tests

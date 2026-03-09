@@ -349,6 +349,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_02_13_090000) do
 
   add_foreign_key "admin_activity_logs", "users", column: "admin_id", on_delete: :cascade
   add_foreign_key "admins", "users", column: "admin_id", on_delete: :cascade
+  add_foreign_key "advisor_feedback_submissions", "advisors", primary_key: "advisor_id", on_delete: :cascade
+  add_foreign_key "advisor_feedback_submissions", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "advisor_feedback_submissions", "surveys", on_delete: :cascade
   add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
   add_foreign_key "categories", "survey_sections", on_delete: :nullify
   add_foreign_key "categories", "surveys"

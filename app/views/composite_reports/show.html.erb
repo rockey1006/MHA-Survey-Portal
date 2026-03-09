@@ -84,7 +84,7 @@
       <thead>
         <tr>
           <th>Competency</th>
-          <th>Target Level</th>
+          <th>End of Program Target Level</th>
           <th>Student Rating</th>
           <th>Advisor Rating</th>
         </tr>
@@ -182,7 +182,7 @@
                 <div class="question-body"><%= question.question_text %></div>
                 <% if question.question_type == "dropdown" && effective_target_level.present? %>
                   <div class="target-level-wrap">
-                    <span class="target-level-badge">Target Level: <%= effective_target_level %>/5</span>
+                    <span class="target-level-badge">End of Program Target Level: <%= effective_target_level %>/5</span>
                   </div>
                 <% end %>
               </div>

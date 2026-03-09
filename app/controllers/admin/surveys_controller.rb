@@ -227,8 +227,6 @@ class Admin::SurveysController < Admin::BaseController
               updated_at: Time.current
             )
         end
-
-        ReconcileSurveyAssignmentsJob.perform_later(survey_id: @survey.id)
       end
 
       persist_category_section_links

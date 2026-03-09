@@ -98,13 +98,13 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
-  test "updating survey available_until updates existing assignments and reconciles auto assignments" do
+  test "updating survey available_until updates existing assignments without re-running auto assignment" do
     assignment = survey_assignments(:residential_assignment)
     assert_equal @survey.id, assignment.survey_id
 
     new_available_until = 10.days.from_now.to_date
 
-    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
       patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
     end
 
@@ -128,7 +128,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
 
-    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
       patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
     end
 
@@ -137,6 +137,29 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     offering.reload
     assert_equal new_available_until.to_i, offering.available_until.to_i
     assert_equal new_available_until.to_i, offering.portfolio_due_date.to_i
+  end
+
+  test "setting deadline after archive and reactivate does not recreate removed pending assignments" do
+    assignment = survey_assignments(:residential_assignment)
+    survey = assignment.survey
+    student_id = assignment.student_id
+
+    patch archive_admin_survey_path(survey)
+    assert_redirected_to admin_surveys_path
+    assert_not SurveyAssignment.exists?(id: assignment.id)
+
+    patch activate_admin_survey_path(survey)
+    assert_redirected_to admin_surveys_path
+    assert survey.reload.is_active?
+    assert_not SurveyAssignment.exists?(survey_id: survey.id, student_id: student_id)
+
+    new_available_until = 14.days.from_now.to_date
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+    assert_not SurveyAssignment.exists?(survey_id: survey.id, student_id: student_id)
   end
 
   test "update can edit review meeting dates on survey offerings" do

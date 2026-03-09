@@ -101,6 +101,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
   test "updating survey available_until updates existing assignments without re-running auto assignment" do
     assignment = survey_assignments(:residential_assignment)
     assert_equal @survey.id, assignment.survey_id
+    assignment.update!(available_until: @survey.available_until)
 
     new_available_until = 10.days.from_now.to_date
 
@@ -112,6 +113,25 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assignment.reload
     assert_equal new_available_until, assignment.available_until.to_date
+  end
+
+  test "updating survey available_until does not override individual assignment deadlines" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    individual_deadline = 5.days.from_now.change(hour: 12, min: 0, sec: 0)
+    assignment.update!(available_until: individual_deadline)
+
+    new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_equal individual_deadline.to_i, assignment.available_until.to_i
   end
 
   test "updating survey available_until propagates to offerings when offerings exist" do

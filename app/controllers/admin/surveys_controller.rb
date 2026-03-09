@@ -219,13 +219,23 @@ class Admin::SurveysController < Admin::BaseController
 
           SurveyOffering.where(survey_id: @survey.id).update_all(updates)
         else
-          SurveyAssignment
-            .where(survey_id: @survey.id, completed_at: nil)
-            .update_all(
-              available_from: @survey.available_from,
-              available_until: @survey.available_until,
-              updated_at: Time.current
-            )
+          assignments_scope = SurveyAssignment.where(survey_id: @survey.id, completed_at: nil)
+
+          assignments_scope.update_all(
+            available_from: @survey.available_from,
+            updated_at: Time.current
+          )
+
+          inherited_deadline_scope = if previous_available_until.nil?
+            assignments_scope.where(available_until: nil)
+          else
+            assignments_scope.where(available_until: previous_available_until)
+          end
+
+          inherited_deadline_scope.update_all(
+            available_until: @survey.available_until,
+            updated_at: Time.current
+          )
         end
       end
 

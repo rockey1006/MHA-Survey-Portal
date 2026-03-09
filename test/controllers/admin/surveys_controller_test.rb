@@ -134,6 +134,26 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal individual_deadline.to_i, assignment.available_until.to_i
   end
 
+  test "updating survey available_until updates inherited assignment when old deadline matches by date" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    previous_deadline = Time.zone.local(2035, 3, 10, 23, 59)
+    @survey.update!(available_until: previous_deadline)
+    assignment.update!(available_until: Time.zone.local(2035, 3, 10, 9, 0))
+
+    new_available_until = Time.zone.local(2035, 3, 30, 23, 59)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_equal new_available_until.to_i, assignment.available_until.to_i
+  end
+
   test "updating survey available_until propagates to offerings when offerings exist" do
     offering = SurveyOffering.create!(
       survey: @survey,

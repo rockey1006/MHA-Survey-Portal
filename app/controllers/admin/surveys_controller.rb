@@ -229,7 +229,11 @@ class Admin::SurveysController < Admin::BaseController
           inherited_deadline_scope = if previous_available_until.nil?
             assignments_scope.where(available_until: nil)
           else
-            assignments_scope.where(available_until: previous_available_until)
+            assignments_scope.where(
+              "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
+              previous: previous_available_until,
+              previous_date: previous_available_until.to_date
+            )
           end
 
           inherited_deadline_scope.update_all(

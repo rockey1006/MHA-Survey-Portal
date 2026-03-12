@@ -317,7 +317,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "updating competency question target level mirrors to competency target levels" do
-    @survey.assign_tracks!(["Residential"])
+    @survey.assign_tracks!([ "Residential" ])
 
     category = categories(:clinical_skills)
     competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first

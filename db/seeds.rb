@@ -779,6 +779,15 @@ students.each do |student|
         response_value = case question.question_type
                          when "evidence"
                            high_performer ? drive_links.first : drive_links.sample(random: response_rng)
+                         when "integer"
+                           min = question.integer_min.presence || 0
+                           max = question.integer_max.presence || [min, 10].max
+                           chosen = if high_performer
+                             response_rng.rand([max - 2, min].max..max)
+                           else
+                             response_rng.rand(min..max)
+                           end
+                           chosen.to_s
                          when "multiple_choice"
                            options = choice_values_for.call(question)
                            other_pair = question.answer_option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }

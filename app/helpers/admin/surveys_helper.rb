@@ -3,9 +3,9 @@ module Admin::SurveysHelper
   # @return [Array<(String, String)>] status label and badge classes.
   def admin_survey_status_meta(survey)
     if survey.is_active?
-      ["Active", "inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"]
+      [ "Active", "inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700" ]
     else
-      ["Archived", "inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"]
+      [ "Archived", "inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700" ]
     end
   end
 
@@ -55,7 +55,7 @@ module Admin::SurveysHelper
   def admin_competency_target_level_lookup(program_semester_id:, track:, class_of: nil)
     @_admin_competency_target_level_lookup ||= {}
 
-    cache_key = [program_semester_id, track.to_s, class_of].freeze
+    cache_key = [ program_semester_id, track.to_s, class_of ].freeze
     return @_admin_competency_target_level_lookup[cache_key] if @_admin_competency_target_level_lookup.key?(cache_key)
 
     scoped = CompetencyTargetLevel.where(program_semester_id: program_semester_id, track: track)

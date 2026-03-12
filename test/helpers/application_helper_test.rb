@@ -61,14 +61,6 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal "Profile picture for Ada Lovelace", avatar_aria_label(user)
   end
 
-  test "scale_labels_for uses question labels when present" do
-    question = Struct.new(:answer_options_list).new([ "A", "B" ])
-    assert_equal [ "A", "B" ], scale_labels_for(question)
-
-    question = Struct.new(:answer_options_list).new([])
-    assert_equal DEFAULT_SCALE_LABELS, scale_labels_for(question)
-  end
-
   test "humanize_audit_value and list behaviors" do
     assert_equal "none", humanize_audit_value(nil)
     # Empty string should be normalized to "none"
@@ -88,23 +80,6 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_includes summary, "Test note"
     assert_includes summary, "Title: Old -> New"
     assert_includes summary, "Tracks: A -> B"
-  end
-
-  test "scale_label_for_value returns empty for blank value" do
-    question = Struct.new(:answer_options_list).new([ "A", "B" ])
-    assert_equal "", scale_label_for_value(question, "")
-  end
-
-  test "scale_label_for_value resolves numeric index labels" do
-    question = Struct.new(:answer_options_list).new([ "Low", "High" ])
-    assert_equal "Low", scale_label_for_value(question, "1")
-    assert_equal "High", scale_label_for_value(question, 2)
-  end
-
-  test "scale_label_for_value falls back when index out of range or non-numeric" do
-    question = Struct.new(:answer_options_list).new([ "Low", "High" ])
-    assert_equal "3", scale_label_for_value(question, "3")
-    assert_equal "Other", scale_label_for_value(question, "Other")
   end
 
   test "tailwind_stylesheet_tag returns fallback link when asset pipeline raises" do

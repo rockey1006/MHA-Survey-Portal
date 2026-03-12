@@ -53,12 +53,6 @@
                                   { include_blank: true },
                                   class: "w-full border rounded px-2 py-1" %>
               <% end %>
-            <% when "scale" %>
-              <% scale_labels = scale_labels_for(question) %>
-              <% options = scale_labels.each_with_index.map { |label, idx| [ label, idx + 1 ] } %>
-              <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.select :response_value, options, { include_blank: true }, class: "w-full border rounded px-2 py-1" %>
-              <% end %>
             <% when "evidence" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>
                 <%= qr_form.text_field :response_value, maxlength: StudentQuestion::TEXT_MAX_LENGTH, class: "w-full border rounded px-2 py-1" %>

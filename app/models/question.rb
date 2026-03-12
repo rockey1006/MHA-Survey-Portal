@@ -3,11 +3,11 @@ require "json"
 # Survey prompt tied to a category, supporting multiple response types.
 class Question < ApplicationRecord
   PROMPT_FORMATS = %w[plain_text rich_text].freeze
+  RICH_TEXT_TAG_PATTERN = %r{</?(strong|b|em|i|u|br)\b[^>]*>}i.freeze
 
   enum :question_type, {
     multiple_choice: "multiple_choice",
     dropdown: "dropdown",
-    scale: "scale",
     short_answer: "short_answer",
     evidence: "evidence",
     integer: "integer"
@@ -258,7 +258,9 @@ class Question < ApplicationRecord
 
   # @return [Boolean] whether this question prompt should render rich text.
   def rich_text_prompt?
-    effective_prompt_format == "rich_text"
+    return true if effective_prompt_format == "rich_text"
+
+    prompt_format.blank? && question_text_contains_allowed_rich_text_tags?
   end
 
   # @return [String] configured prompt format with default fallback.
@@ -283,6 +285,10 @@ class Question < ApplicationRecord
     return unless integer_min.to_i > integer_max.to_i
 
     errors.add(:integer_max, "must be greater than or equal to minimum")
+  end
+
+  def question_text_contains_allowed_rich_text_tags?
+    question_text.to_s.match?(RICH_TEXT_TAG_PATTERN)
   end
 
   def ensure_question_order

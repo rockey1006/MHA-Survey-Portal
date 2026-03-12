@@ -79,7 +79,7 @@ class QuestionAnswerOptionsParsingTest < ActiveSupport::TestCase
     parent = Question.create!(
       category: category,
       question_text: "Parent",
-      question_type: "scale",
+      question_type: "dropdown",
       question_order: 1,
       is_required: true
     )
@@ -88,7 +88,7 @@ class QuestionAnswerOptionsParsingTest < ActiveSupport::TestCase
       category: category,
       parent_question: parent,
       question_text: "Child",
-      question_type: "scale",
+      question_type: "dropdown",
       is_required: true
     )
     child.save!

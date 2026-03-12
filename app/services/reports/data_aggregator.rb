@@ -131,11 +131,168 @@ module Reports
         benchmark: benchmark,
         competency_summary: competency_summary,
         competency_detail: competency_detail,
-        track_summary: track_summary
+        track_summary: track_summary,
+        employment_summary: employment_summary
       }
     end
 
+    # Employment section: aggregate employment status, hours, and flexibility
+    # across all respondents within the active filter scope.
+    def employment_summary
+      @employment_summary ||= build_employment_summary
+    end
+
     private
+
+    # ---------------------------------------------------------------------------
+    # Employment summary helpers
+    # ---------------------------------------------------------------------------
+
+    EMPLOYMENT_FIELD_MAP = {
+      "currently employed"           => :currently_employed,
+      "where are you employed"       => :employer,
+      "what is your title"           => :job_title,
+      "hours per week"               => :hours_per_week,
+      "flexible are your work hours" => :flexibility
+    }.freeze
+
+    def employment_field_key(question_text)
+      normalized = question_text.to_s.downcase
+      EMPLOYMENT_FIELD_MAP.each { |pattern, key| return key if normalized.include?(pattern) }
+      nil
+    end
+
+    def build_employment_summary
+      # Pull all employment-related responses respecting the standard filter scope.
+      # Note: custom select must include student_questions.question_id so ActiveRecord
+      # doesn't raise MissingAttributeError when materialising StudentQuestion records.
+      rows = employment_response_scope
+        .select(
+          "student_questions.student_id",
+          "student_questions.question_id",
+          "student_questions.response_value",
+          "questions.question_text",
+          "questions.question_type"
+        )
+
+      # Group responses by student so each student contributes once per field.
+      by_student = Hash.new { |h, k| h[k] = {} }
+      rows.each do |record|
+        field = employment_field_key(record.question_text)
+        next unless field
+
+        by_student[record.student_id][field] ||= parse_employment_value(record)
+      end
+
+      # Aggregate buckets
+      status_counts   = Hash.new(0)   # "Yes" / "No" / "No response"
+      hours_dist      = Hash.new(0)   # bucket label => count
+      flex_dist       = Hash.new(0)   # "1".."5" => count
+      total_employed  = 0
+      total_responded = by_student.size
+
+      by_student.each_value do |fields|
+        employed = fields[:currently_employed]
+        if employed.blank?
+          status_counts["No response"] += 1
+          next
+        end
+
+        if employed.casecmp?("Yes")
+          status_counts["Employed"] += 1
+          total_employed += 1
+
+          hours_value = parse_employment_integer(fields[:hours_per_week])
+          if hours_value
+            bucket = hours_bucket(hours_value)
+            hours_dist[bucket] += 1
+          end
+
+          flex_raw = fields[:flexibility].to_s.strip
+          flex_digit = flex_raw[/\A(\d+)/, 1]
+          flex_dist[flex_digit] += 1 if flex_digit && ("1".."5").include?(flex_digit)
+        elsif employed.casecmp?("No")
+          status_counts["Not employed"] += 1
+        else
+          status_counts["No response"] += 1
+        end
+      end
+
+      employment_rate = total_responded > 0 ? (total_employed.to_f / total_responded * 100).round(1) : nil
+
+      # Build sorted distributions for the charting layer
+      hours_labels  = %w[<10 10–19 20–29 30–39 40–49 50+]
+      hours_data    = hours_labels.map { |label| hours_dist[label] }
+
+      flex_labels = [ "1 — No flexibility", "2 — Limited", "3 — Some", "4 — Flexible", "5 — Very flexible" ]
+      flex_data   = (1..5).map { |n| flex_dist[n.to_s] }
+
+      {
+        total_respondents:  total_responded,
+        employment_rate:    employment_rate,
+        status_counts:      status_counts.map { |label, count| { label: label, count: count } },
+        hours_distribution: { labels: hours_labels, data: hours_data },
+        flexibility_distribution: { labels: flex_labels, data: flex_data }
+      }
+    end
+
+    def employment_response_scope
+      scope = StudentQuestion
+        .joins(:student)
+        .merge(accessible_student_relation)
+        .joins(question: { category: { survey: :program_semester } })
+        .where("LOWER(categories.name) LIKE ?", "%employment%")
+
+      scope = scope.where(students: { track: filters[:track] }) if filters[:track]
+      if filters[:semester]
+        scope = scope.where("LOWER(program_semesters.name) = ?", filters[:semester].downcase)
+      end
+      scope = scope.where(surveys: { id: filters[:survey_id] }) if filters[:survey_id]
+      scope = scope.where(students: { advisor_id: filters[:advisor_id] }) if filters[:advisor_id]
+      scope = scope.where(student_questions: { student_id: filters[:student_id] }) if filters[:student_id]
+
+      scope
+    end
+
+    def parse_employment_value(record)
+      raw = record.response_value
+      return raw if raw.is_a?(String) && !raw.start_with?("{", "[")
+
+      begin
+        parsed = JSON.parse(raw.to_s)
+        case parsed
+        when Hash
+          parsed["answer"] || parsed["value"] || parsed["rating"] || raw
+        when Array
+          parsed.first.to_s
+        else
+          raw
+        end
+      rescue JSON::ParserError
+        raw
+      end
+    end
+
+    def parse_employment_integer(value)
+      candidate = value.to_s.strip
+      return nil if candidate.blank?
+      return nil unless candidate.match?(/\A\d+\z/)
+
+      Integer(candidate, 10)
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def hours_bucket(n)
+      case n
+      when 0..9   then "<10"
+      when 10..19 then "10–19"
+      when 20..29 then "20–29"
+      when 30..39 then "30–39"
+      when 40..49 then "40–49"
+      else             "50+"
+      end
+    end
 
     attr_reader :user
 

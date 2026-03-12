@@ -1,7 +1,6 @@
 # Helpers shared across views for formatting flash messages, buttons, and audit
 # metadata.
 module ApplicationHelper
-  DEFAULT_SCALE_LABELS = %w[1 2 3 4 5].freeze
   PROMPT_ALLOWED_TAGS = %w[strong b em i u br].freeze
 
   # Base CSS class applied to all flash notifications.
@@ -259,34 +258,6 @@ module ApplicationHelper
 
     name = user.respond_to?(:full_name) ? user.full_name.to_s.strip : ""
     name.present? ? "Profile picture for #{name}" : "User avatar"
-  end
-
-  # Returns the configured labels for a scale question, falling back to a
-  # standard 1-5 list when no custom labels were provided.
-  #
-  # @param question [Question]
-  # @return [Array<String>]
-  def scale_labels_for(question)
-    Array(question&.answer_options_list).presence || DEFAULT_SCALE_LABELS
-  end
-
-  # Resolves the display label for a stored scale value. When the value is a
-  # numeric index, the matching configured label is returned; otherwise the raw
-  # value is shown.
-  #
-  # @param question [Question]
-  # @param raw_value [String, Integer]
-  # @return [String]
-  def scale_label_for_value(question, raw_value)
-    return "" if raw_value.blank?
-
-    labels = scale_labels_for(question)
-    index = Integer(raw_value) rescue nil
-    if index
-      labels.fetch(index - 1, raw_value.to_s.presence || "")
-    else
-      raw_value.to_s
-    end
   end
 
   private

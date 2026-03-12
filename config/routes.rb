@@ -148,6 +148,7 @@ Rails.application.routes.draw do
     get "reports/competency-detail", to: "reports#competency_detail"
     get "reports/track-summary", to: "reports#track_summary"
     get "reports/benchmark", to: "reports#benchmark"
+    get "reports/employment-summary", to: "reports#employment_summary"
   end
 
   get "about", to: "pages#about", as: :about

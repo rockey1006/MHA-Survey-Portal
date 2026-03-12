@@ -179,7 +179,7 @@
                 <span class="question-number">Q<%= question_number %></span>
               <% end %>
               <div class="question-heading">
-                <div class="question-body"><%= question.question_text %></div>
+                <div class="question-body"><%= render_question_prompt(question) %></div>
                 <% if question.question_type == "dropdown" && effective_target_level.present? %>
                   <div class="target-level-wrap">
                     <span class="target-level-badge">End of Program Target Level: <%= effective_target_level %>/5</span>
@@ -214,15 +214,6 @@
                     <strong>Other:</strong> <%= parts[:text] %>
                   </div>
                 <% end %>
-              <% when "scale" %>
-                <% scale_display = scale_label_for_value(question, answer_value) %>
-                <div class="answer-text">
-                  <strong>Rating:</strong>
-                  <%= answer_value.present? ? scale_display : "Not answered" %>
-                  <% if answer_value.present? && scale_display.to_s != answer_value.to_s %>
-                    <span class="muted">(Value <%= answer_value %>)</span>
-                  <% end %>
-                </div>
               <% when "dropdown" %>
                 <% option_pairs = question.answer_option_pairs %>
                 <% selected_value = answer_value.to_s.presence %>

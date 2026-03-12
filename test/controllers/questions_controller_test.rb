@@ -165,7 +165,7 @@ class QuestionsControllerTest < ActionDispatch::IntegrationTest
         category_id: @category.id,
         question_text: "Redirect test question?",
         question_order: 4,
-        question_type: "scale",
+        question_type: "dropdown",
         is_required: true
       }
     }
@@ -364,7 +364,7 @@ class QuestionsControllerTest < ActionDispatch::IntegrationTest
   test "create with multiple question types" do
     sign_in @admin
 
-    [ "multiple_choice", "scale", "short_answer", "evidence" ].each_with_index do |qtype, index|
+    [ "multiple_choice", "dropdown", "short_answer", "evidence" ].each_with_index do |qtype, index|
       assert_difference("Question.count", 1) do
         post questions_path, params: {
           question: {

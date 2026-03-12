@@ -322,33 +322,6 @@
                         <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= other_text.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
                       </div>
                     <% end %>
-                  <% when "scale" %>
-                    <% scale_labels = scale_labels_for(question) %>
-                    <% scale_steps = [scale_labels.size, 1].max %>
-                    <% raw_scale = answer_value.to_s.presence %>
-                    <% slider_value = (raw_scale || ((scale_steps + 1) / 2.0).ceil.to_s).to_i.clamp(1, scale_steps) %>
-                    <div class="survey-scale-input space-y-1">
-                      <div class="flex items-center gap-3">
-                        <span class="text-xs text-slate-500"><%= scale_labels.first || "Low" %></span>
-                        <%= range_field_tag "#{answer_param_key}[#{question.id}]",
-                                            slider_value,
-                                            min: 1,
-                                            max: scale_steps,
-                                            step: 1,
-                                            id: "question-#{question.id}",
-                                            class: "w-full",
-                                            disabled: input_disabled %>
-                        <span class="text-xs text-slate-500"><%= scale_labels.last || "High" %></span>
-                      </div>
-                      <div class="flex justify-between text-[0.7rem] text-slate-500">
-                        <% scale_labels.each do |label| %>
-                          <span><%= label %></span>
-                        <% end %>
-                      </div>
-                      <div class="text-xs text-slate-600">
-                        Selected: <span><%= scale_label_for_value(question, slider_value) %></span>
-                      </div>
-                    </div>
                   <% when "evidence" %>
                     <% link_value = answer_text.to_s.strip.presence %>
                     <% if editable %>

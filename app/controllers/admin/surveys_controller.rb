@@ -123,6 +123,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [void]
   def update
     autosave_request = params[:autosave].to_s == "1"
+    force_deadline_for_everyone = params[:force_deadline_for_everyone].to_s == "1"
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
@@ -228,20 +229,27 @@ class Admin::SurveysController < Admin::BaseController
             updated_at: Time.current
           )
 
-          inherited_deadline_scope = if previous_available_until.nil?
-            assignments_scope.where(available_until: nil)
+          if force_deadline_for_everyone
+            assignments_scope.update_all(
+              available_until: @survey.available_until,
+              updated_at: Time.current
+            )
           else
-            assignments_scope.where(
-              "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
-              previous: previous_available_until,
-              previous_date: previous_available_until.to_date
+            inherited_deadline_scope = if previous_available_until.nil?
+              assignments_scope.where(available_until: nil)
+            else
+              assignments_scope.where(
+                "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
+                previous: previous_available_until,
+                previous_date: previous_available_until.to_date
+              )
+            end
+
+            inherited_deadline_scope.update_all(
+              available_until: @survey.available_until,
+              updated_at: Time.current
             )
           end
-
-          inherited_deadline_scope.update_all(
-            available_until: @survey.available_until,
-            updated_at: Time.current
-          )
         end
       end
 
@@ -250,7 +258,12 @@ class Admin::SurveysController < Admin::BaseController
       description = change_summary(before_snapshot, survey_snapshot(@survey), tracks)
       @survey.log_change!(admin: current_user, action: "update", description: description)
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
-      redirect_to admin_surveys_path, notice: "Survey updated successfully."
+      notice = if force_deadline_for_everyone
+        "Survey updated successfully. Deadline changed for everyone with an incomplete assignment."
+      else
+        "Survey updated successfully."
+      end
+      redirect_to admin_surveys_path, notice: notice
     else
       Rails.logger.info("[autosave] survey=#{@survey.id} save FAILED: #{@survey.errors.full_messages.to_sentence}") if autosave_request && Rails.env.development?
       build_default_structure(@survey)

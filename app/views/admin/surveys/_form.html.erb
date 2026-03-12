@@ -45,6 +45,14 @@
     <div class="sticky bottom-4 z-20 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
       <div class="c-form-actions u-actions">
         <%= link_to "Cancel", admin_surveys_path, class: "btn btn-secondary" %>
+        <% if survey.persisted? %>
+          <%= button_tag "Change Deadline for Everyone",
+                         type: "submit",
+                         name: "force_deadline_for_everyone",
+                         value: "1",
+                         data: { turbo_confirm: "Change the available-until deadline for everyone with an incomplete assignment? This overrides individual assignment deadlines." },
+                         class: "btn btn-secondary" %>
+        <% end %>
         <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: "btn btn-primary") %>
       </div>
     </div>

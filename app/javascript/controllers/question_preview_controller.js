@@ -214,7 +214,7 @@ export default class extends Controller {
 
     const type = (this.typeSelectTarget?.value || "").trim()
 
-    const supportsOptions = type === "multiple_choice" || type === "dropdown" || type === "scale"
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
 
     // Keep the drawer trigger available for all types so advanced settings
     // (including question type) stay accessible.
@@ -235,7 +235,7 @@ export default class extends Controller {
 
   updateQuestionTypeUi() {
     const type = (this.typeSelectTarget?.value || "").trim()
-    const supportsOptions = type === "multiple_choice" || type === "dropdown" || type === "scale"
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
 
     if (this.hasQuestionTypeButtonLabelTarget) {
       this.questionTypeButtonLabelTarget.textContent = this.humanizeType(type)
@@ -333,7 +333,7 @@ export default class extends Controller {
     if (!this.hasOptionsListTarget) return
 
     const type = (this.typeSelectTarget?.value || "").trim()
-    const supportsOptions = type === "multiple_choice" || type === "dropdown" || type === "scale"
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
     if (!supportsOptions) {
       this.optionsListTarget.innerHTML =
         '<p class="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">This question type does not use answer options.</p>'
@@ -380,7 +380,7 @@ export default class extends Controller {
     event?.preventDefault()
 
     const type = (this.typeSelectTarget?.value || "").trim()
-    const supportsOptions = type === "multiple_choice" || type === "dropdown" || type === "scale"
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
     if (!supportsOptions) return
 
     const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
@@ -581,21 +581,6 @@ export default class extends Controller {
     if (type === "evidence") {
       this.responseTarget.innerHTML =
         '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm" placeholder="https://sites.google.com/tamu.edu/..." disabled>'
-      return
-    }
-
-    if (type === "scale") {
-      const lowLabel = options[0] || "Low"
-      const highLabel = options[options.length - 1] || "High"
-      this.responseTarget.innerHTML = `
-        <div class="space-y-1">
-          <div class="flex items-center gap-3">
-            <button type="button" class="text-xs text-slate-600 underline-offset-2 hover:underline" data-option-index="0" data-action="question-preview#editOption">${this.escapeHtml(lowLabel)}</button>
-            <input type="range" class="w-full" min="1" max="5" step="1" disabled>
-            <button type="button" class="text-xs text-slate-600 underline-offset-2 hover:underline" data-option-index="${Math.max(options.length - 1, 0)}" data-action="question-preview#editOption">${this.escapeHtml(highLabel)}</button>
-          </div>
-        </div>
-      `
       return
     }
 

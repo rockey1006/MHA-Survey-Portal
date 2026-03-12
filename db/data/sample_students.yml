@@ -92,3 +92,56 @@
   advisor_email: probinson@tamu.edu
   program_year: 2027
   pending: true
+
+# Additional students — brings total to ~20, using cstebbins@tamu.edu as third advisor
+
+- email: marcus.chen25@tamu.edu
+  name: Marcus Chen
+  track: Residential
+  advisor_email: cstebbins@tamu.edu
+  program_year: 2027
+
+- email: priya.nair25@tamu.edu
+  name: Priya Nair
+  track: Residential
+  advisor_email: cstebbins@tamu.edu
+  program_year: 2027
+
+- email: faith.okonkwo25@tamu.edu
+  name: Faith Okonkwo
+  track: Residential
+  advisor_email: cstebbins@tamu.edu
+  program_year: 2026
+  multi_semester: true
+
+- email: derek.santos25@tamu.edu
+  name: Derek Santos
+  track: Executive
+  advisor_email: cstebbins@tamu.edu
+  program_year: 2027
+
+- email: grace.lawson25@tamu.edu
+  name: Grace Lawson
+  track: Executive
+  advisor_email: cstebbins@tamu.edu
+  program_year: 2027
+
+- email: theo.walker25@tamu.edu
+  name: Theo Walker
+  track: Executive
+  advisor_email: cstebbins@tamu.edu
+  program_year: 2026
+  multi_semester: true
+
+- email: simone.park25@tamu.edu
+  name: Simone Park
+  track: Residential
+  advisor_email: sarah115@tamu.edu
+  program_year: 2027
+
+- email: caleb.frost25@tamu.edu
+  name: Caleb Frost
+  track: Executive
+  advisor_email: probinson@tamu.edu
+  program_year: 2026
+  multi_semester: true

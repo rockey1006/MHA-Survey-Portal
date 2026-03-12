@@ -67,7 +67,7 @@ module Reports
 
       package = Reports::ExcelExporter.new(payload).generate
       sheet_names = package.workbook.worksheets.map(&:name)
-      assert_equal ["Trend", "Domain", "Competency", "Track", "Employment"], sheet_names
+      assert_equal [ "Trend", "Domain", "Competency", "Track", "Employment" ], sheet_names
 
       summary_sheet = package.workbook.worksheets.find { |ws| ws.name == "Trend" }
       competency_sheet = package.workbook.worksheets.find { |ws| ws.name == "Domain" }
@@ -118,7 +118,7 @@ module Reports
 
       package = Reports::ExcelExporter.new(payload).generate
       sheet_names = package.workbook.worksheets.map(&:name)
-      assert_equal ["Trend", "Domain", "Competency", "Track", "Employment"], sheet_names
+      assert_equal [ "Trend", "Domain", "Competency", "Track", "Employment" ], sheet_names
 
       tracks_sheet = package.workbook.worksheets.find { |ws| ws.name == "Track" }
       assert tracks_sheet

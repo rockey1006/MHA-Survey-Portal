@@ -45,9 +45,28 @@
           </div>
 
           <div class="c-field">
+            <%= form.label :prompt_format, "Prompt format", class: "c-label" %>
+            <%= form.select :prompt_format,
+                            [["Plain text", "plain_text"], ["Rich text", "rich_text"]],
+                            {},
+                            class: "c-input input" %>
+            <p class="c-help field-hint">Rich text supports safe HTML tags: &lt;strong&gt;, &lt;em&gt;, and &lt;u&gt;.</p>
+          </div>
+
+          <div class="c-field">
             <%= form.label :question_order, "Display order", class: "c-label" %>
             <%= form.number_field :question_order, class: "c-input input", min: 1, required: true %>
             <p class="c-help field-hint">Controls where this question appears relative to other prompts.</p>
+          </div>
+
+          <div class="c-field">
+            <%= form.label :integer_min, "Integer minimum", class: "c-label" %>
+            <%= form.number_field :integer_min, class: "c-input input", min: 0, step: 1, placeholder: 1 %>
+          </div>
+
+          <div class="c-field">
+            <%= form.label :integer_max, "Integer maximum", class: "c-label" %>
+            <%= form.number_field :integer_max, class: "c-input input", min: 0, step: 1, placeholder: "Optional" %>
           </div>
         </div>
       </section>

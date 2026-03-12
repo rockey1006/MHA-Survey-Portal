@@ -2,6 +2,7 @@
 # metadata.
 module ApplicationHelper
   DEFAULT_SCALE_LABELS = %w[1 2 3 4 5].freeze
+  PROMPT_ALLOWED_TAGS = %w[strong b em i u br].freeze
 
   # Base CSS class applied to all flash notifications.
   FLASH_BASE_CLASSES = "flash".freeze
@@ -42,6 +43,18 @@ module ApplicationHelper
       error: "Something went wrong",
       warning: "Warning"
     }.fetch(key.to_sym, key.to_s.titleize)
+  end
+
+  # Renders question text in plain or rich format based on question config.
+  # Rich prompts are sanitized to a strict set of inline tags.
+  #
+  # @param question [Question]
+  # @return [ActiveSupport::SafeBuffer]
+  def render_question_prompt(question)
+    raw = question&.question_text.to_s
+    return h(raw) unless question.respond_to?(:rich_text_prompt?) && question.rich_text_prompt?
+
+    sanitize(raw.gsub(/\r?\n/, "<br>"), tags: PROMPT_ALLOWED_TAGS, attributes: [])
   end
 
   # Emits a stylesheet tag for Tailwind, with a fallback if the asset pipeline

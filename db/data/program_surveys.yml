@@ -93,8 +93,10 @@ common_categories: &common_categories
             text: "What is your title?"
             type: "short_answer"
           - order: 3
-            text: "How many hours per week do you work on average?"
-            type: "short_answer"
+            text: "How many <strong>hours per week</strong> do you work on <u>average</u>?"
+            type: "integer"
+            prompt_format: "rich_text"
+            integer_min: 1
           - order: 4
             text: "How flexible are your work hours?"
             type: "multiple_choice"

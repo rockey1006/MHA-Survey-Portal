@@ -52,10 +52,20 @@
     </div>
   <% end %>
 
+  <% if @invalid_integer.present? && !flash_alert_present %>
+    <div class="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+      <p class="font-medium">Please fix the highlighted items:</p>
+      <ul class="mt-1 list-disc pl-5">
+        <li>Integer responses must be whole numbers within the allowed range.</li>
+      </ul>
+    </div>
+  <% end %>
+
   <%= form_with url: submit_survey_path(@survey), method: :post, local: true, data: { turbo: false }, class: "space-y-8 survey-form" do |form| %>
     <% rendered_section_ids = [] %>
     <% section_question_numbers = Hash.new(0) %>
     <% invalid_evidence_ids = Array(@invalid_evidence).map(&:to_s) %>
+    <% invalid_integer_ids = Array(@invalid_integer).map(&:to_s) %>
     <% @category_groups.each do |category| %>
       <% section = category.section %>
       <% section_anchor_id = section.present? ? "survey-section-#{section.id}" : nil %>
@@ -109,7 +119,8 @@
               <% end %>
             <% end %>
             <% invalid_evidence_error = question.question_type == "evidence" && invalid_evidence_ids.include?(question.id.to_s) %>
-            <% has_error = missing_required_error || invalid_evidence_error %>
+            <% invalid_integer_error = question.question_type == "integer" && invalid_integer_ids.include?(question.id.to_s) %>
+            <% has_error = missing_required_error || invalid_evidence_error || invalid_integer_error %>
             <% article_classes = ["question-block", "rounded-lg", "border", "border-slate-100", "bg-slate-50/40", "p-4", "space-y-4"] %>
             <% article_classes << "ml-6" if question.sub_question? %>
             <% article_classes << "ring-2 ring-rose-300 border-rose-200 bg-rose-50/70" if has_error %>
@@ -133,7 +144,6 @@
                      <% if branch_child_of.present? %>
                        data-branch-child-of="<%= branch_child_of %>"
                      <% end %>>
-            <% q_text = question.question_text.to_s.squish %>
             <% desc_text = question.description.to_s.strip.presence %>
             <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
@@ -147,7 +157,7 @@
                 <% end %>
                 <span class="min-w-0 flex flex-col gap-1">
                   <span class="flex min-w-0 flex-wrap items-center gap-2">
-                    <span class="leading-snug"><%= q_text %></span>
+                    <span class="leading-snug"><%= render_question_prompt(question) %></span>
                     <% if required %>
                       <span class="text-red-600" aria-hidden="true">*</span>
                     <% end %>
@@ -178,6 +188,19 @@
                                   class: "w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
                 <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= current_value.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
               </div>
+
+            <% when "integer" %>
+              <% integer_min = question.respond_to?(:integer_min_value) ? question.integer_min_value : 1 %>
+              <% integer_max = question.respond_to?(:integer_max_value) ? question.integer_max_value : nil %>
+              <%= number_field_tag field_name,
+                                   current_value,
+                                   id: "question-#{question.id}",
+                                   min: integer_min,
+                                   max: integer_max,
+                                   step: 1,
+                                   inputmode: "numeric",
+                                   pattern: "\\d+",
+                                   class: "w-full max-w-xs rounded-md border #{has_error ? 'border-rose-400' : 'border-slate-300'} px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
               
             <% when "multiple_choice" %>
               <% option_pairs = question.answer_option_pairs.presence || [] %>

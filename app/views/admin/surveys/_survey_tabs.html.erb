@@ -1,0 +1,30 @@
+<nav class="c-card p-3" aria-label="Survey editor tabs">
+  <div class="flex flex-wrap gap-2">
+    <button type="button"
+            class="<%= tailwind_button_classes(:primary, extra_classes: 'btn-sm') %>"
+            data-survey-tabs-target="tab"
+            data-tab-id="settings"
+            data-action="survey-tabs#switchTab"
+            aria-selected="true">
+      General settings
+    </button>
+
+    <button type="button"
+            class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %>"
+            data-survey-tabs-target="tab"
+            data-tab-id="builder"
+            data-action="survey-tabs#switchTab"
+            aria-selected="false">
+      Question builder
+    </button>
+
+    <button type="button"
+            class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %>"
+            data-survey-tabs-target="tab"
+            data-tab-id="legend"
+            data-action="survey-tabs#switchTab"
+            aria-selected="false">
+      Legend & preview
+    </button>
+  </div>
+</nav>

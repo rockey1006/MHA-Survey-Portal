@@ -283,6 +283,77 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert flash[:warning].blank?
   end
 
+  test "updating one question target level does not change sibling question target level" do
+    category = categories(:clinical_skills)
+    primary_question = questions(:fall_q1)
+    sibling_question = category.questions.create!(
+      question_text: "Sibling target-level question",
+      question_type: "short_answer",
+      question_order: category.questions.maximum(:question_order).to_i + 1,
+      program_target_level: 2
+    )
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => { id: primary_question.id, program_target_level: "5" },
+              "1" => { id: sibling_question.id, program_target_level: sibling_question.program_target_level.to_s }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    primary_question.reload
+    sibling_question.reload
+
+    assert_equal 5, primary_question.program_target_level
+    assert_equal 2, sibling_question.program_target_level
+  end
+
+  test "updating competency question target level mirrors to competency target levels" do
+    @survey.assign_tracks!(["Residential"])
+
+    category = categories(:clinical_skills)
+    competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
+    question = category.questions.create!(
+      question_text: competency_title,
+      question_type: "short_answer",
+      question_order: category.questions.maximum(:question_order).to_i + 1,
+      program_target_level: 2
+    )
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => { id: question.id, program_target_level: "4" }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    mirrored = CompetencyTargetLevel.find_by(
+      program_semester_id: @survey.program_semester_id,
+      track: "Residential",
+      class_of: nil,
+      competency_title: competency_title
+    )
+
+    assert_not_nil mirrored
+    assert_equal 4, mirrored.target_level
+  end
+
   test "update can add a section when new section position submits blank" do
     assert_difference "SurveySection.count", 1 do
       patch admin_survey_path(@survey), params: {

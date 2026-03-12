@@ -19,7 +19,15 @@
         <span class="js-drag-handle select-none rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 cursor-grab" aria-label="Drag to reorder">
           ⋮⋮
         </span>
-        <span class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</span>
+          <button type="button"
+                  class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-semibold text-slate-600 hover:bg-slate-50"
+                  data-action="survey-builder#toggleSection"
+                  data-section-id="<%= form_uid %>">
+            Toggle
+          </button>
+        </div>
       </div>
 
       <%= section_fields.label :title, "Section title", class: "block text-sm font-medium text-slate-700" %>
@@ -36,17 +44,19 @@
     </button>
   </div>
 
-  <div class="space-y-2">
-    <%= section_fields.label :description, "Description (optional)", class: "block text-sm font-medium text-slate-700" %>
-    <%= section_fields.text_area :description,
-                                 class: textarea_classes,
-                                 placeholder: "Brief instructions shown before the grouped categories." %>
-  </div>
+  <div class="survey-builder-section-body space-y-5" data-builder-section-body>
+    <div class="space-y-2">
+      <%= section_fields.label :description, "Description (optional)", class: "block text-sm font-medium text-slate-700" %>
+      <%= section_fields.text_area :description,
+                                   class: textarea_classes,
+                                   placeholder: "Brief instructions shown before the grouped categories." %>
+    </div>
 
-  <div class="mt-6 space-y-6" data-category-group data-section-uid="<%= form_uid %>" data-category-group-list>
-    <% if local_assigns[:categories_html].present? %>
-      <%= local_assigns[:categories_html] %>
-    <% end %>
+    <div class="mt-6 space-y-6" data-category-group data-section-uid="<%= form_uid %>" data-category-group-list>
+      <% if local_assigns[:categories_html].present? %>
+        <%= local_assigns[:categories_html] %>
+      <% end %>
+    </div>
   </div>
 
 </article>

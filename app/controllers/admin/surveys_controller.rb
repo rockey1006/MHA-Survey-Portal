@@ -202,6 +202,8 @@ class Admin::SurveysController < Admin::BaseController
         end
       end
 
+      sync_competency_targets_from_questions!(survey: @survey, tracks: tracks)
+
       if previous_available_from != @survey.available_from ||
           previous_available_until != @survey.available_until
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
@@ -407,6 +409,9 @@ class Admin::SurveysController < Admin::BaseController
       :question_type,
       :question_order,
       :answer_options,
+      :prompt_format,
+      :integer_min,
+      :integer_max,
       :is_required,
       :has_evidence_field,
       :_destroy
@@ -482,6 +487,49 @@ class Admin::SurveysController < Admin::BaseController
     @available_tracks = Survey.track_options
     @question_types = Question.question_types.keys
     @program_semester_options = ProgramSemester.ordered.pluck(:name)
+  end
+
+  # Phase 1 single-source transition:
+  # mirror per-question target level edits into competency_target_levels,
+  # while retaining Question#program_target_level for compatibility.
+  def sync_competency_targets_from_questions!(survey:, tracks:)
+    return unless survey&.respond_to?(:questions)
+
+    titles = Reports::DataAggregator::COMPETENCY_TITLES
+    return if titles.blank?
+
+    selected_tracks = Array(tracks).map { |track| Survey.canonical_track(track) || track }
+    selected_tracks = selected_tracks.compact.reject(&:blank?).uniq
+    selected_tracks = survey.track_list if selected_tracks.blank?
+    return if selected_tracks.blank?
+
+    competency_questions = survey.questions.where(question_text: titles)
+    return if competency_questions.empty?
+
+    competency_questions.find_each do |question|
+      title = question.question_text.to_s.strip
+      next if title.blank?
+
+      level = question.respond_to?(:program_target_level) ? question.program_target_level.presence : nil
+
+      selected_tracks.each do |track|
+        attrs = {
+          program_semester_id: survey.program_semester_id,
+          track: track,
+          class_of: nil,
+          competency_title: title
+        }
+
+        if level.blank?
+          CompetencyTargetLevel.where(attrs).delete_all
+          next
+        end
+
+        record = CompetencyTargetLevel.find_or_initialize_by(attrs)
+        record.target_level = level.to_i
+        record.save!
+      end
+    end
   end
 
   # Ensures the survey has at least one category with a question scaffolded for

@@ -96,6 +96,9 @@ class Admin::QuestionsController < Admin::BaseController
       :question_type,
       :question_order,
       :answer_options,
+      :prompt_format,
+      :integer_min,
+      :integer_max,
       :category_id,
       category_ids: []
     )

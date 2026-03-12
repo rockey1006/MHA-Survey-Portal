@@ -221,6 +221,18 @@
   .survey-grid {
     grid-template-columns: minmax(0, 1fr) minmax(24rem, 30rem);
   }
+
+  .survey-builder-layout {
+    grid-template-columns: minmax(0, 20%) minmax(0, 80%);
+  }
+
+  .survey-builder-layout.sidebar-collapsed {
+    grid-template-columns: minmax(0, 4rem) minmax(0, 1fr);
+  }
+
+  .survey-builder-layout.sidebar-collapsed .survey-sidebar {
+    min-width: 4rem;
+  }
 }
 
 /* Survey legend: float with viewport on desktop */

@@ -7,13 +7,20 @@ import Sortable from "sortablejs"
 // - Refreshes automatically when nested fields are added/removed.
 export default class extends Controller {
   static targets = [
+    "sidebar",
+    "content",
     "sectionsNav",
     "categoriesNav",
     "sectionsContainer",
     "categoriesContainer",
     "addSectionButton",
     "addCategoryButton",
-    "addQuestionButton"
+    "addQuestionButton",
+    "focusModeButton",
+    "navSearchInput",
+    "referenceToggleButton",
+    "referencePanel",
+    "referenceBackdrop"
   ]
 
   connect() {
@@ -21,6 +28,11 @@ export default class extends Controller {
     this.handleInput = this.handleInput.bind(this)
     this.handleChange = this.handleChange.bind(this)
     this._refreshQueued = false
+    this.focusModeEnabled = true
+    this.activeSectionId = null
+    this.referenceOpen = false
+    this.lastFocusedElementBeforeReference = null
+    this.handleDocumentKeydown = this.handleDocumentKeydown.bind(this)
 
     // Refresh when other controllers change the DOM.
     window.addEventListener("survey:sections-changed", this.refresh)
@@ -30,9 +42,12 @@ export default class extends Controller {
     // Live updates while typing/editing (category names are not broadcast elsewhere).
     this.element.addEventListener("input", this.handleInput)
     this.element.addEventListener("change", this.handleChange)
+    document.addEventListener("keydown", this.handleDocumentKeydown)
 
     this.refresh()
     this.setupObservers()
+    this.updateFocusModeUi()
+    this.syncReferencePanelUi()
 
     this.initSortables()
     this.observeForNewQuestionLists()
@@ -45,6 +60,7 @@ export default class extends Controller {
 
     this.element.removeEventListener("input", this.handleInput)
     this.element.removeEventListener("change", this.handleChange)
+    document.removeEventListener("keydown", this.handleDocumentKeydown)
 
     if (this._sectionObserver) this._sectionObserver.disconnect()
     if (this._categoryObserver) this._categoryObserver.disconnect()
@@ -159,19 +175,52 @@ export default class extends Controller {
     // Parent questions: parent_question_id blank.
     let parentIndex = 0
     const parentOrderById = new Map()
+    const parentNodes = []
+    const reflectionNodesByBaseKey = new Map()
+    const unmatchedReflectionNodes = []
 
     items.forEach((node) => {
       const parentSelect = node.querySelector('select[name$="[parent_question_id]"]')
       const parentId = (parentSelect?.value || "").trim()
-      if (parentId.length === 0) {
-        parentIndex += 1
-        const orderInput = node.querySelector('input[name$="[question_order]"]')
-        if (orderInput) orderInput.value = String(parentIndex)
+      if (parentId.length !== 0) return
 
-        const idInput = node.querySelector('input[name$="[id]"]')
-        const questionId = (idInput?.value || "").trim()
-        if (questionId.length) parentOrderById.set(questionId, parentIndex)
+      const textValue = this.questionTextForOrder(node)
+      const reflectionBaseKey = this.reflectionBaseKey(textValue)
+
+      if (reflectionBaseKey) {
+        const existing = reflectionNodesByBaseKey.get(reflectionBaseKey) || []
+        existing.push(node)
+        reflectionNodesByBaseKey.set(reflectionBaseKey, existing)
+        return
       }
+
+      parentNodes.push(node)
+    })
+
+    // Reflection questions should follow their base competency question.
+    const orderedParentNodes = []
+    parentNodes.forEach((node) => {
+      orderedParentNodes.push(node)
+      const baseKey = this.questionTextKey(this.questionTextForOrder(node))
+      const reflections = reflectionNodesByBaseKey.get(baseKey) || []
+      reflections.forEach((reflectionNode) => orderedParentNodes.push(reflectionNode))
+      reflectionNodesByBaseKey.delete(baseKey)
+    })
+
+    // Keep orphan reflections stable at the end when no base question is found.
+    reflectionNodesByBaseKey.forEach((nodes) => {
+      nodes.forEach((node) => unmatchedReflectionNodes.push(node))
+    })
+    orderedParentNodes.push(...unmatchedReflectionNodes)
+
+    orderedParentNodes.forEach((node) => {
+      parentIndex += 1
+      const orderInput = node.querySelector('input[name$="[question_order]"]')
+      if (orderInput) orderInput.value = String(parentIndex)
+
+      const idInput = node.querySelector('input[name$="[id]"]')
+      const questionId = (idInput?.value || "").trim()
+      if (questionId.length) parentOrderById.set(questionId, parentIndex)
     })
 
     // Sub-questions: order within each parent by DOM order.
@@ -191,6 +240,23 @@ export default class extends Controller {
       const subOrderInput = node.querySelector('input[name$="[sub_question_order]"]')
       if (subOrderInput) subOrderInput.value = String(next)
     })
+  }
+
+  questionTextForOrder(questionNode) {
+    if (!questionNode) return ""
+    const textInput = questionNode.querySelector('textarea[name$="[question_text]"]')
+    return String(textInput?.value || "").trim()
+  }
+
+  questionTextKey(value) {
+    return String(value || "").trim().replace(/\s+/g, " ").toLowerCase()
+  }
+
+  reflectionBaseKey(value) {
+    const text = String(value || "").trim()
+    const match = text.match(/^(.+?)\s+Reflection$/i)
+    if (!match) return ""
+    return this.questionTextKey(match[1])
   }
 
   handleInput(event) {
@@ -303,6 +369,14 @@ export default class extends Controller {
 
     setTimeout(() => {
       this.refresh()
+      const id = this.getLastVisibleCategoryId()
+      if (id) {
+        this.activeCategoryId = id
+        const categoryEl = document.getElementById(id)
+        const sectionUid = this.sectionUidForCategory(categoryEl)
+        if (sectionUid) this.activeSectionId = sectionUid
+      }
+      this.applyFocusMode()
       this.scrollToLast("category")
     }, 0)
   }
@@ -325,6 +399,85 @@ export default class extends Controller {
       this.refresh()
       this.scrollToNewQuestionInCategory(categoryEl)
     }, 0)
+  }
+
+  toggleFocusMode(event) {
+    event?.preventDefault()
+    this.focusModeEnabled = !this.focusModeEnabled
+    this.updateFocusModeUi()
+    this.applyFocusMode()
+  }
+
+  expandAll(event) {
+    event?.preventDefault()
+    this.focusModeEnabled = false
+    this.updateFocusModeUi()
+    this.applyFocusMode()
+  }
+
+  openReference(event) {
+    event?.preventDefault()
+    this.lastFocusedElementBeforeReference = document.activeElement
+    this.referenceOpen = true
+    this.syncReferencePanelUi()
+    this.focusReferencePanelFirstElement()
+  }
+
+  closeReference(event) {
+    event?.preventDefault()
+    this.referenceOpen = false
+    this.syncReferencePanelUi()
+
+    if (this.lastFocusedElementBeforeReference && typeof this.lastFocusedElementBeforeReference.focus === "function") {
+      this.lastFocusedElementBeforeReference.focus()
+    } else if (this.hasReferenceToggleButtonTarget) {
+      this.referenceToggleButtonTarget.focus()
+    }
+  }
+
+  toggleSection(event) {
+    event?.preventDefault()
+    const id = (event?.currentTarget?.dataset?.sectionId || "").trim()
+    if (!id) return
+
+    if (this.focusModeEnabled) {
+      this.activeSectionId = id
+      const firstCategory = this.firstCategoryInSection(id)
+      if (firstCategory) this.activeCategoryId = firstCategory
+      this.applyFocusMode()
+      this.setActiveNav("section", id)
+      if (this.activeCategoryId) this.setActiveNav("category", this.activeCategoryId)
+      return
+    }
+
+    const sectionEl = document.getElementById(id)
+    if (!sectionEl) return
+    sectionEl.classList.toggle("is-collapsed")
+  }
+
+  toggleCategory(event) {
+    event?.preventDefault()
+    const id = (event?.currentTarget?.dataset?.categoryId || "").trim()
+    if (!id) return
+
+    if (this.focusModeEnabled) {
+      this.activeCategoryId = id
+      const categoryEl = document.getElementById(id)
+      const sectionUid = this.sectionUidForCategory(categoryEl)
+      if (sectionUid) this.activeSectionId = sectionUid
+      this.applyFocusMode()
+      if (this.activeSectionId) this.setActiveNav("section", this.activeSectionId)
+      this.setActiveNav("category", id)
+      return
+    }
+
+    const categoryEl = document.getElementById(id)
+    if (!categoryEl) return
+    categoryEl.classList.toggle("is-collapsed")
+  }
+
+  filterOutline() {
+    this.applyOutlineFilter()
   }
 
   addSubQuestion(event) {
@@ -405,6 +558,10 @@ export default class extends Controller {
     )
 
     this.buildLayoutTree(this.categoriesNavTarget)
+
+    this.ensureActiveContext()
+    this.applyFocusMode()
+    this.applyOutlineFilter()
 
     // After rebuilding, re-hook observers.
     this.setupObservers()
@@ -514,6 +671,7 @@ export default class extends Controller {
       const btn = document.createElement("button")
       btn.type = "button"
       btn.className = "w-full rounded-lg px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-50"
+      btn.dataset.builderNavLabel = label.toLowerCase()
       const icon = document.createElement("span")
       icon.setAttribute("aria-hidden", "true")
       icon.textContent = isNoSection ? "⛔" : "🧩"
@@ -523,6 +681,13 @@ export default class extends Controller {
       if (!isNoSection && targetId) {
         btn.addEventListener("click", () => {
           this.setActiveNav("section", targetId)
+          this.activeSectionId = targetId
+          const firstCategory = this.firstCategoryInSection(targetId)
+          if (firstCategory) {
+            this.activeCategoryId = firstCategory
+            this.setActiveNav("category", firstCategory)
+          }
+          this.applyFocusMode()
           this.scrollTo(targetId)
         })
       }
@@ -540,6 +705,7 @@ export default class extends Controller {
       catBtn.className = "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
       catBtn.dataset.builderNavKind = "category"
       catBtn.dataset.builderNavTargetId = categoryId
+      catBtn.dataset.builderNavLabel = categoryLabel.toLowerCase()
       const catIcon = document.createElement("span")
       catIcon.setAttribute("aria-hidden", "true")
       catIcon.textContent = "🗂️"
@@ -548,6 +714,12 @@ export default class extends Controller {
       catBtn.append(catIcon, catText)
       catBtn.addEventListener("click", () => {
         this.setActiveNav("category", categoryId)
+        const sectionUid = this.sectionUidForCategory(categoryNode)
+        if (sectionUid) {
+          this.activeSectionId = sectionUid
+          this.setActiveNav("section", sectionUid)
+        }
+        this.applyFocusMode()
         this.scrollTo(categoryId)
       })
       navEl.appendChild(catBtn)
@@ -566,6 +738,7 @@ export default class extends Controller {
         qBtn.className = "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"
         qBtn.dataset.builderNavKind = "question"
         qBtn.dataset.builderNavTargetId = qId
+        qBtn.dataset.builderNavLabel = qLabel.toLowerCase()
         qBtn.style.paddingLeft = isSubQuestion ? "2rem" : "1.25rem"
         const qIcon = document.createElement("span")
         qIcon.setAttribute("aria-hidden", "true")
@@ -576,6 +749,13 @@ export default class extends Controller {
         qBtn.addEventListener("click", () => {
           this.setActiveNav("question", qId)
           this.setActiveNav("category", categoryId)
+          this.activeCategoryId = categoryId
+          const sectionUid = this.sectionUidForCategory(categoryNode)
+          if (sectionUid) {
+            this.activeSectionId = sectionUid
+            this.setActiveNav("section", sectionUid)
+          }
+          this.applyFocusMode()
           this.scrollTo(qId)
         })
 
@@ -627,6 +807,7 @@ export default class extends Controller {
       a.className = "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
       a.dataset.builderNavKind = kind
       a.dataset.builderNavTargetId = id
+      a.dataset.builderNavLabel = label.toLowerCase()
       const icon = document.createElement("span")
       icon.setAttribute("aria-hidden", "true")
       icon.textContent = kind === "section" ? "🧩" : "🗂️"
@@ -635,6 +816,15 @@ export default class extends Controller {
       a.append(icon, text)
       a.addEventListener("click", () => {
         this.setActiveNav(kind, id)
+        if (kind === "section") {
+          this.activeSectionId = id
+          const firstCategory = this.firstCategoryInSection(id)
+          if (firstCategory) {
+            this.activeCategoryId = firstCategory
+            this.setActiveNav("category", firstCategory)
+          }
+        }
+        this.applyFocusMode()
         this.scrollTo(id)
       })
 
@@ -684,8 +874,12 @@ export default class extends Controller {
     const root = kind === "section" ? this.sectionsNavTarget : this.categoriesNavTarget
     if (!root) return
 
+    if (kind === "section") this.activeSectionId = id
     if (kind === "category") this.activeCategoryId = id
-    if (kind === "question") this.activeQuestionId = id
+    if (kind === "question") {
+      this.activeQuestionId = id
+      window.dispatchEvent(new CustomEvent("survey-item:activate", { detail: { id } }))
+    }
 
     Array.from(root.querySelectorAll("button[data-builder-nav-kind]")).forEach((btn) => {
       const isActive = btn.dataset.builderNavTargetId === id
@@ -731,5 +925,201 @@ export default class extends Controller {
     if (el.style?.display === "none") return true
     if (el.closest("[style*='display: none']")) return true
     return false
+  }
+
+  ensureActiveContext() {
+    const sectionNodes = Array.from(this.sectionsContainerTarget?.querySelectorAll("[data-builder-kind='section']") || []).filter(
+      (n) => !this.isHidden(n)
+    )
+    const categoryNodes = Array.from(this.categoriesContainerTarget?.querySelectorAll("[data-builder-kind='category']") || []).filter(
+      (n) => !this.isHidden(n)
+    )
+
+    const sectionIds = new Set(sectionNodes.map((n) => n.id).filter(Boolean))
+    const categoryIds = new Set(categoryNodes.map((n) => n.id).filter(Boolean))
+
+    if (!this.activeSectionId || !sectionIds.has(this.activeSectionId)) {
+      this.activeSectionId = sectionNodes[0]?.id || null
+    }
+
+    if (!this.activeCategoryId || !categoryIds.has(this.activeCategoryId)) {
+      this.activeCategoryId = this.firstCategoryInSection(this.activeSectionId) || categoryNodes[0]?.id || null
+    }
+
+    if (this.activeCategoryId) {
+      const categoryEl = document.getElementById(this.activeCategoryId)
+      const sectionUid = this.sectionUidForCategory(categoryEl)
+      if (sectionUid) this.activeSectionId = sectionUid
+    }
+
+    if (this.activeSectionId) this.setActiveNav("section", this.activeSectionId)
+    if (this.activeCategoryId) this.setActiveNav("category", this.activeCategoryId)
+  }
+
+  firstCategoryInSection(sectionUid) {
+    const categories = Array.from(this.categoriesContainerTarget?.querySelectorAll("[data-builder-kind='category']") || []).filter(
+      (n) => !this.isHidden(n)
+    )
+    const selected = categories.find((cat) => this.sectionUidForCategory(cat) === sectionUid)
+    return selected?.id || null
+  }
+
+  sectionUidForCategory(categoryEl) {
+    if (!categoryEl) return ""
+    const select = categoryEl.querySelector('select[name$="[section_form_uid]"]')
+    return (select?.value || "").trim()
+  }
+
+  applyFocusMode() {
+    const sectionNodes = Array.from(this.sectionsContainerTarget?.querySelectorAll("[data-builder-kind='section']") || []).filter(
+      (n) => !this.isHidden(n)
+    )
+    const categoryNodes = Array.from(this.categoriesContainerTarget?.querySelectorAll("[data-builder-kind='category']") || [])
+
+    this.applyCategoryFocus(categoryNodes)
+
+    const visibleCategoryNodes = categoryNodes.filter((n) => !this.isHidden(n))
+
+    if (!this.focusModeEnabled) {
+      sectionNodes.forEach((node) => node.classList.remove("is-collapsed"))
+      visibleCategoryNodes.forEach((node) => node.classList.remove("is-collapsed"))
+      return
+    }
+
+    const activeSection = this.activeSectionId
+    const activeCategory = this.activeCategoryId
+
+    sectionNodes.forEach((sectionNode) => {
+      const sectionId = sectionNode.id
+      const shouldExpand = !!activeSection && sectionId === activeSection
+      sectionNode.classList.toggle("is-collapsed", !shouldExpand)
+    })
+
+    visibleCategoryNodes.forEach((categoryNode) => {
+      const categoryId = categoryNode.id
+      const categorySectionUid = this.sectionUidForCategory(categoryNode)
+      const inActiveSection = !activeSection || categorySectionUid === activeSection
+      const shouldExpand = inActiveSection && categoryId === activeCategory
+      categoryNode.classList.toggle("is-collapsed", !shouldExpand)
+    })
+  }
+
+  applyCategoryFocus(categoryNodes) {
+    const targetId = this.activeCategoryId
+
+    categoryNodes.forEach((node) => {
+      if (!targetId) {
+        node.classList.remove("builder-hidden-category")
+        return
+      }
+
+      const shouldShow = node.id === targetId
+      node.classList.toggle("builder-hidden-category", !shouldShow)
+    })
+  }
+
+  updateFocusModeUi() {
+    if (!this.hasFocusModeButtonTarget) return
+    this.focusModeButtonTarget.textContent = `Focus mode: ${this.focusModeEnabled ? "On" : "Off"}`
+    this.focusModeButtonTarget.classList.toggle("btn-primary", this.focusModeEnabled)
+    this.focusModeButtonTarget.classList.toggle("btn-secondary", !this.focusModeEnabled)
+  }
+
+  syncReferencePanelUi() {
+    if (!this.hasReferencePanelTarget || !this.hasReferenceBackdropTarget) return
+
+    this.referencePanelTarget.classList.toggle("hidden", !this.referenceOpen)
+    this.referenceBackdropTarget.classList.toggle("hidden", !this.referenceOpen)
+    this.referencePanelTarget.setAttribute("aria-hidden", this.referenceOpen ? "false" : "true")
+
+    if (this.hasReferenceToggleButtonTarget) {
+      this.referenceToggleButtonTarget.textContent = this.referenceOpen ? "Close reference" : "Open reference"
+    }
+  }
+
+  handleDocumentKeydown(event) {
+    if (!this.referenceOpen || !this.hasReferencePanelTarget) return
+
+    if (event.key === "Escape") {
+      event.preventDefault()
+      this.closeReference()
+      return
+    }
+
+    if (event.key !== "Tab") return
+
+    const focusable = this.getReferencePanelFocusableElements()
+    if (!focusable.length) {
+      event.preventDefault()
+      this.referencePanelTarget.focus()
+      return
+    }
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    const active = document.activeElement
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault()
+      last.focus()
+      return
+    }
+
+    if (!event.shiftKey && active === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
+  focusReferencePanelFirstElement() {
+    if (!this.hasReferencePanelTarget) return
+
+    const focusable = this.getReferencePanelFocusableElements()
+    if (focusable.length) {
+      focusable[0].focus()
+    } else {
+      this.referencePanelTarget.focus()
+    }
+  }
+
+  getReferencePanelFocusableElements() {
+    if (!this.hasReferencePanelTarget) return []
+
+    const selector = [
+      "button:not([disabled])",
+      "a[href]",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      "[tabindex]:not([tabindex='-1'])"
+    ].join(",")
+
+    return Array.from(this.referencePanelTarget.querySelectorAll(selector)).filter((el) => !this.isHidden(el))
+  }
+
+  applyOutlineFilter() {
+    const query = this.hasNavSearchInputTarget ? this.navSearchInputTarget.value.toLowerCase().trim() : ""
+    const roots = [this.sectionsNavTarget, this.categoriesNavTarget].filter(Boolean)
+
+    roots.forEach((root) => {
+      const buttons = Array.from(root.querySelectorAll("button[data-builder-nav-label]"))
+      buttons.forEach((btn) => {
+        if (!query.length) {
+          btn.style.display = ""
+          return
+        }
+
+        const label = btn.dataset.builderNavLabel || ""
+        const isMatch = label.includes(query)
+        const kind = btn.dataset.builderNavKind || ""
+
+        // Keep section headers visible for orientation; aggressively filter others.
+        if (!kind.length || kind === "section") {
+          btn.style.display = ""
+        } else {
+          btn.style.display = isMatch ? "" : "none"
+        }
+      })
+    })
   }
 }

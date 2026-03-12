@@ -1,0 +1,68 @@
+<% input_classes = "c-input" %>
+
+<section class="c-card space-y-6" data-controller="survey-legend-preview">
+  <header class="space-y-1">
+    <h2 class="text-lg font-semibold text-slate-900">Rating scale legend</h2>
+    <p class="text-sm text-slate-600">Edit the long-form legend content and preview how it will appear in the survey.</p>
+  </header>
+
+  <div class="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div class="lg:w-3/5">
+      <div class="c-card c-card--tight space-y-5 border border-slate-200">
+      <%= form.fields_for :legend, (survey.legend || survey.build_legend(title: "", body: "")) do |legend_fields| %>
+        <div class="c-field">
+          <%= legend_fields.label :title, "Legend title", class: "c-label" %>
+          <%= legend_fields.text_field :title,
+                                       class: "#{input_classes}",
+                                       placeholder: "Rating Scale Reference",
+                                       data: {
+                                         action: "input->survey-legend-preview#sync",
+                                         survey_legend_preview_target: "titleInput"
+                                       } %>
+        </div>
+
+        <div class="c-field">
+          <div class="flex items-center justify-between gap-3">
+            <%= legend_fields.label :body, "Legend body", class: "c-label" %>
+            <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">Markdown supported</span>
+          </div>
+          <%= legend_fields.text_area :body,
+                                       class: "#{input_classes} min-h-[500px] font-mono leading-6",
+                                       rows: 18,
+                                       placeholder: "Add the full rating scale text shown to students.",
+                                       data: {
+                                         action: "input->survey-legend-preview#sync",
+                                         survey_legend_preview_target: "bodyInput"
+                                       } %>
+          <p class="text-xs text-slate-500">Use line breaks and list markers for readable scale descriptions.</p>
+        </div>
+      <% end %>
+      </div>
+    </div>
+
+    <aside class="lg:w-2/5 lg:sticky lg:top-4 space-y-3">
+      <div class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+        Live preview
+      </div>
+      <article class="c-card c-card--tight border border-slate-200 bg-slate-50">
+        <aside class="survey-legend" aria-label="Rating scale reference">
+          <div class="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="survey-legend-header px-6 py-4">
+              <h3 class="survey-legend-title text-sm font-semibold tracking-tight" data-survey-legend-preview-target="titleDisplay">
+                <%= survey.legend&.title.presence || "Rating Scale Reference" %>
+              </h3>
+            </div>
+            <div class="px-6 py-5">
+              <div class="legend-content text-sm leading-relaxed text-slate-700" data-survey-legend-preview-target="bodyDisplay">
+                <%= render_guidance_text(survey.legend&.body.presence || "Legend body preview will appear here as you type.", heading_tag: :h3) %>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <div class="prose prose-slate prose-sm max-w-none mt-3 text-slate-700 sr-only">
+          Preview uses the same legend styles as advisor and student pages.
+        </div>
+      </article>
+    </aside>
+  </div>
+</section>

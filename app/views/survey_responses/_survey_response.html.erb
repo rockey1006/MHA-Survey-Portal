@@ -159,7 +159,6 @@
                     <% answer_value = raw_answer %>
                     <% answer_text = raw_answer %>
                   <% end %>
-                  <% q_text = question.question_text.to_s.squish %>
                   <% desc_text = question.description.to_s.strip.presence %>
                   <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
 
@@ -201,7 +200,9 @@
 
                       <span class="min-w-0 flex flex-col gap-1">
                         <span class="flex min-w-0 flex-wrap items-center gap-2">
-                          <span class="leading-snug"><%= q_text %></span>
+                          <span class="leading-snug">
+                            <%= render_question_prompt(question) %>
+                          </span>
                           <% if required %>
                             <span class="text-red-600" aria-hidden="true">*</span>
                           <% end %>
@@ -222,6 +223,18 @@
                   </label>
 
                   <% case question.question_type %>
+                  <% when "integer" %>
+                    <%= number_field_tag "#{answer_param_key}[#{question.id}]",
+                                         answer_text.to_s.strip,
+                                         id: "question-#{question.id}",
+                                         min: question.integer_min_value,
+                                         max: question.integer_max_value,
+                                         step: 1,
+                                         inputmode: "numeric",
+                                         pattern: "\\d+",
+                                         placeholder: "Enter a whole number",
+                                         class: "w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                         disabled: input_disabled %>
                   <% when "short_answer" %>
                     <div data-controller="character-counter">
                       <%= text_area_tag "#{answer_param_key}[#{question.id}]",

@@ -2,13 +2,18 @@ require "json"
 
 # Survey prompt tied to a category, supporting multiple response types.
 class Question < ApplicationRecord
+  PROMPT_FORMATS = %w[plain_text rich_text].freeze
+
   enum :question_type, {
     multiple_choice: "multiple_choice",
     dropdown: "dropdown",
     scale: "scale",
     short_answer: "short_answer",
-    evidence: "evidence"
+    evidence: "evidence",
+    integer: "integer"
   }, prefix: true
+
+  store_accessor :configuration, :prompt_format, :integer_min, :integer_max
 
   belongs_to :category
 
@@ -51,6 +56,7 @@ class Question < ApplicationRecord
   validates :question_text, presence: true
   validates :question_order, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :question_type, presence: true, inclusion: { in: question_types.values }
+  validates :prompt_format, inclusion: { in: PROMPT_FORMATS }, allow_blank: true
   validates :sub_question_order,
             numericality: { greater_than_or_equal_to: 0, only_integer: true },
             allow_nil: true,
@@ -62,6 +68,13 @@ class Question < ApplicationRecord
               less_than_or_equal_to: 5
             },
             allow_nil: true
+  validates :integer_min,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0 },
+            allow_blank: true
+  validates :integer_max,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0 },
+            allow_blank: true
+  validate :validate_integer_bounds
 
   # @return [ActiveRecord::Relation<Question>] questions ordered for display
   scope :ordered, lambda {
@@ -243,7 +256,34 @@ class Question < ApplicationRecord
     parent_question_id.present?
   end
 
+  # @return [Boolean] whether this question prompt should render rich text.
+  def rich_text_prompt?
+    effective_prompt_format == "rich_text"
+  end
+
+  # @return [String] configured prompt format with default fallback.
+  def effective_prompt_format
+    prompt_format.presence || "plain_text"
+  end
+
+  # @return [Integer] minimum accepted integer for integer questions.
+  def integer_min_value
+    integer_min.present? ? integer_min.to_i : 1
+  end
+
+  # @return [Integer, nil] maximum accepted integer for integer questions.
+  def integer_max_value
+    integer_max.present? ? integer_max.to_i : nil
+  end
+
   private
+
+  def validate_integer_bounds
+    return unless integer_min.present? && integer_max.present?
+    return unless integer_min.to_i > integer_max.to_i
+
+    errors.add(:integer_max, "must be greater than or equal to minimum")
+  end
 
   def ensure_question_order
     if has_attribute?(:parent_question_id) && parent_question.present?

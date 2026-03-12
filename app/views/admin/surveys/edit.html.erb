@@ -1,24 +1,7 @@
 <% tracks = @survey.track_list %>
-<% active = @survey.is_active? %>
-<% status_label, status_classes = if active
-  ["Active", "inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"]
-else
-  ["Archived", "inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"]
-end %>
+<% status_label, status_classes = admin_survey_status_meta(@survey) %>
 
-<div class="survey-container survey-show mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4" style="max-width: 90rem;">
-  <style>
-    .survey-container [id^="survey-section-"],
-    .survey-container [id^="survey-category-"],
-    .survey-container .question-block {
-      scroll-margin-top: 120px;
-    }
-    .survey-container .indented-description {
-      border-left: 2px solid #e2e8f0;
-      margin-left: 0.25rem;
-      padding-left: 1rem;
-    }
-  </style>
+<div class="survey-container survey-show survey-edit mx-auto w-full space-y-8 px-4 sm:px-6 lg:px-4">
 
   <div class="c-toolbar c-toolbar--spaced">
     <div class="c-toolbar__row justify-between w-full">
@@ -26,7 +9,7 @@ end %>
 
       <div class="flex flex-wrap justify-end gap-3">
         <%= link_to "Preview as student", preview_admin_survey_path(@survey), class: tailwind_button_classes(:subtle) %>
-        <% if active %>
+        <% if @survey.is_active? %>
           <%= button_to "Archive survey", archive_admin_survey_path(@survey), method: :patch, data: { turbo_confirm: "Archive '#{@survey.title}' and remove it from advisors?" }, class: tailwind_button_classes(:subtle) %>
         <% else %>
           <%= button_to "Activate survey", activate_admin_survey_path(@survey), method: :patch, data: { turbo_confirm: "Make '#{@survey.title}' active for advisors?" }, class: tailwind_button_classes(:primary) %>
@@ -51,15 +34,15 @@ end %>
       </div>
       <div class="flex items-center gap-2">
         <dt class="font-semibold uppercase tracking-wide text-slate-600">Available from</dt>
-        <dd class="text-slate-800"><%= @survey.available_from.present? ? l(@survey.available_from, format: :medium) : "No start" %></dd>
+        <dd class="text-slate-800"><%= admin_survey_datetime(@survey.available_from, fallback: "No start") %></dd>
       </div>
       <div class="flex items-center gap-2">
         <dt class="font-semibold uppercase tracking-wide text-slate-600">Available until</dt>
-        <dd class="text-slate-800"><%= @survey.available_until.present? ? l(@survey.available_until, format: :medium) : "No end" %></dd>
+        <dd class="text-slate-800"><%= admin_survey_datetime(@survey.available_until, fallback: "No end") %></dd>
       </div>
       <div class="flex items-center gap-2">
         <dt class="font-semibold uppercase tracking-wide text-slate-600">Created</dt>
-        <dd class="text-slate-800"><%= l(@survey.created_at, format: :medium) %></dd>
+        <dd class="text-slate-800"><%= admin_survey_datetime(@survey.created_at, fallback: "-") %></dd>
       </div>
     </dl>
 

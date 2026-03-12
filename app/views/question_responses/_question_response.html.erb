@@ -11,7 +11,11 @@
 
   <p>
     <strong>Question:</strong>
-    <%= question_response.question&.question_text || question_response.question_id %>
+    <% if question_response.question.present? %>
+      <%= render_question_prompt(question_response.question) %>
+    <% else %>
+      <%= question_response.question_id %>
+    <% end %>
   </p>
 
   <p>

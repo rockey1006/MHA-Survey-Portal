@@ -23,5 +23,3 @@ pin "@kurkle/color", to: "https://ga.jspm.io/npm:@kurkle/color@0.3.2/dist/color.
 
 # Drag-and-drop sorting (admin survey builder)
 pin "sortablejs", to: "https://ga.jspm.io/npm:sortablejs@1.15.6/modular/sortable.esm.js"
-pin "marked", to: "https://ga.jspm.io/npm:marked@15.0.6/lib/marked.esm.js"
-pin "dompurify", to: "https://ga.jspm.io/npm:dompurify@3.2.3/dist/purify.es.mjs"

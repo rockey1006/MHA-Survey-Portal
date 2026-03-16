@@ -199,8 +199,7 @@ export default class extends Controller {
       return
     }
 
-    // Safe: we are rendering user input, so escape then convert newlines.
-    this.descriptionTextTarget.innerHTML = this.escapeHtml(raw).replace(/\r?\n/g, "<br>")
+    this.descriptionTextTarget.innerHTML = this.renderPreviewMarkdown(raw)
   }
 
   updateRequired() {
@@ -631,10 +630,50 @@ export default class extends Controller {
   }
 
   renderSafePromptHtml(text) {
-    const escaped = this.escapeHtml(text).replace(/\r?\n/g, "<br>")
+    return this.renderPreviewMarkdown(text)
+  }
 
+  renderPreviewMarkdown(text) {
+    const source = String(text || "").trim()
+    if (!source.length) return ""
+
+    const escaped = this.escapeHtml(source)
     return escaped
-      .replace(/&lt;(\/?)(strong|b|em|i|u|br)\s*\/??&gt;/gi, "<$1$2>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)]\(([^\s)]+)(?:\s+"[^"]*")?\)/g, (_full, label, href) => {
+        const normalized = this.normalizePreviewHref(href)
+        if (!normalized) return label
+
+        const attrs = /^https?:\/\//i.test(normalized)
+          ? ' target="_blank" rel="noopener noreferrer"'
+          : ""
+
+        return `<a href="${normalized}"${attrs}>${label}</a>`
+      })
+      .replace(/(^|[\s(>])(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, (_full, lead, href) => {
+        const normalized = this.normalizePreviewHref(href)
+        if (!normalized) return `${lead}${href}`
+
+        return `${lead}<a href="${normalized}" target="_blank" rel="noopener noreferrer">${href}</a>`
+      })
+      .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+      .replace(/\r?\n/g, "<br>")
+  }
+
+  normalizePreviewHref(rawHref) {
+    const href = String(rawHref || "").trim()
+    if (!href.length) return null
+
+    if (/^www\./i.test(href)) return `https://${href}`
+    if (/^https?:\/\//i.test(href)) return href
+    if (/^mailto:/i.test(href)) return href
+    if (/^tel:/i.test(href)) return href
+    if (/^\//.test(href)) return href
+    if (/^#/.test(href)) return href
+
+    return null
   }
 
   humanizeType(type) {

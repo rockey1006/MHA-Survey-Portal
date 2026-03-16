@@ -145,7 +145,7 @@
                        data-branch-child-of="<%= branch_child_of %>"
                      <% end %>>
             <% desc_text = question.description.to_s.strip.presence %>
-            <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
+            <% formatted_desc = desc_text.present? ? render_markdown(desc_text) : nil %>
 
             <label class="flex w-full items-start justify-between gap-3 text-sm font-medium text-slate-900" for="question-<%= question.id %>">
               <% question_prefix = section&.mha_competency? ? "#" : "Q" %>

@@ -5,6 +5,8 @@
 class Admin::BaseController < ApplicationController
   before_action :require_admin!
 
+  helper ApplicationHelper
+
   helper_method :current_admin_profile
 
   private

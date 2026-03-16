@@ -189,7 +189,7 @@
             </div>
 
             <% if question.description.to_s.strip.present? %>
-              <div class="question-description"><%= simple_format(question.description.to_s) %></div>
+              <div class="question-description"><%= render_markdown(question.description.to_s) %></div>
             <% end %>
 
             <div class="question-answer">

@@ -1,7 +1,9 @@
 # Helpers shared across views for formatting flash messages, buttons, and audit
 # metadata.
 module ApplicationHelper
-  PROMPT_ALLOWED_TAGS = %w[strong b em i u br].freeze
+  include MarkdownHelper
+  include GuidanceTextHelper
+  include CompetencyTargetLevelsHelper
 
   # Base CSS class applied to all flash notifications.
   FLASH_BASE_CLASSES = "flash".freeze
@@ -53,7 +55,7 @@ module ApplicationHelper
     raw = question&.question_text.to_s
     return h(raw) unless question.respond_to?(:rich_text_prompt?) && question.rich_text_prompt?
 
-    sanitize(raw.gsub(/\r?\n/, "<br>"), tags: PROMPT_ALLOWED_TAGS, attributes: [])
+    render_markdown_inline(raw)
   end
 
   # Emits a stylesheet tag for Tailwind, with a fallback if the asset pipeline

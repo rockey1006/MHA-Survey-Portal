@@ -23,7 +23,7 @@
   class: wrapper_classes.join(' '),
   data: {
     question_fields_target: "item",
-    controller: "survey-item question-preview",
+    controller: "survey-item question-preview markdown-editor",
     action: "focusin->survey-item#expand click->survey-item#expand focusin->question-preview#activate click->question-preview#activate",
     question_preview_initial_option_pairs_value: option_pairs.to_json,
     builder_kind: "question",
@@ -119,7 +119,9 @@
           <%= question_fields.text_area :question_text,
                 class: "#{input_classes} c-input builder-input builder-textarea form-control w-full",
                 rows: 3,
-                data: { question_preview_target: "promptInput" },
+                data: {
+                  question_preview_target: "promptInput"
+                },
                 placeholder: "Ask a clear question advisors can answer." %>
         </div>
 
@@ -128,7 +130,9 @@
           <%= question_fields.text_area :description,
                 class: "#{input_classes} c-input builder-input builder-textarea form-control w-full",
                 rows: 2,
-                data: { question_preview_target: "descriptionInput" },
+                data: {
+                  question_preview_target: "descriptionInput"
+                },
                 placeholder: "Optional helper text shown under the prompt." %>
         </div>
       </div>
@@ -138,7 +142,7 @@
     <div class="space-y-2 mb-6">
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
       <div class="rounded-lg border border-slate-200 bg-white p-4 c-builder-preview-card space-y-3">
-        <p class="text-sm font-medium text-slate-900" data-question-preview-target="promptText"><%= render_question_prompt(question) %></p>
+        <div class="text-sm font-medium text-slate-900" data-question-preview-target="promptText"><%= render_question_prompt(question) %></div>
         <div data-question-preview-target="response"></div>
       </div>
     </div>

@@ -50,7 +50,7 @@
                          type: "submit",
                          name: "force_deadline_for_everyone",
                          value: "1",
-                         data: { turbo_confirm: "Change the available-until deadline for everyone with an incomplete assignment? This overrides individual assignment deadlines." },
+                         data: { turbo_confirm: "Apply both Available from and Available until to everyone assigned to this survey, including completed responses? This overrides individual assignment availability windows." },
                          class: "btn btn-secondary" %>
         <% end %>
         <%= form.submit(survey.persisted? ? "Update survey" : "Create survey", class: "btn btn-primary") %>

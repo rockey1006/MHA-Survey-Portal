@@ -207,6 +207,7 @@ class Admin::SurveysController < Admin::BaseController
 
       if previous_available_from != @survey.available_from ||
           previous_available_until != @survey.available_until
+        all_assignments_scope = SurveyAssignment.where(survey_id: @survey.id)
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
 
         if has_offerings
@@ -221,6 +222,14 @@ class Admin::SurveysController < Admin::BaseController
           end
 
           SurveyOffering.where(survey_id: @survey.id).update_all(updates)
+
+          if force_deadline_for_everyone
+            all_assignments_scope.update_all(
+              available_from: @survey.available_from,
+              available_until: @survey.available_until,
+              updated_at: Time.current
+            )
+          end
         else
           assignments_scope = SurveyAssignment.where(survey_id: @survey.id, completed_at: nil)
 
@@ -230,7 +239,8 @@ class Admin::SurveysController < Admin::BaseController
           )
 
           if force_deadline_for_everyone
-            assignments_scope.update_all(
+            all_assignments_scope.update_all(
+              available_from: @survey.available_from,
               available_until: @survey.available_until,
               updated_at: Time.current
             )
@@ -259,7 +269,7 @@ class Admin::SurveysController < Admin::BaseController
       @survey.log_change!(admin: current_user, action: "update", description: description)
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
       notice = if force_deadline_for_everyone
-        "Survey updated successfully. Deadline changed for everyone with an incomplete assignment."
+        "Survey updated successfully. Available from and Available until were applied to everyone assigned to this survey, including completed responses."
       else
         "Survey updated successfully."
       end

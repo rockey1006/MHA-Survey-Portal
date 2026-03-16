@@ -36,7 +36,7 @@
           <div class="mb-4">
             <label class="block font-medium">
               <span><%= "Q#{idx + 1}." %></span>
-              <span><%= render_question_prompt(question) %></span>
+              <span class="block"><%= render_question_prompt(question) %></span>
               <% if question.is_required? %>
                 <span class="text-rose-600">*</span>
               <% end %>

@@ -5,7 +5,15 @@ export default class extends Controller {
   static targets = ["titleInput", "bodyInput", "titleDisplay", "bodyDisplay"]
 
   connect() {
+    this.sync = this.sync.bind(this)
+    this.element.addEventListener("input", this.sync)
+    this.element.addEventListener("change", this.sync)
     this.sync()
+  }
+
+  disconnect() {
+    this.element.removeEventListener("input", this.sync)
+    this.element.removeEventListener("change", this.sync)
   }
 
   sync() {
@@ -23,76 +31,89 @@ export default class extends Controller {
   }
 
   renderGuidanceText(text) {
-    const sections = this.parseSections(text)
-    if (!sections.length) {
-      return ""
-    }
+    const html = this.renderMarkdown(text)
+    if (!html.length) return ""
 
-    return `<div class="guidance-text">${sections
-      .map((section) => {
-        const title = section.title
-          ? `<h3 class="guidance-section-title">${this.escapeHtml(section.title)}</h3>`
-          : ""
-
-        const paragraphs = section.paragraphs
-          .map((paragraph) => `<p class="guidance-paragraph">${this.escapeHtml(paragraph)}</p>`)
-          .join("")
-
-        const bullets = section.bullets.length
-          ? `<ul class="guidance-list">${section.bullets
-              .map((bullet) => `<li>${this.escapeHtml(bullet)}</li>`)
-              .join("")}</ul>`
-          : ""
-
-        return `<div class="guidance-section">${title}${paragraphs}${bullets}</div>`
-      })
-      .join("")}</div>`
+    return `<div class="guidance-text">${html}</div>`
   }
 
-  parseSections(text) {
-    const normalized = (text || "").trim()
-    if (!normalized) {
-      return []
-    }
+  renderMarkdown(text) {
+    const source = String(text || "").trim()
+    if (!source.length) return ""
 
-    return normalized
-      .split(/\r?\n\r?\n+/)
-      .map((chunk) => this.parseSection(chunk))
-      .filter(Boolean)
+    const blocks = source.split(/\r?\n\r?\n+/)
+    return blocks
+      .map((block) => this.renderBlock(block))
+      .filter((chunk) => chunk.length)
+      .join("")
   }
 
-  parseSection(chunk) {
-    const lines = chunk
+  renderBlock(block) {
+    const lines = String(block)
       .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
+      .filter((line) => line.length)
 
-    if (!lines.length) {
-      return null
+    if (!lines.length) return ""
+
+    if (lines.every((line) => /^-\s+/.test(line))) {
+      return `<ul>${lines.map((line) => `<li>${this.inlineMarkdown(line.replace(/^-\s+/, ""))}</li>`).join("")}</ul>`
     }
 
-    let title = null
-    const contentLines = [...lines]
-
-    if (contentLines.length >= 2 && /^-{2,}$/.test(contentLines[1])) {
-      title = contentLines.shift()
-      contentLines.shift()
+    if (lines.every((line) => /^\d+\.\s+/.test(line))) {
+      return `<ol>${lines.map((line) => `<li>${this.inlineMarkdown(line.replace(/^\d+\.\s+/, ""))}</li>`).join("")}</ol>`
     }
 
-    const allBullets = contentLines.length > 0 && contentLines.every((line) => line.startsWith("- "))
-    if (allBullets) {
-      return {
-        title,
-        paragraphs: [],
-        bullets: contentLines.map((line) => line.replace(/^-\s*/, ""))
-      }
+    const heading = lines[0].match(/^(#{1,6})\s+(.+)$/)
+    if (heading && lines.length === 1) {
+      const level = heading[1].length
+      return `<h${level}>${this.inlineMarkdown(heading[2])}</h${level}>`
     }
 
-    return {
-      title,
-      paragraphs: contentLines,
-      bullets: []
+    if (lines.length === 1 && /^---+$/.test(lines[0])) {
+      return "<hr>"
     }
+
+    return `<p>${this.inlineMarkdown(lines.join("\n"))}</p>`
+  }
+
+  inlineMarkdown(value) {
+    const escaped = this.escapeHtml(value)
+    return escaped
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)]\(([^\s)]+)(?:\s+"[^"]*")?\)/g, (_full, label, href) => {
+        const safeHref = this.normalizeHref(href)
+        if (!safeHref) return label
+
+        const attrs = /^https?:\/\//i.test(safeHref)
+          ? ' target="_blank" rel="noopener noreferrer"'
+          : ""
+
+        return `<a href="${safeHref}"${attrs}>${label}</a>`
+      })
+      .replace(/(^|[\s(>])(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, (_full, lead, href) => {
+        const safeHref = this.normalizeHref(href)
+        if (!safeHref) return `${lead}${href}`
+
+        return `${lead}<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${href}</a>`
+      })
+      .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+      .replace(/\r?\n/g, "<br>")
+  }
+
+  normalizeHref(rawHref) {
+    const href = String(rawHref || "").trim()
+    if (!href.length) return null
+
+    if (/^www\./i.test(href)) return `https://${href}`
+    if (/^https?:\/\//i.test(href)) return href
+    if (/^mailto:/i.test(href)) return href
+    if (/^tel:/i.test(href)) return href
+    if (/^\//.test(href)) return href
+    if (/^#/.test(href)) return href
+
+    return null
   }
 
   escapeHtml(value) {

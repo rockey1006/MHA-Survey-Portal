@@ -105,11 +105,11 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
             <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
             <% if section.description.present? && !section.mha_competency? %>
-              <p class="text-sm text-slate-700"><%= section.description %></p>
+              <div class="text-sm text-slate-700"><%= render_markdown(section.description) %></div>
             <% end %>
 
             <% if section.mha_competency? %>
-              <p class="mt-3 text-sm text-slate-700"><%= section.description %></p>
+              <div class="mt-3 text-sm text-slate-700"><%= render_markdown(section.description) %></div>
             <% end %>
           </div>
           <% rendered_section_ids << section.id %>
@@ -120,7 +120,7 @@
             <h2 class="text-xl font-semibold tracking-tight text-slate-900"><%= category.name %></h2>
             <% category_desc = category.description.to_s.strip.presence %>
             <% if category_desc.present? %>
-              <p class="indented-description text-sm text-slate-600"><%= category_desc.gsub(/\r?\n/, '<br>').html_safe %></p>
+              <div class="indented-description text-sm text-slate-600"><%= render_markdown(category_desc) %></div>
             <% end %>
           </header>
 
@@ -160,7 +160,7 @@
                     <% answer_text = raw_answer %>
                   <% end %>
                   <% desc_text = question.description.to_s.strip.presence %>
-                  <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
+                  <% formatted_desc = desc_text.present? ? render_markdown(desc_text) : nil %>
 
                 <% # Compute if this question is required using the same logic as the controller %>
                 <% required = question.is_required? %>
@@ -513,14 +513,12 @@
           <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
           <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
           <% if section.description.present? && !section.mha_competency? %>
-            <p class="text-sm text-slate-700"><%= section.description %></p>
+            <div class="text-sm text-slate-700"><%= render_markdown(section.description) %></div>
           <% end %>
 
           <% if section.mha_competency? %>
             <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-sm text-rose-800 space-y-2">
-              <p>
-                <%= section.description %>
-              </p>
+              <%= render_markdown(section.description) %>
             </div>
           <% end %>
         </div>

@@ -17,14 +17,14 @@
   <% if question.description.present? %>
     <p>
       <strong>Description:</strong>
-      <%= simple_format(question.description) %>
+      <%= render_markdown(question.description) %>
     </p>
   <% end %>
 
   <% if question.tooltip_text.present? %>
     <p>
       <strong>Tooltip text:</strong>
-      <%= simple_format(question.tooltip_text) %>
+      <%= render_markdown(question.tooltip_text) %>
     </p>
   <% end %>
 

@@ -151,7 +151,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to admin_surveys_path
-    assert_equal "Survey updated successfully. Deadline changed for everyone with an incomplete assignment.", flash[:notice]
+    assert_equal "Survey updated successfully. Available from and Available until were applied to everyone assigned to this survey, including completed responses.", flash[:notice]
 
     assignment.reload
     assert_equal new_available_until.to_i, assignment.available_until.to_i

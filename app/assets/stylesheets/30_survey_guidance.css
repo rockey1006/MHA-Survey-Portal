@@ -266,10 +266,6 @@
 }
 
 .survey-legend .guidance-text {
-  padding: var(--spacing-md);
-}
-
-.survey-legend .guidance-text .guidance-section {
   margin: 0;
   padding: var(--spacing-lg);
   background: var(--white);
@@ -278,64 +274,72 @@
   border-radius: var(--border-radius-lg);
 }
 
-.survey-legend .guidance-text .guidance-section + .guidance-section {
+/* Shared guidance formatting (used by tooltips + legend) */
+.guidance-text > * {
+  color: var(--gray-700);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.guidance-text > * + * {
   margin-top: var(--spacing-md);
 }
 
-.survey-legend .guidance-text .guidance-section-title {
-  font-size: var(--font-size-base);
-  color: var(--gray-800);
-  margin: 0 0 var(--spacing-md);
-}
-
-.survey-legend .guidance-text .guidance-paragraph {
-  color: var(--gray-600);
-}
-
-.survey-legend .guidance-text .guidance-list {
-  padding-left: 1.1rem;
-}
-
-.survey-legend .guidance-text .guidance-list li {
-  color: var(--gray-600);
-  margin-bottom: var(--spacing-sm);
-}
-
-.survey-legend .guidance-text .guidance-list li:last-child {
-  margin-bottom: 0;
-}
-
-/* Shared guidance formatting (used by tooltips + legend) */
-.guidance-text .guidance-section + .guidance-section {
-  margin-top: var(--spacing-lg);
-}
-
-.guidance-text .guidance-section-title {
+.guidance-text h1,
+.guidance-text h2,
+.guidance-text h3,
+.guidance-text h4,
+.guidance-text h5,
+.guidance-text h6 {
   font-weight: var(--font-weight-semibold);
-  margin: 0 0 var(--spacing-sm);
-  color: var(--gray-700);
-}
-
-.guidance-text .guidance-paragraph {
+  color: var(--gray-800);
   margin: 0 0 var(--spacing-sm);
 }
 
-.guidance-text .guidance-paragraph:last-child {
+.guidance-text p {
+  margin: 0 0 var(--spacing-sm);
+}
+
+.guidance-text p:last-child {
   margin-bottom: 0;
 }
 
-.guidance-text .guidance-list {
+.guidance-text ul,
+.guidance-text ol {
   margin: 0;
   padding-left: 1.2rem;
-  list-style: disc;
 }
 
-.guidance-text .guidance-list li {
+.guidance-text li {
   margin: 0 0 0.35rem;
 }
 
-.guidance-text .guidance-list li:last-child {
+.guidance-text li:last-child {
   margin-bottom: 0;
+}
+
+.guidance-text a {
+  color: #0f4c81;
+  text-decoration: underline;
+}
+
+.guidance-text code {
+  background: #f1f5f9;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.25rem;
+}
+
+.guidance-text pre {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.legend-content {
+  overflow-wrap: anywhere;
 }
 
 

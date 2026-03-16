@@ -1,6 +1,8 @@
 <% input_classes = "c-input" %>
 
-<section class="c-card space-y-6" data-controller="survey-legend-preview">
+<section class="c-card space-y-6"
+         data-controller="survey-legend-preview markdown-editor"
+         data-action="input->survey-legend-preview#sync change->survey-legend-preview#sync">
   <header class="space-y-1">
     <h2 class="text-lg font-semibold text-slate-900">Rating scale legend</h2>
     <p class="text-sm text-slate-600">Edit the long-form legend content and preview how it will appear in the survey.</p>
@@ -34,7 +36,7 @@
                                          action: "input->survey-legend-preview#sync",
                                          survey_legend_preview_target: "bodyInput"
                                        } %>
-          <p class="text-xs text-slate-500">Use line breaks and list markers for readable scale descriptions.</p>
+          <p class="text-xs text-slate-500">Supports real Markdown. Shortcuts: Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link.</p>
         </div>
       <% end %>
       </div>

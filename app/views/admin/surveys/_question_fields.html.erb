@@ -167,6 +167,14 @@
           for: evidence_input_id,
           class: "chip chip-inactive" %>
 
+        <% if question.respond_to?(:has_feedback) %>
+          <%= question_fields.check_box :has_feedback, id: feedback_input_id, class: "chip-toggle-input sr-only", data: { question_preview_target: "feedbackInput" } %>
+          <%= question_fields.label :has_feedback,
+            "Advisor Feedback Required",
+            for: feedback_input_id,
+            class: "chip chip-inactive" %>
+        <% end %>
+
         <% if supports_sub_questions %>
           <button type="button"
                   class="chip chip-inactive"
@@ -205,8 +213,8 @@
     <% end %>
   </div>
 
-  <div class="question-options-backdrop c-drawer-backdrop side-panel-backdrop hidden" data-question-preview-target="optionsDrawerBackdrop" data-action="click->question-preview#closeOptionsDrawer"></div>
-  <aside class="question-options-drawer c-drawer side-panel hidden" data-question-preview-target="optionsDrawerPanel" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1">
+  <div class="question-options-backdrop hidden" data-question-preview-target="optionsDrawerBackdrop" data-action="click->question-preview#closeOptionsDrawer"></div>
+  <aside class="question-options-drawer hidden" data-question-preview-target="optionsDrawerPanel" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1">
     <div class="question-options-drawer__header c-drawer__header side-panel__header">
       <h4 class="text-sm font-semibold text-slate-900">Edit options</h4>
       <button type="button" class="btn btn-secondary btn-sm" data-action="question-preview#closeOptionsDrawer">Close</button>
@@ -261,14 +269,6 @@
           <p class="col-span-2 text-xs text-slate-500">Set either bound to enforce integer rules (for example: min 0, max 100).</p>
         </div>
 
-              <% if question.respond_to?(:has_feedback) %>
-                <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                  <label class="inline-flex items-center gap-2 text-sm text-slate-700" for="<%= feedback_input_id %>">
-                    <%= question_fields.check_box :has_feedback, id: feedback_input_id, class: "rounded border-slate-300", data: { action: "change->question-preview#update", question_preview_target: "feedbackInput" } %>
-                    <span>Include Reflection Field</span>
-                  </label>
-                </div>
-              <% end %>
       </div>
     </div>
   </aside>

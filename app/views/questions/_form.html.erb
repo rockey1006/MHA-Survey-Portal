@@ -51,7 +51,7 @@
 
   <% if form.object.respond_to?(:has_feedback) %>
     <div>
-      <%= form.label :has_feedback, "Collect advisor feedback?", style: "display: block" %>
+      <%= form.label :has_feedback, "Advisor feedback required?", style: "display: block" %>
       <%= form.check_box :has_feedback %>
     </div>
   <% end %>

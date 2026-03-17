@@ -1,0 +1,357 @@
+/* Consolidated stylesheet: accessibility contrast styles */
+/* Generated from 60_components_accessibility.css */
+
+/* =========================================================
+   High-contrast accessibility mode
+   ========================================================= */
+
+/* =========================================================
+   Read Aloud: moving highlighter
+   ========================================================= */
+
+.c-tts-highlight {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background-color: var(--warning-light);
+  outline: 2px solid var(--warning-color);
+  border-radius: var(--border-radius-sm);
+}
+
+body.high-contrast .c-tts-highlight {
+  background-color: var(--warning-light);
+  outline-color: var(--gray-700);
+}
+
+body.high-contrast {
+  /* Keep background light and text very dark for maximum readability */
+  background-color: #ffffff;
+  color: #000000;
+
+  /* Strengthen core palette via CSS variables so components update */
+  --primary-color: #000000;
+  --primary-hover: rgba(0, 0, 0, 0.08);
+  --primary-active: rgba(0, 0, 0, 0.16);
+
+  --gray-700: #000000;
+  --gray-600: #111111;
+  --gray-500: #222222;
+  --gray-400: #333333;
+
+  --info-color: #0033aa;
+  --warning-color: #b35a00;
+  --success-color: #006b2e;
+  --error-color: #b00020;
+}
+
+/* Header & navigation in high contrast */
+body.high-contrast .app-header {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Buttons */
+body.high-contrast .btn-primary,
+body.high-contrast .btn.btn-primary {
+  background-color: #000000;
+  border-color: #000000;
+  color: #ffffff;
+}
+
+body.high-contrast .btn-primary:hover:not(:disabled),
+body.high-contrast .btn.btn-primary:hover:not(:disabled) {
+  background-color: #222222;
+  border-color: #222222;
+}
+
+body.high-contrast .btn-secondary,
+body.high-contrast .btn.btn-secondary {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+body.high-contrast .btn-secondary:hover:not(:disabled),
+body.high-contrast .btn.btn-secondary:hover:not(:disabled) {
+  background-color: #ffff00;
+  color: #000000;
+}
+
+body.high-contrast .btn-danger,
+body.high-contrast .btn.btn-danger {
+  background-color: #000000;
+  border-color: #000000;
+  color: #ffffff;
+}
+
+body.high-contrast .btn-danger:hover:not(:disabled),
+body.high-contrast .btn.btn-danger:hover:not(:disabled) {
+  background-color: #222222;
+  border-color: #222222;
+}
+
+body.high-contrast .btn-subtle,
+body.high-contrast .btn.btn-subtle {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+body.high-contrast .btn-subtle:hover:not(:disabled),
+body.high-contrast .btn.btn-subtle:hover:not(:disabled) {
+  background-color: #ffff00;
+  color: #000000;
+}
+
+/* Cards and panels: increase contrast for borders/text */
+body.high-contrast .form-card,
+body.high-contrast .survey-list-card,
+body.high-contrast .c-card {
+  border-color: #000000;
+}
+body.high-contrast .section-title,
+body.high-contrast .page-title h1,
+body.high-contrast .c-tile__title {
+  color: #000000;
+}
+
+/* Focus states: clearly visible outlines */
+body.high-contrast a:focus-visible,
+body.high-contrast button:focus-visible,
+body.high-contrast .btn:focus-visible,
+body.high-contrast input:focus-visible,
+body.high-contrast select:focus-visible,
+body.high-contrast textarea:focus-visible {
+  outline: 3px solid #ffbf00;  /* amber/yellow */
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Table rows hover: darker contrast */
+body.high-contrast .c-table tbody tr:hover td,
+body.high-contrast .survey-table tbody tr:hover td {
+  background-color: #f0f0f0;
+}
+/* Flash messages: ensure strong contrast regardless of tone */
+body.high-contrast .flash {
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-left-width: 6px;
+}
+
+body.high-contrast .flash__notice {
+  border-left-color: var(--info-color);
+}
+
+body.high-contrast .flash__success {
+  border-left-color: var(--success-color);
+}
+
+body.high-contrast .flash__warning {
+  border-left-color: var(--warning-color);
+}
+
+body.high-contrast .flash__alert {
+  border-left-color: var(--error-color);
+}
+
+body.high-contrast .flash a,
+body.high-contrast .flash a:visited {
+  color: #000000 !important;
+  text-decoration: underline;
+}
+
+/* High-contrast: hero + inverse “chip/tile” components */
+body.high-contrast .c-hero,
+body.high-contrast .c-hero--maroon {
+  background: #000000 !important;
+  box-shadow: none !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+body.high-contrast .c-h1--inverse, body.high-contrast .c-h2--inverse, body.high-contrast .c-value--inverse, body.high-contrast .c-eyebrow--inverse, body.high-contrast .c-lede--inverse {
+  color: #ffffff !important;
+}
+
+body.high-contrast .c-pill--inverse {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+body.high-contrast .c-pill__dot--inverse {
+  background-color: #ffffff !important;
+}
+
+body.high-contrast .c-kv--inverse {
+  background-color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+body.high-contrast .c-avatar-tile--inverse {
+  background-color: #000000 !important;
+  border: 2px solid #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* ============================================================
+   High-contrast interactive elements (WCAG 2.1 AA)
+   ============================================================ */
+
+/* Top nav links */
+body.high-contrast .nav-link,
+body.high-contrast .nav-link:visited {
+  color: #ffffff !important;              /* white on black -> 21:1 */
+}
+
+body.high-contrast .nav-link:hover,
+body.high-contrast .nav-link:focus,
+body.high-contrast .nav-link.active {
+  background-color: #ffff00 !important;   /* yellow bg, black text */
+  color: #000000 !important;
+  text-decoration: none;
+}
+
+/* Generic links (not styled as nav/buttons) */
+body.high-contrast a:not(.nav-link):not(.btn),
+body.high-contrast a:not(.nav-link):not(.btn):visited {
+  color: #000000 !important;              /* black text on white bg */
+  text-decoration: underline;
+}
+
+/* Buttons & clickable controls */
+body.high-contrast .btn,
+body.high-contrast button,
+body.high-contrast [type="button"],
+body.high-contrast [type="submit"],
+body.high-contrast [role="button"] {
+  background-color: #000000 !important;   /* black bg, white text */
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* Secondary / outline buttons: invert for contrast */
+body.high-contrast .btn-secondary {
+  background-color: #ffffff !important;   /* white bg, black text */
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* Form fields */
+body.high-contrast input,
+body.high-contrast select,
+body.high-contrast textarea {
+  background-color: #ffffff !important;   /* white field */
+  color: #000000 !important;              /* black text */
+  border: 2px solid #000000 !important;
+}
+
+/* Focus states: highly visible yellow outline on black/white */
+body.high-contrast input:focus,
+body.high-contrast select:focus,
+body.high-contrast textarea:focus,
+body.high-contrast .btn:focus,
+body.high-contrast button:focus,
+body.high-contrast a:focus {
+  outline: 3px solid #ffff00 !important;  /* bright yellow */
+  outline-offset: 2px;
+}
+
+/* Status / pill badges that might be clickable */
+body.high-contrast .status-badge,
+body.high-contrast .role-badge {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* =========================================================
+   Survey "Open" button and all button-like links
+   ========================================================= */
+
+/* Open button and all survey/feedback links - black text on white */
+body.high-contrast .survey-list-card .btn,
+body.high-contrast .survey-list-card .btn-primary,
+body.high-contrast .survey-list-card .btn-secondary,
+body.high-contrast .survey-list-card button,
+body.high-contrast .survey-list-card a,
+body.high-contrast a[class*="button"],
+body.high-contrast a[class*="btn"] {
+  background-color: #ffffff !important;  /* white background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
+  text-decoration: none !important;
+}
+
+/* Hover state: yellow background with black text */
+body.high-contrast .survey-list-card .btn:hover,
+body.high-contrast .survey-list-card .btn-primary:hover,
+body.high-contrast .survey-list-card .btn-secondary:hover,
+body.high-contrast .survey-list-card button:hover,
+body.high-contrast .survey-list-card a:hover,
+body.high-contrast a[class*="button"]:hover,
+body.high-contrast a[class*="btn"]:hover {
+  background-color: #ffff00 !important;  /* yellow background */
+  color: #000000 !important;             /* black text */
+  border: 2px solid #000000 !important;  /* black border */
+  text-decoration: none !important;
+}
+
+/* --------------------------------------------------------
+   Translation toggle (navbar)
+   -------------------------------------------------------- */
+.translate-nav {
+  position: relative;
+}
+
+.translate-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--spacing-md));
+  min-width: 18rem;
+  border-radius: 22px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18);
+  padding: var(--spacing-xl);
+  display: none;
+}
+
+
+.translate-panel__header {
+  margin-bottom: var(--spacing-md);
+}
+
+.translate-panel__header p {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.translate-panel__header small {
+  color: var(--gray-500);
+}
+
+.translate-widget {
+  min-width: 11.25rem;
+}
+
+.translate-widget select {
+  width: 100% !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--gray-300) !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  font-size: var(--font-size-base) !important;
+}
+
+@media (max-width: 640px) {
+  .translate-panel {
+    right: -0.25rem;
+  }
+}
+

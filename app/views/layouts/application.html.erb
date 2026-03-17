@@ -20,14 +20,8 @@
   <%# Includes all consolidated stylesheet %>
   <%= tailwind_stylesheet_tag %>
     <%= stylesheet_link_tag(
-          "00_tokens_utilities",
-          "05_common_assets",
-          "10_base_reports",
-          "20_header_layout",
-          "30_survey_guidance",
-          "40_flash",
-          "50_forms_tables",
-          "60_components_accessibility",
+          "/assets/application.css",
+          "/assets/accessibility.css",
           "data-turbo-track": "reload"
         ) %>
     <%= javascript_importmap_tags %>

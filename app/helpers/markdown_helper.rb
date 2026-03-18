@@ -158,10 +158,12 @@ module MarkdownHelper
     offset = min_level - used_levels.min
     return html if offset <= 0
 
-    html.gsub(/<(\/?)h([1-6])>/i) do
+    # Match both opening tags (which may carry attributes) and closing tags.
+    html.gsub(/<(\/?)h([1-6])((?:\s[^>]*)?)>/i) do
       slash = Regexp.last_match(1)
-      new_level = [Regexp.last_match(2).to_i + offset, 6].min
-      "<#{slash}h#{new_level}>"
+      new_level = [ Regexp.last_match(2).to_i + offset, 6 ].min
+      attrs = Regexp.last_match(3)
+      "<#{slash}h#{new_level}#{attrs}>"
     end
   end
 end

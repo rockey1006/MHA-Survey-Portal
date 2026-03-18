@@ -17,12 +17,15 @@ module MarkdownHelper
   #
   # @param text [String]
   # @param wrapper_class [String, nil]
+  # @param min_heading_level [Integer] Minimum heading level (1–6). Markdown `#` headings will be
+  #   offset so the first/smallest heading level maps to this value.
   # @return [ActiveSupport::SafeBuffer]
-  def render_markdown(text, wrapper_class: nil)
+  def render_markdown(text, wrapper_class: nil, min_heading_level: 1)
     raw = text.to_s
     return "".html_safe if raw.strip.blank?
 
     html = markdown_to_html(raw)
+    html = offset_heading_levels(html, min_heading_level) if min_heading_level > 1
     sanitized = sanitize(
       html,
       tags: MARKDOWN_ALLOWED_TAGS,
@@ -135,13 +138,32 @@ module MarkdownHelper
         },
         extensions: %i[autolink strikethrough table tasklist tagfilter]
       )
-    elsif defined?(CommonMarker)
-      CommonMarker.render_html(text)
     else
       basic_markdown_to_html(text)
     end
   rescue StandardError => e
     Rails.logger.warn("Markdown rendering failed: #{e.message}")
     basic_markdown_to_html(text)
+  end
+
+  # Shifts all HTML heading tags so that the minimum level present maps to +min_level+.
+  # For example, with min_level: 3, a `<h1>` becomes `<h3>`, `<h2>` becomes `<h4>`, etc.
+  # Headings are capped at <h6>.
+  def offset_heading_levels(html, min_level)
+    return html unless html.match?(/<h[1-6]/i)
+
+    used_levels = html.scan(/<h([1-6])/i).map { |m| m[0].to_i }
+    return html if used_levels.empty?
+
+    offset = min_level - used_levels.min
+    return html if offset <= 0
+
+    # Match both opening tags (which may carry attributes) and closing tags.
+    html.gsub(/<(\/?)h([1-6])((?:\s[^>]*)?)>/i) do
+      slash = Regexp.last_match(1)
+      new_level = [ Regexp.last_match(2).to_i + offset, 6 ].min
+      attrs = Regexp.last_match(3)
+      "<#{slash}h#{new_level}#{attrs}>"
+    end
   end
 end

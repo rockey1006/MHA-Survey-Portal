@@ -33,7 +33,7 @@
 
   <%= render "admin/surveys/survey_tabs" %>
 
-  <section data-survey-tabs-target="panel" data-tab-panel="settings" aria-hidden="false" class="space-y-8">
+  <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" data-survey-tabs-target="panel" data-tab-panel="settings" aria-hidden="false" class="space-y-8">
     <%= render "admin/surveys/survey_settings_form",
                form: form,
                survey: survey,
@@ -58,7 +58,7 @@
     </div>
   </section>
 
-  <section data-survey-tabs-target="panel" data-tab-panel="builder" aria-hidden="true" class="hidden">
+  <section id="panel-builder" role="tabpanel" aria-labelledby="tab-builder" data-survey-tabs-target="panel" data-tab-panel="builder" aria-hidden="true" class="hidden">
     <%= render "admin/surveys/survey_builder_workspace",
                form: form,
                survey: survey,
@@ -67,7 +67,7 @@
                checkbox_classes: checkbox_classes %>
   </section>
 
-  <section data-survey-tabs-target="panel" data-tab-panel="legend" aria-hidden="true" class="hidden space-y-8">
+  <section id="panel-legend" role="tabpanel" aria-labelledby="tab-legend" data-survey-tabs-target="panel" data-tab-panel="legend" aria-hidden="true" class="hidden space-y-8">
     <%= render "admin/surveys/survey_legend_form",
                form: form,
                survey: survey %>

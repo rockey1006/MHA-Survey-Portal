@@ -24,6 +24,16 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;")
 }
 
+// Escape a value for safe use inside an HTML attribute (e.g. href="...").
+function escapeAttr(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+}
+
 function applyInlineMarkdown(source) {
   let text = escapeHtml(source)
 
@@ -41,14 +51,14 @@ function applyInlineMarkdown(source) {
       ? ' target="_blank" rel="noopener noreferrer"'
       : ""
 
-    return `<a href="${safeHref}"${attrs}>${label}</a>`
+    return `<a href="${escapeAttr(safeHref)}"${attrs}>${label}</a>`
   })
 
   text = text.replace(AUTO_LINK_PATTERN, (_full, lead, href) => {
     const safeHref = normalizeHref(href)
-    if (!safeHref) return `${lead}${href}`
+    if (!safeHref) return `${lead}${escapeHtml(href)}`
 
-    return `${lead}<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${href}</a>`
+    return `${lead}<a href="${escapeAttr(safeHref)}" target="_blank" rel="noopener noreferrer">${escapeHtml(href)}</a>`
   })
 
   text = text.replace(/&lt;br\s*\/?&gt;/gi, "<br>")

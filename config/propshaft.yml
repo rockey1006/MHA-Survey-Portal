@@ -6,3 +6,5 @@ paths:
 
 precompile:
   - tailwind.css
+  - application.css
+  - accessibility.css

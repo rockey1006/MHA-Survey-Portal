@@ -34,6 +34,7 @@ class SurveyOffering < ApplicationRecord
     track_label = ProgramTrack.name_for_key(track_key) || track_key.to_s
 
     scope = active
+      .available_at(Time.zone.now)
       .where("LOWER(survey_offerings.track) = ?", track_label.to_s.downcase)
       .where("class_of IS NULL OR class_of = ?", class_of.to_i)
       .joins(survey: :program_semester)

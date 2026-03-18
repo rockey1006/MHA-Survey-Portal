@@ -19,11 +19,7 @@
 
   <%# Includes all consolidated stylesheet %>
   <%= tailwind_stylesheet_tag %>
-    <%= stylesheet_link_tag(
-          "application",
-          "accessibility",
-          "data-turbo-track": "reload"
-        ) %>
+    <%= consolidated_stylesheet_tags %>
     <%= javascript_importmap_tags %>
     <%# App-wide text scaling: scales BOTH Tailwind rem units and our design-token font-size variables. %>
     <% font_scale = (user_signed_in? ? (current_user.text_scale_percent || 100) : 100).to_f / 100.0 %>

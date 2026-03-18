@@ -15,11 +15,7 @@
     <%= favicon_link_tag "tamu-logo.png", rel: "apple-touch-icon", type: "image/png" %>
 
     <%= tailwind_stylesheet_tag %>
-    <%= stylesheet_link_tag(
-          "application",
-          "accessibility",
-          "data-turbo-track": "reload"
-        ) %>
+    <%= consolidated_stylesheet_tags %>
     <%= javascript_importmap_tags %>
 
     <%# App-wide text scaling: scales BOTH Tailwind rem units and our design-token font-size variables. %>

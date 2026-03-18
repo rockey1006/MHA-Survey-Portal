@@ -76,6 +76,42 @@ module ApplicationHelper
     nil
   end
 
+  # Emits links for the consolidated app stylesheets, with resilient fallback
+  # resolution for environments where logical asset lookup may intermittently fail.
+  #
+  # @return [String, nil]
+  def consolidated_stylesheet_tags
+    stylesheet_link_tag("application", "accessibility", "data-turbo-track": "reload")
+  rescue StandardError => e
+    names = %w[application.css accessibility.css]
+    tags = names.filter_map { |name| stylesheet_fallback_tag(name) }
+
+    Rails.logger.warn("consolidated stylesheets fallback used: #{e.class}: #{e.message}")
+
+    return safe_join(tags, "\n") if tags.any?
+
+    nil
+  end
+
+  private
+
+  def stylesheet_fallback_tag(name)
+    prefix = Rails.application.config.assets.prefix.presence || "/assets"
+    candidates = [ name, "stylesheets/#{name}", "builds/#{name}" ]
+
+    asset = candidates.lazy.map { |path| Rails.application.assets&.load_path&.find(path) }.find(&:present?)
+
+    href = if asset&.respond_to?(:digested_path)
+      File.join(prefix, asset.digested_path)
+    else
+      File.join(prefix, name)
+    end
+
+    tag.link(rel: "stylesheet", href:, "data-turbo-track": "reload")
+  rescue StandardError
+    nil
+  end
+
   # Builds Tailwind button classes for the provided variant.
   #
   # @param variant [Symbol]

@@ -477,8 +477,7 @@ class FeedbacksController < ApplicationController
     survey_questions
       .select do |question|
         !question.sub_question? &&
-          (!question.respond_to?(:has_feedback?) || question.has_feedback?) &&
-          question.category&.section&.mha_competency?
+          (!question.respond_to?(:has_feedback?) || question.has_feedback?)
       end
       .map(&:id)
       .uniq

@@ -372,7 +372,7 @@
 
                 <%# Read-only: render existing advisor feedback under the end of each
                     parent question group (parent + any sub-questions). %>
-                <% if !include_feedback_form && section&.mha_competency? %>
+                <% if !include_feedback_form %>
                   <% end_of_parent_group = if is_sub_question
                                              next_question.nil? || !next_question.sub_question? || next_question.parent_question_id != question.parent_question_id
                                            else
@@ -416,7 +416,7 @@
 
                 <%# Advisor feedback entry is only collected for parent questions in the
                     "MHA Competency Self-Assessment" section (mirrors the completing-survey experience). %>
-                <% if include_feedback_form && section&.mha_competency? %>
+                <% if include_feedback_form %>
                   <% end_of_parent_group = if is_sub_question
                                              next_question.nil? || !next_question.sub_question? || next_question.parent_question_id != question.parent_question_id
                                            else

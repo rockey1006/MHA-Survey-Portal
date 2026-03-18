@@ -93,9 +93,7 @@ module ApplicationHelper
     nil
   end
 
-  private
-
-  def stylesheet_fallback_tag(name)
+  private def stylesheet_fallback_tag(name)
     prefix = Rails.application.config.assets.prefix.presence || "/assets"
     candidates = [ name, "stylesheets/#{name}", "builds/#{name}" ]
 

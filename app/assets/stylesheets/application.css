@@ -1,50 +1,19 @@
-/* Consolidated stylesheet: all non-contrast styles */
-/* Generated from split source files for agent-friendly context */
-
-/* ===== Source: 00_tokens_utilities.css ===== */
-/*
- * Split stylesheet set for Propshaft.
- *
- * This file contains design tokens (:root) plus shared mixins/utilities.
- * The layouts load the split files in a fixed order.
- *
- * Navigation tips:
- * - Use Ctrl+F for section headers: "===".
- * - Search for class prefixes (e.g. ".reports-", ".survey-", ".advisor-").
- */
-
-/* === INDEX ================================================================
- * 1) Tokens (:root)
- * 2) Utilities / mixins
- * 3) Base + layout
- * 4) Reports
- * 5) Header / navigation
- * 6) Survey show + feedback summary
- * 7) Dashboard + admin
- * 8) Forms + tables
- * 9) Misc components
- * ======================================================================= */
-
-/* Variables for consistent styling across the application */
 :root {
-  /* Texas A&M Brand Colors */
+
   --tamu-maroon: #500000;
   --tamu-maroon-light: rgba(80, 0, 0, 0.8);
   --tamu-maroon-dark: #330000;
 
-  /* Section accents (PDF parity) */
   --advisor-section-surface: #DCE2F0;
   --advisor-section-accent: #50586C;
 
   --student-section-surface: #F9EBDE;
   --student-section-accent: #815854;
-  
-  /* UI Colors */
+
   --primary-color: var(--tamu-maroon);
   --primary-hover: rgba(80, 0, 0, 0.1);
   --primary-active: rgba(80, 0, 0, 0.2);
-  
-  /* Semantic Colors */
+
   --success-color: #28a745;
   --success-light: rgba(40, 167, 69, 0.1);
   --warning-color: #ff6b35;
@@ -54,8 +23,7 @@
   --info-color: #0066cc;
   --info-hover: #004499;
   --info-light: rgba(0, 102, 204, 0.1);
-  
-  /* Neutral Colors */
+
   --white: #ffffff;
   --gray-50: #fafafa;
   --gray-100: #f5f5f5;
@@ -67,8 +35,7 @@
   --gray-700: #333;
   --gray-800: #222;
   --gray-900: #111;
-  
-  /* Typography */
+
   --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --font-size-xs: 13px;
   --font-size-sm: 15px;
@@ -80,17 +47,16 @@
   --font-size-4xl: 33px;
   --font-size-5xl: 41px;
   --font-size-6xl: 49px;
-  
+
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  
+
   --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.75;
-  
-  /* Spacing */
+
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
@@ -101,42 +67,32 @@
   --spacing-4xl: 40px;
   --spacing-5xl: 48px;
   --spacing-6xl: 60px;
-  
-  /* Border Radius */
+
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
   --border-radius-full: 50%;
-  
-  /* Shadows */
+
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
-  
-  /* Transitions */
+
   --transition-fast: 0.15s ease;
   --transition-normal: 0.2s ease;
   --transition-slow: 0.3s ease;
-  
-  /* Layout */
+
   --container-max-width: 1400px;
   --dashboard-container-max-width: 1900px;
   --header-height: 60px;
   --sidebar-width: 250px;
 }
 
-/* Mixins and utility classes for DRY CSS */
-
-/* Reset mixin */
 .reset {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Button mixins */
-
-/* Surface mixins (cards/panels/dropdowns) */
 .reports-panel,
 .reports-summary__card,
 .profile-dropdown,
@@ -146,35 +102,31 @@
   border-radius: var(--border-radius-lg);
 }
 
-/* Card mixins */
-
-/* Toolbars (filters/search) */
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--spacing-lg); align-items: end; justify-content: space-between; }
 .toolbar__group { display: flex; flex-wrap: wrap; gap: var(--spacing-md); align-items: end; }
 
-/* Pills / chips */
 .pill { display: inline-flex; align-items: center; gap: var(--spacing-xs); padding: var(--spacing-xs) var(--spacing-md); border-radius: 999px; font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); }
 .pill--muted { background-color: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-200); }
 .pill--primary { background-color: var(--primary-active); color: var(--primary-color); border: 1px solid var(--gray-200); }
 
-/* Alerts (inline) */
 .alert { border-radius: var(--border-radius-lg); border: 1px solid var(--gray-200); padding: var(--spacing-lg) var(--spacing-xl); background-color: var(--gray-50); color: var(--gray-700); }
 
-/* Empty states */
-.empty-state { max-width: 44rem; margin-left: auto; margin-right: auto; }
+.empty-state {
+  max-width: 44rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  padding: var(--spacing-3xl);
+  color: var(--gray-400);
+}
 .empty-state__title { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--gray-800); }
 .empty-state__body { color: var(--gray-600); font-size: var(--font-size-base); line-height: var(--line-height-relaxed); }
-
-/* Avatar mixins */
-
-/* Layout mixins */
 
 .flex-start {
   display: flex;
   align-items: flex-start;
 }
 
-/* Text utilities */
 .text-xs { font-size: var(--font-size-xs); }
 .text-sm { font-size: var(--font-size-sm); }
 .text-base { font-size: var(--font-size-base); }
@@ -204,34 +156,143 @@
   border: 0;
 }
 
-/* Color utilities */
 .text-primary { color: var(--primary-color); }
 .text-muted { color: var(--gray-400); }
-
-/* Spacing utilities */
 
 .mt-sm { margin-top: var(--spacing-sm); }
 .mt-lg { margin-top: var(--spacing-lg); }
 .mt-xl { margin-top: var(--spacing-xl); }
 
-/* Simple max-width containers */
 .container-md { max-width: 64rem; margin-left: auto; margin-right: auto; width: 100%; }
 
+/* Common utility helpers */
+.u-stack { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.u-stack--sm { gap: var(--spacing-sm); }
+.u-stack--md { gap: var(--spacing-md); }
+.u-stack--lg { gap: var(--spacing-xl); }
+.u-stack--xl { gap: var(--spacing-2xl); }
+.u-stack--2xl { gap: var(--spacing-3xl); }
 
-/* ===== Source: 05_common_assets.css ===== */
-/*
- * Common, reusable “design system” building blocks.
- *
- * Goal: give you a stable set of classes you can migrate pages onto gradually,
- * while continuing to rely on the existing token variables in 00_tokens_utilities.css
- * and the high-contrast overrides in 60_components_accessibility.css.
- *
- * Naming:
- * - c-*  component classes (semantic building blocks)
- * - u-*  small utilities (layout/spacing helpers)
- */
+.u-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-md); align-items: center; justify-content: flex-end; }
+.u-actions--start { justify-content: flex-start; }
+.u-actions--split { justify-content: space-between; }
 
-/* === Page layout ========================================================= */
+.u-text-primary { color: var(--primary-color); }
+
+.u-text-center { text-align: center; }
+
+.u-text-right { text-align: right; }
+
+.u-grid {
+  display: grid;
+  gap: var(--spacing-2xl);
+  grid-template-columns: repeat(auto-fit, minmax(var(--u-grid-min, 220px), 1fr));
+}
+
+.u-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .u-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Common button system */
+.btn {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  min-height: 40px;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
+  font-family: var(--font-family);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-sm { padding: 0.35rem 0.75rem; min-height: 34px; font-size: var(--font-size-xs); }
+.btn-block { width: 100%; }
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--tamu-maroon-dark);
+  border-color: var(--tamu-maroon-dark);
+}
+
+.btn-secondary {
+  background-color: var(--white);
+  color: var(--gray-600);
+  border-color: var(--gray-300);
+}
+
+.btn-secondary:hover {
+  background-color: var(--gray-50);
+  border-color: var(--gray-400);
+  text-decoration: none;
+  color: var(--gray-700);
+}
+
+.btn-subtle {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  border-color: var(--gray-200);
+}
+
+.btn-subtle:hover:not(:disabled) {
+  background-color: var(--gray-200);
+  border-color: var(--gray-300);
+  color: var(--gray-800);
+}
+
+.btn-danger {
+  background-color: var(--error-color);
+  color: var(--white);
+  border-color: var(--error-color);
+}
+
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--gray-600);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
 
 .c-container {
   width: 100%;
@@ -288,7 +349,11 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* === Typography ========================================================== */
+.c-heading-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
 
 .c-eyebrow {
   margin: 0;
@@ -355,9 +420,6 @@
   color: var(--white);
 }
 
-/* Small key/value container (label + value blocks)
- * Use for dense info grids: <div class="c-kv"><dt ...><dd ...></div>
- */
 .c-kv {
   border: 1px solid var(--gray-200);
   background-color: var(--gray-50);
@@ -377,9 +439,6 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Pills / chips (token-driven)
- * For inline metadata like Track / Updated / etc.
- */
 .c-pill {
   display: inline-flex;
   align-items: center;
@@ -415,7 +474,6 @@
   background-color: rgba(255, 255, 255, 0.85);
 }
 
-/* Role badges (small caps chips in nav + admin tables) */
 .role-badge {
   display: inline-flex;
   align-items: center;
@@ -447,9 +505,6 @@
   color: var(--gray-700);
 }
 
-/* Dots / markers (token-driven)
- * Use for timelines, status indicators, etc.
- */
 .c-dot {
   width: 16px;
   height: 16px;
@@ -466,7 +521,6 @@
   background-color: var(--gray-200);
 }
 
-/* Avatar tile (for initials badges) */
 .c-avatar-tile {
   display: inline-flex;
   align-items: center;
@@ -480,8 +534,6 @@
   text-transform: uppercase;
 }
 
-/* === Toggle switch ====================================================== */
-
 .c-toggle {
   display: inline-flex;
   align-items: center;
@@ -489,7 +541,7 @@
 }
 
 .c-toggle__input {
-  /* Visually hidden but accessible */
+
   position: absolute;
   width: 1px;
   height: 1px;
@@ -566,8 +618,6 @@
   border-radius: inherit;
 }
 
-/* === Surfaces (cards/panels) ============================================ */
-
 .c-surface {
   background-color: var(--white);
   border: 1px solid var(--gray-200);
@@ -588,7 +638,6 @@
 .c-card--muted { background-color: var(--gray-50); }
 .c-card--dashed { border-style: dashed; }
 
-/* Hover polish for non-clickable panels (no pointer cursor). */
 .c-card--hover {
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
@@ -608,7 +657,6 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Optional "lift" hover (used by dashboard tiles/cards) */
 .c-card--lift {
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
 }
@@ -616,11 +664,6 @@
 .c-card--lift:hover {
   transform: translateY(-2px);
 }
-
-/* === Tiles ==============================================================
- * Clickable dashboard tiles that wrap a single link.
- * Use: <div class="c-card c-card--interactive c-card--lift c-tile"><a class="c-tile__link" ...>...</a></div>
- * ======================================================================= */
 
 .c-tile {
   text-align: center;
@@ -674,10 +717,6 @@
   line-height: var(--line-height-relaxed);
 }
 
-/* === List items =========================================================
- * Simple list row surface used in dashboards.
- * ======================================================================= */
-
 .c-list-item {
   padding: var(--spacing-lg);
   border: 1px solid var(--gray-200);
@@ -695,17 +734,11 @@
   color: var(--gray-600);
 }
 
-/* === States + small utilities ===========================================
- * Keep these general so other features can reuse them.
- * ======================================================================= */
-
-/* Unread / attention accent (usable on both .c-card and .c-list-item). */
 .is-unread {
   border-color: var(--primary-color);
   background-color: var(--primary-hover);
 }
 
-/* Simple scroll utility: opt-in max height + scroll (used on dashboards). */
 .u-max-h-70vh {
   max-height: 70vh;
 }
@@ -714,7 +747,6 @@
   overflow-y: auto;
 }
 
-/* Media / row layout helper: icon + content (used for list rows). */
 .c-media {
   display: flex;
   align-items: flex-start;
@@ -736,7 +768,6 @@
   text-decoration: underline;
 }
 
-/* Icon circle helper for inline SVG chips (index/show, etc). */
 .c-icon-circle {
   background-color: var(--gray-100);
   color: var(--gray-500);
@@ -747,17 +778,11 @@
   color: var(--primary-color);
 }
 
-/* When a list-item is used as a media row, opt-in with .c-media. */
 .c-list-item.c-media {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-md);
 }
-
-/* === Stats / summary tiles ==============================================
- * Reusable “metrics grid” used across admin pages.
- * Mirrors the visual hierarchy used in reports summary cards.
- * ======================================================================= */
 
 .c-stats-grid {
   display: grid;
@@ -838,8 +863,6 @@
   color: var(--gray-500);
 }
 
-/* === Toolbars (action rows) ============================================= */
-
 .c-toolbar {
   width: 100%;
   background-color: var(--white);
@@ -856,11 +879,18 @@
   gap: var(--spacing-md);
 }
 
+.c-toolbar__row--airy {
+  gap: var(--spacing-lg);
+  align-items: flex-end;
+}
+
+.c-toolbar__item {
+  padding-block: 2px;
+}
+
 .c-toolbar--spaced {
   margin-bottom: var(--spacing-2xl);
 }
-
-/* === Reusable dashboard row/layout patterns ============================ */
 
 .c-header-row {
   display: flex;
@@ -990,21 +1020,10 @@
   }
 }
 
-/* === Buttons / links =====================================================
- *
- * NOTE: Core .btn styles and variants already live in 60_components_accessibility.css.
- * For now, use those directly in markup:
- *   class="btn btn-primary" | "btn btn-secondary" | "btn btn-danger" | "btn btn-ghost" | "btn btn-subtle"
- */
-
-/* === Popovers / menus ==================================================== */
-
-/* Anchor for absolutely-positioned popovers (dropdown panels). */
 .c-popover-anchor {
   position: relative;
 }
 
-/* Base popover surface (dropdown panel). */
 .c-popover {
   background-color: var(--white);
   border: 1px solid var(--gray-200);
@@ -1017,9 +1036,6 @@
   width: 320px;
 }
 
-/* Hover-open dropdown utility (profile-like behavior).
-   Opt-in: add .u-hover-dropdown to the container and .u-hover-dropdown__panel to the panel.
-   Uses !important so it can override inline display toggles (e.g., translation panel). */
 .u-hover-dropdown > .u-hover-dropdown__panel {
   display: none !important;
 }
@@ -1029,20 +1045,16 @@
   display: block !important;
 }
 
-/* <details> may keep its content non-rendered unless [open] is set.
-   If JS sets [open] for hover/focus, ensure the panel becomes visible. */
 details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   display: block !important;
 }
 
-/* Position helpers for popovers */
 .u-popover-down-right {
   position: absolute;
   top: calc(100% + var(--spacing-sm));
   right: 0;
 }
 
-/* Compact icon-only button (used in header toolbars). */
 .c-icon-button {
   -webkit-appearance: none;
   appearance: none;
@@ -1057,7 +1069,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   transition: background-color var(--transition-normal), color var(--transition-normal), border-color var(--transition-normal);
 }
 
-/* Navbar icon button variant (match translate toggle layout). */
 .app-header .c-icon-button--nav {
   width: 40px;
   height: 40px;
@@ -1094,8 +1105,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   justify-content: center;
 }
 
-/* Navbar icon sizing for icon-only buttons.
-   Scope to .app-header so we don't unintentionally resize icons elsewhere. */
 .app-header .c-icon-button__icon > img,
 .app-header .c-icon-button__icon > svg {
   width: 18px;
@@ -1103,24 +1112,20 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   display: block;
 }
 
-/* SVG icons should inherit the button's color in all modes (including high-contrast). */
 .app-header .c-icon-button__icon > svg {
   fill: currentColor;
 }
 
-/* Notification PNG is a colored glyph; render it like the translate icon on the maroon header. */
 .app-header .notification-icon-img {
   filter: brightness(0) invert(1);
 }
 
-/* Notification glyph sizing when used outside the header (e.g., dashboards). */
 .notification-icon-img {
   width: 18px;
   height: 18px;
   display: block;
 }
 
-/* Small count badge (unread notifications). */
 .c-badge {
   display: inline-flex;
   align-items: center;
@@ -1142,7 +1147,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   line-height: 1;
 }
 
-/* Menu list (used inside popovers). */
 .c-menu {
   margin: 0;
   padding: 0;
@@ -1231,8 +1235,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   color: var(--gray-500);
 }
 
-/* === Icons ============================================================== */
-
 .c-icon--survey {
   width: 40px;
   height: 40px;
@@ -1242,9 +1244,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   border: 1px solid var(--gray-200);
   flex-shrink: 0;
 }
-
-
-/* === Forms =============================================================== */
 
 .c-field {
   display: flex;
@@ -1290,9 +1289,18 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   box-shadow: 0 0 0 3px var(--error-light);
 }
 
-/* Generic select styling used across dashboards.
- * Keep this in common assets so pages can migrate off page-specific CSS.
- */
+.c-search-input {
+  min-width: 0;
+  border-color: var(--gray-300);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.c-search-input::placeholder {
+  color: #94a3b8;
+}
+
 .c-select-wrapper {
   position: relative;
 }
@@ -1324,7 +1332,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   padding: var(--spacing-sm);
 }
 
-/* Common "pending changes" indicator used across admin dashboards */
 .c-change-indicator {
   font-size: var(--font-size-xs);
   color: var(--gray-400);
@@ -1335,8 +1342,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   color: #ffc107;
   font-weight: var(--font-weight-medium);
 }
-
-/* === Builder Workspace =================================================== */
 
 .c-builder-layout {
   display: grid;
@@ -1365,6 +1370,7 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
 .c-builder-panel {
   border: 1px solid var(--gray-200);
   border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 42%),
     var(--white);
@@ -1380,6 +1386,13 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  align-items: stretch;
+}
+
+.c-builder-panel__section {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
 }
 
 .c-builder-search {
@@ -1440,12 +1453,10 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   overflow-y: hidden;
 }
 
-/* Focus/filter state used by the builder controller. */
 .builder-hidden-category {
   display: none !important;
 }
 
-/* Question card collapsed vs active editing states */
 .c-builder-question {
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
 }
@@ -1593,8 +1604,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   overflow-y: auto;
 }
 
-/* Keep question options UI scoped to the question card so it never overlays
-   the global navbar. */
 .question-block {
   position: relative;
 }
@@ -1750,11 +1759,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   }
 }
 
-/* Form action rows
- * Use with: class="c-form-actions u-actions"
- * (u-actions supplies the base flex layout.)
- */
-
 @media (max-width: 600px) {
   .c-form-actions {
     flex-direction: column-reverse;
@@ -1767,8 +1771,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
     font-size: var(--font-size-5xl);
   }
 }
-
-/* === Tables ============================================================= */
 
 .c-table-wrapper { width: 100%; overflow-x: auto; }
 
@@ -1811,10 +1813,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   background-color: var(--gray-50);
 }
 
-/* Table helpers
- * Use these for generic “management” tables rendered with .c-table.
- */
-
 .c-table-row {
   transition: background-color var(--transition-normal);
 }
@@ -1841,8 +1839,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   overflow: hidden;
 }
 
-/* === Version navigation ================================================== */
-
 .c-version-nav {
   display: inline-flex;
   flex-direction: row;
@@ -1861,47 +1857,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   font-size: var(--font-size-base);
   line-height: 1;
 }
-
-/* === Utilities =========================================================== */
-
-.u-stack { display: flex; flex-direction: column; gap: var(--spacing-lg); }
-.u-stack--sm { gap: var(--spacing-sm); }
-.u-stack--md { gap: var(--spacing-md); }
-.u-stack--lg { gap: var(--spacing-xl); }
-.u-stack--xl { gap: var(--spacing-2xl); }
-
-.u-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-md); align-items: center; justify-content: flex-end; }
-.u-actions--start { justify-content: flex-start; }
-.u-actions--split { justify-content: space-between; }
-
-.u-text-primary { color: var(--primary-color); }
-
-.u-text-center { text-align: center; }
-
-.u-text-right { text-align: right; }
-
-/* Responsive grid utility
- * Default min column width: 220px
- * Override per-instance with inline style: style="--u-grid-min: 240px"
- */
-.u-grid {
-  display: grid;
-  gap: var(--spacing-2xl);
-  grid-template-columns: repeat(auto-fit, minmax(var(--u-grid-min, 220px), 1fr));
-}
-
-/* Fixed-column grid helpers (use when auto-fit creates too many columns). */
-.u-grid--2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 640px) {
-  .u-grid--2 {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* === Heroes ============================================================== */
 
 .c-hero {
   border-radius: 32px;
@@ -1926,8 +1881,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   }
 }
 
-/* === Timelines =========================================================== */
-
 .c-timeline {
   list-style: none;
   display: flex;
@@ -1940,11 +1893,6 @@ details.u-hover-dropdown[open] > .u-hover-dropdown__panel {
   align-items: flex-start;
   gap: var(--spacing-lg);
 }
-
-/* === High contrast support ===============================================
- * Most colors flow through variables which are already strengthened in
- * body.high-contrast (see 60_components_accessibility.css).
- */
 
 body.high-contrast .c-surface,
 body.high-contrast .c-card,
@@ -1959,12 +1907,10 @@ body.high-contrast .c-label {
   color: #000000;
 }
 
-/* Notifications: strengthen icon in high contrast. */
 body.high-contrast .app-header .c-icon-button__icon > img {
   filter: brightness(0) invert(1);
 }
 
-/* Icon primitives: ensure icon chips stay readable. */
 body.high-contrast .c-icon--survey {
   border-color: #000000;
 }
@@ -1980,11 +1926,6 @@ body.high-contrast .is-unread .c-icon-circle {
   color: var(--white);
 }
 
-
-/* ===== Source: 10_base_reports.css ===== */
-/* === Layout styles shared across all dashboard views ===================== */
-
-/* Global reset and base styles */
 * {
   margin: 0;
   padding: 0;
@@ -2214,9 +2155,6 @@ body {
   }
 }
 
-
-/* ===== Source: 20_header_layout.css ===== */
-/* Header Styles */
 .app-header {
   background-color: var(--primary-color);
   color: var(--white);
@@ -2244,7 +2182,6 @@ body {
   min-width: 0;
 }
 
-/* Logo Section */
 .logo {
   display: flex;
   align-items: center;
@@ -2262,16 +2199,11 @@ body {
   flex-shrink: 0;
 }
 
-/* Navigation */
 .nav-links {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-4xl);
   margin-left: var(--spacing-6xl);
-  min-width: 0;
-}
-
-.user-section {
   min-width: 0;
 }
 
@@ -2296,15 +2228,14 @@ body {
   text-decoration: underline;
 }
 
-/* User Section */
 .user-section {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
   position: relative;
+  min-width: 0;
 }
 
-/* Toggle switches in header should match the header color scheme. */
 .app-header .c-toggle__label {
   color: var(--white);
 }
@@ -2314,7 +2245,6 @@ body {
   border-radius: 0;
 }
 
-/* Impersonation banner sits on a dark header; ensure strong contrast. */
 .app-header .impersonation-banner.flash__warning {
   background-color: var(--warning-color);
   color: var(--white);
@@ -2535,7 +2465,6 @@ body {
   font-size: var(--font-size-sm);
 }
 
-/* Page Title Section */
 .page-title {
   background-color: var(--white);
   padding: var(--spacing-xl) var(--spacing-2xl);
@@ -2555,7 +2484,6 @@ body {
   font-size: var(--font-size-base);
 }
 
-/* Main Content Layout */
 .main-content {
   max-width: var(--container-max-width);
   margin: 0 auto;
@@ -2565,7 +2493,7 @@ body {
 .main-content--dashboard {
   max-width: var(--dashboard-container-max-width);
 }
-/* Maintenance page */
+
 .maintenance-card {
   max-width: 40rem;
   margin-left: auto;
@@ -2588,7 +2516,6 @@ body {
   gap: var(--spacing-2xl);
 }
 
-/* Ensure content doesn't visually touch the sticky header. */
 .app-header + main .layout-shell {
   padding-top: var(--spacing-2xl);
 }
@@ -2597,7 +2524,6 @@ body {
   width: 100%;
 }
 
-/* Shared responsive layout (kept in header/layout stylesheet to avoid duplicates) */
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
@@ -2648,16 +2574,12 @@ body {
   }
 }
 
-
-/* ===== Source: 30_survey_guidance.css ===== */
-/* Survey show page: keep the survey + legend block centered with side padding */
 .survey-container {
   max-width: 90rem;
   margin-left: auto;
   margin-right: auto;
 }
 
-/* Surveys#show polish */
 .survey-show {
   padding-top: var(--spacing-2xl);
   padding-bottom: var(--spacing-3xl);
@@ -2676,7 +2598,6 @@ body {
   border-color: var(--gray-200);
 }
 
-/* Target level badge (used on competency dropdown questions) */
 .target-level-badge {
   display: inline-flex;
   align-items: center;
@@ -2699,7 +2620,6 @@ body {
   }
 }
 
-/* Deterministic vertical spacing between cards (avoid relying on Tailwind space-y) */
 .survey-show .survey-block + .survey-block {
   margin-top: var(--spacing-2xl);
 }
@@ -2716,7 +2636,6 @@ body {
   padding-top: var(--spacing-md);
 }
 
-/* Student survey section cards (surveys/show + read-only responses) */
 .survey-section-card {
   background-color: var(--student-section-surface);
   border-color: var(--student-section-accent);
@@ -2732,9 +2651,6 @@ body {
   }
 }
 
-/* Advisor feedback summary (feedbacks/new) */
-
-/* Advisor per-question feedback cards (read-only + entry form) */
 .advisor-feedback-card {
   background-color: var(--advisor-section-surface);
   border-color: var(--advisor-section-accent);
@@ -2882,12 +2798,11 @@ body {
     grid-template-columns: minmax(0, 4rem) minmax(0, 1fr);
   }
 
-  .survey-builder-layout.sidebar-collapsed .survey-sidebar {
+  .survey-builder-layout.sidebar-collapsed .c-builder-sidebar {
     min-width: 4rem;
   }
 }
 
-/* Survey legend: float with viewport on desktop */
 .survey-legend {
   margin-top: var(--spacing-md);
 }
@@ -2901,7 +2816,6 @@ body {
   }
 }
 
-/* Survey legend visual styling (rating scale reference) */
 .survey-legend .survey-legend-header {
   background: transparent;
   border-bottom: 0;
@@ -2926,7 +2840,6 @@ body {
   border-radius: var(--border-radius-lg);
 }
 
-/* Shared guidance formatting (used by tooltips + legend) */
 .guidance-text > * {
   color: var(--gray-700);
   overflow-wrap: anywhere;
@@ -2962,7 +2875,18 @@ body {
   padding-left: 1.2rem;
 }
 
+.guidance-text ul {
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.guidance-text ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+
 .guidance-text li {
+  display: list-item;
   margin: 0 0 0.35rem;
 }
 
@@ -2994,8 +2918,6 @@ body {
   overflow-wrap: anywhere;
 }
 
-
-/* Dashboard Grid Layouts */
 .dashboard-grid {
   display: grid;
   gap: var(--spacing-2xl);
@@ -3017,26 +2939,6 @@ body {
   grid-template-columns: repeat(4, 1fr);
 }
 
-/* Section Styles */
-
-/* Extra spacing between categories in survey views to improve readability */
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-xl);
-}
-
-.section-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--gray-700);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
 .section-icon {
   width: 24px;
   height: 24px;
@@ -3045,14 +2947,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-3xl);
-  color: var(--gray-400);
-}
-
-/* Responsive Design */
 @media (max-width: 1200px) {
   .dashboard-grid-4 {
     grid-template-columns: repeat(2, 1fr);
@@ -3070,15 +2964,7 @@ body {
   .dashboard-column {
     gap: var(--spacing-lg);
   }
-
-  .dashboard-section {
-    padding: var(--spacing-lg);
-  }
 }
-
-
-/* ===== Source: 40_flash.css ===== */
-/* === Flash message styles ================================================ */
 
 .flash {
   display: block;
@@ -3125,25 +3011,6 @@ body {
   }
 }
 
-
-/* ===== Source: 50_forms_tables.css ===== */
-
-.empty-state {
-  margin: 4rem auto;
-  max-width: 440px;
-  padding: 2rem;
-  text-align: center;
-  border-radius: 12px;
-  background: #faf6f5;
-  border: 1px solid rgba(80, 0, 0, 0.12);
-  color: #333;
-}
-
-.empty-state .icon {
-  font-size: var(--font-size-5xl);
-  margin-bottom: 0.75rem;
-}
-
 .muted {
   color: #a0a0a0;
 }
@@ -3151,71 +3018,127 @@ body {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   background: #d5d5d5;
   color: #333;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-
-/* ===== Source: 60_components_accessibility.css (non-contrast) ===== */
-/* Dashboard-specific component styles */
-/* === Admin survey builder =================================================
- * Small, reusable primitives for sticky sidebars and builder navigation.
- * These are intentionally general so other admin pages can reuse them.
- * ======================================================================= */
-
-/* Sticky containers that should scroll independently when content is long. */
 .sticky-scroll {
   max-height: calc(100vh - (var(--header-height) + var(--spacing-4xl)));
   overflow: auto;
   scrollbar-gutter: stable;
 }
 
-/* Smooth scroll anchor offset so sticky headers don't cover targets. */
-.survey-builder-layout [data-builder-kind] {
+.c-builder-node {
   scroll-margin-top: calc(var(--header-height) + var(--spacing-2xl));
 }
 
-/* Slightly nicer focus states on generated sidebar nav buttons. */
 .survey-builder-nav button[data-builder-nav-kind]:focus-visible {
   outline: 2px solid var(--info-color);
   outline-offset: 2px;
 }
 
-/* Drag handles: make them look interactive without changing the markup. */
-.survey-builder-layout .js-drag-handle {
+.c-builder-sort-handle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 34px;
   min-height: 30px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--border-radius-md);
+  border: 1px solid var(--gray-200);
+  background-color: var(--white);
+  color: var(--gray-500);
+  cursor: grab;
+  user-select: none;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
   transition: background-color var(--transition-normal), border-color var(--transition-normal);
 }
 
-.survey-builder-layout .js-drag-handle:hover {
+.c-builder-sort-handle:hover {
   background-color: var(--gray-50);
   border-color: var(--gray-300);
 }
 
-.survey-builder-layout .js-drag-handle:active {
+.c-builder-sort-handle:active {
   background-color: var(--gray-100);
 }
 
-/* Builder cards: consistent rhythm and nicer hierarchy. */
+.c-builder-node__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
 
-/* Light accent to help scanning. */
+.c-builder-node__kind {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+}
 
-/* Tighten large textareas in cards a bit on wide screens. */
+.c-builder-node__kind--section {
+  background-color: rgba(251, 191, 36, 0.18);
+  color: #92400e;
+}
 
-/* When the legend is rendered inside the builder's sticky sidebar, avoid nested
- * sticky + nested scroll containers (legend already handles its own layout on
- * the student survey page).
- */
+.c-builder-node__kind--category {
+  background-color: rgba(148, 163, 184, 0.16);
+  color: #334155;
+}
+
+.c-builder-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--gray-200);
+  background-color: var(--white);
+  color: var(--gray-600);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+.c-builder-toggle:hover {
+  background-color: var(--gray-50);
+  border-color: var(--gray-300);
+}
+
+.c-builder-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-md);
+  border: 1px dashed var(--gray-300);
+  background: var(--white);
+  color: var(--gray-700);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: border-color var(--transition-normal), background-color var(--transition-normal), color var(--transition-normal);
+}
+
+.c-builder-add-button:hover {
+  border-color: var(--gray-400);
+  background-color: var(--gray-50);
+}
+
 .survey-builder-layout .survey-legend {
   position: static;
   top: auto;
@@ -3226,138 +3149,22 @@ body {
   overflow: visible;
 }
 
-/* Focus mode: collapse non-active section/category bodies to reduce scroll noise. */
-.survey-builder-layout [data-builder-kind="section"].is-collapsed [data-builder-section-body],
-.survey-builder-layout [data-builder-kind="category"].is-collapsed [data-builder-category-body] {
+.c-builder-collapsible.is-collapsed .c-builder-collapsible__body {
   display: none;
 }
 
-.survey-builder-layout [data-builder-kind="section"].is-collapsed,
-.survey-builder-layout [data-builder-kind="category"].is-collapsed {
+.c-builder-collapsible.is-collapsed {
   opacity: 0.9;
-}
-
-.survey-builder-layout [data-builder-kind="section"].is-collapsed,
-.survey-builder-layout [data-builder-kind="category"].is-collapsed {
   border-style: dashed;
 }
 
-.survey-builder-layout [data-builder-kind="section"]:not(.is-collapsed),
-.survey-builder-layout [data-builder-kind="category"]:not(.is-collapsed) {
+.c-builder-collapsible:not(.is-collapsed) {
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
 }
 
-/* Search and Filters */
-
-/* Button Styles */
-/* Shared base button styling used across the app.
-   Use .btn + a variant (.btn-primary/.btn-secondary/...). */
-:where(.btn) {
-  -webkit-appearance: none;
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  min-height: 40px;
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-tight);
-  text-decoration: none;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
-  font-family: var(--font-family);
-  white-space: nowrap;
-  user-select: none;
-}
-
-:where(.btn):focus-visible {
-  outline: 3px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-:where(.btn):disabled,
-:where(.btn)[aria-disabled="true"] {
-  opacity: 0.6;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* Size helpers */
-.btn-sm { padding: 0.35rem 0.75rem; min-height: 34px; font-size: var(--font-size-xs); }
-.btn-block { width: 100%; }
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: var(--white);
-  border-color: var(--primary-color);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--tamu-maroon-dark);
-  border-color: var(--tamu-maroon-dark);
-}
-
-.btn-secondary {
-  background-color: var(--white);
-  color: var(--gray-600);
-  border-color: var(--gray-300);
-}
-
-.btn-secondary:hover {
-  background-color: var(--gray-50);
-  border-color: var(--gray-400);
-  text-decoration: none;
-  color: var(--gray-700);
-}
-
-.btn-subtle {
-  background-color: var(--gray-100);
-  color: var(--gray-700);
-  border-color: var(--gray-200);
-}
-
-.btn-subtle:hover:not(:disabled) {
-  background-color: var(--gray-200);
-  border-color: var(--gray-300);
-  color: var(--gray-800);
-}
-
-.btn-danger {
-  background-color: var(--error-color);
-  color: var(--white);
-  border-color: var(--error-color);
-}
-
-.btn-danger:hover:not(:disabled) {
-  filter: brightness(0.92);
-}
-
-/* Existing ghost variant, aligned with shared base button. */
-.btn-ghost {
-  background-color: transparent;
-  color: var(--gray-600);
-  border-color: transparent;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-/* Admin survey layouts */
 .survey-form-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: var(--spacing-3xl);
-}
-
-.survey-form-main {
-  display: flex;
-  flex-direction: column;
   gap: var(--spacing-3xl);
 }
 
@@ -3425,43 +3232,11 @@ body {
   color: var(--gray-400);
 }
 
-.survey-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2xl);
-}
-
-.survey-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2xl);
-}
-
-.survey-content-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-2xl);
-  flex-wrap: wrap;
-}
-
-.survey-content-heading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
 .heading-actions {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
   align-items: center;
-}
-
-.survey-list-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2xl);
 }
 
 .survey-table {
@@ -3538,7 +3313,6 @@ body {
   color: var(--gray-600);
 }
 
-
 .survey-card {
   padding: var(--spacing-3xl);
   box-shadow: var(--shadow-md);
@@ -3584,13 +3358,17 @@ body {
   gap: var(--spacing-xs);
 }
 
-.status-badge {
+.survey-card__status .status-badge {
   padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--border-radius-full);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.status-badge--info {
+  background-color: var(--info-light);
+  color: var(--info-color);
 }
 
 .status-badge--success {
@@ -3601,11 +3379,6 @@ body {
 .status-badge--muted {
   background-color: var(--gray-100);
   color: var(--gray-600);
-}
-
-.status-note {
-  font-size: var(--font-size-sm);
-  color: var(--gray-500);
 }
 
 .survey-card__stats {
@@ -3698,7 +3471,7 @@ body {
 
 @media (max-width: 768px) {
   .form-card,
-  .survey-list-card {
+  .c-card.u-stack--xl {
     padding: var(--spacing-xl);
   }
 

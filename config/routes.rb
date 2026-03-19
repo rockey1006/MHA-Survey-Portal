@@ -71,6 +71,7 @@ Rails.application.routes.draw do
       end
     end
     resources :questions
+    resources :activities, only: :index
     resources :survey_change_logs, only: :index
     resources :program_semesters, only: %i[create update destroy] do
       member do

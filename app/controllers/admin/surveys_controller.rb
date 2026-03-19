@@ -20,7 +20,6 @@ class Admin::SurveysController < Admin::BaseController
       "title" => "surveys.title",
       "semester" => "program_semesters.name",
       "updated_at" => "surveys.updated_at",
-      "question_count" => "question_count",
       "category_count" => "category_count",
       "section_count" => "section_count"
     }
@@ -45,8 +44,6 @@ class Admin::SurveysController < Admin::BaseController
         term: term
       )
     end
-
-    active_scope = active_scope.distinct
 
     active_scope = active_scope
       .left_joins(:categories, :questions, :sections)

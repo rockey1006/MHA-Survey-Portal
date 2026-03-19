@@ -8,7 +8,7 @@
 <% end %>
 <% category_uid = category.persisted? ? "category-#{category.id}" : "category-temp-#{category.object_id}" %>
 <article id="<%= category_uid %>"
-         class="c-card survey-category-card space-y-6"
+         class="c-card survey-category-card c-builder-node c-builder-collapsible space-y-6"
          data-builder-kind="category"
          data-builder-label="<%= category.name.to_s.strip.presence || 'Untitled category' %>"
          data-category-fields-target="item">
@@ -21,13 +21,13 @@
       <% end %>
 
       <div class="flex items-center justify-between gap-3">
-        <span class="js-drag-handle select-none rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 cursor-grab" aria-label="Drag to reorder">
+        <span class="js-drag-handle c-builder-sort-handle" aria-label="Drag to reorder">
           ⋮⋮
         </span>
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Category</span>
+        <div class="c-builder-node__meta">
+          <span class="c-builder-node__kind c-builder-node__kind--category">Category</span>
           <button type="button"
-                  class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-semibold text-slate-600 hover:bg-slate-50"
+                  class="c-builder-toggle"
                   data-action="survey-builder#toggleCategory"
                   data-category-id="<%= category_uid %>">
             Toggle
@@ -61,7 +61,7 @@
     </button>
   </div>
 
-  <div class="survey-builder-category-body space-y-5" data-builder-category-body>
+  <div class="survey-builder-category-body c-builder-collapsible__body space-y-5" data-builder-category-body>
     <div class="space-y-2">
       <%= category_fields.label :description, "Description", class: "block text-sm font-medium text-slate-700" %>
       <%= category_fields.text_area :description, class: textarea_classes, placeholder: "Optional context shown to advisors and students." %>
@@ -146,7 +146,7 @@
       <template data-question-fields-target="template"><%= template %></template>
 
       <button type="button"
-              class="rounded-lg border border-dashed border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              class="c-builder-add-button"
               data-action="question-fields#add">
         + Add another question
       </button>

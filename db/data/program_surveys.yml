@@ -1,40 +1,34 @@
 mha_competency_tooltip: &mha_competency_tooltip |
-  Mastery (5)
-  ----------
+  ## Mastery (5)
   - The student is a recognized authority and a leader who can shape professional practice.
   - They demonstrate extensive knowledge of current trends and complex theories.
   - They can pioneer new solutions and troubleshoot complex, non-routine problems.
   - They function with complete independence and contribute to strategic-level decision-making.
 
-  Experienced (4)
-  -------------
+  ## Experienced (4)
   - The student has a strong, well-developed skill set and can apply complex theories in their professional practice.
   - They have a deep understanding of core concepts and specialized theories and can articulate nuances to others.
   - They independently apply theoretical knowledge to solve real-world problems with minimal to no guidance.
 
-  Capable (3)
-  ----------
+  ## Capable (3)
   - The student has a practical, working grasp of the professional area and can perform standard tasks independently.
   - They possess foundational knowledge and skills and can complete a range of standard job tasks.
   - They can work without assistance on most routine assignments and effectively participate in team projects.
   - They reliably meet expectations for their position but may need minimal guidance for unusual situations.
 
-  Emerging (2)
-  ----------
+  ## Emerging (2)
   - The student has a limited, but growing, understanding of professional concepts and requires direct guidance for complex tasks.
   - They are familiar with foundational terminology and techniques, but their understanding is limited in scope.
   - They can perform basic, simple tasks but their performance does not consistently meet professional standards.
   - They operate under close supervision and need frequent checks and clear instructions.
 
-  Beginner (1)
-  ----------
+  ## Beginner (1)
   - The student has only a basic or superficial understanding with little to no practical experience.
   - They have a basic awareness of the topic and can identify core concepts.
   - They cannot perform job duties independently, and their performance generally fails to meet expectations even with guidance.
   - They require constant and direct supervision for all tasks.
 
-  Not able to assess (0) [Advisor Only]
-  ---------------------
+  ## Not able to assess (0) [Advisor Only]
   - Advisor only option for cases where a rating cannot be provided.
 
 mha_competency_dropdown_options: &mha_competency_dropdown_options
@@ -74,6 +68,34 @@ templates:
   evidence_section: &evidence_section
     title: "Evidence"
     description: "Submit one link for the entire survey."
+
+  portfolio_review_section: &portfolio_review_section
+    title: "Portfolio Review"
+    description: >-
+      Each student should review their portfolio, reflect on their experience/performance
+      in the program, and then respond to the questions that follow.
+
+  portfolio_review_category: &portfolio_review_category
+    name: "Portfolio Review"
+    description: "Student reflection before advisor review meeting"
+    section: *portfolio_review_section
+    questions:
+      - order: 1
+        text: "Are you satisfied with where you are (competency [knowledge, skills, behaviors] development) at this time?"
+        type: "short_answer"
+        required: true
+      - order: 2
+        text: "What are you thinking (at this time) for career direction (location, type of organization, position/role, etc.)?"
+        type: "short_answer"
+        required: true
+      - order: 3
+        text: "What are you going to do to support your development and gain further career direction?"
+        type: "short_answer"
+        required: true
+      - order: 4
+        text: "What do you need from me to support your development?"
+        type: "short_answer"
+        required: true
 
 common_categories: &common_categories
   - name: "Employment Information"
@@ -293,13 +315,19 @@ surveys:
     title: "RMHA Final Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-03-20"
+    extra_categories:
+      - *portfolio_review_category
 
   - <<: *executive_track_survey_base
     title: "EMHA Mid-point Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-05-31"
+    extra_categories:
+      - *portfolio_review_category
 
   - <<: *executive_track_survey_base
     title: "EMHA Final Competency Survey"
     program_semester: "Spring 2026"
     available_until: "2026-03-20"
+    extra_categories:
+      - *portfolio_review_category

@@ -1060,6 +1060,32 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_includes log.description, "Spring 2025"
   end
 
+  test "destroy removes survey response versions before deleting" do
+    survey = surveys(:spring_2025)
+    assignment = SurveyAssignment.create!(
+      survey: survey,
+      student: students(:student),
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
+    )
+    version = SurveyResponseVersion.create!(
+      student: students(:student),
+      survey: survey,
+      survey_assignment: assignment,
+      event: "submitted",
+      answers: {}
+    )
+
+    assert_difference "Survey.count", -1 do
+      assert_difference "SurveyResponseVersion.count", -1 do
+        delete admin_survey_path(survey)
+      end
+    end
+
+    assert_redirected_to admin_surveys_path
+    assert_not SurveyResponseVersion.exists?(version.id)
+  end
+
   # === Archive Action ===
 
   test "archives survey and preserves track assignments" do

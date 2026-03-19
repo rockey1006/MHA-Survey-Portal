@@ -70,7 +70,7 @@ function renderList(lines, ordered) {
   const tag = ordered ? "ol" : "ul"
   const items = lines
     .map((line) => {
-      const value = ordered ? line.replace(/^\d+\.\s+/, "") : line.replace(/^-\s+/, "")
+      const value = ordered ? line.replace(/^\s*\d+\.\s+/, "") : line.replace(/^\s*[-*+]\s+/, "")
       return `<li>${applyInlineMarkdown(value)}</li>`
     })
     .join("")
@@ -88,11 +88,45 @@ export function renderMarkdown(text) {
       const lines = block.split(/\r?\n/).filter((line) => line.length)
       if (!lines.length) return ""
 
-      const allBullets = lines.every((line) => /^-\s+/.test(line))
+      const allBullets = lines.every((line) => /^\s*[-*+]\s+/.test(line))
       if (allBullets) return renderList(lines, false)
 
-      const allOrdered = lines.every((line) => /^\d+\.\s+/.test(line))
+      const allOrdered = lines.every((line) => /^\s*\d+\.\s+/.test(line))
       if (allOrdered) return renderList(lines, true)
+
+      const setext = lines.length >= 2 ? lines[1].match(/^([=-])\1{2,}$/) : null
+      if (setext) {
+        const level = setext[1] === "=" ? 1 : 2
+        const headingHtml = `<h${level}>${applyInlineMarkdown(lines[0])}</h${level}>`
+        const remainder = lines.slice(2)
+
+        if (!remainder.length) return headingHtml
+
+        const remainderAllBullets = remainder.every((line) => /^\s*[-*+]\s+/.test(line))
+        if (remainderAllBullets) return `${headingHtml}${renderList(remainder, false)}`
+
+        const remainderAllOrdered = remainder.every((line) => /^\s*\d+\.\s+/.test(line))
+        if (remainderAllOrdered) return `${headingHtml}${renderList(remainder, true)}`
+
+        return `${headingHtml}<p>${applyInlineMarkdown(remainder.join("\n"))}</p>`
+      }
+
+      const atx = lines[0].match(/^(#{1,6})\s+(.+)$/)
+      if (atx) {
+        const level = atx[1].length
+        const headingHtml = `<h${level}>${applyInlineMarkdown(atx[2])}</h${level}>`
+        const remainder = lines.slice(1)
+
+        if (!remainder.length) return headingHtml
+
+        const remainderAllBullets = remainder.every((line) => /^\s*[-*+]\s+/.test(line))
+        if (remainderAllBullets) return `${headingHtml}${renderList(remainder, false)}`
+
+        const remainderAllOrdered = remainder.every((line) => /^\s*\d+\.\s+/.test(line))
+        if (remainderAllOrdered) return `${headingHtml}${renderList(remainder, true)}`
+
+        return `${headingHtml}<p>${applyInlineMarkdown(remainder.join("\n"))}</p>`
+      }
 
       const heading = lines[0].match(/^(#{1,6})\s+(.+)$/)
       if (heading && lines.length === 1) {

@@ -111,11 +111,47 @@ module MarkdownHelper
       lines = block.split(/\r?\n/).reject(&:blank?)
       next "" if lines.empty?
 
-      if lines.all? { |line| line.match?(/\A-\s+/) }
-        items = lines.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A-\s+/, ""))}</li>" }.join
+      setext = lines.length >= 2 ? lines[1].match(/\A([=-])\1{2,}\z/) : nil
+      if setext
+        level = setext[1] == "=" ? 1 : 2
+        heading_html = "<h#{level}>#{inline_markdown_fallback(lines.first)}</h#{level}>"
+        remainder = lines.drop(2)
+        next heading_html if remainder.empty?
+
+        if remainder.all? { |line| line.match?(/\A\s*[-*+]\s+/) }
+          items = remainder.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\s*[-*+]\s+/, ""))}</li>" }.join
+          next "#{heading_html}<ul>#{items}</ul>"
+        elsif remainder.all? { |line| line.match?(/\A\s*\d+\.\s+/) }
+          items = remainder.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\s*\d+\.\s+/, ""))}</li>" }.join
+          next "#{heading_html}<ol>#{items}</ol>"
+        else
+          next "#{heading_html}<p>#{inline_markdown_fallback(remainder.join("\n"))}</p>"
+        end
+      end
+
+      atx = lines.first.match(/\A(\#{1,6})\s+(.+)\z/)
+      if atx
+        level = atx[1].length
+        heading_html = "<h#{level}>#{inline_markdown_fallback(atx[2])}</h#{level}>"
+        remainder = lines.drop(1)
+        next heading_html if remainder.empty?
+
+        if remainder.all? { |line| line.match?(/\A\s*[-*+]\s+/) }
+          items = remainder.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\s*[-*+]\s+/, ""))}</li>" }.join
+          next "#{heading_html}<ul>#{items}</ul>"
+        elsif remainder.all? { |line| line.match?(/\A\s*\d+\.\s+/) }
+          items = remainder.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\s*\d+\.\s+/, ""))}</li>" }.join
+          next "#{heading_html}<ol>#{items}</ol>"
+        else
+          next "#{heading_html}<p>#{inline_markdown_fallback(remainder.join("\n"))}</p>"
+        end
+      end
+
+      if lines.all? { |line| line.match?(/\A\s*[-*+]\s+/) }
+        items = lines.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\s*[-*+]\s+/, ""))}</li>" }.join
         "<ul>#{items}</ul>"
-      elsif lines.all? { |line| line.match?(/\A\d+\.\s+/) }
-        items = lines.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\d+\.\s+/, ""))}</li>" }.join
+      elsif lines.all? { |line| line.match?(/\A\s*\d+\.\s+/) }
+        items = lines.map { |line| "<li>#{inline_markdown_fallback(line.sub(/\A\s*\d+\.\s+/, ""))}</li>" }.join
         "<ol>#{items}</ol>"
       elsif lines.length == 1 && (match = lines.first.match(/\A(\#{1,6})\s+(.+)\z/))
         level = match[1].length

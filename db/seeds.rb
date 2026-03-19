@@ -408,7 +408,7 @@ survey_templates.each do |definition|
 
     question_feedback_supported = Question.column_names.include?("has_feedback")
 
-    categories = Array(definition.fetch("categories", []))
+    categories = Array(definition.fetch("categories", [])) + Array(definition["extra_categories"])
     section_assignments = sections_supported ? {} : nil
     categories.each do |category_definition|
       category = survey.categories.build(

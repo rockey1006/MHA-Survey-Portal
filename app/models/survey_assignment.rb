@@ -7,6 +7,7 @@ class SurveyAssignment < ApplicationRecord
   belongs_to :survey
   belongs_to :student, foreign_key: :student_id, primary_key: :student_id
   belongs_to :advisor, foreign_key: :advisor_id, primary_key: :advisor_id, optional: true
+  has_many :survey_response_versions, dependent: :nullify
 
   after_commit :enqueue_assigned_notification, on: :create
 

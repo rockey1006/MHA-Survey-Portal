@@ -513,6 +513,19 @@ class SurveysController < ApplicationController
       progress: progress_summary
     )
 
+    begin
+      SurveyResponseVersion.capture_current!(
+        student: student,
+        survey: @survey,
+        assignment: assignment,
+        actor_user: current_user,
+        event: :edited,
+        skip_if_unchanged: true
+      )
+    rescue StandardError => version_error
+      Rails.logger.warn "[SAVE_PROGRESS] Failed to capture survey response version: #{version_error.class}: #{version_error.message}"
+    end
+
     redirect_to student_dashboard_path, notice: notice_message
   end
 

@@ -79,7 +79,7 @@
   <% avg_advisor = advisor_values.any? ? (advisor_values.sum / advisor_values.size) : nil %>
 
   <section class="pdf-section">
-    <h2 class="section-title">Competency Summary</h2>
+    <h2 class="c-section-title c-heading-inline">Competency Summary</h2>
     <table class="competency-table">
       <thead>
         <tr>
@@ -111,7 +111,7 @@
 <% end %>
 
 <section class="pdf-section">
-  <h2 class="section-title">Student Responses</h2>
+  <h2 class="c-section-title c-heading-inline">Student Responses</h2>
 
   <% rendered_section_ids = [] %>
   <% section_question_numbers = Hash.new(0) %>
@@ -350,7 +350,7 @@
 <% legacy_feedback_by_category = feedbacks_by_category.transform_values { |entries| Array(entries).select { |entry| entry.question_id.blank? } } %>
 <% if legacy_feedback_by_category.values.any?(&:any?) %>
   <section class="pdf-section">
-    <h2 class="section-title">Advisor Feedback</h2>
+    <h2 class="c-section-title c-heading-inline">Advisor Feedback</h2>
     <% categories.each do |category| %>
       <% feedback_entries = legacy_feedback_by_category[category.id] || [] %>
       <% next unless feedback_entries.any? %>

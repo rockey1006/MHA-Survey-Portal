@@ -1,9 +1,9 @@
 <main class="main-content">
-  <section class="c-card dashboard-section">
-    <div class="section-header">
+  <section class="c-card p-8 md:p-10">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 class="section-title">Question Bank</h1>
-        <p class="section-subtitle">Create, edit, and remove prompts that can be assigned to surveys.</p>
+        <h1 class="c-section-title c-heading-inline">Question Bank</h1>
+        <p class="mt-1 text-sm leading-relaxed text-slate-600">Create, edit, and remove prompts that can be assigned to surveys.</p>
       </div>
       <div class="section-actions">
         <%= link_to "New Question", new_admin_question_path, class: tailwind_button_classes(:primary) %>
@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <div class="c-card survey-list-card">
+    <div class="c-card u-stack u-stack--xl">
       <% if @questions.blank? %>
         <p class="empty-state">No questions have been created yet.</p>
       <% else %>

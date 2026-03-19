@@ -20,7 +20,6 @@ class Admin::SurveysController < Admin::BaseController
       "title" => "surveys.title",
       "semester" => "program_semesters.name",
       "updated_at" => "surveys.updated_at",
-      "question_count" => "question_count",
       "category_count" => "category_count",
       "section_count" => "section_count"
     }
@@ -45,8 +44,6 @@ class Admin::SurveysController < Admin::BaseController
         term: term
       )
     end
-
-    active_scope = active_scope.distinct
 
     active_scope = active_scope
       .left_joins(:categories, :questions, :sections)
@@ -123,6 +120,7 @@ class Admin::SurveysController < Admin::BaseController
   # @return [void]
   def update
     autosave_request = params[:autosave].to_s == "1"
+    force_deadline_for_everyone = params[:force_deadline_for_everyone].to_s == "1"
     tracks = selected_tracks
     before_snapshot = survey_snapshot(@survey)
 
@@ -202,8 +200,11 @@ class Admin::SurveysController < Admin::BaseController
         end
       end
 
+      sync_competency_targets_from_questions!(survey: @survey, tracks: tracks)
+
       if previous_available_from != @survey.available_from ||
           previous_available_until != @survey.available_until
+        all_assignments_scope = SurveyAssignment.where(survey_id: @survey.id)
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
 
         if has_offerings
@@ -218,17 +219,45 @@ class Admin::SurveysController < Admin::BaseController
           end
 
           SurveyOffering.where(survey_id: @survey.id).update_all(updates)
-        else
-          SurveyAssignment
-            .where(survey_id: @survey.id, completed_at: nil)
-            .update_all(
+
+          if force_deadline_for_everyone
+            all_assignments_scope.update_all(
               available_from: @survey.available_from,
               available_until: @survey.available_until,
               updated_at: Time.current
             )
-        end
+          end
+        else
+          assignments_scope = SurveyAssignment.where(survey_id: @survey.id, completed_at: nil)
 
-        ReconcileSurveyAssignmentsJob.perform_later(survey_id: @survey.id)
+          assignments_scope.update_all(
+            available_from: @survey.available_from,
+            updated_at: Time.current
+          )
+
+          if force_deadline_for_everyone
+            all_assignments_scope.update_all(
+              available_from: @survey.available_from,
+              available_until: @survey.available_until,
+              updated_at: Time.current
+            )
+          else
+            inherited_deadline_scope = if previous_available_until.nil?
+              assignments_scope.where(available_until: nil)
+            else
+              assignments_scope.where(
+                "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
+                previous: previous_available_until,
+                previous_date: previous_available_until.to_date
+              )
+            end
+
+            inherited_deadline_scope.update_all(
+              available_until: @survey.available_until,
+              updated_at: Time.current
+            )
+          end
+        end
       end
 
       persist_category_section_links
@@ -236,7 +265,12 @@ class Admin::SurveysController < Admin::BaseController
       description = change_summary(before_snapshot, survey_snapshot(@survey), tracks)
       @survey.log_change!(admin: current_user, action: "update", description: description)
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
-      redirect_to admin_surveys_path, notice: "Survey updated successfully."
+      notice = if force_deadline_for_everyone
+        "Survey updated successfully. Available from and Available until were applied to everyone assigned to this survey, including completed responses."
+      else
+        "Survey updated successfully."
+      end
+      redirect_to admin_surveys_path, notice: notice
     else
       Rails.logger.info("[autosave] survey=#{@survey.id} save FAILED: #{@survey.errors.full_messages.to_sentence}") if autosave_request && Rails.env.development?
       build_default_structure(@survey)
@@ -395,6 +429,9 @@ class Admin::SurveysController < Admin::BaseController
       :question_type,
       :question_order,
       :answer_options,
+      :prompt_format,
+      :integer_min,
+      :integer_max,
       :is_required,
       :has_evidence_field,
       :_destroy
@@ -470,6 +507,49 @@ class Admin::SurveysController < Admin::BaseController
     @available_tracks = Survey.track_options
     @question_types = Question.question_types.keys
     @program_semester_options = ProgramSemester.ordered.pluck(:name)
+  end
+
+  # Phase 1 single-source transition:
+  # mirror per-question target level edits into competency_target_levels,
+  # while retaining Question#program_target_level for compatibility.
+  def sync_competency_targets_from_questions!(survey:, tracks:)
+    return unless survey&.respond_to?(:questions)
+
+    titles = Reports::DataAggregator::COMPETENCY_TITLES
+    return if titles.blank?
+
+    selected_tracks = Array(tracks).map { |track| Survey.canonical_track(track) || track }
+    selected_tracks = selected_tracks.compact.reject(&:blank?).uniq
+    selected_tracks = survey.track_list if selected_tracks.blank?
+    return if selected_tracks.blank?
+
+    competency_questions = survey.questions.where(question_text: titles)
+    return if competency_questions.empty?
+
+    competency_questions.find_each do |question|
+      title = question.question_text.to_s.strip
+      next if title.blank?
+
+      level = question.respond_to?(:program_target_level) ? question.program_target_level.presence : nil
+
+      selected_tracks.each do |track|
+        attrs = {
+          program_semester_id: survey.program_semester_id,
+          track: track,
+          class_of: nil,
+          competency_title: title
+        }
+
+        if level.blank?
+          CompetencyTargetLevel.where(attrs).delete_all
+          next
+        end
+
+        record = CompetencyTargetLevel.find_or_initialize_by(attrs)
+        record.target_level = level.to_i
+        record.save!
+      end
+    end
   end
 
   # Ensures the survey has at least one category with a question scaffolded for

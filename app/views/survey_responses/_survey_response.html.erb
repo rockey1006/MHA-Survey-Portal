@@ -103,13 +103,13 @@
           <% section_anchor_id = "survey-section-#{section.id}" %>
           <div class="c-card survey-section-card space-y-2 text-left">
             <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
-            <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
+            <h2 class="survey-section-title c-heading-inline text-xl font-bold"><%= section.title %></h2>
             <% if section.description.present? && !section.mha_competency? %>
-              <p class="text-sm text-slate-700"><%= section.description %></p>
+              <div class="text-sm text-slate-700"><%= render_markdown(section.description) %></div>
             <% end %>
 
             <% if section.mha_competency? %>
-              <p class="mt-3 text-sm text-slate-700"><%= section.description %></p>
+              <div class="mt-3 text-sm text-slate-700"><%= render_markdown(section.description) %></div>
             <% end %>
           </div>
           <% rendered_section_ids << section.id %>
@@ -120,7 +120,7 @@
             <h2 class="text-xl font-semibold tracking-tight text-slate-900"><%= category.name %></h2>
             <% category_desc = category.description.to_s.strip.presence %>
             <% if category_desc.present? %>
-              <p class="indented-description text-sm text-slate-600"><%= category_desc.gsub(/\r?\n/, '<br>').html_safe %></p>
+              <div class="indented-description text-sm text-slate-600"><%= render_markdown(category_desc) %></div>
             <% end %>
           </header>
 
@@ -159,9 +159,8 @@
                     <% answer_value = raw_answer %>
                     <% answer_text = raw_answer %>
                   <% end %>
-                  <% q_text = question.question_text.to_s.squish %>
                   <% desc_text = question.description.to_s.strip.presence %>
-                  <% formatted_desc = desc_text.present? ? desc_text.gsub(/\r?\n/, '<br>').html_safe : nil %>
+                  <% formatted_desc = desc_text.present? ? render_markdown(desc_text) : nil %>
 
                 <% # Compute if this question is required using the same logic as the controller %>
                 <% required = question.is_required? %>
@@ -201,7 +200,9 @@
 
                       <span class="min-w-0 flex flex-col gap-1">
                         <span class="flex min-w-0 flex-wrap items-center gap-2">
-                          <span class="leading-snug"><%= q_text %></span>
+                          <span class="leading-snug">
+                            <%= render_question_prompt(question) %>
+                          </span>
                           <% if required %>
                             <span class="text-red-600" aria-hidden="true">*</span>
                           <% end %>
@@ -216,12 +217,24 @@
                     <% effective_target_level = effective_competency_target_level(question: question, survey: survey, student: sr&.student) %>
                     <% if question.question_type_dropdown? && effective_target_level.present? %>
                       <span class="shrink-0 ml-auto text-right">
-                        <span class="target-level-badge">Target Level: <%= effective_target_level %>/5</span>
+                        <span class="target-level-badge">End of Program Target Level: <%= effective_target_level %>/5</span>
                       </span>
                     <% end %>
                   </label>
 
                   <% case question.question_type %>
+                  <% when "integer" %>
+                    <%= number_field_tag "#{answer_param_key}[#{question.id}]",
+                                         answer_text.to_s.strip,
+                                         id: "question-#{question.id}",
+                                         min: question.integer_min_value,
+                                         max: question.integer_max_value,
+                                         step: 1,
+                                         inputmode: "numeric",
+                                         pattern: "\\d+",
+                                         placeholder: "Enter a whole number",
+                                         class: "w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+                                         disabled: input_disabled %>
                   <% when "short_answer" %>
                     <div data-controller="character-counter">
                       <%= text_area_tag "#{answer_param_key}[#{question.id}]",
@@ -309,33 +322,6 @@
                         <div class="mt-1 text-xs text-slate-500" data-character-counter-target="counter"><%= other_text.to_s.length %>/<%= StudentQuestion::TEXT_MAX_LENGTH %> characters</div>
                       </div>
                     <% end %>
-                  <% when "scale" %>
-                    <% scale_labels = scale_labels_for(question) %>
-                    <% scale_steps = [scale_labels.size, 1].max %>
-                    <% raw_scale = answer_value.to_s.presence %>
-                    <% slider_value = (raw_scale || ((scale_steps + 1) / 2.0).ceil.to_s).to_i.clamp(1, scale_steps) %>
-                    <div class="survey-scale-input space-y-1">
-                      <div class="flex items-center gap-3">
-                        <span class="text-xs text-slate-500"><%= scale_labels.first || "Low" %></span>
-                        <%= range_field_tag "#{answer_param_key}[#{question.id}]",
-                                            slider_value,
-                                            min: 1,
-                                            max: scale_steps,
-                                            step: 1,
-                                            id: "question-#{question.id}",
-                                            class: "w-full",
-                                            disabled: input_disabled %>
-                        <span class="text-xs text-slate-500"><%= scale_labels.last || "High" %></span>
-                      </div>
-                      <div class="flex justify-between text-[0.7rem] text-slate-500">
-                        <% scale_labels.each do |label| %>
-                          <span><%= label %></span>
-                        <% end %>
-                      </div>
-                      <div class="text-xs text-slate-600">
-                        Selected: <span><%= scale_label_for_value(question, slider_value) %></span>
-                      </div>
-                    </div>
                   <% when "evidence" %>
                     <% link_value = answer_text.to_s.strip.presence %>
                     <% if editable %>
@@ -386,7 +372,7 @@
 
                 <%# Read-only: render existing advisor feedback under the end of each
                     parent question group (parent + any sub-questions). %>
-                <% if !include_feedback_form && section&.mha_competency? %>
+                <% if !include_feedback_form %>
                   <% end_of_parent_group = if is_sub_question
                                              next_question.nil? || !next_question.sub_question? || next_question.parent_question_id != question.parent_question_id
                                            else
@@ -430,7 +416,7 @@
 
                 <%# Advisor feedback entry is only collected for parent questions in the
                     "MHA Competency Self-Assessment" section (mirrors the completing-survey experience). %>
-                <% if include_feedback_form && section&.mha_competency? %>
+                <% if include_feedback_form %>
                   <% end_of_parent_group = if is_sub_question
                                              next_question.nil? || !next_question.sub_question? || next_question.parent_question_id != question.parent_question_id
                                            else
@@ -525,16 +511,14 @@
       <div class="survey-block">
         <div id="survey-section-<%= section.id %>" class="c-card survey-section-card space-y-2 text-left">
           <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Section</p>
-          <h2 class="survey-section-title text-xl font-bold"><%= section.title %></h2>
+          <h2 class="survey-section-title c-heading-inline text-xl font-bold"><%= section.title %></h2>
           <% if section.description.present? && !section.mha_competency? %>
-            <p class="text-sm text-slate-700"><%= section.description %></p>
+            <div class="text-sm text-slate-700"><%= render_markdown(section.description) %></div>
           <% end %>
 
           <% if section.mha_competency? %>
             <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-sm text-rose-800 space-y-2">
-              <p>
-                <%= section.description %>
-              </p>
+              <%= render_markdown(section.description) %>
             </div>
           <% end %>
         </div>

@@ -5,27 +5,23 @@ require "caxlsx"
 module Reports
   # Builds an Excel workbook summarizing the analytics dataset for offline review.
   class ExcelExporter
-    SECTION_SHEETS = {
-      "benchmark" => %i[add_summary_sheet],
-      "trend" => %i[add_summary_sheet],
-      "domain" => %i[add_competency_sheet],
-      "competency_summary" => %i[add_competency_sheet],
-      "competency" => %i[add_competency_detail_sheet],
-      "competency_detail" => %i[add_competency_detail_sheet],
-      "track" => %i[add_track_sheet]
-    }.freeze
-    DEFAULT_SHEETS = SECTION_SHEETS.values.flatten.uniq.freeze
+    WORKBOOK_SHEETS = %i[
+      add_trend_sheet
+      add_domain_sheet
+      add_competency_sheet
+      add_track_sheet
+      add_employment_sheet
+    ].freeze
 
     def initialize(payload, section: nil)
       @payload = payload.deep_symbolize_keys
-      @section = section.to_s.presence
     end
 
     def generate
       package = Axlsx::Package.new
       workbook = package.workbook
 
-      sheet_methods_for_export.each do |method_name|
+      WORKBOOK_SHEETS.each do |method_name|
         send(method_name, workbook)
       end
 
@@ -34,19 +30,15 @@ module Reports
 
     private
 
-    attr_reader :payload, :section
+    attr_reader :payload
 
-    def sheet_methods_for_export
-      SECTION_SHEETS.fetch(section, DEFAULT_SHEETS)
-    end
-
-    def add_summary_sheet(workbook)
+    def add_trend_sheet(workbook)
       benchmark = payload[:benchmark] || {}
       cards = Array(benchmark[:cards])
       filters = payload[:filters] || {}
       timeline = Array(benchmark[:timeline])
 
-      workbook.add_worksheet(name: "Summary") do |sheet|
+      workbook.add_worksheet(name: "Trend") do |sheet|
         sheet.add_row [ "Generated At", format_timestamp(payload[:generated_at]) ]
         sheet.add_row []
         sheet.add_row [ "Active Filters" ]
@@ -81,13 +73,12 @@ module Reports
       end
     end
 
-    def add_competency_sheet(workbook)
+    def add_domain_sheet(workbook)
       summary = Array(payload[:competency_summary])
-      return if summary.blank?
 
-      workbook.add_worksheet(name: "Competencies") do |sheet|
+      workbook.add_worksheet(name: "Domain") do |sheet|
         sheet.add_row [
-          "Competency",
+          "Domain",
           "Program Target Level",
           "Student % Meeting Target",
           "Advisor % Meeting Target",
@@ -102,6 +93,10 @@ module Reports
           "Not Met %",
           "Not Assessed %"
         ]
+
+        if summary.blank?
+          sheet.add_row [ "No domain data available" ]
+        end
 
         summary.each do |entry|
           sheet.add_row [
@@ -124,11 +119,10 @@ module Reports
       end
     end
 
-    def add_competency_detail_sheet(workbook)
+    def add_competency_sheet(workbook)
       detail = Array(payload.dig(:competency_detail, :items))
-      return if detail.blank?
 
-      workbook.add_worksheet(name: "Competency Detail") do |sheet|
+      workbook.add_worksheet(name: "Competency") do |sheet|
         sheet.add_row [
           "Competency",
           "Domain",
@@ -142,6 +136,10 @@ module Reports
           "Not Met %",
           "Not Assessed %"
         ]
+
+        if detail.blank?
+          sheet.add_row [ "No competency data available" ]
+        end
 
         detail.each do |item|
           sheet.add_row [
@@ -163,9 +161,8 @@ module Reports
 
     def add_track_sheet(workbook)
       tracks = Array(payload[:track_summary])
-      return if tracks.blank?
 
-      workbook.add_worksheet(name: "Tracks") do |sheet|
+      workbook.add_worksheet(name: "Track") do |sheet|
         sheet.add_row [
           "Track",
           "On Track %",
@@ -177,6 +174,10 @@ module Reports
           "Not Met %",
           "Not Assessed %"
         ]
+
+        if tracks.blank?
+          sheet.add_row [ "No track data available" ]
+        end
 
         tracks.each do |entry|
           sheet.add_row [
@@ -190,6 +191,43 @@ module Reports
             format_number(entry[:not_met_percent], 1, suffix: "%"),
             format_number(entry[:not_assessed_percent], 1, suffix: "%")
           ]
+        end
+      end
+    end
+
+    def add_employment_sheet(workbook)
+      employment = payload[:employment_summary] || {}
+      status_counts = Array(employment[:status_counts])
+      hours = employment[:hours_distribution] || {}
+      flexibility = employment[:flexibility_distribution] || {}
+
+      workbook.add_worksheet(name: "Employment") do |sheet|
+        sheet.add_row [ "Generated At", format_timestamp(payload[:generated_at]) ]
+        sheet.add_row [ "Total Respondents", employment[:total_respondents] ]
+        sheet.add_row [ "Employment Rate", format_number(employment[:employment_rate], 1, suffix: "%") ]
+
+        sheet.add_row []
+        sheet.add_row [ "Status Breakdown" ]
+        sheet.add_row [ "Status", "Count" ]
+        sheet.add_row [ "No employment status data available", nil ] if status_counts.blank?
+        status_counts.each do |entry|
+          sheet.add_row [ entry[:label], entry[:count] ]
+        end
+
+        sheet.add_row []
+        sheet.add_row [ "Hours Per Week" ]
+        sheet.add_row [ "Bucket", "Count" ]
+        sheet.add_row [ "No hours data available", nil ] if Array(hours[:labels]).blank?
+        Array(hours[:labels]).zip(Array(hours[:data])).each do |label, count|
+          sheet.add_row [ label, count ]
+        end
+
+        sheet.add_row []
+        sheet.add_row [ "Work Schedule Flexibility" ]
+        sheet.add_row [ "Label", "Count" ]
+        sheet.add_row [ "No flexibility data available", nil ] if Array(flexibility[:labels]).blank?
+        Array(flexibility[:labels]).zip(Array(flexibility[:data])).each do |label, count|
+          sheet.add_row [ label, count ]
         end
       end
     end

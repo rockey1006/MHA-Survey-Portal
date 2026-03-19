@@ -71,6 +71,7 @@ Rails.application.routes.draw do
       end
     end
     resources :questions
+    resources :activities, only: :index
     resources :survey_change_logs, only: :index
     resources :program_semesters, only: %i[create update destroy] do
       member do
@@ -148,6 +149,7 @@ Rails.application.routes.draw do
     get "reports/competency-detail", to: "reports#competency_detail"
     get "reports/track-summary", to: "reports#track_summary"
     get "reports/benchmark", to: "reports#benchmark"
+    get "reports/employment-summary", to: "reports#employment_summary"
   end
 
   get "about", to: "pages#about", as: :about

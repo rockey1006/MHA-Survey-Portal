@@ -62,7 +62,7 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
     assert summary[:total_optional] >= 1
   end
 
-  test "progress summary counts only parent questions" do
+  test "required count updates when branch parent answer is yes" do
     skip "Sub-questions not supported" unless Question.sub_question_columns_supported?
 
     student = students(:student)
@@ -86,18 +86,28 @@ class SurveyResponseMethodsTest < ActiveSupport::TestCase
       sub_question_order: 0
     )
 
-    # Answering only a sub-question should not count toward progress.
-    StudentQuestion.create!(student_id: student.student_id, question: sub_question, response_value: "Sub answer")
+    # Parent answered No => child branch question is not required.
+    StudentQuestion.create!(student_id: student.student_id, question: parent_question, response_value: "No")
     sr = SurveyResponse.new(student: student, survey: survey)
     summary = sr.progress_summary
-    assert_equal 0, summary[:answered_total]
+    required_when_no = summary[:total_required]
+    answered_when_no = summary[:answered_required]
 
-    # Answering the parent question should count.
-    StudentQuestion.create!(student_id: student.student_id, question: parent_question, response_value: "Parent answer")
+    # Parent answered Yes => child becomes required, raising required count.
+    parent_record = StudentQuestion.find_by!(student_id: student.student_id, question_id: parent_question.id)
+    parent_record.update!(response_value: "Yes")
+
     sr2 = SurveyResponse.new(student: student, survey: survey)
     summary2 = sr2.progress_summary
-    assert_equal 1, summary2[:answered_total]
-    assert_equal 1, summary2[:answered_required]
+    assert_equal required_when_no + 1, summary2[:total_required]
+    assert_equal answered_when_no, summary2[:answered_required]
+
+    # Once child is answered, required answered count catches up.
+    StudentQuestion.create!(student_id: student.student_id, question: sub_question, response_value: "Sub answer")
+    sr3 = SurveyResponse.new(student: student, survey: survey)
+    summary3 = sr3.progress_summary
+    assert_equal required_when_no + 1, summary3[:total_required]
+    assert_equal answered_when_no + 1, summary3[:answered_required]
   end
 
   test "evidence_history_by_category groups evidence responses" do

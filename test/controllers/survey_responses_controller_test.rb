@@ -1058,8 +1058,8 @@ class SurveyResponsesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
     get survey_response_path(survey_response)
     assert_response :success
-    assert_match(/#{Regexp.escape(competency_title)}.*Target Level: 5\/5/m, response.body)
-    refute_match(/#{Regexp.escape(competency_title)}.*Target Level: 1\/5/m, response.body)
+    assert_match(/#{Regexp.escape(competency_title)}.*End of Program Target Level: 5\/5/m, response.body)
+    refute_match(/#{Regexp.escape(competency_title)}.*End of Program Target Level: 1\/5/m, response.body)
   end
 
   test "student can view their own survey response" do

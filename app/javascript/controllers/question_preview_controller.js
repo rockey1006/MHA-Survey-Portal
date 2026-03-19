@@ -9,27 +9,52 @@ export default class extends Controller {
 
   static targets = [
     "promptInput",
+    "promptFormatSelect",
     "descriptionInput",
-    "tooltipInput",
     "requiredInput",
+    "evidenceInput",
+    "feedbackInput",
+    "targetLevelInput",
     "typeSelect",
     "answerOptionsInput",
+    "answerOptionsEditor",
+    "optionsList",
+    "optionsEditorSection",
     "answerOptionsBlock",
+    "answerOptionsDrawer",
+    "answerOptionsToggleButton",
+    "answerOptionsToggleLabel",
+    "answerOptionsToggleIcon",
+    "answerOptionsCount",
+    "optionsDrawerBackdrop",
+    "optionsDrawerPanel",
+    "questionTypeDropdown",
+    "questionTypeButtonLabel",
+    "integerRulesBlock",
+    "integerMinInput",
+    "integerMaxInput",
+    "targetLevelBadge",
     "promptText",
+    "summaryPromptText",
+    "typeBadge",
     "descriptionText",
     "requiredStar",
-    "tooltipLine",
-    "tooltipRoot",
-    "tooltipBody",
+    "metadataRequired",
+    "metadataEvidence",
+    "metadataFeedback",
+    "metadataTarget",
     "response"
   ]
 
   connect() {
     this.update = this.update.bind(this)
     this.handleKeyDown = this.handleKeyDown.bind(this)
+    this.handleActivationEvent = this.handleActivationEvent.bind(this)
 
     // Track how the backing textarea stores options so edits preserve semantics.
     this.optionsFormat = this.detectOptionsFormat()
+    this.answerOptionsDrawerOpen = false
+    this.instanceId = this.element.id || `question-preview-${Math.random().toString(36).slice(2, 9)}`
 
     // If the textarea is empty/unparseable but Rails was able to compute option pairs,
     // bootstrap from them so the preview doesn't lose options.
@@ -38,7 +63,11 @@ export default class extends Controller {
     this.element.addEventListener("input", this.update)
     this.element.addEventListener("change", this.update)
     this.element.addEventListener("keydown", this.handleKeyDown)
+    window.addEventListener("question-preview:activate", this.handleActivationEvent)
+
+    this.hydrateEditorFromHidden()
     this.update()
+    this.updateOptionsCount()
   }
 
   bootstrapOptionsFromInitialPairs() {
@@ -97,6 +126,26 @@ export default class extends Controller {
     this.element.removeEventListener("input", this.update)
     this.element.removeEventListener("change", this.update)
     this.element.removeEventListener("keydown", this.handleKeyDown)
+    window.removeEventListener("question-preview:activate", this.handleActivationEvent)
+  }
+
+  activate(event) {
+    // Ignore clicks inside other interactive controls that should not steal focus.
+    if (event?.target?.closest?.("[data-action*='question-preview#closeOptionsDrawer']")) return
+
+    this.answerOptionsDrawerOpen = true
+    this.hydrateEditorFromHidden()
+    this.renderOptionsList()
+    this.syncAnswerOptionsDrawerUi()
+
+    window.dispatchEvent(new CustomEvent("question-preview:activate", { detail: { id: this.instanceId } }))
+  }
+
+  handleActivationEvent(event) {
+    const activeId = event?.detail?.id
+    if (!activeId || activeId === this.instanceId) return
+    this.answerOptionsDrawerOpen = false
+    this.syncAnswerOptionsDrawerUi()
   }
 
   update(event) {
@@ -109,9 +158,13 @@ export default class extends Controller {
 
     this.updatePrompt()
     this.updateDescription()
-    this.updateTooltip()
     this.updateRequired()
+    this.updateQuestionTypeUi()
+    this.updateTargetLevelBadge()
+    this.updateMetadataTray()
+    this.updateIntegerRulesVisibility()
     this.updateAnswerOptionsVisibility()
+    this.updateOptionsCount()
 
     if (!editingInsideResponsePreview) {
       this.updateResponsePreview()
@@ -119,9 +172,23 @@ export default class extends Controller {
   }
 
   updatePrompt() {
-    if (!this.hasPromptTextTarget) return
     const value = (this.promptInputTarget?.value || "").trim()
-    this.promptTextTarget.textContent = value.length ? value : "Untitled question"
+    const prompt = value.length ? value : "Untitled question"
+
+    if (this.hasSummaryPromptTextTarget) {
+      this.summaryPromptTextTarget.textContent = prompt
+    }
+
+    if (!this.hasPromptTextTarget) return
+
+    const rich = this.hasPromptFormatSelectTarget && this.promptFormatSelectTarget?.value === "rich_text"
+
+    if (rich) {
+      this.promptTextTarget.innerHTML = this.renderSafePromptHtml(prompt)
+      return
+    }
+
+    this.promptTextTarget.textContent = prompt
   }
 
   updateDescription() {
@@ -132,49 +199,7 @@ export default class extends Controller {
       return
     }
 
-    // Safe: we are rendering user input, so escape then convert newlines.
-    this.descriptionTextTarget.innerHTML = this.escapeHtml(raw).replace(/\r?\n/g, "<br>")
-  }
-
-  updateTooltip() {
-    const raw = (this.tooltipInputTarget?.value || "").trim()
-
-    if (this.hasTooltipRootTarget) {
-      this.tooltipRootTarget.classList.toggle("hidden", !raw.length)
-    }
-
-    if (this.hasTooltipBodyTarget) {
-      if (!raw.length) {
-        this.tooltipBodyTarget.innerHTML = '<span class="text-slate-400">Add tooltip</span>'
-      } else {
-        this.tooltipBodyTarget.innerHTML = this.escapeHtml(raw).replace(/\r?\n/g, "<br>")
-      }
-    }
-    if (this.hasTooltipLineTarget) {
-      if (!raw.length) {
-        this.tooltipLineTarget.classList.add("hidden")
-        this.tooltipLineTarget.textContent = ""
-      } else {
-        this.tooltipLineTarget.classList.remove("hidden")
-        this.tooltipLineTarget.textContent = `Tooltip: ${raw}`
-      }
-    }
-  }
-
-  editTooltip(event) {
-    event?.preventDefault()
-    event?.stopPropagation()
-
-    // Ensure the tooltip panel stays open while editing.
-    const root = event?.currentTarget?.closest?.("[data-standard-tooltip]")
-    if (root) root.dataset.tooltipOpen = "true"
-
-    this.startInlineEditor({
-      inputEl: this.tooltipInputTarget,
-      displayEl: this.tooltipBodyTarget,
-      placeholder: "Add tooltip",
-      multiline: true
-    })
+    this.descriptionTextTarget.innerHTML = this.renderPreviewMarkdown(raw)
   }
 
   updateRequired() {
@@ -188,15 +213,338 @@ export default class extends Controller {
 
     const type = (this.typeSelectTarget?.value || "").trim()
 
-    // Only hide the backing textarea when we provide an inline options editor.
-    const hidesAnswerOptions = type === "multiple_choice" || type === "dropdown"
-    this.answerOptionsBlockTarget.classList.toggle("hidden", hidesAnswerOptions)
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
+
+    // Keep the drawer trigger available for all types so advanced settings
+    // (including question type) stay accessible.
+    this.answerOptionsBlockTarget.classList.remove("hidden")
+
+    if (supportsOptions) {
+      this.syncAnswerOptionsDrawerUi()
+    }
+
+    if (this.hasOptionsEditorSectionTarget) {
+      this.optionsEditorSectionTarget.classList.toggle("hidden", !supportsOptions)
+    }
+
+    if (!supportsOptions && this.answerOptionsDrawerOpen && this.hasOptionsEditorSectionTarget) {
+      this.renderOptionsList()
+    }
+  }
+
+  updateQuestionTypeUi() {
+    const type = (this.typeSelectTarget?.value || "").trim()
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
+
+    if (this.hasQuestionTypeButtonLabelTarget) {
+      this.questionTypeButtonLabelTarget.textContent = this.humanizeType(type)
+    }
+
+    if (this.hasAnswerOptionsToggleLabelTarget) {
+      this.answerOptionsToggleLabelTarget.textContent = supportsOptions ? "Manage Options" : "Edit Settings"
+    }
+  }
+
+  updateTargetLevelBadge() {
+    if (!this.hasTargetLevelBadgeTarget) return
+    const value = this.hasTargetLevelInputTarget ? String(this.targetLevelInputTarget?.value || "").trim() : ""
+    this.targetLevelBadgeTarget.classList.toggle("hidden", !value.length)
+    if (value.length) {
+      this.targetLevelBadgeTarget.textContent = `Target ${value}/5`
+    }
+  }
+
+  setQuestionType(event) {
+    event?.preventDefault()
+
+    const type = String(event?.currentTarget?.dataset?.questionType || "").trim()
+    if (!type.length || !this.hasTypeSelectTarget) return
+
+    this.typeSelectTarget.value = type
+    this.typeSelectTarget.dispatchEvent(new Event("change", { bubbles: true }))
+
+    if (this.hasQuestionTypeDropdownTarget) {
+      this.questionTypeDropdownTarget.open = false
+    }
+
+    this.update()
+  }
+
+  updateIntegerRulesVisibility() {
+    if (!this.hasIntegerRulesBlockTarget) return
+    const type = (this.typeSelectTarget?.value || "").trim()
+    this.integerRulesBlockTarget.classList.toggle("hidden", type !== "integer")
+  }
+
+  openOptionsDrawer(event) {
+    event?.preventDefault()
+    this.activate(event)
+  }
+
+  closeOptionsDrawer(event) {
+    event?.preventDefault()
+    this.answerOptionsDrawerOpen = false
+    this.syncAnswerOptionsDrawerUi()
+  }
+
+  syncAnswerOptionsDrawerUi() {
+    if (!this.hasOptionsDrawerPanelTarget) return
+
+    this.optionsDrawerPanelTarget.classList.toggle("hidden", !this.answerOptionsDrawerOpen)
+    if (this.hasOptionsDrawerBackdropTarget) {
+      this.optionsDrawerBackdropTarget.classList.toggle("hidden", true)
+    }
+    this.optionsDrawerPanelTarget.setAttribute("aria-hidden", this.answerOptionsDrawerOpen ? "false" : "true")
+
+    if (this.hasAnswerOptionsToggleButtonTarget) {
+      this.answerOptionsToggleButtonTarget.setAttribute("aria-expanded", this.answerOptionsDrawerOpen ? "true" : "false")
+    }
+  }
+
+  updateOptionsCount() {
+    if (!this.hasAnswerOptionsCountTarget) return
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    this.answerOptionsCountTarget.textContent = String(entries.length)
+  }
+
+  syncFromEditor() {
+    if (!this.hasAnswerOptionsEditorTarget) return
+
+    const lines = this.answerOptionsEditorTarget.value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length)
+
+    const entries = lines.map((line) => ({ label: line, value: line }))
+    this.setOptionEntries(entries)
+    this.renderOptionsList()
+    this.updateOptionsCount()
+    this.updateResponsePreview()
+  }
+
+  hydrateEditorFromHidden() {
+    if (!this.hasAnswerOptionsEditorTarget) return
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    this.answerOptionsEditorTarget.value = entries.map((e) => e.label).join("\n")
+  }
+
+  renderOptionsList() {
+    if (!this.hasOptionsListTarget) return
+
+    const type = (this.typeSelectTarget?.value || "").trim()
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
+    if (!supportsOptions) {
+      this.optionsListTarget.innerHTML =
+        '<p class="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">This question type does not use answer options.</p>'
+      return
+    }
+
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    if (!entries.length) {
+      this.optionsListTarget.innerHTML =
+        '<p class="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-500">No options yet. Add one to begin.</p>'
+      return
+    }
+
+    const rows = entries
+      .map((entry, idx) => {
+        const label = this.escapeHtml(entry.label || "")
+        const disabledUp = idx === 0 ? "disabled" : ""
+        const disabledDown = idx === entries.length - 1 ? "disabled" : ""
+
+        return `
+          <div class="c-option-row" data-option-index="${idx}" draggable="true" data-action="dragstart->question-preview#onOptionDragStart dragover->question-preview#onOptionDragOver drop->question-preview#onOptionDrop dragend->question-preview#onOptionDragEnd">
+            <span class="c-option-row__drag" aria-hidden="true" title="Drag to reorder">⋮⋮</span>
+            <input
+              type="text"
+              value="${label}"
+              class="c-option-row__input"
+              data-option-index="${idx}"
+              data-action="input->question-preview#updateOptionRow"
+              aria-label="Option ${idx + 1}">
+            <div class="c-option-row__actions">
+              <button type="button" class="btn btn-secondary btn-sm" data-option-index="${idx}" data-action="question-preview#moveOptionUp" ${disabledUp}>Up</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-option-index="${idx}" data-action="question-preview#moveOptionDown" ${disabledDown}>Down</button>
+              <button type="button" class="btn btn-danger btn-sm" data-option-index="${idx}" data-action="question-preview#removeOptionRow">Remove</button>
+            </div>
+          </div>
+        `
+      })
+      .join("")
+
+    this.optionsListTarget.innerHTML = rows
+  }
+
+  addOptionRow(event) {
+    event?.preventDefault()
+
+    const type = (this.typeSelectTarget?.value || "").trim()
+    const supportsOptions = type === "multiple_choice" || type === "dropdown"
+    if (!supportsOptions) return
+
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    const nextLabel = `Option ${entries.length + 1}`
+    const nextValue = this.suggestNextOptionValue(entries, nextLabel)
+    entries.push({ label: nextLabel, value: nextValue })
+
+    this.setOptionEntries(entries)
+    this.hydrateEditorFromHidden()
+    this.renderOptionsList()
+    this.updateOptionsCount()
+    this.updateResponsePreview()
+
+    requestAnimationFrame(() => {
+      const input = this.optionsListTarget.querySelector(`[data-option-index="${entries.length - 1}"] .c-option-row__input`)
+      input?.focus()
+      input?.select()
+    })
+  }
+
+  updateOptionRow(event) {
+    const idx = Number(event?.currentTarget?.dataset?.optionIndex)
+    if (!Number.isFinite(idx)) return
+
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    if (idx < 0 || idx >= entries.length) return
+
+    const nextLabel = this.normalizeOptionString(event?.currentTarget?.value)
+    entries[idx] = {
+      ...entries[idx],
+      label: nextLabel,
+      value: nextLabel.length ? entries[idx]?.value || nextLabel : entries[idx]?.value || ""
+    }
+
+    const normalized = entries.filter((entry) => this.normalizeOptionString(entry?.label).length)
+    this.setOptionEntries(normalized)
+    this.hydrateEditorFromHidden()
+    this.updateOptionsCount()
+    this.updateResponsePreview()
+  }
+
+  removeOptionRow(event) {
+    event?.preventDefault()
+
+    const idx = Number(event?.currentTarget?.dataset?.optionIndex)
+    if (!Number.isFinite(idx)) return
+
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    if (idx < 0 || idx >= entries.length) return
+
+    entries.splice(idx, 1)
+    this.setOptionEntries(entries)
+    this.hydrateEditorFromHidden()
+    this.renderOptionsList()
+    this.updateOptionsCount()
+    this.updateResponsePreview()
+  }
+
+  moveOptionUp(event) {
+    event?.preventDefault()
+    this.reorderOption(event, -1)
+  }
+
+  moveOptionDown(event) {
+    event?.preventDefault()
+    this.reorderOption(event, 1)
+  }
+
+  reorderOption(event, direction) {
+    const idx = Number(event?.currentTarget?.dataset?.optionIndex)
+    if (!Number.isFinite(idx)) return
+
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    const nextIdx = idx + direction
+    if (idx < 0 || nextIdx < 0 || idx >= entries.length || nextIdx >= entries.length) return
+
+    ;[entries[idx], entries[nextIdx]] = [entries[nextIdx], entries[idx]]
+
+    this.setOptionEntries(entries)
+    this.hydrateEditorFromHidden()
+    this.renderOptionsList()
+    this.updateOptionsCount()
+    this.updateResponsePreview()
+  }
+
+  onOptionDragStart(event) {
+    const idx = Number(event?.currentTarget?.dataset?.optionIndex)
+    if (!Number.isFinite(idx)) return
+
+    this.draggedOptionIndex = idx
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move"
+      event.dataTransfer.setData("text/plain", String(idx))
+    }
+
+    event.currentTarget.classList.add("is-dragging")
+  }
+
+  onOptionDragOver(event) {
+    event.preventDefault()
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move"
+    }
+  }
+
+  onOptionDrop(event) {
+    event.preventDefault()
+
+    const toIdx = Number(event?.currentTarget?.dataset?.optionIndex)
+    if (!Number.isFinite(toIdx)) return
+
+    const fromFromTransfer = Number(event?.dataTransfer?.getData("text/plain"))
+    const fromIdx = Number.isFinite(fromFromTransfer) ? fromFromTransfer : Number(this.draggedOptionIndex)
+    if (!Number.isFinite(fromIdx) || fromIdx === toIdx) return
+
+    const entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
+    if (fromIdx < 0 || toIdx < 0 || fromIdx >= entries.length || toIdx >= entries.length) return
+
+    const [moved] = entries.splice(fromIdx, 1)
+    entries.splice(toIdx, 0, moved)
+
+    this.setOptionEntries(entries)
+    this.hydrateEditorFromHidden()
+    this.renderOptionsList()
+    this.updateOptionsCount()
+    this.updateResponsePreview()
+  }
+
+  onOptionDragEnd(event) {
+    event?.currentTarget?.classList?.remove("is-dragging")
+    this.draggedOptionIndex = null
+  }
+
+  updateMetadataTray() {
+    if (this.hasMetadataRequiredTarget) {
+      const required = !!this.requiredInputTarget?.checked
+      this.metadataRequiredTarget.classList.toggle("hidden", !required)
+    }
+
+    if (this.hasMetadataEvidenceTarget) {
+      const evidence = !!this.evidenceInputTarget?.checked
+      this.metadataEvidenceTarget.classList.toggle("hidden", !evidence)
+    }
+
+    if (this.hasMetadataFeedbackTarget) {
+      const feedback = this.hasFeedbackInputTarget ? !!this.feedbackInputTarget?.checked : false
+      this.metadataFeedbackTarget.classList.toggle("hidden", !feedback)
+    }
+
+    if (this.hasMetadataTargetTarget) {
+      const value = this.hasTargetLevelInputTarget ? (this.targetLevelInputTarget?.value || "").trim() : ""
+      this.metadataTargetTarget.classList.toggle("hidden", !value.length)
+      if (value.length) {
+        this.metadataTargetTarget.textContent = `Target ${value}/5`
+      }
+    }
   }
 
   updateResponsePreview() {
     if (!this.hasResponseTarget) return
 
     const type = (this.typeSelectTarget?.value || "").trim()
+    if (this.hasTypeBadgeTarget) {
+      this.typeBadgeTarget.textContent = this.humanizeType(type)
+    }
     let entries = this.parseOptionEntries(this.answerOptionsInputTarget?.value)
     if (entries.length === 0) {
       this.bootstrapOptionsFromInitialPairs()
@@ -211,64 +559,67 @@ export default class extends Controller {
     // Render an interactive preview similar to Google Forms.
     if (type === "short_answer") {
       this.responseTarget.innerHTML =
-        '<textarea class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" rows="3" disabled></textarea>'
+        '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" disabled>'
+      return
+    }
+
+    if (type === "integer") {
+      const min = this.hasIntegerMinInputTarget ? this.normalizeOptionString(this.integerMinInputTarget?.value) : ""
+      const max = this.hasIntegerMaxInputTarget ? this.normalizeOptionString(this.integerMaxInputTarget?.value) : ""
+      const minAttr = min.length ? ` min="${this.escapeHtml(min)}"` : ""
+      const maxAttr = max.length ? ` max="${this.escapeHtml(max)}"` : ""
+      const ruleText = min.length || max.length
+        ? `<p class="text-xs text-slate-500">Allowed range: ${min.length ? `>= ${this.escapeHtml(min)}` : "any"}${max.length ? ` and <= ${this.escapeHtml(max)}` : ""}</p>`
+        : '<p class="text-xs text-slate-500">Allowed range: any integer</p>'
+
+      this.responseTarget.innerHTML =
+        `<div class="space-y-2"><input type="number" step="1"${minAttr}${maxAttr} class="w-36 rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" disabled>${ruleText}</div>`
       return
     }
 
     if (type === "evidence") {
       this.responseTarget.innerHTML =
-        '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" placeholder="https://sites.google.com/tamu.edu/..." disabled>'
+        '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm" placeholder="https://sites.google.com/tamu.edu/..." disabled>'
       return
     }
 
-    if (type === "scale") {
-      const lowLabel = options[0] || "Low"
-      const highLabel = options[options.length - 1] || "High"
-      this.responseTarget.innerHTML = `
-        <div class="space-y-1">
-          <div class="flex items-center gap-3">
-            <span class="text-xs text-slate-500">${this.escapeHtml(lowLabel)}</span>
-            <input type="range" class="w-full" min="1" max="5" step="1" disabled>
-            <span class="text-xs text-slate-500">${this.escapeHtml(highLabel)}</span>
-          </div>
-        </div>
-      `
+    if (type === "dropdown") {
+      const optionTags = options
+        .map((opt) => `<option>${this.escapeHtml(opt)}</option>`)
+        .join("")
+
+      const editableRows = options
+        .map(
+          (opt, idx) => `<button type="button" class="text-left text-xs text-slate-700 underline-offset-2 hover:underline" data-option-index="${idx}" data-action="question-preview#editOption">${this.escapeHtml(opt)}</button>`
+        )
+        .join("")
+
+      this.responseTarget.innerHTML = options.length
+        ? `<div class="space-y-2"><select class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm bg-white" disabled>${optionTags}</select><div class="flex flex-col gap-1">${editableRows}</div></div>`
+        : '<p class="text-xs text-slate-500">No options yet. Use Manage Options to add choices.</p>'
       return
     }
 
-    if (type === "multiple_choice" || type === "dropdown") {
-      const icon = type === "dropdown" ? "▾" : "○"
+    if (type === "multiple_choice") {
+      const icon = "○"
       const rows = options
         .map(
           (opt, idx) => `
-            <div class="group flex items-center gap-2 text-sm text-slate-800" data-option-row>
+            <div class="flex items-center gap-2 text-sm text-slate-800" data-option-row>
               <span class="text-slate-500" aria-hidden="true">${icon}</span>
-              <span class="flex-1 cursor-text" data-option-index="${idx}" data-action="click->question-preview#editOption">${this.escapeHtml(
+              <button type="button" class="flex-1 text-left text-slate-800 underline-offset-2 hover:underline" data-option-index="${idx}" data-action="question-preview#editOption">${this.escapeHtml(
                 opt
-              )}</span>
-              <button
-                type="button"
-                class="ml-2 inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold text-slate-500 opacity-0 transition-opacity hover:text-rose-600 focus:opacity-100 group-hover:opacity-100"
-                aria-label="Delete option"
-                title="Delete option"
-                data-option-index="${idx}"
-                data-action="click->question-preview#removeOption"
-              >
-                Delete
-              </button>
+              )}</button>
             </div>
           `
         )
         .join("")
 
-      const empty = '<p class="text-xs text-slate-500">No options yet.</p>'
-      const add =
-        '<button type="button" class="mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700" data-action="click->question-preview#addOption">+ Add option</button>'
+      const empty = '<p class="text-xs text-slate-500">No options yet. Use Edit options to add choices.</p>'
 
       this.responseTarget.innerHTML = `
         <div class="space-y-2" data-options-editor>
           ${options.length ? rows : empty}
-          ${add}
         </div>
       `
       return
@@ -276,6 +627,61 @@ export default class extends Controller {
 
     // Default preview
     this.responseTarget.innerHTML = '<input type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm" disabled>'
+  }
+
+  renderSafePromptHtml(text) {
+    return this.renderPreviewMarkdown(text)
+  }
+
+  renderPreviewMarkdown(text) {
+    const source = String(text || "").trim()
+    if (!source.length) return ""
+
+    const escaped = this.escapeHtml(source)
+    return escaped
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)]\(([^\s)]+)(?:\s+"[^"]*")?\)/g, (_full, label, href) => {
+        const normalized = this.normalizePreviewHref(href)
+        if (!normalized) return label
+
+        const attrs = /^https?:\/\//i.test(normalized)
+          ? ' target="_blank" rel="noopener noreferrer"'
+          : ""
+
+        return `<a href="${normalized}"${attrs}>${label}</a>`
+      })
+      .replace(/(^|[\s(>])(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi, (_full, lead, href) => {
+        const normalized = this.normalizePreviewHref(href)
+        if (!normalized) return `${lead}${href}`
+
+        return `${lead}<a href="${normalized}" target="_blank" rel="noopener noreferrer">${href}</a>`
+      })
+      .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+      .replace(/\r?\n/g, "<br>")
+  }
+
+  normalizePreviewHref(rawHref) {
+    const href = String(rawHref || "").trim()
+    if (!href.length) return null
+
+    if (/^www\./i.test(href)) return `https://${href}`
+    if (/^https?:\/\//i.test(href)) return href
+    if (/^mailto:/i.test(href)) return href
+    if (/^tel:/i.test(href)) return href
+    if (/^\//.test(href)) return href
+    if (/^#/.test(href)) return href
+
+    return null
+  }
+
+  humanizeType(type) {
+    const raw = String(type || "").trim()
+    if (!raw.length) return "Question"
+    return raw
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (ch) => ch.toUpperCase())
   }
 
   // ---------------------------
@@ -686,6 +1092,7 @@ export default class extends Controller {
 
     return s
   }
+
 
   escapeHtml(input) {
     return String(input)

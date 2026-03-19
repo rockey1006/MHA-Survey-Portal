@@ -11,6 +11,7 @@ class StudentQuestion < ApplicationRecord
   validates :question_id, uniqueness: { scope: :student_id }
   validate :validate_evidence_link, if: :evidence_question?
   validate :validate_text_lengths
+  validate :validate_integer_response, if: :integer_question?
 
   before_save :normalize_response_value
 
@@ -77,6 +78,44 @@ class StudentQuestion < ApplicationRecord
 
   def evidence_question?
     question.present? && question.question_type == "evidence"
+  end
+
+  def integer_question?
+    question.present? && question.question_type == "integer"
+  end
+
+  def validate_integer_response
+    value = answer
+    candidate = case value
+    when String
+                  value.strip
+    when Numeric
+                  value.to_i.to_s
+    when Hash
+                  (value["answer"] || value[:answer] || value["text"] || value[:text] || value["value"] || value[:value]).to_s.strip
+    else
+                  value.to_s.strip
+    end
+
+    return if candidate.blank?
+    unless candidate.match?(/\A\d+\z/)
+      errors.add(:response_value, "must be a whole number")
+      return
+    end
+
+    numeric_value = candidate.to_i
+    min = question.respond_to?(:integer_min_value) ? question.integer_min_value : 1
+    max = question.respond_to?(:integer_max_value) ? question.integer_max_value : nil
+
+    if numeric_value < min
+      errors.add(:response_value, "must be greater than or equal to #{min}")
+      return
+    end
+
+    return if max.nil?
+    return if numeric_value <= max
+
+    errors.add(:response_value, "must be less than or equal to #{max}")
   end
 
   def normalize_response_value

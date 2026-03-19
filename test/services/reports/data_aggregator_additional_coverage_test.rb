@@ -210,6 +210,18 @@ class DataAggregatorAdditionalCoverageTest < ActiveSupport::TestCase
     assert_equal "flat", aggregator.send(:change_direction, 0)
   end
 
+  test "parse_employment_integer ignores legacy non-integer values" do
+    aggregator = Reports::DataAggregator.new(user: @admin, params: {})
+
+    assert_equal 40, aggregator.send(:parse_employment_integer, "40")
+    assert_equal 7, aggregator.send(:parse_employment_integer, " 7 ")
+    assert_nil aggregator.send(:parse_employment_integer, nil)
+    assert_nil aggregator.send(:parse_employment_integer, "")
+    assert_nil aggregator.send(:parse_employment_integer, "forty")
+    assert_nil aggregator.send(:parse_employment_integer, "40 hours")
+    assert_nil aggregator.send(:parse_employment_integer, "35.5")
+  end
+
   test "percent_change_for returns nil when previous average is zero" do
     aggregator = Reports::DataAggregator.new(user: @admin, params: {})
 

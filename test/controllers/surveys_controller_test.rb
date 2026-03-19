@@ -277,8 +277,8 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     get survey_path(@survey)
     assert_response :success
 
-    assert_match(/#{Regexp.escape(competency_title)}.*Target Level: 4\/5/m, response.body)
-    refute_match(/#{Regexp.escape(competency_title)}.*Target Level: 1\/5/m, response.body)
+    assert_match(/#{Regexp.escape(competency_title)}.*End of Program Target Level: 4\/5/m, response.body)
+    refute_match(/#{Regexp.escape(competency_title)}.*End of Program Target Level: 1\/5/m, response.body)
   end
 
   # Authentication Tests
@@ -435,6 +435,63 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "submit rejects invalid integer answer and keeps integer draft" do
+    sign_in @student_user
+    category = @survey.categories.first || @survey.categories.create!(name: "Integer Category", description: "")
+    integer_question = category.questions.create!(
+      question_text: "How many hours per week do you work on average?",
+      question_order: 9998,
+      question_type: "integer",
+      integer_min: 1,
+      integer_max: 100,
+      is_required: true
+    )
+
+    post submit_survey_path(@survey), params: { answers: { integer_question.id.to_s => "-1" } }
+
+    assert_response :unprocessable_entity
+    assert_match(/Please fix highlighted integer responses/i, flash[:alert].to_s)
+
+    student_question = StudentQuestion.find_by(
+      student_id: @student.student_id,
+      question_id: integer_question.id
+    )
+    assert_not_nil student_question
+    assert_equal "-1", student_question.answer
+  end
+
+  test "submit does not force integer errors to be first jump target" do
+    sign_in @student_user
+    category = @survey.categories.first || @survey.categories.create!(name: "Mixed Validation Category", description: "")
+
+    required_question = category.questions.create!(
+      question_text: "Required free text",
+      question_order: 9996,
+      question_type: "short_answer",
+      is_required: true
+    )
+
+    integer_question = category.questions.create!(
+      question_text: "Integer hours",
+      question_order: 9997,
+      question_type: "integer",
+      integer_min: 1,
+      integer_max: 100,
+      is_required: true
+    )
+
+    post submit_survey_path(@survey), params: {
+      answers: {
+        required_question.id.to_s => "",
+        integer_question.id.to_s => "-1"
+      }
+    }
+
+    assert_response :unprocessable_entity
+    refute_equal integer_question.id, assigns(:first_error_question_id)
+    assert_includes Array(assigns(:missing_required)).map(&:to_i), assigns(:first_error_question_id).to_i
+  end
+
   test "submit persists partial answers even on validation failure" do
     sign_in @student_user
     questions = @survey.questions.order(:question_order).limit(2).to_a
@@ -532,6 +589,58 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
       question_id: question.id
     )
     assert_equal "Updated answer", student_question.answer
+  end
+
+  test "save_progress persists valid integer answers" do
+    sign_in @student_user
+    category = @survey.categories.first || @survey.categories.create!(name: "Integer Save Category", description: "")
+    integer_question = category.questions.create!(
+      question_text: "Hours worked per week",
+      question_order: 9998,
+      question_type: "integer",
+      integer_min: 1,
+      integer_max: 100,
+      is_required: false
+    )
+
+    post save_progress_survey_path(@survey), params: {
+      answers: { integer_question.id.to_s => "40" }
+    }
+
+    assert_redirected_to student_dashboard_path
+
+    student_question = StudentQuestion.find_by(
+      student_id: @student.student_id,
+      question_id: integer_question.id
+    )
+    assert_not_nil student_question
+    assert_equal "40", student_question.answer
+  end
+
+  test "save_progress persists out-of-range integer draft values" do
+    sign_in @student_user
+    category = @survey.categories.first || @survey.categories.create!(name: "Integer Draft Category", description: "")
+    integer_question = category.questions.create!(
+      question_text: "Hours worked per week",
+      question_order: 9997,
+      question_type: "integer",
+      integer_min: 1,
+      integer_max: 100,
+      is_required: false
+    )
+
+    post save_progress_survey_path(@survey), params: {
+      answers: { integer_question.id.to_s => "-1" }
+    }
+
+    assert_redirected_to student_dashboard_path
+
+    student_question = StudentQuestion.find_by(
+      student_id: @student.student_id,
+      question_id: integer_question.id
+    )
+    assert_not_nil student_question
+    assert_equal "-1", student_question.answer
   end
 
   test "save_progress destroys empty answers" do

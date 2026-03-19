@@ -5,25 +5,34 @@
             <div class="shrink-0">
                 <%= link_to "← Back", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
             </div>
-            <div class="flex-1">
-                <form class="flex w-full items-center gap-2" action="<%= manage_students_path %>" accept-charset="UTF-8" method="get">
-                    <label class="sr-only" for="q">Search</label>
-                    <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, UID, or student ID" class="flex-1 min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <button name="button" type="submit" class="btn btn-secondary">Search</button>
+        </div>
+        <div class="c-toolbar__row w-full">
+            <div class="c-callout w-full">
+                <form class="c-toolbar__row c-toolbar__row--airy w-full md:flex-nowrap" action="<%= manage_students_path %>" accept-charset="UTF-8" method="get">
+                    <div class="c-toolbar__item relative flex-1">
+                        <label class="sr-only" for="q">Search</label>
+                        <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, UID, or student ID" class="c-input c-search-input w-full pr-16">
+                    </div>
+                    <div class="c-toolbar__item flex items-center gap-2">
+                        <button name="button" type="submit" class="btn btn-secondary">Search</button>
+                        <% if params[:q].present? %>
+                            <%= link_to "Reset", manage_students_path, class: "btn btn-subtle" %>
+                        <% end %>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <section class="c-card dashboard-section">
-        <div class="section-header">
+    <section class="c-card p-8 md:p-10">
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-baseline justify-between gap-4">
-                <h1 class="section-title">🎓 Student Advisor Management</h1>
+                <h1 class="c-section-title c-heading-inline">🎓 Student Advisor Management</h1>
                 <div class="text-sm text-slate-500">
                     <%= pluralize(@students.size, "student") %>
                 </div>
             </div>
-            <p class="section-subtitle">Review advisees and assign advisors across the program.</p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-600">Review advisees and assign advisors across the program.</p>
         </div>
 
         <div class="c-stats-grid grid grid-cols-1 sm:grid-cols-3 gap-4 my-6 items-stretch">

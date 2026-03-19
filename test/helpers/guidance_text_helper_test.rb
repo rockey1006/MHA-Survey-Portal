@@ -10,13 +10,12 @@ class GuidanceTextHelperTest < ActionView::TestCase
 
   test "render_guidance_text renders titles, paragraphs, and bullets" do
     input = <<~TEXT
-      Title One
-      -----
+      # Title One
+
       - Bullet A
       - Bullet B
 
-      Title Two
-      -----
+      # Title Two
       Second paragraph.
     TEXT
 

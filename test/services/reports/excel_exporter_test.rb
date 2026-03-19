@@ -67,13 +67,11 @@ module Reports
 
       package = Reports::ExcelExporter.new(payload).generate
       sheet_names = package.workbook.worksheets.map(&:name)
-      assert_includes sheet_names, "Summary"
-      assert_includes sheet_names, "Competencies"
-      assert_includes sheet_names, "Competency Detail"
+      assert_equal [ "Trend", "Domain", "Competency", "Track", "Employment" ], sheet_names
 
-      summary_sheet = package.workbook.worksheets.find { |ws| ws.name == "Summary" }
-      competency_sheet = package.workbook.worksheets.find { |ws| ws.name == "Competencies" }
-      detail_sheet = package.workbook.worksheets.find { |ws| ws.name == "Competency Detail" }
+      summary_sheet = package.workbook.worksheets.find { |ws| ws.name == "Trend" }
+      competency_sheet = package.workbook.worksheets.find { |ws| ws.name == "Domain" }
+      detail_sheet = package.workbook.worksheets.find { |ws| ws.name == "Competency" }
 
       summary_header = summary_sheet.rows.find { |row| row.cells.any? { |c| c.value == "Month" } }
       assert summary_header
@@ -118,12 +116,11 @@ module Reports
         ]
       }
 
-      package = Reports::ExcelExporter.new(payload, section: "track").generate
+      package = Reports::ExcelExporter.new(payload).generate
       sheet_names = package.workbook.worksheets.map(&:name)
-      assert_includes sheet_names, "Tracks"
-      assert_equal false, sheet_names.include?("Courses")
+      assert_equal [ "Trend", "Domain", "Competency", "Track", "Employment" ], sheet_names
 
-      tracks_sheet = package.workbook.worksheets.find { |ws| ws.name == "Tracks" }
+      tracks_sheet = package.workbook.worksheets.find { |ws| ws.name == "Track" }
       assert tracks_sheet
       header_values = tracks_sheet.rows.first.cells.map(&:value)
       assert_equal "Track", header_values.first

@@ -98,13 +98,14 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
-  test "updating survey available_until updates existing assignments and reconciles auto assignments" do
+  test "updating survey available_until updates existing assignments without re-running auto assignment" do
     assignment = survey_assignments(:residential_assignment)
     assert_equal @survey.id, assignment.survey_id
+    assignment.update!(available_until: @survey.available_until)
 
     new_available_until = 10.days.from_now.to_date
 
-    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
       patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
     end
 
@@ -112,6 +113,68 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assignment.reload
     assert_equal new_available_until, assignment.available_until.to_date
+  end
+
+  test "updating survey available_until does not override individual assignment deadlines" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    individual_deadline = 5.days.from_now.change(hour: 12, min: 0, sec: 0)
+    assignment.update!(available_until: individual_deadline)
+
+    new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_equal individual_deadline.to_i, assignment.available_until.to_i
+  end
+
+  test "updating survey available_until with force_deadline_for_everyone overrides individual assignment deadlines" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    individual_deadline = 5.days.from_now.change(hour: 12, min: 0, sec: 0)
+    assignment.update!(available_until: individual_deadline)
+
+    new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: {
+        force_deadline_for_everyone: "1",
+        survey: { available_until: new_available_until.to_s }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+    assert_equal "Survey updated successfully. Available from and Available until were applied to everyone assigned to this survey, including completed responses.", flash[:notice]
+
+    assignment.reload
+    assert_equal new_available_until.to_i, assignment.available_until.to_i
+  end
+
+  test "updating survey available_until updates inherited assignment when old deadline matches by date" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    previous_deadline = Time.zone.local(2035, 3, 10, 23, 59)
+    @survey.update!(available_until: previous_deadline)
+    assignment.update!(available_until: Time.zone.local(2035, 3, 10, 9, 0))
+
+    new_available_until = Time.zone.local(2035, 3, 30, 23, 59)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_equal new_available_until.to_i, assignment.available_until.to_i
   end
 
   test "updating survey available_until propagates to offerings when offerings exist" do
@@ -128,7 +191,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     new_available_until = 20.days.from_now.change(hour: 23, min: 59, sec: 0)
 
-    assert_enqueued_with(job: ReconcileSurveyAssignmentsJob, args: [ { survey_id: @survey.id } ]) do
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
       patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
     end
 
@@ -137,6 +200,29 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     offering.reload
     assert_equal new_available_until.to_i, offering.available_until.to_i
     assert_equal new_available_until.to_i, offering.portfolio_due_date.to_i
+  end
+
+  test "setting deadline after archive and reactivate does not recreate removed pending assignments" do
+    assignment = survey_assignments(:residential_assignment)
+    survey = assignment.survey
+    student_id = assignment.student_id
+
+    patch archive_admin_survey_path(survey)
+    assert_redirected_to admin_surveys_path
+    assert_not SurveyAssignment.exists?(id: assignment.id)
+
+    patch activate_admin_survey_path(survey)
+    assert_redirected_to admin_surveys_path
+    assert survey.reload.is_active?
+    assert_not SurveyAssignment.exists?(survey_id: survey.id, student_id: student_id)
+
+    new_available_until = 14.days.from_now.to_date
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(survey), params: { survey: { available_until: new_available_until.to_s } }
+    end
+
+    assert_redirected_to admin_surveys_path
+    assert_not SurveyAssignment.exists?(survey_id: survey.id, student_id: student_id)
   end
 
   test "update can edit review meeting dates on survey offerings" do
@@ -218,6 +304,77 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_surveys_path
     assert flash[:warning].blank?
+  end
+
+  test "updating one question target level does not change sibling question target level" do
+    category = categories(:clinical_skills)
+    primary_question = questions(:fall_q1)
+    sibling_question = category.questions.create!(
+      question_text: "Sibling target-level question",
+      question_type: "short_answer",
+      question_order: category.questions.maximum(:question_order).to_i + 1,
+      program_target_level: 2
+    )
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => { id: primary_question.id, program_target_level: "5" },
+              "1" => { id: sibling_question.id, program_target_level: sibling_question.program_target_level.to_s }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    primary_question.reload
+    sibling_question.reload
+
+    assert_equal 5, primary_question.program_target_level
+    assert_equal 2, sibling_question.program_target_level
+  end
+
+  test "updating competency question target level mirrors to competency target levels" do
+    @survey.assign_tracks!([ "Residential" ])
+
+    category = categories(:clinical_skills)
+    competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
+    question = category.questions.create!(
+      question_text: competency_title,
+      question_type: "short_answer",
+      question_order: category.questions.maximum(:question_order).to_i + 1,
+      program_target_level: 2
+    )
+
+    patch admin_survey_path(@survey), params: {
+      survey: {
+        categories_attributes: {
+          "0" => {
+            id: category.id,
+            questions_attributes: {
+              "0" => { id: question.id, program_target_level: "4" }
+            }
+          }
+        }
+      }
+    }
+
+    assert_redirected_to admin_surveys_path
+
+    mirrored = CompetencyTargetLevel.find_by(
+      program_semester_id: @survey.program_semester_id,
+      track: "Residential",
+      class_of: nil,
+      competency_title: competency_title
+    )
+
+    assert_not_nil mirrored
+    assert_equal 4, mirrored.target_level
   end
 
   test "update can add a section when new section position submits blank" do
@@ -901,6 +1058,32 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     log = SurveyChangeLog.order(:created_at).last
     assert_equal "delete", log.action
     assert_includes log.description, "Spring 2025"
+  end
+
+  test "destroy removes survey response versions before deleting" do
+    survey = surveys(:spring_2025)
+    assignment = SurveyAssignment.create!(
+      survey: survey,
+      student: students(:student),
+      advisor: advisors(:advisor),
+      assigned_at: Time.current
+    )
+    version = SurveyResponseVersion.create!(
+      student: students(:student),
+      survey: survey,
+      survey_assignment: assignment,
+      event: "submitted",
+      answers: {}
+    )
+
+    assert_difference "Survey.count", -1 do
+      assert_difference "SurveyResponseVersion.count", -1 do
+        delete admin_survey_path(survey)
+      end
+    end
+
+    assert_redirected_to admin_surveys_path
+    assert_not SurveyResponseVersion.exists?(version.id)
   end
 
   # === Archive Action ===

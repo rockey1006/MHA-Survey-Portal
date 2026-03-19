@@ -3,166 +3,190 @@
 <% supports_sub_questions = question.respond_to?(:parent_question_id) && question.respond_to?(:sub_question_order) %>
 <% is_sub_question = supports_sub_questions && question.parent_question_id.present? %>
 <% can_add_sub_questions = supports_sub_questions && !is_sub_question %>
-<% wrapper_classes = ["question-block", "rounded-lg", "border", "border-slate-100", "bg-slate-50/40", "p-4", "space-y-4"] %>
-<% wrapper_classes << "ml-6" if is_sub_question %>
+<% wrapper_classes = ["question-block", "admin-card", "card-item", "rounded-lg", "border", "border-slate-200", "bg-white", "p-6", "space-y-4", "question-card", "c-builder-question", "q-card"] %>
+<% wrapper_classes << "nested-rail" if is_sub_question %>
 <% option_pairs = question.respond_to?(:answer_option_pairs) ? question.answer_option_pairs : [] %>
 <% if option_pairs.blank? && question.respond_to?(:answer_options_list) %>
   <% option_pairs = question.answer_options_list.map { |opt| [opt.to_s, opt.to_s] } %>
 <% end %>
-<div id="<%= question_uid %>"
-  class="<%= wrapper_classes.join(' ') %>"
-  data-question-fields-target="item"
-  data-controller="question-preview"
-  data-question-preview-initial-option-pairs-value='<%= option_pairs.to_json %>'
-  data-builder-kind="question"
-  data-builder-label="<%= question.question_text.to_s.strip.presence || 'Untitled question' %>">
+<% required_input_id = "#{question_uid}-required" %>
+<% evidence_input_id = "#{question_uid}-evidence" %>
+<% feedback_input_id = "#{question_uid}-feedback" %>
+<% survey_context = question.respond_to?(:category) ? question.category&.survey : nil %>
+<% target_level_value = if question.respond_to?(:program_target_level)
+     resolved_builder_target_level(question: question, survey: survey_context)
+   end %>
+<% selected_target_level = target_level_value.to_s.presence %>
+
+<%= content_tag :div,
+  id: question_uid,
+  class: wrapper_classes.join(' '),
+  data: {
+    question_fields_target: "item",
+    controller: "survey-item question-preview markdown-editor",
+    action: "focusin->survey-item#expand click->survey-item#expand focusin->question-preview#activate click->question-preview#activate",
+    question_preview_initial_option_pairs_value: option_pairs.to_json,
+    builder_kind: "question",
+    builder_label: question.question_text.to_s.strip.presence || "Untitled question"
+  } do %>
   <%= question_fields.hidden_field :id %>
   <%= question_fields.hidden_field :_destroy, value: 0 %>
   <%= question_fields.hidden_field :question_order %>
+  <%= question_fields.hidden_field :sub_question_order if supports_sub_questions %>
 
-  <% question_type_value = question_fields.object.question_type.to_s %>
-  <% supports_description = true %>
+  <div class="question-card__summary c-builder-question__summary flex items-center gap-3">
+    <span class="js-drag-handle select-none rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 cursor-grab" aria-label="Drag to reorder">
+      ⋮⋮
+    </span>
 
-  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-    <div class="flex items-center gap-3">
-      <span class="js-drag-handle select-none rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 cursor-grab" aria-label="Drag to reorder">
-        ⋮⋮
-      </span>
-      <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        <span aria-hidden="true">❓</span>
-        <span>Question</span>
-      </span>
+    <span class="question-type-badge inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[0.68rem] font-semibold text-slate-700" data-question-preview-target="typeBadge">
+      <%= question.question_type.to_s.humanize.presence || "Question" %>
+    </span>
 
-      <% if is_sub_question %>
-        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[0.7rem] font-semibold text-slate-600">Sub-question</span>
-      <% end %>
-    </div>
+    <span class="question-target-badge hidden" data-question-preview-target="targetLevelBadge"></span>
 
-    <div class="flex flex-wrap items-center justify-end gap-2">
-      <% if can_add_sub_questions %>
-        <% if question.persisted? %>
+    <p class="question-card__summary-text c-builder-question__summary-text min-w-0 flex-1 truncate text-sm font-semibold text-slate-800" data-question-preview-target="summaryPromptText">
+      <%= question.question_text.to_s.strip.presence || "Untitled question" %>
+    </p>
+
+    <% if question.respond_to?(:program_target_level) %>
+      <label class="sr-only" for="<%= "#{question_uid}-target-level" %>">Target level</label>
+      <%= question_fields.select :program_target_level,
+        options_for_select([["Target: None", ""]] + (1..5).map { |level| ["Target: #{level}/5", level.to_s] }, selected_target_level),
+            {},
+            id: "#{question_uid}-target-level",
+            class: "rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700",
+        data: { question_preview_target: "targetLevelInput", action: "change->question-preview#update" } %>
+    <% end %>
+
+    <details class="chip-type-picker" data-question-preview-target="questionTypeDropdown">
+      <summary class="chip chip-inactive chip-type-picker__summary">
+        Type: <span data-question-preview-target="questionTypeButtonLabel"><%= question.question_type.to_s.humanize.presence || "Question" %></span>
+      </summary>
+      <div class="chip-type-picker__menu">
+        <% @question_types.each do |type| %>
           <button type="button"
-                  class="<%= tailwind_button_classes(:subtle, extra_classes: 'btn-sm') %>"
-                  data-action="survey-builder#addSubQuestion"
-                  data-parent-question-id="<%= question.id %>">
-            <span aria-hidden="true">↳</span>
-            <span>Add sub-question</span>
-          </button>
-        <% else %>
-          <button type="button"
-                  class="<%= tailwind_button_classes(:subtle, extra_classes: 'btn-sm') %> opacity-60"
-                  aria-disabled="true"
-                  title="Save the survey first to add sub-questions.">
-            <span aria-hidden="true">↳</span>
-            <span>Add sub-question</span>
+                  class="chip-type-picker__item"
+                  data-question-type="<%= type %>"
+                  data-action="question-preview#setQuestionType">
+            <%= type.humanize %>
           </button>
         <% end %>
-      <% end %>
+      </div>
+    </details>
 
+    <% if supports_sub_questions %>
       <button type="button"
-              class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %> text-rose-600"
-              data-action="question-fields#remove">
-        <span aria-hidden="true">🗑️</span>
-        <span>Remove</span>
+              class="<%= tailwind_button_classes(:subtle, extra_classes: 'btn-sm') %>"
+              title="Re-parent"
+              data-action="survey-item#toggleReparent"
+              data-survey-item-target="reparentToggle">
+        <span aria-hidden="true">🔀</span>
       </button>
-    </div>
+    <% end %>
+
+    <% if can_add_sub_questions %>
+      <% if question.persisted? %>
+        <button type="button"
+                class="<%= tailwind_button_classes(:subtle, extra_classes: 'btn-sm') %>"
+                data-action="survey-builder#addSubQuestion"
+                data-parent-question-id="<%= question.id %>">
+          <span aria-hidden="true">↳</span>
+        </button>
+      <% else %>
+        <button type="button"
+                class="<%= tailwind_button_classes(:subtle, extra_classes: 'btn-sm') %> opacity-60"
+                aria-disabled="true"
+                title="Save the survey first to add sub-questions.">
+          <span aria-hidden="true">↳</span>
+        </button>
+      <% end %>
+    <% end %>
+
+    <button type="button"
+            class="<%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %> text-rose-600"
+            title="Remove question"
+            data-action="question-fields#remove">
+      <span aria-hidden="true">🗑️</span>
+    </button>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-12 md:items-start">
-    <div class="space-y-4 md:col-span-8">
-      <div class="space-y-2">
-        <%= question_fields.label :question_text, "Prompt", class: "block text-sm font-medium text-slate-700" %>
-        <%= question_fields.text_area :question_text,
-              class: "#{input_classes} min-h-[3rem]",
-              rows: 2,
-              data: { question_preview_target: "promptInput" },
-              placeholder: "Ask a clear question advisors can answer." %>
-      </div>
+  <div class="question-card__expanded c-builder-question__expanded space-y-6" data-survey-item-target="expanded">
+    <div class="space-y-6">
+      <div class="space-y-6">
+        <div class="space-y-2 mb-6">
+          <%= question_fields.label :question_text, "Prompt", class: "block text-xs font-bold uppercase text-slate-400" %>
+          <%= question_fields.text_area :question_text,
+                class: "#{input_classes} c-input builder-input builder-textarea form-control w-full",
+                rows: 3,
+                data: {
+                  question_preview_target: "promptInput"
+                },
+                placeholder: "Ask a clear question advisors can answer." %>
+        </div>
 
-      <% if supports_description %>
-        <div class="space-y-2">
-          <%= question_fields.label :description, "Description (optional)", class: "block text-sm font-medium text-slate-700" %>
+        <div class="space-y-2 mb-6">
+          <%= question_fields.label :description, "Description (optional)", class: "block text-xs font-bold uppercase text-slate-400" %>
           <%= question_fields.text_area :description,
-                class: "#{input_classes} min-h-[3rem]",
+                class: "#{input_classes} c-input builder-input builder-textarea form-control w-full",
                 rows: 2,
-                data: { question_preview_target: "descriptionInput" },
+                data: {
+                  question_preview_target: "descriptionInput"
+                },
                 placeholder: "Optional helper text shown under the prompt." %>
         </div>
-      <% end %>
+      </div>
+
     </div>
 
-    <div class="space-y-4 md:col-span-4">
-      <div class="space-y-2">
-        <%= question_fields.label :question_type, "Response type", class: "block text-sm font-medium text-slate-700" %>
+    <div class="space-y-2 mb-6">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
+      <div class="rounded-lg border border-slate-200 bg-white p-4 c-builder-preview-card space-y-3">
+        <div class="text-sm font-medium text-slate-900" data-question-preview-target="promptText"><%= render_question_prompt(question) %></div>
+        <div data-question-preview-target="response"></div>
+      </div>
+    </div>
+
+    <div class="chip-tray rounded-lg border border-slate-200 bg-white px-3 py-2">
+      <div class="inline-flex flex-wrap items-center gap-3">
         <%= question_fields.select :question_type,
               options_for_select(@question_types.map { |type| [type.humanize, type] }, question_fields.object.question_type),
               {},
-              class: input_classes,
+              class: "sr-only",
               data: { question_preview_target: "typeSelect" } %>
+
+        <%= question_fields.check_box :is_required, id: required_input_id, class: "chip-toggle-input sr-only", data: { question_preview_target: "requiredInput" } %>
+        <%= question_fields.label :is_required,
+          "Required",
+          for: required_input_id,
+          class: "chip chip-inactive" %>
+
+        <%= question_fields.check_box :has_evidence_field, id: evidence_input_id, class: "chip-toggle-input sr-only", data: { question_preview_target: "evidenceInput" } %>
+        <%= question_fields.label :has_evidence_field,
+          "Evidence",
+          for: evidence_input_id,
+          class: "chip chip-inactive" %>
+
+        <% if question.respond_to?(:has_feedback) %>
+          <%= question_fields.check_box :has_feedback, id: feedback_input_id, class: "chip-toggle-input sr-only", data: { question_preview_target: "feedbackInput" } %>
+          <%= question_fields.label :has_feedback,
+            "Advisor Feedback Required",
+            for: feedback_input_id,
+            class: "chip chip-inactive" %>
+        <% end %>
+
+        <% if supports_sub_questions %>
+          <button type="button"
+                  class="chip chip-inactive"
+                  data-action="survey-item#toggleReparent"
+                  data-survey-item-target="reparentToggle">
+            Re-parent
+          </button>
+        <% end %>
       </div>
-
-      <div class="space-y-2">
-        <%= question_fields.label :tooltip_text, "Tooltip text (optional)", class: "block text-sm font-medium text-slate-700" %>
-        <%= question_fields.text_area :tooltip_text,
-              class: "#{input_classes} min-h-[3rem]",
-              rows: 2,
-              data: { question_preview_target: "tooltipInput" },
-              placeholder: "Extra context shown in the ⓘ tooltip." %>
-      </div>
-    </div>
-  </div>
-
-  <div class="space-y-2">
-    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
-    <div class="rounded-lg border border-slate-200 bg-white p-4">
-      <div data-question-preview-target="response"></div>
-
-      <div class="mt-4 space-y-2" data-question-preview-target="answerOptionsBlock">
-        <%= question_fields.label :answer_options, "Answer options", class: "block text-sm font-medium text-slate-700" %>
-        <%= question_fields.text_area :answer_options,
-              class: "#{input_classes} min-h-[5rem]",
-              rows: 4,
-              data: { question_preview_target: "answerOptionsInput" },
-              placeholder: "For multiple choice/dropdown: options are edited above. For other types: enter comma-separated values (if applicable)." %>
-        <p class="text-xs text-slate-500">Multiple choice and dropdown options can be edited inline above (Google Forms-style).</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Settings</p>
-
-    <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
-      <div class="flex items-center gap-2 text-sm text-slate-700">
-        <%= question_fields.check_box :is_required, class: checkbox_classes, data: { question_preview_target: "requiredInput" } %>
-        <%= question_fields.label :is_required, "Required response", class: "cursor-pointer select-none" %>
-      </div>
-
-      <div class="flex items-center gap-2 text-sm text-slate-700">
-        <%= question_fields.check_box :has_evidence_field, class: checkbox_classes %>
-        <%= question_fields.label :has_evidence_field, "Include evidence field", class: "cursor-pointer select-none" %>
-      </div>
-
-      <% if question.respond_to?(:has_feedback) %>
-        <div class="flex items-center gap-2 text-sm text-slate-700">
-          <%= question_fields.check_box :has_feedback, class: checkbox_classes %>
-          <%= question_fields.label :has_feedback, "Collect advisor feedback", class: "cursor-pointer select-none" %>
-        </div>
-      <% end %>
-
-      <% if question.respond_to?(:program_target_level) %>
-        <div class="flex min-w-[12rem] flex-col gap-1">
-          <%= question_fields.label :program_target_level, "Program target level", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-          <%= question_fields.select :program_target_level,
-                                     options_for_select([["None", ""]] + (1..5).map { |level| ["#{level}/5", level] }, question.program_target_level),
-                                     {},
-                                     class: input_classes %>
-        </div>
-      <% end %>
     </div>
 
     <% if supports_sub_questions %>
-      <%= question_fields.hidden_field :sub_question_order %>
       <% category = question.category %>
       <% persisted_parent_candidates = if category.present?
         category.questions.to_a.select do |candidate|
@@ -175,27 +199,77 @@
       end %>
       <% parent_options = [["(No parent — this is a parent question)", ""]] + persisted_parent_candidates.map { |candidate| [candidate.question_text.to_s.truncate(80), candidate.id] } %>
 
-      <div class="grid gap-4 md:grid-cols-2">
-        <div class="space-y-1">
-          <%= question_fields.label :parent_question_id, "Sub-question parent", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
-          <%= question_fields.select :parent_question_id,
-                                     options_for_select(parent_options, question.parent_question_id),
-                                     {},
-                                     class: input_classes,
-                                     disabled: persisted_parent_candidates.empty? %>
-          <% if persisted_parent_candidates.empty? %>
-            <p class="text-xs text-slate-500">Save the survey first, then edit to link sub-questions to a parent (parent questions need IDs).</p>
-          <% else %>
-            <p class="text-xs text-slate-500">Choose a parent question to make this a sub-question. Leave blank for a normal question.</p>
-          <% end %>
-        </div>
-
-        <div class="space-y-1">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Sub-question order</p>
-          <p class="text-xs text-slate-500">Controlled by drag-and-drop when a parent is selected.</p>
-        </div>
+      <div class="hidden rounded-lg border border-slate-200 bg-white p-3 space-y-2 c-builder-inline-panel" data-survey-item-target="reparentPanel">
+        <%= question_fields.label :parent_question_id, "Parent", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
+        <%= question_fields.select :parent_question_id,
+                                   options_for_select(parent_options, question.parent_question_id),
+                                   {},
+                                   class: "#{input_classes} c-select form-select",
+                                   disabled: persisted_parent_candidates.empty? %>
+        <% if persisted_parent_candidates.empty? %>
+          <p class="text-xs text-slate-500">Save first, then re-parent using this selector.</p>
+        <% end %>
       </div>
     <% end %>
   </div>
 
-</div>
+  <div class="question-options-backdrop hidden" data-question-preview-target="optionsDrawerBackdrop" data-action="click->question-preview#closeOptionsDrawer"></div>
+  <aside class="question-options-drawer hidden" data-question-preview-target="optionsDrawerPanel" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1">
+    <div class="question-options-drawer__header c-drawer__header side-panel__header">
+      <h4 class="text-sm font-semibold text-slate-900">Edit options</h4>
+      <button type="button" class="btn btn-secondary btn-sm" data-action="question-preview#closeOptionsDrawer">Close</button>
+    </div>
+    <div class="question-options-drawer__body c-drawer__body side-panel__body">
+      <%= question_fields.hidden_field :answer_options, data: { question_preview_target: "answerOptionsInput" } %>
+      <div class="space-y-3" data-question-preview-target="optionsEditorSection">
+        <div class="flex items-center justify-between gap-3">
+          <label class="block text-sm font-medium text-slate-700">Options</label>
+          <button type="button"
+                  class="btn btn-secondary btn-sm"
+                  data-action="question-preview#addOptionRow">
+            Add option
+          </button>
+        </div>
+
+        <div class="space-y-2" data-question-preview-target="optionsList"></div>
+        <p class="text-xs text-slate-500">Edit labels directly. Reorder or remove options as needed.</p>
+      </div>
+
+      <div class="mt-6 space-y-3 border-t border-slate-200 pt-4">
+        <h5 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Advanced settings</h5>
+
+        <div class="space-y-2">
+          <%= question_fields.label :prompt_format, "Prompt format", class: "block text-xs font-bold uppercase text-slate-400" %>
+          <%= question_fields.select :prompt_format,
+            options_for_select([["Plain text", "plain_text"], ["Rich text", "rich_text"]], question.prompt_format.presence || "plain_text"),
+            {},
+            class: "#{input_classes} c-select form-select",
+            data: { question_preview_target: "promptFormatSelect" } %>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3" data-question-preview-target="integerRulesBlock">
+          <div class="space-y-2">
+            <%= question_fields.label :integer_min, "Integer min", class: "block text-xs font-bold uppercase text-slate-400" %>
+            <%= question_fields.number_field :integer_min,
+                  class: "#{input_classes} c-input form-control",
+                  min: 0,
+                  step: 1,
+                  placeholder: "No minimum",
+                  data: { question_preview_target: "integerMinInput" } %>
+          </div>
+          <div class="space-y-2">
+            <%= question_fields.label :integer_max, "Integer max", class: "block text-xs font-bold uppercase text-slate-400" %>
+            <%= question_fields.number_field :integer_max,
+                  class: "#{input_classes} c-input form-control",
+                  min: 0,
+                  step: 1,
+                  placeholder: "No maximum",
+                  data: { question_preview_target: "integerMaxInput" } %>
+          </div>
+          <p class="col-span-2 text-xs text-slate-500">Set either bound to enforce integer rules (for example: min 0, max 100).</p>
+        </div>
+
+      </div>
+    </div>
+  </aside>
+<% end %>

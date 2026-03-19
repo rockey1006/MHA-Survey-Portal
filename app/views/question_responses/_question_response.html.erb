@@ -9,10 +9,14 @@
     <%= question_response.advisor&.display_name || question_response.advisor_id %>
   </p>
 
-  <p>
+  <div>
     <strong>Question:</strong>
-    <%= question_response.question&.question_text || question_response.question_id %>
-  </p>
+    <% if question_response.question.present? %>
+      <div><%= render_question_prompt(question_response.question) %></div>
+    <% else %>
+      <%= question_response.question_id %>
+    <% end %>
+  </div>
 
   <p>
     <strong>Answer:</strong>

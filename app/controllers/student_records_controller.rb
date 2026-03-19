@@ -111,6 +111,7 @@ class StudentRecordsController < ApplicationController
     assignments_lookup = load_assignment_lookup(student_ids, survey_ids)
     admin_update_lookup = load_admin_update_lookup(student_ids, survey_ids)
     feedback_submission_lookup = load_feedback_submission_lookup(student_ids, survey_ids)
+    employment_lookup = load_employment_export_lookup(student_ids, survey_ids)
 
     responses_matrix = Hash.new do |hash, student_id|
       hash[student_id] = Hash.new { |inner, survey_id| inner[survey_id] = [] }
@@ -188,7 +189,11 @@ class StudentRecordsController < ApplicationController
                   feedbacks: feedbacks_for_pair,
                   feedback_last_updated_at: feedback_last_updated,
                   feedback_status_label: feedback_status_label,
-                  feedback_status_timestamp: feedback_status_timestamp
+                  feedback_status_timestamp: feedback_status_timestamp,
+                  employment_data: employment_lookup.fetch(
+                    [ student.student_id, survey.id ],
+                    default_employment_export_data
+                  )
                 }
               end
 
@@ -509,6 +514,32 @@ class StudentRecordsController < ApplicationController
       end
   end
 
+  def load_employment_export_lookup(student_ids, survey_ids)
+    return {} if student_ids.blank? || survey_ids.blank?
+
+    StudentQuestion
+      .joins(question: :category)
+      .includes(question: :category)
+      .where(student_id: student_ids, categories: { survey_id: survey_ids })
+      .where("LOWER(categories.name) LIKE ?", "%employment%")
+      .each_with_object({}) do |response, memo|
+        question = response.question
+        category = question&.category
+        survey_id = category&.survey_id
+        field_key = employment_field_key_for(question&.question_text)
+
+        next if survey_id.blank? || field_key.blank?
+
+        key = [ response.student_id, survey_id ]
+        memo[key] ||= default_employment_export_data
+
+        formatted_value = format_employment_answer(response)
+        next if formatted_value.blank?
+
+        memo[key][field_key] = formatted_value
+      end
+  end
+
   def required_feedback_question_ids_for_survey(survey)
     @required_feedback_question_ids_by_survey ||= {}
     @required_feedback_question_ids_by_survey[survey.id] ||= begin
@@ -565,6 +596,11 @@ class StudentRecordsController < ApplicationController
             "Advisor",
             "Track",
             "Program Year",
+            "Employment Status",
+            "Employer (Name and Address)",
+            "Job Title",
+            "Avg Hours/Week",
+            "Work Schedule Flexibility",
             "Survey Status",
             "Completed At",
             "Feedback Status",
@@ -574,6 +610,7 @@ class StudentRecordsController < ApplicationController
           rows.each do |row|
             student = row[:student]
             advisor = row[:advisor]
+            employment_data = row[:employment_data] || {}
 
             sheet.add_row [
               student&.user&.name,
@@ -582,6 +619,11 @@ class StudentRecordsController < ApplicationController
               advisor&.name,
               student&.track,
               row_program_year(row),
+              employment_data[:currently_employed],
+              employment_data[:employer],
+              employment_data[:job_title],
+              employment_data[:hours_per_week],
+              employment_data[:work_schedule_flexibility],
               row[:status],
               row[:completed_at]&.iso8601,
               row[:feedback_status_label],
@@ -613,5 +655,68 @@ class StudentRecordsController < ApplicationController
       end
       suffix += 1
     end
+  end
+
+  def default_employment_export_data
+    {
+      currently_employed: nil,
+      employer: nil,
+      job_title: nil,
+      hours_per_week: nil,
+      work_schedule_flexibility: nil
+    }
+  end
+
+  def employment_field_key_for(question_text)
+    normalized = question_text.to_s.downcase
+    return :currently_employed if normalized.include?("currently employed")
+    return :employer if normalized.include?("where are you employed")
+    return :job_title if normalized.include?("what is your title")
+    return :hours_per_week if normalized.include?("hours per week")
+    return :work_schedule_flexibility if normalized.include?("flexible are your work hours")
+
+    nil
+  end
+
+  def format_employment_answer(response)
+    question = response.question
+    answer = response.answer
+    return nil if answer.blank?
+
+    case answer
+    when Hash
+      selected_value = answer["answer"] || answer[:answer] || answer["value"] || answer[:value] || answer["rating"] || answer[:rating]
+      selected_text = employment_choice_label(question, selected_value)
+      other_text = (answer["text"] || answer[:text] || answer["other_text"] || answer[:other_text]).to_s.strip
+
+      if other_text.present?
+        return other_text if selected_text.blank? || selected_text.casecmp?("Other") || selected_value.to_s == "0"
+
+        return "#{selected_text}: #{other_text}"
+      end
+
+      selected_text.presence || selected_value.to_s.strip.presence
+    when Array
+      answer.filter_map { |entry| entry.to_s.strip.presence }.join(", ").presence
+    else
+      raw_text = answer.to_s.strip
+      return nil if raw_text.blank?
+
+      employment_choice_label(question, raw_text).presence || raw_text
+    end
+  end
+
+  def employment_choice_label(question, value)
+    text = value.to_s.strip
+    return nil if text.blank?
+    return text unless question&.choice_question?
+
+    question
+      .answer_option_pairs
+      .find { |(_label, pair_value)| pair_value.to_s == text }
+      &.first
+      &.to_s
+      &.strip
+      .presence || text
   end
 end

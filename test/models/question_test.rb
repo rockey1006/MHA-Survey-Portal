@@ -109,6 +109,39 @@ class QuestionTest < ActiveSupport::TestCase
     end
   end
 
+  test "portfolio review questions exist for requested surveys" do
+    survey_titles = [
+      "EMHA Final Competency Survey",
+      "EMHA Mid-point Competency Survey",
+      "RMHA Final Competency Survey"
+    ]
+    expected_questions = [
+      "Are you satisfied with where you are (competency [knowledge, skills, behaviors] development) at this time?",
+      "What are you thinking (at this time) for career direction (location, type of organization, position/role, etc.)?",
+      "What are you going to do to support your development and gain further career direction?",
+      "What do you need from me to support your development?"
+    ]
+
+    survey_titles.each do |title|
+      survey = Survey.joins(:program_semester).find_by(title: title, program_semesters: { name: "Spring 2026" })
+      assert_not_nil survey, "#{title} should exist"
+
+      section = survey.sections.find_by(title: "Portfolio Review")
+      assert_not_nil section, "#{title} should include Portfolio Review section"
+
+      category = survey.categories.find_by(name: "Portfolio Review")
+      assert_not_nil category, "#{title} should include Portfolio Review category"
+      assert_equal section.id, category.survey_section_id, "#{title} category should be attached to Portfolio Review section"
+
+      expected_questions.each_with_index do |question_text, index|
+        question = category.questions.find_by(question_text: question_text)
+        assert_not_nil question, "#{title} missing reflection question: #{question_text}"
+        assert_equal "short_answer", question.question_type
+        assert_equal index + 1, question.question_order
+      end
+    end
+  end
+
   test "Employment Information category has correct required/optional structure" do
     employment_categories = Category.where("LOWER(name) LIKE ?", "%employment%")
     employment_questions = Question.where(category_id: employment_categories.pluck(:id))

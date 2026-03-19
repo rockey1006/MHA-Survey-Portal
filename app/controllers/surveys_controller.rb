@@ -106,20 +106,13 @@ class SurveysController < ApplicationController
     end
 
     @category_groups.each do |category|
+      category_branch_parent_ids = category.questions.select(&:sub_question?).map(&:parent_question_id).compact.uniq
       category.questions.each do |question|
-        required = question.is_required?
-
-        if !required && %w[multiple_choice dropdown].include?(question.question_type)
-          option_values = question.answer_option_values
-          options = option_values.map(&:strip).map(&:downcase)
-          # Exception: flexibility scale questions (1-5) should remain optional
-          numeric_scale = %w[1 2 3 4 5]
-          has_numeric_scale = (numeric_scale - options).empty?
-          is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
-          required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
-        end
-
-        @computed_required[question.id] = required
+        @computed_required[question.id] = required_for_submission?(
+          question,
+          answers: @existing_answers,
+          branch_parent_ids: category_branch_parent_ids
+        )
       end
     end
 
@@ -191,6 +184,8 @@ class SurveysController < ApplicationController
 
     missing_required = []
     invalid_links = []
+    invalid_integer_responses = []
+    branch_parent_ids = questions_map.values.select(&:sub_question?).map(&:parent_question_id).compact.uniq
 
     questions_map.each_value do |question|
       submitted_value = answers[question.id.to_s]
@@ -205,16 +200,7 @@ class SurveysController < ApplicationController
         end
       end
 
-      # Apply the same required logic as in show action
-      required = question.is_required?
-      if !required && question.choice_question?
-        option_values = question.answer_option_values
-        options = option_values.map(&:strip).map(&:downcase)
-        numeric_scale = %w[1 2 3 4 5]
-        has_numeric_scale = (numeric_scale - options).empty?
-        is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
-        required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
-      end
+      required = required_for_submission?(question, answers:, branch_parent_ids:)
 
       if required && submitted_value.to_s.strip.blank?
         missing_required << question
@@ -232,12 +218,17 @@ class SurveysController < ApplicationController
           invalid_links << question unless accessible
         end
       end
+
+      if question.question_type == "integer" && submitted_value.present? && !valid_integer_response_for_question?(question, submitted_value)
+        invalid_integer_responses << question
+      end
     end
 
-    if missing_required.any? || invalid_links.any?
+    if missing_required.any? || invalid_links.any? || invalid_integer_responses.any?
       Rails.logger.warn(
         "[SUBMIT VALIDATION] request_id=#{request.request_id} survey_id=#{@survey.id} student_id=#{student.student_id} " \
-        "missing_required_question_ids=#{missing_required.map(&:id)} invalid_evidence_question_ids=#{invalid_links.map(&:id)}"
+        "missing_required_question_ids=#{missing_required.map(&:id)} invalid_evidence_question_ids=#{invalid_links.map(&:id)} " \
+        "invalid_integer_question_ids=#{invalid_integer_responses.map(&:id)}"
       )
 
       # Avoid relying on a potentially partially-loaded association proxy.
@@ -252,9 +243,13 @@ class SurveysController < ApplicationController
       @other_answers = other_answers
       @computed_required = {}
       @invalid_evidence = invalid_links.map(&:id)
-      error_candidates = (missing_required + invalid_links).map(&:id)
+      @invalid_integer = invalid_integer_responses.map(&:id)
+      @missing_required = missing_required.map(&:id)
       ordered_ids = question_ids_in_display_order(@category_groups)
       ordered_ids = @survey.questions.order(:question_order).pluck(:id) if ordered_ids.blank?
+
+      # Keep jump behavior predictable: first errored question in display order.
+      error_candidates = (missing_required + invalid_links + invalid_integer_responses).map(&:id).uniq
       @first_error_question_id = (ordered_ids & error_candidates).first || error_candidates.first
       if @first_error_question_id
         first_error_question = questions_map[@first_error_question_id]
@@ -271,19 +266,18 @@ class SurveysController < ApplicationController
       if invalid_links.any?
         alert_parts << "Please fix the highlighted evidence links by setting sharing to 'Anyone with the link can view.'"
       end
+      if invalid_integer_responses.any?
+        alert_parts << "Please fix highlighted integer responses (whole-number format and min/max limits)."
+      end
       flash.now[:alert] = alert_parts.join(" ")
       @category_groups.each do |category|
+        category_branch_parent_ids = category.questions.select(&:sub_question?).map(&:parent_question_id).compact.uniq
         category.questions.each do |question|
-          required = question.is_required?
-          if !required && question.choice_question?
-            option_values = question.answer_option_values
-            options = option_values.map(&:strip).map(&:downcase)
-            numeric_scale = %w[1 2 3 4 5]
-            has_numeric_scale = (numeric_scale - options).empty?
-            is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
-            required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
-          end
-          @computed_required[question.id] = required
+          @computed_required[question.id] = required_for_submission?(
+            question,
+            answers:,
+            branch_parent_ids: category_branch_parent_ids
+          )
         end
       end
 
@@ -324,6 +318,12 @@ class SurveysController < ApplicationController
           if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
             submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
           end
+        end
+
+        if question&.question_type == "integer" && submitted_value.present? && !valid_integer_response_for_question?(question, submitted_value)
+          record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
+          record.errors.add(:response_value, "must satisfy integer question constraints")
+          raise ActiveRecord::RecordInvalid.new(record)
         end
 
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
@@ -478,12 +478,19 @@ class SurveysController < ApplicationController
         submitted_value = answers[question_id.to_s]
         question = questions_map[question_id]
 
+        # Integer questions support draft saves even for out-of-range values.
+        # Normalize to a plain string and persist without submit-time validation.
+        if question&.question_type == "integer"
+          submitted_value = normalized_integer_draft_value(submitted_value)
+        end
+
         if question&.choice_question?
           selected_value = submitted_value.to_s
           if question.answer_option_requires_text?(selected_value) || selected_value.casecmp?("Other")
             submitted_value = { "answer" => selected_value, "text" => other_answers[question_id.to_s].to_s }
           end
         end
+
         record = StudentQuestion.find_or_initialize_by(student_id: student.student_id, question_id: question_id)
         record.advisor_id ||= student.advisor_id
 
@@ -505,6 +512,19 @@ class SurveysController < ApplicationController
       prefix: "Progress saved! You can continue later.",
       progress: progress_summary
     )
+
+    begin
+      SurveyResponseVersion.capture_current!(
+        student: student,
+        survey: @survey,
+        assignment: assignment,
+        actor_user: current_user,
+        event: :edited,
+        skip_if_unchanged: true
+      )
+    rescue StandardError => version_error
+      Rails.logger.warn "[SAVE_PROGRESS] Failed to capture survey response version: #{version_error.class}: #{version_error.message}"
+    end
 
     redirect_to student_dashboard_path, notice: notice_message
   end
@@ -545,6 +565,84 @@ class SurveysController < ApplicationController
                             end
       end
       ordered_questions.map(&:id)
+    end
+  end
+
+  def valid_integer_response_for_question?(question, value)
+    candidate = case value
+    when String
+      value.strip
+    when Numeric
+      value.to_s
+    when Hash
+      (value["answer"] || value[:answer] || value["text"] || value[:text] || value["value"] || value[:value]).to_s.strip
+    else
+      value.to_s.strip
+    end
+
+    return false unless candidate.match?(/\A\d+\z/)
+
+    int_value = candidate.to_i
+    min = question.respond_to?(:integer_min_value) ? question.integer_min_value : 1
+    max = question.respond_to?(:integer_max_value) ? question.integer_max_value : nil
+
+    return false if int_value < min
+    return false if max.present? && int_value > max
+
+    true
+  end
+
+  def required_for_submission?(question, answers:, branch_parent_ids: [])
+    required = question.is_required?
+
+    # Competency ratings are mandatory on submit.
+    if question.question_type == "dropdown" && question.category&.section&.mha_competency?
+      required = true
+    end
+
+    # Parent branch selectors (e.g., Employment Yes/No) are mandatory.
+    if branch_parent_ids.include?(question.id)
+      required = true
+    end
+
+    # Branch children are required only when parent answer is Yes.
+    if question.respond_to?(:sub_question?) && question.sub_question?
+      parent_answer = normalized_answer_value(answers[question.parent_question_id.to_s])
+      return false unless parent_answer.casecmp?("yes")
+      required = true
+    end
+
+    if !required && question.choice_question?
+      option_values = question.answer_option_values
+      options = option_values.map(&:strip).map(&:downcase)
+      numeric_scale = %w[1 2 3 4 5]
+      has_numeric_scale = (numeric_scale - options).empty?
+      is_flexibility_scale = has_numeric_scale && question.question_text.to_s.downcase.include?("flexible")
+      required = !(options == %w[yes no] || options == %w[no yes] || is_flexibility_scale)
+    end
+
+    required
+  end
+
+  def normalized_answer_value(value)
+    case value
+    when Hash
+      (value["answer"] || value[:answer] || value["text"] || value[:text] || value["value"] || value[:value]).to_s.strip
+    else
+      value.to_s.strip
+    end
+  end
+
+  def normalized_integer_draft_value(value)
+    case value
+    when String
+      value.strip
+    when Numeric
+      value.to_s
+    when Hash
+      (value["answer"] || value[:answer] || value["text"] || value[:text] || value["value"] || value[:value]).to_s.strip
+    else
+      value.to_s.strip
     end
   end
 

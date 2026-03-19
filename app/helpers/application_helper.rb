@@ -1,7 +1,9 @@
 # Helpers shared across views for formatting flash messages, buttons, and audit
 # metadata.
 module ApplicationHelper
-  DEFAULT_SCALE_LABELS = %w[1 2 3 4 5].freeze
+  include MarkdownHelper
+  include GuidanceTextHelper
+  include CompetencyTargetLevelsHelper
 
   # Base CSS class applied to all flash notifications.
   FLASH_BASE_CLASSES = "flash".freeze
@@ -44,6 +46,18 @@ module ApplicationHelper
     }.fetch(key.to_sym, key.to_s.titleize)
   end
 
+  # Renders question text in plain or rich format based on question config.
+  # Rich prompts are sanitized to a strict set of inline tags.
+  #
+  # @param question [Question]
+  # @return [ActiveSupport::SafeBuffer]
+  def render_question_prompt(question)
+    raw = question&.question_text.to_s
+    return h(raw) unless question.respond_to?(:rich_text_prompt?) && question.rich_text_prompt?
+
+    render_markdown_inline(raw)
+  end
+
   # Emits a stylesheet tag for Tailwind, with a fallback if the asset pipeline
   # is unavailable (e.g., during development).
   #
@@ -59,6 +73,40 @@ module ApplicationHelper
     end
 
     Rails.logger.warn("tailwind.css could not be loaded: #{e.message}")
+    nil
+  end
+
+  # Emits links for the consolidated app stylesheets, with resilient fallback
+  # resolution for environments where logical asset lookup may intermittently fail.
+  #
+  # @return [String, nil]
+  def consolidated_stylesheet_tags
+    stylesheet_link_tag("application", "accessibility", "data-turbo-track": "reload")
+  rescue StandardError => e
+    names = %w[application.css accessibility.css]
+    tags = names.filter_map { |name| stylesheet_fallback_tag(name) }
+
+    Rails.logger.warn("consolidated stylesheets fallback used: #{e.class}: #{e.message}")
+
+    return safe_join(tags, "\n") if tags.any?
+
+    nil
+  end
+
+  private def stylesheet_fallback_tag(name)
+    prefix = Rails.application.config.assets.prefix.presence || "/assets"
+    candidates = [ name, "stylesheets/#{name}", "builds/#{name}" ]
+
+    asset = candidates.lazy.map { |path| Rails.application.assets&.load_path&.find(path) }.find(&:present?)
+
+    href = if asset&.respond_to?(:digested_path)
+      File.join(prefix, asset.digested_path)
+    else
+      File.join(prefix, name)
+    end
+
+    tag.link(rel: "stylesheet", href:, "data-turbo-track": "reload")
+  rescue StandardError
     nil
   end
 
@@ -246,34 +294,6 @@ module ApplicationHelper
 
     name = user.respond_to?(:full_name) ? user.full_name.to_s.strip : ""
     name.present? ? "Profile picture for #{name}" : "User avatar"
-  end
-
-  # Returns the configured labels for a scale question, falling back to a
-  # standard 1-5 list when no custom labels were provided.
-  #
-  # @param question [Question]
-  # @return [Array<String>]
-  def scale_labels_for(question)
-    Array(question&.answer_options_list).presence || DEFAULT_SCALE_LABELS
-  end
-
-  # Resolves the display label for a stored scale value. When the value is a
-  # numeric index, the matching configured label is returned; otherwise the raw
-  # value is shown.
-  #
-  # @param question [Question]
-  # @param raw_value [String, Integer]
-  # @return [String]
-  def scale_label_for_value(question, raw_value)
-    return "" if raw_value.blank?
-
-    labels = scale_labels_for(question)
-    index = Integer(raw_value) rescue nil
-    if index
-      labels.fetch(index - 1, raw_value.to_s.presence || "")
-    else
-      raw_value.to_s
-    end
   end
 
   private

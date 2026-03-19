@@ -24,6 +24,10 @@ module Api
       render json: aggregator.track_summary
     end
 
+    def employment_summary
+      render json: aggregator.employment_summary
+    end
+
     private
 
     def ensure_reports_access!

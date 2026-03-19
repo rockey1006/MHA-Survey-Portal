@@ -61,6 +61,24 @@ class Assignments::SurveysControllerTest < ActionDispatch::IntegrationTest
     refute_match(/id="bulk_due_date"[^>]*value="\d{4}-\d{2}-\d{2}T\d{2}:\d{2}"/, response.body)
   end
 
+  test "show displays survey default close date when assignment has no individual deadline" do
+    student = students(:student)
+    survey_deadline = Time.zone.local(2035, 2, 15, 18, 0)
+    @survey.update!(available_until: survey_deadline)
+
+    assignment = SurveyAssignment.find_or_initialize_by(survey: @survey, student: student)
+    assignment.advisor ||= advisors(:advisor)
+    assignment.assigned_at ||= Time.current
+    assignment.available_until = nil
+    assignment.save!
+
+    get assignments_survey_path(@survey)
+    assert_response :success
+    expected_date = survey_deadline.to_date
+    expected_deadline = "#{expected_date.strftime('%B')} #{expected_date.day}, #{expected_date.year}"
+    assert_includes response.body, expected_deadline
+  end
+
   test "assign creates student questions and enqueues notification" do
     StudentQuestion.delete_all
     SurveyAssignment.delete_all

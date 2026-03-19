@@ -34,7 +34,9 @@
         <% category.questions.ordered.each_with_index do |question, idx| %>
           <% qr = survey_response.question_responses.find { |r| r.question_id == question.id } || survey_response.question_responses.build(question: question) %>
           <div class="mb-4">
-            <label class="block font-medium"><%= "Q#{idx+1}. #{question.question_text}" %>
+            <label class="block font-medium">
+              <span><%= "Q#{idx + 1}." %></span>
+              <span class="block"><%= render_question_prompt(question) %></span>
               <% if question.is_required? %>
                 <span class="text-rose-600">*</span>
               <% end %>
@@ -50,12 +52,6 @@
                                   options_for_select(question.answer_option_pairs, qr.response_value.to_s),
                                   { include_blank: true },
                                   class: "w-full border rounded px-2 py-1" %>
-              <% end %>
-            <% when "scale" %>
-              <% scale_labels = scale_labels_for(question) %>
-              <% options = scale_labels.each_with_index.map { |label, idx| [ label, idx + 1 ] } %>
-              <%= form.fields_for :question_responses, qr do |qr_form| %>
-                <%= qr_form.select :response_value, options, { include_blank: true }, class: "w-full border rounded px-2 py-1" %>
               <% end %>
             <% when "evidence" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>

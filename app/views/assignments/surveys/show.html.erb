@@ -6,7 +6,7 @@
   </div>
 
   <section
-    class="c-card dashboard-section"
+    class="c-card p-8 md:p-10"
     data-controller="assignment-students"
     data-assignment-students-survey-number-value="<%= @survey_number %>"
     data-assignment-students-survey-title-value="<%= @survey.title %>"
@@ -27,13 +27,13 @@
     <% end %>
     <% unassigned_students = [total_students - assigned_students, 0].max %>
 
-    <div class="section-header">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div class="c-header-row">
-        <h1 class="section-title">📝 Survey Assignment</h1>
+        <h1 class="c-section-title c-heading-inline">📝 Survey Assignment</h1>
         <div class="c-muted-meta"><%= pluralize(total_students, "student") %></div>
       </div>
-      <p class="section-subtitle">Survey #<%= @survey_number %>: <%= @survey.title %></p>
-      <p class="section-subtitle">
+      <p class="mt-1 text-sm leading-relaxed text-slate-600">Survey #<%= @survey_number %>: <%= @survey.title %></p>
+      <p class="mt-1 text-sm leading-relaxed text-slate-600">
         Default deadline:
         <strong><%= @survey.available_until.present? ? format_calendar_date(@survey.available_until) : "No deadline" %></strong>
       </p>
@@ -83,7 +83,7 @@
               id="student_search"
               type="text"
               placeholder="Search by name or email"
-              class="c-input"
+              class="c-input c-search-input"
               data-assignment-students-target="search"
               data-action="input->assignment-students#filterRows"
             >
@@ -175,7 +175,12 @@
                              else
                                "Unassigned"
                              end %>
-            <% due_label = assignment&.available_until.present? ? format_calendar_date(assignment.available_until) : "No deadline" %>
+            <% effective_due_at = assignment&.available_until.presence || @survey.available_until %>
+            <% due_label = if assigned
+                             effective_due_at.present? ? format_calendar_date(effective_due_at) : "No deadline"
+                           else
+                             ""
+                           end %>
             <% completed_label = assignment&.completed_at.present? ? (l(assignment.completed_at, format: :long) rescue assignment.completed_at.to_fs(:long)) : "—" %>
             <% last_notified_at = assignment&.id.present? ? @last_notified_at_by_assignment_id&.[](assignment.id) : nil %>
             <% last_notified_label = last_notified_at.present? ? (l(last_notified_at, format: :short) rescue last_notified_at.to_fs(:short)) : "—" %>

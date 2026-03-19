@@ -67,7 +67,8 @@ const API_ENDPOINTS = {
   benchmark: "/api/reports/benchmark",
   competency: "/api/reports/competency-summary",
   competencyDetail: "/api/reports/competency-detail",
-  track: "/api/reports/track-summary"
+  track: "/api/reports/track-summary",
+  employment: "/api/reports/employment-summary"
 }
 
 const DEFAULT_FILTERS = {
@@ -875,6 +876,161 @@ const TrackAchievementChart = ({ tracks }) => {
 
 const INLINE_EXPORT_BUTTON_CLASS = "inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
 
+// ─── Employment charts ───────────────────────────────────────────────────────
+
+const EmploymentStatusChart = ({ statusCounts }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !Array.isArray(statusCounts) || statusCounts.length === 0) return undefined
+    const labels = statusCounts.map((s) => s.label)
+    const data   = statusCounts.map((s) => s.count)
+    const colors = statusCounts.map((s) => {
+      if (s.label === "Employed")      return COLORS.achieved
+      if (s.label === "Not employed")  return COLORS.notMet
+      return COLORS.notAssessed
+    })
+
+    const chart = new Chart(canvasRef.current.getContext("2d"), {
+      type: "doughnut",
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "right" },
+          tooltip: {
+            callbacks: {
+              label(context) {
+                const total = data.reduce((a, b) => a + b, 0)
+                const pct   = total > 0 ? ((context.raw / total) * 100).toFixed(1) : "0.0"
+                return `${context.label}: ${context.raw} (${pct}%)`
+              }
+            }
+          }
+        }
+      }
+    })
+    return () => chart.destroy()
+  }, [ statusCounts ])
+
+  if (!Array.isArray(statusCounts) || statusCounts.length === 0) {
+    return h("p", { className: "reports-placeholder" }, "No employment status data available.")
+  }
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Employment status breakdown", style: { minHeight: "280px" } },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const EmploymentHoursChart = ({ distribution }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !distribution) return undefined
+    const chart = new Chart(canvasRef.current.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: distribution.labels,
+        datasets: [{
+          label: "Students",
+          data: distribution.data,
+          backgroundColor: COLORS.student,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+        }
+      }
+    })
+    return () => chart.destroy()
+  }, [ distribution ])
+
+  if (!distribution) return h("p", { className: "reports-placeholder" }, "No hours data available.")
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Hours per week distribution", style: { minHeight: "260px" } },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const EmploymentFlexibilityChart = ({ distribution }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !distribution) return undefined
+    const chart = new Chart(canvasRef.current.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: distribution.labels,
+        datasets: [{
+          label: "Students",
+          data: distribution.data,
+          backgroundColor: COLORS.advisor,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxRotation: 30, minRotation: 0 } },
+          y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+        }
+      }
+    })
+    return () => chart.destroy()
+  }, [ distribution ])
+
+  if (!distribution) return h("p", { className: "reports-placeholder" }, "No flexibility data available.")
+  return h("div", { className: "reports-chart", role: "img", "aria-label": "Work schedule flexibility distribution", style: { minHeight: "260px" } },
+    h("canvas", { ref: canvasRef })
+  )
+}
+
+const EmploymentTab = ({ data, onExport }) => {
+  if (!data) return h("p", { className: "reports-placeholder" }, "Loading employment data…")
+
+  const { total_respondents, employment_rate, status_counts, hours_distribution, flexibility_distribution } = data
+
+  return h("div", { className: "space-y-8" }, [
+    // Summary banner
+    h("div", { className: "flex flex-wrap gap-4" }, [
+      h("div", { className: "rounded-lg border border-slate-200 bg-white px-5 py-3 shadow-sm" }, [
+        h("p", { className: "text-xs font-semibold uppercase tracking-wide text-slate-500" }, "Total respondents"),
+        h("p", { className: "text-2xl font-bold text-slate-900" }, String(total_respondents ?? "—"))
+      ]),
+      employment_rate !== null && employment_rate !== undefined
+        ? h("div", { className: "rounded-lg border border-slate-200 bg-white px-5 py-3 shadow-sm" }, [
+            h("p", { className: "text-xs font-semibold uppercase tracking-wide text-slate-500" }, "Employment rate"),
+            h("p", { className: "text-2xl font-bold text-slate-900" }, `${employment_rate}%`)
+          ])
+        : null
+    ].filter(Boolean)),
+
+    // Status donut
+    h("div", { className: "space-y-2" }, [
+      h("h3", { className: "text-sm font-semibold text-slate-700" }, "Employment Status"),
+      h(EmploymentStatusChart, { statusCounts: status_counts })
+    ]),
+
+    // Hours + Flexibility side by side on wide screens
+    h("div", { className: "grid gap-6 md:grid-cols-2" }, [
+      h("div", { className: "space-y-2" }, [
+        h("h3", { className: "text-sm font-semibold text-slate-700" }, "Hours per Week"),
+        h(EmploymentHoursChart, { distribution: hours_distribution })
+      ]),
+      h("div", { className: "space-y-2" }, [
+        h("h3", { className: "text-sm font-semibold text-slate-700" }, "Work Schedule Flexibility"),
+        h(EmploymentFlexibilityChart, { distribution: flexibility_distribution })
+      ])
+    ])
+  ])
+}
+
 const SectionExportButtons = ({ onExport, section }) => {
   if (!section) return null
 
@@ -991,6 +1147,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
   const [ yAxisMode, setYAxisMode ] = useState("percent")
   const [ competencyDetailDomain, setCompetencyDetailDomain ] = useState("all")
   const [ competencyDetailSort, setCompetencyDetailSort ] = useState("student")
+  const [ employment, setEmployment ] = useState(null)
   const filtersRef = useRef(DEFAULT_FILTERS)
 
   const resolvedExportUrls = useMemo(() => ({ ...FALLBACK_EXPORT_URLS, ...(exportUrls || {}) }), [ exportUrls ])
@@ -1003,11 +1160,12 @@ const ReportsApp = ({ exportUrls = {} }) => {
       const inputFilters = (nextFilters && typeof nextFilters === "object") ? nextFilters : filtersRef.current
       const resolvedFilters = { ...DEFAULT_FILTERS, ...inputFilters }
       const query = buildQueryString(resolvedFilters)
-      const [ benchmarkRes, competencyRes, trackRes, competencyDetailRes ] = await Promise.all([
+      const [ benchmarkRes, competencyRes, trackRes, competencyDetailRes, employmentRes ] = await Promise.all([
         fetchJson(`${API_ENDPOINTS.benchmark}${query}`),
         fetchJson(`${API_ENDPOINTS.competency}${query}`),
         fetchJson(`${API_ENDPOINTS.track}${query}`),
-        fetchJson(`${API_ENDPOINTS.competencyDetail}${query}`)
+        fetchJson(`${API_ENDPOINTS.competencyDetail}${query}`),
+        fetchJson(`${API_ENDPOINTS.employment}${query}`)
       ])
 
       filtersRef.current = resolvedFilters
@@ -1016,6 +1174,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       setCompetencies(Array.isArray(competencyRes) ? competencyRes : [])
       setTracks(Array.isArray(trackRes) ? trackRes : [])
       setCompetencyDetail(competencyDetailRes)
+      setEmployment(employmentRes)
     } catch (err) {
       console.error(err)
       setError(err.message || "Unable to load reports data")
@@ -1186,8 +1345,20 @@ const ReportsApp = ({ exportUrls = {} }) => {
       footnote: h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
     })
 
+    tabs.push({
+      key: "employment",
+      label: "Employment",
+      title: "Employment Across Respondents",
+      description: "Employment status, hours worked per week, and schedule flexibility across all respondents in the current filter selection.",
+      toolbar: h(SectionExportButtons, { onExport: handleExport, section: "employment" }),
+      content: h(EmploymentTab, { data: employment }),
+      footnote: (filtersDescription && filtersDescription !== "None")
+        ? h("p", { className: "text-xs text-slate-500" }, `Filters applied: ${filtersDescription}`)
+        : null
+    })
+
     return tabs
-  }, [ competencies, competencyAchievementItems, filtersDescription, handleExport, handleViewModeChange, singleStudentDisabled, studentSelectionRequired, timeline, tracks, viewMode, yAxisMode ])
+  }, [ competencies, competencyAchievementItems, employment, filtersDescription, handleExport, handleViewModeChange, singleStudentDisabled, studentSelectionRequired, timeline, tracks, viewMode, yAxisMode ])
 
   useEffect(() => {
     if (!Array.isArray(chartTabs) || chartTabs.length === 0) return

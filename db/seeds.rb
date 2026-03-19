@@ -408,7 +408,7 @@ survey_templates.each do |definition|
 
     question_feedback_supported = Question.column_names.include?("has_feedback")
 
-    categories = Array(definition.fetch("categories", []))
+    categories = Array(definition.fetch("categories", [])) + Array(definition["extra_categories"])
     section_assignments = sections_supported ? {} : nil
     categories.each do |category_definition|
       category = survey.categories.build(
@@ -441,6 +441,9 @@ survey_templates.each do |definition|
           tooltip_text: tooltip_value.presence,
           question_order: question_definition.fetch("order"),
           question_type: question_definition.fetch("type"),
+          prompt_format: question_definition["prompt_format"],
+          integer_min: question_definition["integer_min"],
+          integer_max: question_definition["integer_max"],
           is_required: question_definition.fetch("required", false),
           has_evidence_field: question_definition.fetch("has_evidence_field", false),
           answer_options: answer_options_for.call(question_definition["options"])
@@ -471,6 +474,9 @@ survey_templates.each do |definition|
             question_order: parent_question.question_order,
             sub_question_order: sub_definition.fetch("order", 0),
             question_type: sub_definition.fetch("type"),
+            prompt_format: sub_definition["prompt_format"],
+            integer_min: sub_definition["integer_min"],
+            integer_max: sub_definition["integer_max"],
             is_required: sub_definition.fetch("required", false),
             has_evidence_field: sub_definition.fetch("has_evidence_field", false),
             answer_options: answer_options_for.call(sub_definition["options"]),
@@ -658,6 +664,50 @@ sample_timestamp = lambda do
   Time.zone.now - months_ago.months - days_offset.days
 end
 
+response_timestamp_for = lambda do |survey|
+  available_from = survey.available_from
+  available_until = survey.available_until
+
+  unless available_from.present? && available_until.present?
+    next sample_timestamp.call
+  end
+
+  window_start = available_from + 1.day
+  window_end = available_until - 6.hours
+
+  if window_end <= window_start
+    next [ available_from + 1.hour, available_until - 1.hour, Time.current ].compact.min
+  end
+
+  Time.zone.at(response_rng.rand(window_start.to_i..window_end.to_i))
+end
+
+completion_timestamp_for = lambda do |survey:, latest_response_timestamp:|
+  timestamp = latest_response_timestamp || response_timestamp_for.call(survey)
+  available_from = survey.available_from
+  available_until = survey.available_until
+
+  return timestamp unless available_until.present?
+
+  latest_allowed = available_until - 1.hour
+  earliest_allowed = available_from.present? ? (available_from + 2.hours) : nil
+  timestamp = [ timestamp, latest_allowed ].compact.min
+  timestamp = [ timestamp, earliest_allowed ].compact.max if earliest_allowed.present?
+  timestamp
+end
+
+assigned_timestamp_for = lambda do |survey:, completion_timestamp:|
+  available_from = survey.available_from
+  earliest_allowed = available_from.present? ? [ available_from, completion_timestamp - 10.days ].max : completion_timestamp - 10.days
+  latest_allowed = completion_timestamp - 1.day
+
+  if latest_allowed <= earliest_allowed
+    [ earliest_allowed, completion_timestamp - 1.hour ].min
+  else
+    Time.zone.at(response_rng.rand(earliest_allowed.to_i..latest_allowed.to_i))
+  end
+end
+
 sample_text = lambda do |question|
   base = case question.question_type
          when "short_answer"
@@ -670,9 +720,9 @@ sample_text = lambda do |question|
 end
 
 drive_links = %w[
-  https://drive.google.com/file/d/1AbCdEf12345/view?usp=drive_link
-  https://drive.google.com/drive/folders/1ExampleFolderId?usp=drive_link
-  https://docs.google.com/document/d/1SampleDocumentId/edit?usp=drive_link
+  https://sites.google.com/view/mha-portfolio-avery
+  https://sites.google.com/view/mha-portfolio-emery
+  https://sites.google.com/view/mha-portfolio-kiara
 ]
 
 choice_values_for = lambda do |question|
@@ -773,6 +823,15 @@ students.each do |student|
         response_value = case question.question_type
                          when "evidence"
                            high_performer ? drive_links.first : drive_links.sample(random: response_rng)
+                         when "integer"
+                           min = question.integer_min.presence || 0
+                           max = question.integer_max.presence || [min, 10].max
+                           chosen = if high_performer
+                             response_rng.rand([max - 2, min].max..max)
+                           else
+                             response_rng.rand(min..max)
+                           end
+                           chosen.to_s
                          when "multiple_choice"
                            options = choice_values_for.call(question)
                            other_pair = question.answer_option_pairs.find { |(label, _value)| label.to_s.strip.downcase.start_with?("other") }
@@ -838,7 +897,7 @@ students.each do |student|
         end
 
         # Spread timestamps so reports show multiple cohorts/timepoints
-        timestamp = sample_timestamp.call
+        timestamp = response_timestamp_for.call(survey)
         record.created_at ||= timestamp
         record.updated_at = timestamp
         latest_response_timestamp = [ latest_response_timestamp, timestamp ].compact.max
@@ -855,16 +914,24 @@ students.each do |student|
       # This helps exercise UI states that depend on completed assignments.
       if survey.program_semester&.name.to_s.strip.casecmp?("Spring 2026") && year_1
         incomplete_seed_email = "zoe.elliott24@tamu.edu"
-        completion_timestamp = latest_response_timestamp || Time.current
+        completion_timestamp = completion_timestamp_for.call(
+          survey: survey,
+          latest_response_timestamp: latest_response_timestamp
+        )
+        assigned_timestamp = assigned_timestamp_for.call(
+          survey: survey,
+          completion_timestamp: completion_timestamp
+        )
 
         assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
           record.advisor_id = student.advisor_id
-          record.assigned_at = completion_timestamp
+          record.assigned_at = assigned_timestamp
           record.available_from = survey.available_from
           record.available_until = survey.available_until
         end
 
         assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
+        assignment.update!(assigned_at: assigned_timestamp) if assignment.assigned_at.blank? || assignment.assigned_at > completion_timestamp
         assignment.update!(available_from: survey.available_from) if assignment.available_from.blank? && survey.available_from.present?
         assignment.update!(available_until: survey.available_until) if assignment.available_until.blank? && survey.available_until.present?
         assignment.update!(completed_at: nil) if student.user.email.to_s.downcase == incomplete_seed_email
@@ -888,16 +955,24 @@ students.each do |student|
       if year_2
         completion_semesters = ["Spring 2026"].freeze
         if completion_semesters.include?(survey.program_semester&.name.to_s.strip)
-          completion_timestamp = latest_response_timestamp || Time.current
+          completion_timestamp = completion_timestamp_for.call(
+            survey: survey,
+            latest_response_timestamp: latest_response_timestamp
+          )
+          assigned_timestamp = assigned_timestamp_for.call(
+            survey: survey,
+            completion_timestamp: completion_timestamp
+          )
 
           assignment = SurveyAssignment.find_or_create_by!(student_id: student.student_id, survey_id: survey.id) do |record|
             record.advisor_id = student.advisor_id
-            record.assigned_at = completion_timestamp
+            record.assigned_at = assigned_timestamp
             record.available_from = survey.available_from
             record.available_until = survey.available_until
           end
 
           assignment.update!(advisor_id: student.advisor_id) if assignment.advisor_id.blank? && student.advisor_id.present?
+          assignment.update!(assigned_at: assigned_timestamp) if assignment.assigned_at.blank? || assignment.assigned_at > completion_timestamp
           assignment.update!(available_from: survey.available_from) if assignment.available_from.blank? && survey.available_from.present?
           assignment.update!(available_until: survey.available_until) if assignment.available_until.blank? && survey.available_until.present?
           assignment.mark_completed!(completion_timestamp)

@@ -66,4 +66,41 @@ class StudentQuestionTest < ActiveSupport::TestCase
     sq.response_value = "https://sites.google.com/view/demo/page"
     assert sq.valid?, sq.errors.full_messages.to_sentence
   end
+
+  test "integer question enforces whole number and bounds" do
+    student = students(:student)
+    category = categories(:clinical_skills)
+    integer_question = category.questions.create!(
+      question_text: "How many hours per week do you work on average?",
+      question_type: "integer",
+      question_order: 199,
+      is_required: false,
+      integer_min: 1,
+      integer_max: 80
+    )
+
+    sq = StudentQuestion.new(
+      student: student,
+      question: integer_question,
+      response_value: "0"
+    )
+
+    refute sq.valid?
+    assert_includes sq.errors[:response_value], "must be greater than or equal to 1"
+
+    sq.response_value = "3.5"
+    refute sq.valid?
+    assert_includes sq.errors[:response_value], "must be a whole number"
+
+    sq.response_value = "abc"
+    refute sq.valid?
+    assert_includes sq.errors[:response_value], "must be a whole number"
+
+    sq.response_value = "120"
+    refute sq.valid?
+    assert_includes sq.errors[:response_value], "must be less than or equal to 80"
+
+    sq.response_value = "12"
+    assert sq.valid?, sq.errors.full_messages.to_sentence
+  end
 end

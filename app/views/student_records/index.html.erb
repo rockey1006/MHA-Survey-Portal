@@ -45,6 +45,7 @@
 
     <div class="c-toolbar">
       <div class="c-toolbar__row w-full">
+        <div class="c-callout w-full">
         <%= form_with url: student_records_path, method: :get, local: true, class: "w-full space-y-4" do %>
           <div class="flex w-full flex-wrap items-end gap-3">
             <div class="min-w-[16rem] flex-1">
@@ -121,7 +122,7 @@
               <%= text_field_tag :q,
                                  @search_query,
                                  placeholder: "Search by name, email, or UIN",
-                                 class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                                 class: "c-input c-search-input w-full" %>
             </div>
 
             <div class="min-w-[18rem] flex-1">
@@ -129,7 +130,7 @@
               <%= text_field_tag :survey_query,
                                   @survey_query,
                                   placeholder: "Filter surveys by title",
-                                  class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                                  class: "c-input c-search-input w-full" %>
             </div>
 
             <div class="flex items-center gap-2 min-w-[12rem]">
@@ -138,6 +139,7 @@
             </div>
           </div>
         <% end %>
+        </div>
       </div>
 
     </div>

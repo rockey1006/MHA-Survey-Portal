@@ -1,4 +1,4 @@
-<%= form_with(model: [:admin, question], class: "survey-form") do |form| %>
+<%= form_with(model: [:admin, question], class: "survey-form", data: { controller: "markdown-editor" }) do |form| %>
   <% if question.errors.any? %>
     <div class="form-errors">
       <h2><%= pluralize(question.errors.count, "error") %> prevented the question from being saved:</h2>
@@ -11,7 +11,7 @@
   <% end %>
 
   <div class="survey-form-layout">
-    <div class="survey-form-main">
+    <div class="u-stack u-stack--2xl">
       <section class="c-card form-card">
         <header class="form-card-header">
           <span class="step-pill">Question Details</span>
@@ -24,18 +24,28 @@
         <div class="u-grid">
           <div class="c-field">
             <%= form.label :question, "Question text", class: "c-label" %>
-            <%= form.text_area :question, rows: 4, class: "c-input input", required: true, placeholder: "Describe the question you want to ask" %>
+            <%= form.text_area :question,
+                               rows: 4,
+                               class: "c-input input",
+                               required: true,
+                               placeholder: "Describe the question you want to ask" %>
           </div>
 
           <div class="c-field">
             <%= form.label :description, "Question description (optional)", class: "c-label" %>
-            <%= form.text_area :description, rows: 3, class: "c-input input", placeholder: "Provide context or competency definition students should always see." %>
+            <%= form.text_area :description,
+                               rows: 3,
+                               class: "c-input input",
+                               placeholder: "Provide context or competency definition students should always see." %>
             <p class="c-help field-hint">Displayed directly beneath the question prompt to give everyone constant context.</p>
           </div>
 
           <div class="c-field">
             <%= form.label :tooltip_text, "Tooltip text (optional)", class: "c-label" %>
-            <%= form.text_area :tooltip_text, rows: 3, class: "c-input input", placeholder: "Short guidance that appears in the tooltip icon." %>
+            <%= form.text_area :tooltip_text,
+                               rows: 3,
+                               class: "c-input input",
+                               placeholder: "Short guidance that appears in the tooltip icon." %>
             <p class="c-help field-hint">Use for hover/click tooltips. Ideal for scales or advisor-only nudges you do not want inline.</p>
           </div>
 
@@ -45,9 +55,28 @@
           </div>
 
           <div class="c-field">
+            <%= form.label :prompt_format, "Prompt format", class: "c-label" %>
+            <%= form.select :prompt_format,
+                            [["Plain text", "plain_text"], ["Rich text", "rich_text"]],
+                            {},
+                            class: "c-input input" %>
+            <p class="c-help field-hint">Rich text uses Markdown syntax (for example: **bold**, *italic*, [link](https://example.com)).</p>
+          </div>
+
+          <div class="c-field">
             <%= form.label :question_order, "Display order", class: "c-label" %>
             <%= form.number_field :question_order, class: "c-input input", min: 1, required: true %>
             <p class="c-help field-hint">Controls where this question appears relative to other prompts.</p>
+          </div>
+
+          <div class="c-field">
+            <%= form.label :integer_min, "Integer minimum", class: "c-label" %>
+            <%= form.number_field :integer_min, class: "c-input input", min: 0, step: 1, placeholder: 1 %>
+          </div>
+
+          <div class="c-field">
+            <%= form.label :integer_max, "Integer maximum", class: "c-label" %>
+            <%= form.number_field :integer_max, class: "c-input input", min: 0, step: 1, placeholder: "Optional" %>
           </div>
         </div>
       </section>

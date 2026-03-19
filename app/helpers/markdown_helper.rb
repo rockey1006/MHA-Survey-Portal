@@ -80,6 +80,7 @@ module MarkdownHelper
     with_code = escaped.gsub(/`([^`]+)`/, "<code>\\1</code>")
     with_strong = with_code.gsub(/\*\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*\*/, "<strong>\\1</strong>")
     with_em = with_strong.gsub(/(^|[^*])\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*(?!\*)/, "\\1<em>\\2</em>")
+    with_em = with_em.gsub(/(^|[^_])_([^_\n][\s\S]*?[^_\n]|[^_\n])_(?!_)/, "\\1<em>\\2</em>")
 
     linked = with_em.gsub(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/) do
       label = Regexp.last_match(1)

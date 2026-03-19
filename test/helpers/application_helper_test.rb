@@ -107,4 +107,15 @@ class ApplicationHelperTest < ActionView::TestCase
       end
     end
   end
+
+  test "render_question_prompt supports underscore markdown emphasis" do
+    question = Question.new(
+      prompt_format: "rich_text",
+      question_text: "How many **hours per week** do you work on _average_?"
+    )
+
+    html = render_question_prompt(question).to_s
+    assert_includes html, "<strong>hours per week</strong>"
+    assert_includes html, "<em>average</em>"
+  end
 end

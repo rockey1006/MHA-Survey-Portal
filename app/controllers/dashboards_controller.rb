@@ -723,11 +723,7 @@ class DashboardsController < ApplicationController
       .includes(:questions)
       .joins(:survey_assignments)
       .where(survey_assignments: { student_id: student.student_id })
-      .where(
-        "(COALESCE(survey_assignments.available_from, surveys.available_from) IS NULL OR COALESCE(survey_assignments.available_from, surveys.available_from) <= :now) " \
-        "AND (COALESCE(survey_assignments.available_until, surveys.available_until) IS NULL OR COALESCE(survey_assignments.available_until, surveys.available_until) >= :now)",
-        now: now
-      )
+      .where(SurveyAssignment.effective_availability_sql, now: now)
       .distinct
       .ordered
   rescue StandardError => e

@@ -19,6 +19,8 @@ class ConvertHoursPerWeekPromptToMarkdown < ActiveRecord::Migration[8.0]
   end
 
   def down
+    return unless table_exists?(:questions)
+
     execute <<~SQL
       UPDATE questions
       SET question_text = #{connection.quote(HTML_TEXT)},

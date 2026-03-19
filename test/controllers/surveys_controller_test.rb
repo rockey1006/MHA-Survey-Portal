@@ -204,13 +204,14 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
   end
 
-  test "index hides unassigned surveys even when track matches" do
+  test "index hides surveys outside availability window even when assigned" do
     sign_in users(:other_student)
 
     get surveys_path
 
     assert_response :success
-    assert_includes response.body, "Spring 2025 Health Assessment"
+    assert_includes response.body, "No surveys assigned (yet)"
+    refute_includes response.body, "Spring 2025 Health Assessment"
     refute_includes response.body, "Fall 2025 Executive Assessment"
     refute_includes response.body, "Fall 2025 Health Assessment"
   end

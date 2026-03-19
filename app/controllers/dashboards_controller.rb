@@ -712,6 +712,7 @@ class DashboardsController < ApplicationController
 
   def surveys_for_student(student)
     return Survey.none unless student&.student_id
+    now = Time.current
 
     # Keep dashboard listings consistent even if the sign-in callback didn't run
     # (e.g., direct session restore). This will add missing assignments for the
@@ -722,6 +723,11 @@ class DashboardsController < ApplicationController
       .includes(:questions)
       .joins(:survey_assignments)
       .where(survey_assignments: { student_id: student.student_id })
+      .where(
+        "(COALESCE(survey_assignments.available_from, surveys.available_from) IS NULL OR COALESCE(survey_assignments.available_from, surveys.available_from) <= :now) " \
+        "AND (COALESCE(survey_assignments.available_until, surveys.available_until) IS NULL OR COALESCE(survey_assignments.available_until, surveys.available_until) >= :now)",
+        now: now
+      )
       .distinct
       .ordered
   rescue StandardError => e

@@ -10,9 +10,16 @@ class SurveysController < ApplicationController
   # @return [void]
   def index
     @student = current_student
+    now = Time.current
     assignments = if @student
                     SurveyAssignment
+                      .joins(:survey)
                       .where(student_id: @student.student_id)
+                      .where(
+                        "(COALESCE(survey_assignments.available_from, surveys.available_from) IS NULL OR COALESCE(survey_assignments.available_from, surveys.available_from) <= :now) " \
+                        "AND (COALESCE(survey_assignments.available_until, surveys.available_until) IS NULL OR COALESCE(survey_assignments.available_until, surveys.available_until) >= :now)",
+                        now: now
+                      )
                       .select(:id, :survey_id, :assigned_at, :available_from, :available_until, :completed_at)
     else
                     SurveyAssignment.none

@@ -118,4 +118,15 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_includes html, "<strong>hours per week</strong>"
     assert_includes html, "<em>average</em>"
   end
+
+  test "render_question_prompt supports ++underline++ markdown" do
+    question = Question.new(
+      prompt_format: "rich_text",
+      question_text: "How many **hours per week** do you work on ++average++?"
+    )
+
+    html = render_question_prompt(question).to_s
+    assert_includes html, "<strong>hours per week</strong>"
+    assert_includes html, "<u>average</u>"
+  end
 end

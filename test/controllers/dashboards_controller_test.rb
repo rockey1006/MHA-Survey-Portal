@@ -755,7 +755,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/boom/i, flash[:alert].to_s)
   end
 
-  test "admin dashboard activity feed includes fallbacks for unknown actions" do
+  test "admin activities page includes survey log entries" do
     sign_in @admin
 
     SurveyChangeLog.create!(
@@ -767,12 +767,9 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       updated_at: Time.current
     )
 
-    AdminActivityLog.record!(admin: @admin, action: "something-else", description: "Custom admin action")
-
-    get admin_dashboard_path
+    get admin_activities_path
     assert_response :success
-    assert_includes response.body, "Survey previewed"
-    assert_includes response.body, "Custom admin action"
+    assert_includes response.body, "Preview: Survey #"
   end
 
   test "update_roles reports failures when an update raises" do
@@ -833,14 +830,14 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "3 generated", reports_description
   end
 
-  test "admin dashboard shows populated activity feed" do
+  test "admin dashboard includes recent activities tile" do
     sign_in @admin
 
     get admin_dashboard_path
     assert_response :success
 
-    assert_includes response.body, "Survey created: Fall 2025 Health Assessment"
-    assert_includes response.body, "Feedback updated: Student User"
+    assert_includes response.body, "Recent Activities"
+    assert_includes response.body, admin_activities_path
   end
 
   private

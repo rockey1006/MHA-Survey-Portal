@@ -912,5 +912,4 @@ class DashboardsController < ApplicationController
   rescue StandardError
     [ [ "Unassigned", "" ] ]
   end
-
 end

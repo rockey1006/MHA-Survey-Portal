@@ -5,13 +5,13 @@ module MarkdownHelper
   MARKDOWN_ALLOWED_TAGS = %w[
     p br h1 h2 h3 h4 h5 h6
     ul ol li
-    strong em b i del
+    strong em b i u del
     blockquote code pre hr
     a
   ].freeze
 
   MARKDOWN_ALLOWED_ATTRIBUTES = %w[href title rel target].freeze
-  INLINE_MARKDOWN_ALLOWED_TAGS = %w[strong em b i del code a br].freeze
+  INLINE_MARKDOWN_ALLOWED_TAGS = %w[strong em b i u del code a br].freeze
 
   # Renders markdown into sanitized HTML.
   #
@@ -80,8 +80,11 @@ module MarkdownHelper
     with_code = escaped.gsub(/`([^`]+)`/, "<code>\\1</code>")
     with_strong = with_code.gsub(/\*\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*\*/, "<strong>\\1</strong>")
     with_em = with_strong.gsub(/(^|[^*])\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*(?!\*)/, "\\1<em>\\2</em>")
+    with_em = with_em.gsub(/(^|[^_])_([^_\n][\s\S]*?[^_\n]|[^_\n])_(?!_)/, "\\1<em>\\2</em>")
+    with_underline = with_em.gsub(/\+\+([^+\n][\s\S]*?[^+\n]|[^+\n])\+\+/, "<u>\\1</u>")
+    with_underline = with_underline.gsub(/&lt;u&gt;([\s\S]*?)&lt;\/u&gt;/i, "<u>\\1</u>")
 
-    linked = with_em.gsub(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/) do
+    linked = with_underline.gsub(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/) do
       label = Regexp.last_match(1)
       href = normalize_href(Regexp.last_match(2))
       href.present? ? %(<a href="#{ERB::Util.html_escape(href)}">#{label}</a>) : label

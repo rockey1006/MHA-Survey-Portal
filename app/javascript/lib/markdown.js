@@ -42,6 +42,9 @@ function applyInlineMarkdown(source) {
   // Support intraword emphasis patterns like foo**bar**baz.
   text = text.replace(/\*\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*\*/g, "<strong>$1</strong>")
   text = text.replace(/(^|[^*])\*([^*\n][\s\S]*?[^*\n]|[^*\n])\*(?!\*)/g, "$1<em>$2</em>")
+  text = text.replace(/(^|[^_])_([^_\n][\s\S]*?[^_\n]|[^_\n])_(?!_)/g, "$1<em>$2</em>")
+  text = text.replace(/\+\+([^+\n][\s\S]*?[^+\n]|[^+\n])\+\+/g, "<u>$1</u>")
+  text = text.replace(/&lt;u&gt;([\s\S]*?)&lt;\/u&gt;/gi, "<u>$1</u>")
 
   text = text.replace(LINK_PATTERN, (_full, label, href) => {
     const safeHref = normalizeHref(href)

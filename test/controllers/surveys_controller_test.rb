@@ -257,6 +257,19 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Fall 2025 Health Assessment"
   end
 
+  test "index does not show surveys completed only by another student" do
+    sign_in @student_user
+    # Remove the primary student's own assignment for the fall_2025 survey
+    SurveyAssignment.where(student_id: @student.student_id, survey_id: @survey.id).delete_all
+
+    # completed_student has a completed assignment for the same survey outside its window
+    # (see completed_residential_assignment fixture); that must not bleed into @student_user's listing
+    get surveys_path
+
+    assert_response :success
+    refute_includes response.body, "Fall 2025 Health Assessment"
+  end
+
   test "index prompts profile completion when track missing" do
     @student.update!(track: nil)
     sign_in @student_user

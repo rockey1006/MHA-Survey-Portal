@@ -36,13 +36,15 @@ class SurveyAssignment < ApplicationRecord
   def self.effective_availability_sql
     <<~SQL.squish
       (
-        (COALESCE(survey_assignments.available_from, surveys.available_from) IS NULL
-          OR COALESCE(survey_assignments.available_from, surveys.available_from) <= :now)
-        AND
-        (COALESCE(survey_assignments.available_until, surveys.available_until) IS NULL
-          OR COALESCE(survey_assignments.available_until, surveys.available_until) >= :now)
+        (
+          (COALESCE(survey_assignments.available_from, surveys.available_from) IS NULL
+            OR COALESCE(survey_assignments.available_from, surveys.available_from) <= :now)
+          AND
+          (COALESCE(survey_assignments.available_until, surveys.available_until) IS NULL
+            OR COALESCE(survey_assignments.available_until, surveys.available_until) >= :now)
+        )
+        OR survey_assignments.completed_at IS NOT NULL
       )
-      OR survey_assignments.completed_at IS NOT NULL
     SQL
   end
 

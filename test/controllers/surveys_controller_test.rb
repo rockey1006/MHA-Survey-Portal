@@ -204,14 +204,69 @@ class SurveysControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, "Spring 2025 Health Assessment"
   end
 
-  test "index hides unassigned surveys even when track matches" do
+  test "index hides surveys outside availability window even when assigned" do
     sign_in users(:other_student)
+
+    # Verify the assignment exists (so missing survey is due to window, not a missing assignment)
+    assert SurveyAssignment.exists?(student_id: students(:other_student).student_id,
+                                    completed_at: nil),
+           "Expected an incomplete assignment to exist for other_student"
 
     get surveys_path
 
     assert_response :success
-    assert_includes response.body, "Spring 2025 Health Assessment"
+    assert_includes response.body, "No surveys assigned (yet)"
+    refute_includes response.body, "Spring 2025 Health Assessment"
     refute_includes response.body, "Fall 2025 Executive Assessment"
+    refute_includes response.body, "Fall 2025 Health Assessment"
+  end
+
+  test "index hides not-yet-open surveys even when assigned" do
+    sign_in @student_user
+    survey_assignments(:residential_assignment).update!(
+      available_from: 5.days.from_now,
+      available_until: 10.days.from_now
+    )
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "No surveys assigned (yet)"
+    refute_includes response.body, "Fall 2025 Health Assessment"
+  end
+
+  test "index hides surveys using survey-level window when assignment has no window set" do
+    sign_in @student_user
+    # Clear assignment-level window so the survey's own window applies (COALESCE fallback)
+    survey_assignments(:residential_assignment).update!(available_from: nil, available_until: nil)
+    @survey.update!(available_until: 2.days.ago)
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "No surveys assigned (yet)"
+    refute_includes response.body, "Fall 2025 Health Assessment"
+  end
+
+  test "index shows completed surveys even when outside availability window" do
+    sign_in users(:completed_student)
+
+    get surveys_path
+
+    assert_response :success
+    assert_includes response.body, "Fall 2025 Health Assessment"
+  end
+
+  test "index does not show surveys completed only by another student" do
+    sign_in @student_user
+    # Remove the primary student's own assignment for the fall_2025 survey
+    SurveyAssignment.where(student_id: @student.student_id, survey_id: @survey.id).delete_all
+
+    # completed_student has a completed assignment for the same survey outside its window
+    # (see completed_residential_assignment fixture); that must not bleed into @student_user's listing
+    get surveys_path
+
+    assert_response :success
     refute_includes response.body, "Fall 2025 Health Assessment"
   end
 

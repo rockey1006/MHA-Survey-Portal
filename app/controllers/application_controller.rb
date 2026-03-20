@@ -3,6 +3,7 @@
 # accessors for views.
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
+  around_action :use_app_time_zone
   before_action :redirect_for_maintenance_mode
   before_action :authenticate_user!
   before_action :enforce_read_only_when_impersonating
@@ -26,6 +27,16 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  # Ensures request-time parsing/rendering/comparisons use the same timezone
+  # as admin-entered availability timestamps.
+  def use_app_time_zone(&block)
+    Time.use_zone(app_time_zone_name, &block)
+  end
+
+  def app_time_zone_name
+    ENV.fetch("APP_TIME_ZONE", "Central Time (US & Canada)")
+  end
 
   # Safely extracts a return_to path for back/cancel links.
   #

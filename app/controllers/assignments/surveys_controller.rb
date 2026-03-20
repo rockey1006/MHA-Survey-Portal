@@ -40,7 +40,7 @@ module Assignments
       @assignments_by_student_id =
         SurveyAssignment
           .where(survey_id: @survey.id, student_id: student_ids)
-          .select(:id, :student_id, :assigned_at, :available_from, :available_until, :completed_at)
+          .select(:id, :survey_id, :student_id, :assigned_at, :available_from, :available_until, :completed_at)
           .index_by(&:student_id)
 
       @assigned_student_ids = @assignments_by_student_id.keys.to_set

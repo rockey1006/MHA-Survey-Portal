@@ -76,6 +76,7 @@ class DashboardsController < ApplicationController
 
     @completed_surveys = []
     @pending_surveys = []
+    now = Time.current
 
     surveys.each do |survey|
       parent_questions = survey.questions
@@ -125,7 +126,8 @@ class DashboardsController < ApplicationController
       if completed_at.present?
         @completed_surveys << survey_summary.merge(status: "Completed")
       else
-        next if available_until.present? && available_until < Time.current
+        next if available_from.present? && available_from > now
+        next if available_until.present? && available_until < now
 
         @pending_surveys << survey_summary.merge(status: "Pending")
       end

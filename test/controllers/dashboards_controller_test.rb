@@ -584,6 +584,84 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     refute_includes response.body, survey_path(survey)
   end
 
+  test "student dashboard hides incomplete surveys before available_from" do
+    sign_in @student
+
+    student_profile = students(:student)
+    survey = Survey.new(
+      title: "Future Start Hidden Survey #{SecureRandom.hex(4)}",
+      program_semester: program_semesters(:fall_2025),
+      description: "",
+      is_active: true
+    )
+    category = survey.categories.build(name: "Category", description: "")
+    category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    survey.save!
+
+    future_start = 2.days.from_now.change(sec: 0)
+
+    SurveyAssignment.create!(
+      survey: survey,
+      student: student_profile,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
+      completed_at: nil,
+      available_from: future_start,
+      available_until: future_start + 10.days
+    )
+
+    get student_dashboard_path
+
+    assert_response :success
+    refute_includes response.body, survey.title
+    refute_includes response.body, survey_path(survey)
+  end
+
+  test "student dashboard hides incomplete survey after exact available_until timestamp" do
+    sign_in @student
+
+    assignment = survey_assignments(:residential_assignment)
+    survey = assignment.survey
+
+    travel_to Time.zone.local(2036, 3, 20, 20, 0, 0) do
+      assignment.update!(
+        completed_at: nil,
+        available_from: Time.zone.local(2036, 3, 18, 14, 15, 0),
+        available_until: Time.zone.local(2036, 3, 20, 14, 15, 0)
+      )
+
+      get student_dashboard_path
+
+      assert_response :success
+      refute_includes response.body, survey.title
+      refute_includes response.body, survey_path(survey)
+    end
+  end
+
+  test "student dashboard shows completed surveys regardless of availability window" do
+    sign_in @student
+
+    assignment = survey_assignments(:residential_assignment)
+    survey = assignment.survey
+
+    assignment.update!(
+      completed_at: Time.current,
+      available_from: 2.days.from_now,
+      available_until: 2.days.ago
+    )
+
+    get student_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, survey.title
+    assert_includes response.body, "Completed"
+  end
+
   test "student dashboard disables edit for archived completed surveys" do
     sign_in @student
 

@@ -10,9 +10,11 @@ class SurveysController < ApplicationController
   # @return [void]
   def index
     @student = current_student
+    now = Time.current
     assignments = if @student
                     SurveyAssignment
                       .where(student_id: @student.student_id)
+                      .effective_available_at(now)
                       .select(:id, :survey_id, :assigned_at, :available_from, :available_until, :completed_at)
     else
                     SurveyAssignment.none

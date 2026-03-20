@@ -134,7 +134,7 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal individual_deadline.to_i, assignment.available_until.to_i
   end
 
-  test "updating survey available_until with force_deadline_for_everyone overrides individual assignment deadlines" do
+  test "updating survey available_until with force_deadline_for_everyone clears individual assignment deadlines" do
     assignment = survey_assignments(:residential_assignment)
     assert_equal @survey.id, assignment.survey_id
 
@@ -151,10 +151,33 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to admin_surveys_path
-    assert_equal "Survey updated successfully. Available from and Available until were applied to everyone assigned to this survey, including completed responses.", flash[:notice]
+    assert_equal "Survey updated successfully. Personal assignment deadlines were cleared so everyone now follows the survey deadline, including completed responses.", flash[:notice]
 
     assignment.reload
-    assert_equal new_available_until.to_i, assignment.available_until.to_i
+    assert_nil assignment.available_until
+    assert_equal new_available_until.to_i, assignment.effective_available_until.to_i
+  end
+
+  test "force_deadline_for_everyone clears individual assignment deadlines even when survey deadline is unchanged" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    unchanged_available_until = @survey.available_until
+    individual_deadline = 5.days.from_now.change(hour: 12, min: 0, sec: 0)
+    assignment.update!(available_until: individual_deadline)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: {
+        force_deadline_for_everyone: "1",
+        survey: { available_until: unchanged_available_until.to_s }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_nil assignment.available_until
+    assert_equal unchanged_available_until.to_i, assignment.effective_available_until.to_i
   end
 
   test "updating survey available_until updates inherited assignment when old deadline matches by date" do
@@ -175,6 +198,22 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assignment.reload
     assert_equal new_available_until.to_i, assignment.available_until.to_i
+  end
+
+  test "updating survey available_from updates inherited assignment when old start matches by date" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    previous_available_from = Time.zone.local(2035, 3, 10, 8, 0)
+    @survey.update!(available_from: previous_available_from, available_until: previous_available_from + 30.days)
+    assignment.update!(available_from: Time.zone.local(2035, 3, 10, 9, 30))
+
+    new_available_from = Time.zone.local(2035, 3, 30, 10, 15)
+
+    patch admin_survey_path(@survey), params: { survey: { available_from: new_available_from.to_s } }
+
+    assert_redirected_to admin_surveys_path
+    assert_equal new_available_from.to_i, assignment.reload.available_from.to_i
   end
 
   test "updating survey available_until propagates to offerings when offerings exist" do
@@ -200,6 +239,58 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     offering.reload
     assert_equal new_available_until.to_i, offering.available_until.to_i
     assert_equal new_available_until.to_i, offering.portfolio_due_date.to_i
+  end
+
+  test "updating survey available_until with offerings updates inherited assignment deadline by date match" do
+    previous_deadline = Time.zone.local(2036, 3, 20, 11, 5)
+    @survey.update!(available_until: previous_deadline)
+
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(available_until: Time.zone.local(2036, 3, 20, 11, 3), completed_at: nil)
+
+    SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: students(:student).program_year,
+      stage: "final",
+      available_from: 5.days.ago,
+      available_until: previous_deadline,
+      portfolio_due_date: previous_deadline,
+      active: true
+    )
+
+    new_available_until = Time.zone.local(2036, 3, 20, 11, 9)
+
+    patch admin_survey_path(@survey), params: { survey: { available_until: new_available_until.to_s } }
+
+    assert_redirected_to admin_surveys_path
+    assert_equal new_available_until.to_i, assignment.reload.available_until.to_i
+  end
+
+  test "updating survey available_from with offerings updates inherited assignment start by date match" do
+    previous_available_from = Time.zone.local(2036, 3, 20, 9, 0)
+    @survey.update!(available_from: previous_available_from, available_until: previous_available_from + 30.days)
+
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(available_from: Time.zone.local(2036, 3, 20, 8, 45), completed_at: nil)
+
+    SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: students(:student).program_year,
+      stage: "final",
+      available_from: previous_available_from,
+      available_until: previous_available_from + 30.days,
+      portfolio_due_date: previous_available_from + 30.days,
+      active: true
+    )
+
+    new_available_from = Time.zone.local(2036, 3, 20, 11, 13)
+
+    patch admin_survey_path(@survey), params: { survey: { available_from: new_available_from.to_s } }
+
+    assert_redirected_to admin_surveys_path
+    assert_equal new_available_from.to_i, assignment.reload.available_from.to_i
   end
 
   test "setting deadline after archive and reactivate does not recreate removed pending assignments" do

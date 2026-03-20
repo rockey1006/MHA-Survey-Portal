@@ -158,6 +158,28 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal new_available_until.to_i, assignment.effective_available_until.to_i
   end
 
+  test "force_deadline_for_everyone clears individual assignment deadlines even when survey deadline is unchanged" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    unchanged_available_until = @survey.available_until
+    individual_deadline = 5.days.from_now.change(hour: 12, min: 0, sec: 0)
+    assignment.update!(available_until: individual_deadline)
+
+    assert_no_enqueued_jobs only: ReconcileSurveyAssignmentsJob do
+      patch admin_survey_path(@survey), params: {
+        force_deadline_for_everyone: "1",
+        survey: { available_until: unchanged_available_until.to_s }
+      }
+    end
+
+    assert_redirected_to admin_surveys_path
+
+    assignment.reload
+    assert_nil assignment.available_until
+    assert_equal unchanged_available_until.to_i, assignment.effective_available_until.to_i
+  end
+
   test "updating survey available_until updates inherited assignment when old deadline matches by date" do
     assignment = survey_assignments(:residential_assignment)
     assert_equal @survey.id, assignment.survey_id

@@ -202,7 +202,8 @@ class Admin::SurveysController < Admin::BaseController
 
       sync_competency_targets_from_questions!(survey: @survey, tracks: tracks)
 
-      if previous_available_from != @survey.available_from ||
+        if force_deadline_for_everyone ||
+          previous_available_from != @survey.available_from ||
           previous_available_until != @survey.available_until
         all_assignments_scope = SurveyAssignment.where(survey_id: @survey.id)
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
@@ -246,7 +247,6 @@ class Admin::SurveysController < Admin::BaseController
 
           if force_deadline_for_everyone
             all_assignments_scope.update_all(
-              available_from: @survey.available_from,
               available_until: nil,
               updated_at: Time.current
             )
@@ -276,7 +276,6 @@ class Admin::SurveysController < Admin::BaseController
         else
           if force_deadline_for_everyone
             all_assignments_scope.update_all(
-              available_from: @survey.available_from,
               available_until: nil,
               updated_at: Time.current
             )
@@ -304,7 +303,7 @@ class Admin::SurveysController < Admin::BaseController
             end
           end
         end
-      end
+        end
 
       persist_category_section_links
       @survey.assign_tracks!(tracks)

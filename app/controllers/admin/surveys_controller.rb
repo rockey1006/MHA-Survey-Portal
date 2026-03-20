@@ -208,13 +208,25 @@ class Admin::SurveysController < Admin::BaseController
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
 
         inherited_scope_for = lambda do |scope:, column:, previous_value:|
+          column_name = case column.to_sym
+          when :available_from
+            :available_from
+          when :available_until
+            :available_until
+          else
+            raise ArgumentError, "Unsupported assignment inheritance column: #{column.inspect}"
+          end
+
+          assignments = SurveyAssignment.arel_table
+          assignment_column = assignments[column_name]
+
           if previous_value.nil?
-            scope.where(column => nil)
+            scope.where(column_name => nil)
           else
             scope.where(
-              "survey_assignments.#{column} = :previous OR DATE(survey_assignments.#{column}) = :previous_date",
-              previous: previous_value,
-              previous_date: previous_value.to_date
+              assignment_column.eq(previous_value).or(
+                Arel::Nodes::NamedFunction.new("DATE", [ assignment_column ]).eq(previous_value.to_date)
+              )
             )
           end
         end

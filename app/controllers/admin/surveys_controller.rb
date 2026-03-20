@@ -223,6 +223,23 @@ class Admin::SurveysController < Admin::BaseController
           if force_deadline_for_everyone
             all_assignments_scope.update_all(
               available_from: @survey.available_from,
+              available_until: nil,
+              updated_at: Time.current
+            )
+          else
+            assignments_scope = SurveyAssignment.where(survey_id: @survey.id, completed_at: nil)
+
+            inherited_deadline_scope = if previous_available_until.nil?
+              assignments_scope.where(available_until: nil)
+            else
+              assignments_scope.where(
+                "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
+                previous: previous_available_until,
+                previous_date: previous_available_until.to_date
+              )
+            end
+
+            inherited_deadline_scope.update_all(
               available_until: @survey.available_until,
               updated_at: Time.current
             )
@@ -238,7 +255,7 @@ class Admin::SurveysController < Admin::BaseController
           if force_deadline_for_everyone
             all_assignments_scope.update_all(
               available_from: @survey.available_from,
-              available_until: @survey.available_until,
+              available_until: nil,
               updated_at: Time.current
             )
           else
@@ -266,7 +283,7 @@ class Admin::SurveysController < Admin::BaseController
       @survey.log_change!(admin: current_user, action: "update", description: description)
       SurveyNotificationJob.perform_later(event: :survey_updated, survey_id: @survey.id, metadata: { summary: description })
       notice = if force_deadline_for_everyone
-        "Survey updated successfully. Available from and Available until were applied to everyone assigned to this survey, including completed responses."
+        "Survey updated successfully. Personal assignment deadlines were cleared so everyone now follows the survey deadline, including completed responses."
       else
         "Survey updated successfully."
       end

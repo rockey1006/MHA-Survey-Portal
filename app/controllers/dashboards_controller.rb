@@ -76,6 +76,7 @@ class DashboardsController < ApplicationController
 
     @completed_surveys = []
     @pending_surveys = []
+    now = Time.current
 
     surveys.each do |survey|
       parent_questions = survey.questions
@@ -125,7 +126,8 @@ class DashboardsController < ApplicationController
       if completed_at.present?
         @completed_surveys << survey_summary.merge(status: "Completed")
       else
-        next if available_until.present? && available_until < Time.current
+        next if available_from.present? && available_from > now
+        next if available_until.present? && available_until < now
 
         @pending_surveys << survey_summary.merge(status: "Pending")
       end
@@ -712,7 +714,6 @@ class DashboardsController < ApplicationController
 
   def surveys_for_student(student)
     return Survey.none unless student&.student_id
-    now = Time.current
 
     # Keep dashboard listings consistent even if the sign-in callback didn't run
     # (e.g., direct session restore). This will add missing assignments for the
@@ -723,7 +724,6 @@ class DashboardsController < ApplicationController
       .includes(:questions)
       .joins(:survey_assignments)
       .where(survey_assignments: { student_id: student.student_id })
-      .where(SurveyAssignment.effective_availability_sql, now: now)
       .distinct
       .ordered
   rescue StandardError => e

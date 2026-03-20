@@ -40,6 +40,13 @@
                     "Not Started"
                   end %>
                 <div class="survey-meta">
+                  <% if entry[:available_from].present? %>
+                    Available from: <%= l(entry[:available_from].in_time_zone, format: :long) %>
+                  <% else %>
+                    Available from: Not set
+                  <% end %>
+                </div>
+                <div class="survey-meta">
                   <% if entry[:available_until].present? %>
                     Due: <%= l(entry[:available_until].in_time_zone, format: :long) %>
                   <% else %>
@@ -85,6 +92,7 @@
               <% offering = @offerings_by_survey_id[survey.id] %>
               <% survey_response = entry[:survey_response] %>
               <% download_token = entry[:download_token] %>
+              <% available_from = entry[:available_from] %>
               <% available_until = entry[:available_until] %>
               <% can_edit = survey.is_active? && (available_until.blank? || available_until >= Time.current) %>
               <% edit_disabled_hint = survey.is_active? ? "Edit disabled: deadline has passed." : "Edit disabled: this survey is archived." %>
@@ -111,6 +119,13 @@
                   else
                     "Not Started"
                   end %>
+                <div class="survey-meta">
+                  <% if available_from.present? %>
+                    Available from: <%= l(available_from.in_time_zone, format: :long) %>
+                  <% else %>
+                    Available from: Not set
+                  <% end %>
+                </div>
                 <div class="survey-meta">
                   <% if available_until.present? %>
                     Due: <%= l(available_until.in_time_zone, format: :long) %>

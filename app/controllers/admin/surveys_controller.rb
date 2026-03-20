@@ -207,6 +207,18 @@ class Admin::SurveysController < Admin::BaseController
         all_assignments_scope = SurveyAssignment.where(survey_id: @survey.id)
         has_offerings = SurveyOffering.data_source_ready? && SurveyOffering.where(survey_id: @survey.id).exists?
 
+        inherited_scope_for = lambda do |scope:, column:, previous_value:|
+          if previous_value.nil?
+            scope.where(column => nil)
+          else
+            scope.where(
+              "survey_assignments.#{column} = :previous OR DATE(survey_assignments.#{column}) = :previous_date",
+              previous: previous_value,
+              previous_date: previous_value.to_date
+            )
+          end
+        end
+
         if has_offerings
           updates = {
             available_from: @survey.available_from,
@@ -227,31 +239,29 @@ class Admin::SurveysController < Admin::BaseController
               updated_at: Time.current
             )
           else
-            assignments_scope = SurveyAssignment.where(survey_id: @survey.id, completed_at: nil)
-
-            inherited_deadline_scope = if previous_available_until.nil?
-              assignments_scope.where(available_until: nil)
-            else
-              assignments_scope.where(
-                "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
-                previous: previous_available_until,
-                previous_date: previous_available_until.to_date
+            if previous_available_from != @survey.available_from
+              inherited_scope_for.call(
+                scope: all_assignments_scope,
+                column: :available_from,
+                previous_value: previous_available_from
+              ).update_all(
+                available_from: @survey.available_from,
+                updated_at: Time.current
               )
             end
 
-            inherited_deadline_scope.update_all(
-              available_until: @survey.available_until,
-              updated_at: Time.current
-            )
+            if previous_available_until != @survey.available_until
+              inherited_scope_for.call(
+                scope: all_assignments_scope,
+                column: :available_until,
+                previous_value: previous_available_until
+              ).update_all(
+                available_until: @survey.available_until,
+                updated_at: Time.current
+              )
+            end
           end
         else
-          assignments_scope = SurveyAssignment.where(survey_id: @survey.id, completed_at: nil)
-
-          assignments_scope.update_all(
-            available_from: @survey.available_from,
-            updated_at: Time.current
-          )
-
           if force_deadline_for_everyone
             all_assignments_scope.update_all(
               available_from: @survey.available_from,
@@ -259,20 +269,27 @@ class Admin::SurveysController < Admin::BaseController
               updated_at: Time.current
             )
           else
-            inherited_deadline_scope = if previous_available_until.nil?
-              assignments_scope.where(available_until: nil)
-            else
-              assignments_scope.where(
-                "survey_assignments.available_until = :previous OR DATE(survey_assignments.available_until) = :previous_date",
-                previous: previous_available_until,
-                previous_date: previous_available_until.to_date
+            if previous_available_from != @survey.available_from
+              inherited_scope_for.call(
+                scope: all_assignments_scope,
+                column: :available_from,
+                previous_value: previous_available_from
+              ).update_all(
+                available_from: @survey.available_from,
+                updated_at: Time.current
               )
             end
 
-            inherited_deadline_scope.update_all(
-              available_until: @survey.available_until,
-              updated_at: Time.current
-            )
+            if previous_available_until != @survey.available_until
+              inherited_scope_for.call(
+                scope: all_assignments_scope,
+                column: :available_until,
+                previous_value: previous_available_until
+              ).update_all(
+                available_until: @survey.available_until,
+                updated_at: Time.current
+              )
+            end
           end
         end
       end

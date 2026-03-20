@@ -178,6 +178,22 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
     assert_equal new_available_until.to_i, assignment.available_until.to_i
   end
 
+  test "updating survey available_from updates inherited assignment when old start matches by date" do
+    assignment = survey_assignments(:residential_assignment)
+    assert_equal @survey.id, assignment.survey_id
+
+    previous_available_from = Time.zone.local(2035, 3, 10, 8, 0)
+    @survey.update!(available_from: previous_available_from, available_until: previous_available_from + 30.days)
+    assignment.update!(available_from: Time.zone.local(2035, 3, 10, 9, 30))
+
+    new_available_from = Time.zone.local(2035, 3, 30, 10, 15)
+
+    patch admin_survey_path(@survey), params: { survey: { available_from: new_available_from.to_s } }
+
+    assert_redirected_to admin_surveys_path
+    assert_equal new_available_from.to_i, assignment.reload.available_from.to_i
+  end
+
   test "updating survey available_until propagates to offerings when offerings exist" do
     offering = SurveyOffering.create!(
       survey: @survey,
@@ -227,6 +243,32 @@ class Admin::SurveysControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_surveys_path
     assert_equal new_available_until.to_i, assignment.reload.available_until.to_i
+  end
+
+  test "updating survey available_from with offerings updates inherited assignment start by date match" do
+    previous_available_from = Time.zone.local(2036, 3, 20, 9, 0)
+    @survey.update!(available_from: previous_available_from, available_until: previous_available_from + 30.days)
+
+    assignment = survey_assignments(:residential_assignment)
+    assignment.update!(available_from: Time.zone.local(2036, 3, 20, 8, 45), completed_at: nil)
+
+    SurveyOffering.create!(
+      survey: @survey,
+      track: "Residential",
+      class_of: students(:student).program_year,
+      stage: "final",
+      available_from: previous_available_from,
+      available_until: previous_available_from + 30.days,
+      portfolio_due_date: previous_available_from + 30.days,
+      active: true
+    )
+
+    new_available_from = Time.zone.local(2036, 3, 20, 11, 13)
+
+    patch admin_survey_path(@survey), params: { survey: { available_from: new_available_from.to_s } }
+
+    assert_redirected_to admin_surveys_path
+    assert_equal new_available_from.to_i, assignment.reload.available_from.to_i
   end
 
   test "setting deadline after archive and reactivate does not recreate removed pending assignments" do

@@ -587,11 +587,29 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "student dashboard hides incomplete surveys before available_from" do
     sign_in @student
 
-    assignment = survey_assignments(:residential_assignment)
-    survey = assignment.survey
+    student_profile = students(:student)
+    survey = Survey.new(
+      title: "Future Start Hidden Survey #{SecureRandom.hex(4)}",
+      program_semester: program_semesters(:fall_2025),
+      description: "",
+      is_active: true
+    )
+    category = survey.categories.build(name: "Category", description: "")
+    category.questions.build(
+      question_text: "Question",
+      question_order: 1,
+      question_type: "short_answer",
+      is_required: false
+    )
+    survey.save!
+
     future_start = 2.days.from_now.change(sec: 0)
 
-    assignment.update!(
+    SurveyAssignment.create!(
+      survey: survey,
+      student: student_profile,
+      advisor: advisors(:advisor),
+      assigned_at: Time.current,
       completed_at: nil,
       available_from: future_start,
       available_until: future_start + 10.days

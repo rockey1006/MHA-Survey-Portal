@@ -32,7 +32,7 @@ class Admin::ProgramSetupsController < Admin::BaseController
     @semesters = ProgramSemester.order(Arel.sql("current DESC"), Arel.sql("LOWER(name) ASC"))
     @tracks = Student.tracks.values
     class_years = Student.where.not(program_year: nil).distinct.order(:program_year).pluck(:program_year)
-    @class_of_options = [["All classes", ""]] + class_years.map { |year| ["Class of #{year}", year.to_s] }
+    @class_of_options = [ [ "All classes", "" ] ] + class_years.map { |year| [ "Class of #{year}", year.to_s ] }
 
     requested_semester_id = params[:program_semester_id].to_s.presence
     @selected_semester_id = requested_semester_id&.to_i

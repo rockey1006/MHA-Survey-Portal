@@ -13,6 +13,9 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     get admin_target_levels_path(program_semester_id: @semester.id, track: @track_value)
+    assert_redirected_to admin_program_setup_path(tab: "targets", program_semester_id: @semester.id, track: @track_value)
+
+    follow_redirect!
     assert_response :success
     assert_match "Target Levels", response.body
     assert_match @competency_title, response.body
@@ -63,7 +66,7 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to admin_target_levels_path
+    assert_redirected_to admin_program_setup_path(tab: "targets")
     follow_redirect!
     assert_match(/select a semester and track/i, flash[:alert].to_s)
   end
@@ -105,8 +108,9 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_response :unprocessable_entity
-    assert_match(/must be greater than or equal to 1/i, response.body)
+    assert_redirected_to admin_program_setup_path(tab: "targets", program_semester_id: @semester.id, track: @track_value)
+    follow_redirect!
+    assert_match(/must be greater than or equal to 1/i, flash[:alert].to_s)
   end
 
   test "warns when updating target levels after students submitted surveys" do
@@ -126,7 +130,7 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to admin_target_levels_path(program_semester_id: @semester.id, track: "Residential")
+    assert_redirected_to admin_program_setup_path(tab: "targets", program_semester_id: @semester.id, track: "Residential")
 
     follow_redirect!
     assert_response :success
@@ -149,7 +153,7 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to admin_target_levels_path(program_semester_id: @semester.id, track: "Executive")
+    assert_redirected_to admin_program_setup_path(tab: "targets", program_semester_id: @semester.id, track: "Executive")
 
     follow_redirect!
     assert_response :success
@@ -168,6 +172,9 @@ class Admin::TargetLevelsControllerTest < ActionDispatch::IntegrationTest
     )
 
     get admin_target_levels_path(program_semester_id: @semester.id, track: @track_value, program_year: "")
+    assert_redirected_to admin_program_setup_path(tab: "targets", program_semester_id: @semester.id, track: @track_value)
+
+    follow_redirect!
     assert_response :success
     assert_match @competency_title, response.body
     assert_match(/<option[^>]*value="5"[^>]*selected="selected"[^>]*>[^<]*5[^<]*<\/option>|<option[^>]*selected="selected"[^>]*value="5"[^>]*>[^<]*5[^<]*<\/option>/, response.body)

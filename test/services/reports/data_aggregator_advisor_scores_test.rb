@@ -101,7 +101,7 @@ module Reports
     end
 
     test "course averages follow max and min for multi-score competency history" do
-      [3.0, 4.0, 1.0, 2.0, 1.0].each do |level|
+      [ 3.0, 4.0, 1.0, 2.0, 1.0 ].each do |level|
         create_course_rating(level: level, competency_title: @competency_name)
       end
 

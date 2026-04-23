@@ -28,7 +28,7 @@ class Admin::CompetencyMatrixTest < ActiveSupport::TestCase
   end
 
   test "course ratings support every global course competency rule option" do
-    [3.0, 4.0, 1.0, 2.0, 1.0].each { |level| create_course_rating(level: level) }
+    [ 3.0, 4.0, 1.0, 2.0, 1.0 ].each { |level| create_course_rating(level: level) }
 
     {
       "max" => { value: 4.0, label: "Max" },

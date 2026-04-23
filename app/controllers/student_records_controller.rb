@@ -113,6 +113,7 @@ class StudentRecordsController < ApplicationController
     admin_update_lookup = load_admin_update_lookup(student_ids, survey_ids)
     feedback_submission_lookup = load_feedback_submission_lookup(student_ids, survey_ids)
     employment_lookup = load_employment_export_lookup(student_ids, survey_ids)
+    grade_derived_lookup = @grade_derived_by_student || {}
 
     responses_matrix = Hash.new do |hash, student_id|
       hash[student_id] = Hash.new { |inner, survey_id| inner[survey_id] = [] }
@@ -191,7 +192,7 @@ class StudentRecordsController < ApplicationController
                   feedback_last_updated_at: feedback_last_updated,
                   feedback_status_label: feedback_status_label,
                   feedback_status_timestamp: feedback_status_timestamp,
-                  grade_derived: @grade_derived_by_student.fetch(student.student_id, {}),
+                  grade_derived: grade_derived_lookup.fetch(student.student_id, {}),
                   employment_data: employment_lookup.fetch(
                     [ student.student_id, survey.id ],
                     default_employment_export_data

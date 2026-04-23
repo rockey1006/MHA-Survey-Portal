@@ -10,7 +10,7 @@ class Admin::ProgramSetupsControllerTest < ActionDispatch::IntegrationTest
     get admin_program_setup_path(tab: "tracks")
 
     assert_response :success
-    assert_select "header.c-toolbar" do
+    assert_select "div.c-toolbar" do
       assert_select "a[href=?]", admin_dashboard_path
     end
   end

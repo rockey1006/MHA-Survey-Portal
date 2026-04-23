@@ -1,71 +1,87 @@
-<main class="main-content space-y-10">
-  <header class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-    <div class="space-y-2">
-      <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Survey Change Log</h1>
-      <p class="max-w-3xl text-sm text-slate-600">Review recent admin activity across surveys. Filter by action type to focus on specific updates.</p>
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
     </div>
-  </header>
+  </div>
 
-  <section class="c-card u-stack">
-    <header class="toolbar">
-      <div class="flex flex-wrap items-center gap-3">
-        <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
-        <h2 class="text-lg font-semibold text-slate-900">Recent Activity</h2>
-      </div>
-      <%= form_with url: admin_survey_change_logs_path, method: :get, local: true, class: "toolbar__group" do %>
-        <div class="flex items-center gap-2">
-          <label for="action_type" class="text-sm font-medium text-slate-700">Filter by action</label>
-          <%= select_tag :action_type,
-                         options_for_select([["All actions", ""]] + @available_actions.map { |action| [action.titleize, action] }, @action_filter),
-                         class: "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" %>
+  <div class="c-container c-container--dashboard c-page">
+    <section class="c-card p-8 md:p-10 u-stack u-stack--xl">
+      <header class="c-page-header">
+        <div>
+          <p class="c-eyebrow">Survey admin</p>
+          <h1 class="c-page-title">Survey Change Log</h1>
+          <p class="c-page-subtitle">Review recent admin activity across surveys. Filter by action type to focus on specific updates.</p>
         </div>
-        <div class="u-actions">
-          <%= submit_tag "Apply", class: tailwind_button_classes(:primary) %>
-          <% if @action_filter.present? %>
-            <%= link_to "Reset", admin_survey_change_logs_path, class: tailwind_button_classes(:subtle) %>
+      </header>
+
+      <section class="u-stack u-stack--md">
+        <div>
+          <h2 class="c-section-title c-heading-inline">Recent activity</h2>
+          <p class="text-sm text-slate-600">Use the action filter to focus on one type of survey update at a time.</p>
+        </div>
+
+        <div class="c-card c-card--flush">
+          <div class="c-panel-header c-panel-header--with-border">
+            <div class="c-callout">
+              <%= form_with url: admin_survey_change_logs_path, method: :get, local: true, class: "c-toolbar__row c-toolbar__row--airy w-full md:flex-nowrap" do %>
+                <div class="c-toolbar__item flex items-center gap-2">
+                  <label for="action_type" class="text-sm font-medium text-slate-700">Filter by action</label>
+                  <%= select_tag :action_type,
+                                 options_for_select([["All actions", ""]] + @available_actions.map { |action| [action.titleize, action] }, @action_filter),
+                                 class: "c-select w-full" %>
+                </div>
+                <div class="c-toolbar__item flex items-center gap-2">
+                  <%= submit_tag "Apply", class: tailwind_button_classes(:primary) %>
+                  <% if @action_filter.present? %>
+                    <%= link_to "Reset", admin_survey_change_logs_path, class: tailwind_button_classes(:subtle) %>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <% if @logs.blank? %>
+            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">
+              No survey activity has been recorded yet.
+            </div>
+          <% else %>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Timestamp</th>
+                    <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Action</th>
+                    <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Admin</th>
+                    <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Survey</th>
+                    <th scope="col" class="px-4 py-3 text-left font-semibold">Description</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-600">
+                  <% @logs.each do |log| %>
+                    <tr class="hover:bg-slate-50">
+                      <td class="whitespace-nowrap px-4 py-3 align-top text-slate-500"><%= l(log.created_at, format: :long) %></td>
+                      <td class="whitespace-nowrap px-4 py-3 align-top font-semibold text-slate-900"><%= log.action.titleize %></td>
+                      <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= log.admin&.display_name || "Unknown" %></td>
+                      <td class="whitespace-nowrap px-4 py-3 align-top text-indigo-600">
+                        <% display_title = log.survey_title_snapshot.presence || log.survey&.title.presence || "Survey ##{log.survey_id}" %>
+                        <% if log.survey.present? %>
+                          <%= link_to display_title, edit_admin_survey_path(log.survey), class: "underline hover:text-indigo-700" %>
+                        <% else %>
+                          <span class="text-slate-500"><%= display_title %></span>
+                        <% end %>
+                      </td>
+                      <td class="px-4 py-3 align-top text-sm text-slate-600">
+                        <%= log.description.presence || "No additional details recorded." %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
           <% end %>
         </div>
-      <% end %>
-    </header>
-
-    <% if @logs.blank? %>
-      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">
-        No survey activity has been recorded yet.
-      </div>
-    <% else %>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-          <thead class="bg-slate-50 text-slate-600">
-            <tr>
-              <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Timestamp</th>
-              <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Action</th>
-              <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Admin</th>
-              <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-semibold">Survey</th>
-              <th scope="col" class="px-4 py-3 text-left font-semibold">Description</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 text-slate-600">
-            <% @logs.each do |log| %>
-              <tr class="hover:bg-slate-50">
-                <td class="whitespace-nowrap px-4 py-3 align-top text-slate-500"><%= l(log.created_at, format: :long) %></td>
-                <td class="whitespace-nowrap px-4 py-3 align-top font-semibold text-slate-900"><%= log.action.titleize %></td>
-                <td class="whitespace-nowrap px-4 py-3 align-top text-slate-700"><%= log.admin&.display_name || "Unknown" %></td>
-                <td class="whitespace-nowrap px-4 py-3 align-top text-indigo-600">
-                  <% display_title = log.survey_title_snapshot.presence || log.survey&.title.presence || "Survey ##{log.survey_id}" %>
-                  <% if log.survey.present? %>
-                    <%= link_to display_title, edit_admin_survey_path(log.survey), class: "underline hover:text-indigo-700" %>
-                  <% else %>
-                    <span class="text-slate-500"><%= display_title %></span>
-                  <% end %>
-                </td>
-                <td class="px-4 py-3 align-top text-sm text-slate-600">
-                  <%= log.description.presence || "No additional details recorded." %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
+      </section>
+    </section>
+  </div>
 </main>

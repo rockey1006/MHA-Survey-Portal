@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_19_175000) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_stat_statements"
 
   create_table "admin_activity_logs", force: :cascade do |t|
     t.bigint "admin_id", null: false
@@ -103,6 +104,111 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_19_175000) do
     t.index ["question_id"], name: "index_feedback_on_question_id"
     t.index ["student_id"], name: "index_feedback_on_student_id"
     t.index ["survey_id"], name: "index_feedback_on_survey_id"
+  end
+
+  create_table "grade_competency_evidences", force: :cascade do |t|
+    t.bigint "grade_import_batch_id", null: false
+    t.bigint "grade_import_file_id", null: false
+    t.bigint "student_id", null: false
+    t.string "competency_title", null: false
+    t.string "course_code"
+    t.string "assignment_name", null: false
+    t.decimal "raw_grade", precision: 8, scale: 2, null: false
+    t.integer "mapped_level", null: false
+    t.integer "row_number"
+    t.string "source_key", null: false
+    t.string "import_fingerprint", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["grade_import_batch_id", "competency_title"], name: "index_grade_evidence_on_batch_competency"
+    t.index ["grade_import_batch_id", "source_key"], name: "index_grade_evidence_on_batch_source_key", unique: true
+    t.index ["grade_import_batch_id", "student_id"], name: "index_grade_evidence_on_batch_student"
+    t.index ["grade_import_batch_id"], name: "index_grade_competency_evidences_on_grade_import_batch_id"
+    t.index ["grade_import_file_id"], name: "index_grade_competency_evidences_on_grade_import_file_id"
+    t.index ["import_fingerprint"], name: "index_grade_competency_evidences_on_import_fingerprint", unique: true
+  end
+
+  create_table "grade_competency_ratings", force: :cascade do |t|
+    t.bigint "grade_import_batch_id", null: false
+    t.bigint "student_id", null: false
+    t.string "competency_title", null: false
+    t.decimal "aggregated_level", precision: 4, scale: 2, null: false
+    t.string "aggregation_rule", default: "max", null: false
+    t.integer "evidence_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["grade_import_batch_id", "student_id", "competency_title"], name: "index_grade_ratings_on_batch_student_competency", unique: true
+    t.index ["grade_import_batch_id"], name: "index_grade_competency_ratings_on_grade_import_batch_id"
+  end
+
+  create_table "grade_import_batches", force: :cascade do |t|
+    t.bigint "uploaded_by_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.integer "total_files", default: 0, null: false
+    t.integer "processed_files", default: 0, null: false
+    t.integer "failed_files", default: 0, null: false
+    t.integer "evidence_count", default: 0, null: false
+    t.integer "rating_count", default: 0, null: false
+    t.integer "pending_count", default: 0, null: false
+    t.jsonb "summary", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_grade_import_batches_on_status"
+    t.index ["uploaded_by_id"], name: "index_grade_import_batches_on_uploaded_by_id"
+  end
+
+  create_table "grade_import_files", force: :cascade do |t|
+    t.bigint "grade_import_batch_id", null: false
+    t.string "file_name", null: false
+    t.string "file_checksum", null: false
+    t.string "content_type"
+    t.string "status", default: "pending", null: false
+    t.integer "total_rows", default: 0, null: false
+    t.integer "imported_rows", default: 0, null: false
+    t.integer "pending_rows", default: 0, null: false
+    t.integer "error_rows", default: 0, null: false
+    t.jsonb "parse_errors", default: [], null: false
+    t.jsonb "parsed_content", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["file_checksum"], name: "index_grade_import_files_on_file_checksum"
+    t.index ["grade_import_batch_id"], name: "index_grade_import_files_on_grade_import_batch_id"
+    t.index ["status"], name: "index_grade_import_files_on_status"
+  end
+
+  create_table "grade_import_pending_rows", force: :cascade do |t|
+    t.bigint "grade_import_batch_id", null: false
+    t.bigint "grade_import_file_id", null: false
+    t.bigint "matched_student_id"
+    t.string "status", default: "pending_student_match", null: false
+    t.string "student_identifier"
+    t.string "student_identifier_type"
+    t.string "student_uin"
+    t.string "student_email"
+    t.string "student_name"
+    t.string "competency_title", null: false
+    t.string "course_code"
+    t.string "assignment_name", null: false
+    t.decimal "raw_grade", precision: 8, scale: 2, null: false
+    t.integer "mapped_level", null: false
+    t.integer "row_number"
+    t.string "source_key", null: false
+    t.string "import_fingerprint", null: false
+    t.datetime "reconciled_at"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["grade_import_batch_id", "source_key"], name: "index_grade_pending_rows_on_batch_source_key", unique: true
+    t.index ["grade_import_batch_id", "status"], name: "index_grade_pending_rows_on_batch_status"
+    t.index ["grade_import_batch_id", "student_email"], name: "index_grade_pending_rows_on_batch_email"
+    t.index ["grade_import_batch_id", "student_uin"], name: "index_grade_pending_rows_on_batch_uin"
+    t.index ["grade_import_batch_id"], name: "index_grade_import_pending_rows_on_grade_import_batch_id"
+    t.index ["grade_import_file_id"], name: "index_grade_import_pending_rows_on_grade_import_file_id"
+    t.index ["import_fingerprint"], name: "index_grade_import_pending_rows_on_import_fingerprint", unique: true
+    t.index ["status"], name: "index_grade_import_pending_rows_on_status"
   end
 
   create_table "majors", force: :cascade do |t|
@@ -364,6 +470,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_19_175000) do
   add_foreign_key "feedback", "questions"
   add_foreign_key "feedback", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "feedback", "surveys", on_delete: :cascade
+  add_foreign_key "grade_competency_evidences", "grade_import_batches", on_delete: :cascade
+  add_foreign_key "grade_competency_evidences", "grade_import_files", on_delete: :cascade
+  add_foreign_key "grade_competency_evidences", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "grade_competency_ratings", "grade_import_batches", on_delete: :cascade
+  add_foreign_key "grade_competency_ratings", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "grade_import_batches", "users", column: "uploaded_by_id", on_delete: :cascade
+  add_foreign_key "grade_import_files", "grade_import_batches", on_delete: :cascade
+  add_foreign_key "grade_import_pending_rows", "grade_import_batches", on_delete: :cascade
+  add_foreign_key "grade_import_pending_rows", "grade_import_files", on_delete: :cascade
+  add_foreign_key "grade_import_pending_rows", "students", column: "matched_student_id", primary_key: "student_id", on_delete: :nullify
   add_foreign_key "notifications", "users", on_delete: :cascade
   add_foreign_key "questions", "categories"
   add_foreign_key "questions", "questions", column: "parent_question_id"

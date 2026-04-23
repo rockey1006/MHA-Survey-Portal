@@ -3,6 +3,8 @@
 # This is intentionally simple (key/value) so we can add more settings later
 # without changing schema each time.
 class SiteSetting < ApplicationRecord
+  COURSE_COMPETENCY_RULE_KEY = "course_competency_rule"
+
   validates :key, presence: true, uniqueness: true
 
   class << self
@@ -25,6 +27,16 @@ class SiteSetting < ApplicationRecord
 
     def set_maintenance_enabled!(enabled)
       set("maintenance_enabled", ActiveModel::Type::Boolean.new.cast(enabled))
+    end
+
+    def course_competency_rule
+      CourseCompetencyRule.normalize(get(COURSE_COMPETENCY_RULE_KEY, CourseCompetencyRule::DEFAULT_RULE))
+    end
+
+    def set_course_competency_rule!(rule)
+      normalized_rule = CourseCompetencyRule.normalize(rule)
+      set(COURSE_COMPETENCY_RULE_KEY, normalized_rule)
+      normalized_rule
     end
   end
 end

@@ -51,7 +51,7 @@
 
           <div class="c-field">
             <%= form.label :question_type, "Question type", class: "c-label" %>
-            <%= form.select :question_type, Question.question_types.keys.map { |type| [type.humanize, type] }, {}, class: "c-input input", required: true %>
+            <%= form.select :question_type, Question.question_types.keys.map { |type| [type.humanize, type] }, {}, class: "c-select w-full", required: true %>
           </div>
 
           <div class="c-field">
@@ -59,7 +59,7 @@
             <%= form.select :prompt_format,
                             [["Plain text", "plain_text"], ["Rich text", "rich_text"]],
                             {},
-                            class: "c-input input" %>
+                            class: "c-select w-full" %>
             <p class="c-help field-hint">Rich text uses Markdown syntax (for example: **bold**, *italic*, [link](https://example.com)).</p>
           </div>
 
@@ -94,7 +94,7 @@
           <div class="form-column">
             <label class="section-subheading" for="question_category_ids">Categories</label>
             <p class="c-help field-hint">Tagged categories help advisors filter and find related prompts.</p>
-            <%= form.collection_select :category_ids, @categories, :id, :name, { include_hidden: false }, { multiple: true, size: 8, class: "c-input multi-select" } %>
+            <%= form.collection_select :category_ids, @categories, :id, :name, { include_hidden: false }, { multiple: true, size: 8, class: "c-select w-full multi-select" } %>
           </div>
 
           <div class="form-column">

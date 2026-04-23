@@ -1,40 +1,77 @@
-<main class="main-content space-y-12">
-  <header class="c-toolbar c-toolbar--spaced">
-    <div class="c-toolbar__row items-center w-full gap-3">
-      <div class="shrink-0">
-        <%= link_to "← Back",
-                  admin_dashboard_path,
-                  class: tailwind_button_classes(:secondary),
-                  data: { turbo: false } %>
-      </div>
-    </div>
-  </header>
+<main class="main-content main-content--dashboard">
+  <% tabs = [
+    ["Tracks", "tracks", "Manage the available program tracks across the portal."],
+    ["Majors", "majors", "Control the degree and major options students can select."],
+    ["Cohorts", "years", "Maintain class-year options used for reporting and assignment."],
+    ["Semesters", "semesters", "Define survey terms and choose the current active semester."],
+    ["Competency Targets", "targets", "Set benchmark proficiency targets by semester, track, and class."]
+  ] %>
+  <% active_tab = tabs.find { |(_label, value, _description)| value == @tab } || tabs.first %>
 
-  <div class="space-y-2">
-    <h1 class="text-3xl font-semibold tracking-tight text-slate-900">Program Setup</h1>
-    <p class="text-sm text-slate-600">Manage program tracks, majors, cohort years, and semesters.</p>
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <%= link_to "Back",
+                admin_dashboard_path,
+                class: tailwind_button_classes(:secondary),
+                data: { turbo: false } %>
+    </div>
   </div>
 
+  <div class="c-container c-container--dashboard c-page">
 
+    <section class="c-card c-card--spacious u-stack u-stack--md">
+      <div class="u-stack u-stack--sm">
+        <p class="c-eyebrow">Academic setup</p>
+        <h1 class="c-page-title">Program Configuration</h1>
+        <p class="c-page-subtitle">Manage program structure and competency targets in one place.</p>
+      </div>
 
-  <nav class="flex flex-wrap gap-2" aria-label="Program setup tabs">
-    <% tabs = [
-      ["Tracks", "tracks"],
-      ["Majors", "majors"],
-      ["Cohorts", "years"],
-      ["Semesters", "semesters"]
-    ] %>
+      <div class="u-grid" style="--u-grid-min: 180px;">
+        <div class="c-card c-card--tight c-card--muted">
+          <p class="c-muted-meta">Tracks</p>
+          <p class="c-h1"><%= @program_tracks.size %></p>
+        </div>
+        <div class="c-card c-card--tight c-card--muted">
+          <p class="c-muted-meta">Majors</p>
+          <p class="c-h1"><%= @majors.size %></p>
+        </div>
+        <div class="c-card c-card--tight c-card--muted">
+          <p class="c-muted-meta">Cohorts</p>
+          <p class="c-h1"><%= @program_years.size %></p>
+        </div>
+        <div class="c-card c-card--tight c-card--muted">
+          <p class="c-muted-meta">Semesters</p>
+          <p class="c-h1"><%= @program_semesters.size %></p>
+        </div>
+      </div>
+    </section>
 
-    <% tabs.each do |label, value| %>
-      <% active = (@tab == value) %>
-      <%= link_to label,
-                  admin_program_setup_path(tab: value),
-                  class: active ? tailwind_button_classes(:primary, extra_classes: "btn-sm") : tailwind_button_classes(:secondary, extra_classes: "btn-sm") %>
-    <% end %>
-  </nav>
+    <section class="c-card c-card--spacious u-stack u-stack--md">
+      <div class="u-stack u-stack--sm">
+        <h2 class="c-section-title c-heading-inline">Workspace</h2>
+        <p class="c-lede">Choose the area you want to manage.</p>
+      </div>
+
+      <nav class="u-grid" style="--u-grid-min: 220px;" aria-label="Program setup tabs">
+        <% tabs.each do |label, value, description| %>
+          <% active = (@tab == value) %>
+          <%= link_to admin_program_setup_path(tab: value), class: "c-card c-card--tight #{active ? '' : 'c-card--muted'}" do %>
+            <div class="u-stack u-stack--sm">
+              <div class="u-actions u-actions--split">
+                <div class="c-h3"><%= label %></div>
+                <% if active %>
+                  <span class="status-badge status-badge--success">Open</span>
+                <% end %>
+              </div>
+              <p class="c-lede"><%= description %></p>
+            </div>
+          <% end %>
+        <% end %>
+      </nav>
+    </section>
 
   <% if @tab == "tracks" %>
-    <section class="w-full c-card u-stack">
+    <section class="c-card c-card--spacious u-stack u-stack--md">
       <header class="toolbar">
         <div>
           <h2 class="text-xl font-semibold text-slate-900">Tracks</h2>
@@ -51,21 +88,31 @@
           <% else %>
             <ul class="space-y-3">
               <% @program_tracks.each do |track| %>
-                <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p class="text-base font-semibold text-slate-900"><%= track.name %></p>
-                      <p class="text-xs text-slate-500">Key: <%= track.key %> · Position: <%= track.position %></p>
+                <li class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="u-stack u-stack--sm">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-base font-semibold text-slate-900"><%= track.name %></p>
+                        <% if track.active? %>
+                          <span class="status-badge status-badge--success">Active</span>
+                        <% else %>
+                          <span class="status-badge status-badge--muted">Inactive</span>
+                        <% end %>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                          Key <%= track.key %>
+                        </span>
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                          Position <%= track.position %>
+                        </span>
+                      </div>
                     </div>
+
                     <div class="flex flex-wrap items-center gap-2">
-                      <% if track.active? %>
-                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
-                      <% else %>
-                        <span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Inactive</span>
-                      <% end %>
                       <details class="group">
                         <summary class="cursor-pointer list-none <%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %>">Edit</summary>
-                        <div class="mt-3 rounded-lg border border-slate-200 bg-white p-4">
+                        <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                           <%= form_with model: [:admin, track], local: true, class: "space-y-3" do |form| %>
                             <div class="grid gap-3 sm:grid-cols-2">
                               <div class="space-y-1">
@@ -120,7 +167,7 @@
   <% end %>
 
   <% if @tab == "majors" %>
-    <section class="w-full c-card u-stack">
+    <section class="c-card c-card--spacious u-stack u-stack--md">
       <header class="toolbar">
         <div>
           <h2 class="text-xl font-semibold text-slate-900">Majors</h2>
@@ -137,15 +184,24 @@
           <% else %>
             <ul class="space-y-3">
               <% @majors.each do |major| %>
-                <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p class="text-base font-semibold text-slate-900"><%= major.name %></p>
+                <li class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="u-stack u-stack--sm">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-base font-semibold text-slate-900"><%= major.name %></p>
+                        <span class="status-badge status-badge--muted">Major</span>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                          Student profile option
+                        </span>
+                      </div>
                     </div>
+
                     <div class="flex flex-wrap items-center gap-2">
                       <details>
                         <summary class="cursor-pointer list-none <%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %>">Edit</summary>
-                        <div class="mt-3 rounded-lg border border-slate-200 bg-white p-4">
+                        <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                           <%= form_with model: [:admin, major], local: true, class: "space-y-3" do |form| %>
                             <div class="space-y-1">
                               <%= form.label :name, "Name", class: "text-sm font-medium text-slate-700" %>
@@ -186,7 +242,7 @@
   <% end %>
 
   <% if @tab == "years" %>
-    <section class="w-full c-card u-stack">
+    <section class="c-card c-card--spacious u-stack u-stack--md">
       <header class="toolbar">
         <div>
           <h2 class="text-xl font-semibold text-slate-900">Cohort years</h2>
@@ -203,21 +259,31 @@
           <% else %>
             <ul class="space-y-3">
               <% @program_years.each do |year| %>
-                <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p class="text-base font-semibold text-slate-900">Class of <%= year.value %></p>
-                      <p class="text-xs text-slate-500">Position: <%= year.position %></p>
+                <li class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="u-stack u-stack--sm">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-base font-semibold text-slate-900">Class of <%= year.value %></p>
+                        <% if year.active? %>
+                          <span class="status-badge status-badge--success">Active</span>
+                        <% else %>
+                          <span class="status-badge status-badge--muted">Inactive</span>
+                        <% end %>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                          Position <%= year.position %>
+                        </span>
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                          Cohort year
+                        </span>
+                      </div>
                     </div>
+
                     <div class="flex flex-wrap items-center gap-2">
-                      <% if year.active? %>
-                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
-                      <% else %>
-                        <span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Inactive</span>
-                      <% end %>
                       <details>
                         <summary class="cursor-pointer list-none <%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %>">Edit</summary>
-                        <div class="mt-3 rounded-lg border border-slate-200 bg-white p-4">
+                        <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                           <%= form_with model: [:admin, year], local: true, class: "space-y-3" do |form| %>
                             <div class="grid gap-3 sm:grid-cols-2">
                               <div class="space-y-1">
@@ -268,7 +334,7 @@
   <% end %>
 
   <% if @tab == "semesters" %>
-    <section class="w-full c-card u-stack">
+    <section class="c-card c-card--spacious u-stack u-stack--md">
       <header class="toolbar">
         <div>
           <h2 class="text-xl font-semibold text-slate-900">Program semesters</h2>
@@ -293,16 +359,26 @@
           <% else %>
             <ul class="space-y-3">
               <% @program_semesters.each do |semester| %>
-                <li class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p class="text-base font-semibold text-slate-900"><%= semester.name %></p>
-                      <p class="text-xs text-slate-500">Added <%= time_ago_in_words(semester.created_at) %> ago</p>
+                <li class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                  <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="u-stack u-stack--sm">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="text-base font-semibold text-slate-900"><%= semester.name %></p>
+                        <% if semester.current? %>
+                          <span class="status-badge status-badge--success">Current</span>
+                        <% else %>
+                          <span class="status-badge status-badge--muted">Available</span>
+                        <% end %>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                          Added <%= time_ago_in_words(semester.created_at) %> ago
+                        </span>
+                      </div>
                     </div>
+
                     <div class="flex flex-wrap items-center gap-2">
-                      <% if semester.current? %>
-                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Current</span>
-                      <% else %>
+                      <% unless semester.current? %>
                         <%= button_to "Make current",
                                       make_current_admin_program_semester_path(semester),
                                       method: :patch,
@@ -311,7 +387,7 @@
 
                       <details>
                         <summary class="cursor-pointer list-none <%= tailwind_button_classes(:secondary, extra_classes: 'btn-sm') %>">Edit</summary>
-                        <div class="mt-3 rounded-lg border border-slate-200 bg-white p-4">
+                        <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                           <%= form_with model: [:admin, semester], local: true, class: "space-y-3" do |form| %>
                             <div class="space-y-1">
                               <%= form.label :name, "Semester name", class: "text-sm font-medium text-slate-700" %>
@@ -357,4 +433,9 @@
       </div>
     </section>
   <% end %>
+
+  <% if @tab == "targets" %>
+    <%= render "target_levels_tab" %>
+  <% end %>
+  </div>
 </main>

@@ -483,6 +483,7 @@ __END__
               assert_equal "All advisors", filters[:advisor]
               assert_equal "All domains", filters[:domain]
               assert_equal "All competencies", filters[:competency]
+              assert_equal CourseCompetencyRule.label_for(CourseCompetencyRule::DEFAULT_RULE), filters[:course_competency_rule]
               assert_equal "All surveys", filters[:survey]
               assert_equal "All students", filters[:student]
             end
@@ -575,12 +576,14 @@ __END__
           aggregator.stub(:available_surveys, [ { id: 11, title: "Fall Survey", semester: "Fall 2025" } ]) do
             aggregator.stub(:available_students, [ { id: 99, name: "Student Name", track: "Residential", advisor_id: 1 } ]) do
               aggregator.stub(:available_competencies, [ { id: "communication", name: "Communication" } ]) do
+                SiteSetting.set_course_competency_rule!("avg")
                 out = aggregator.send(:export_filters)
                 assert_equal "Residential", out[:track]
                 assert_equal "Fall 2025", out[:semester]
                 assert_equal "Dr. Advisor", out[:advisor]
                 assert_equal "Leadership Skills", out[:domain]
                 assert_equal "Communication", out[:competency]
+                assert_equal "Avg", out[:course_competency_rule]
                 assert_equal "Fall Survey · Fall 2025", out[:survey]
                 assert_equal "Student Name", out[:student]
               end
@@ -589,6 +592,8 @@ __END__
         end
       end
     end
+  ensure
+    SiteSetting.set_course_competency_rule!(CourseCompetencyRule::DEFAULT_RULE)
   end
 
   test "format_survey_label returns nil when entry is nil" do

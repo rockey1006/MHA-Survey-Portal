@@ -1,8 +1,6 @@
 # MHA Survey Portal
 
-> **Template note:** This README aligns with the CSCE 431 ReadMe template. If any section (installation, deployment, etc.) becomes too complex, we will optionally add a video walkthrough in MS Teams → Turnover → Project Turnover → Documents (no grade impact).
->
-> Need even deeper walkthroughs (environment variables, screenshots, deployment runbooks)? Jump into the [project wiki](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki) for extended setup guides before continuing.
+Need deeper walkthroughs for environment variables, setup screenshots, or deployment runbooks? Jump into the [project wiki](https://github.com/rockey1006/MHA-Survey-Portal/wiki) for extended guides.
 
 ## Table of Contents
 
@@ -13,10 +11,12 @@
 5. [Installation & Setup](#installation--setup)
 6. [Usage](#usage)
 7. [Features](#features)
-8. [Documentation](#documentation)
-9. [Credits & Acknowledgements](#credits--acknowledgements)
-10. [Third-Party Libraries](#third-party-libraries)
-11. [Contact Information](#contact-information)
+8. [Current Admin Areas](#current-admin-areas)
+9. [Handoff](#handoff)
+10. [Documentation](#documentation)
+11. [Credits & Acknowledgements](#credits--acknowledgements)
+12. [Third-Party Libraries](#third-party-libraries)
+13. [Contact Information](#contact-information)
 
 ## Project Title & Description
 
@@ -55,17 +55,43 @@ Encrypted credentials live in `config/credentials/*.yml.enc`; request `config/ma
 ## Installation & Setup
 
 ```bash
-git clone https://github.com/FaqiangMei/Health.git
-cd Health
+git clone https://github.com/rockey1006/MHA-Survey-Portal.git
+cd MHA-Survey-Portal/
 ```
 
-### Option A – automated
+### Recommended setup: Docker
+
+```bash
+docker compose run --rm web bin/rails db:prepare
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+This is the recommended setup path for handoff and onboarding because it does not require Ruby `3.4.6` to be installed on the host machine.
+
+Use Docker if:
+
+- `bin/setup` fails with `ruby not found in PATH`
+- `bin/setup` fails with `gem: command not found`
+- you want the most reliable path to a working local environment
+
+### Option A – local Ruby setup
 
 ```bash
 bin/setup
 ```
 
 Runs bundle install, prepares the `health_development` database, executes migrations, and seeds demo data.
+
+Important:
+
+- this only works if Ruby `3.4.6` is installed locally
+- if the host machine does not have Ruby or Bundler, use Docker instead
 
 ### Option B – manual
 
@@ -78,7 +104,7 @@ bin/dev
 
 If you use custom Postgres credentials, set `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_HOST`, and `DATABASE_PORT` (see `config/database.yml`).
 
-➡️ Detailed screenshots and troubleshooting tips live in the wiki’s [Getting Started](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started) article—use it if you need more context than the quick steps below.
+➡️ Detailed screenshots and troubleshooting tips live in the wiki’s [Getting Started](https://github.com/rockey1006/MHA-Survey-Portal/wiki/Getting-Started) article—use it if you need more context than the quick steps below.
 
 ### Deep-dive checklist
 
@@ -110,18 +136,43 @@ If you use custom Postgres credentials, set `DATABASE_USER`, `DATABASE_PASSWORD`
 ### Docker workflow
 
 ```bash
-docker compose run --rm web bin/rails db:prepare db:seed
+docker compose run --rm web bin/rails db:prepare
 docker compose up --build
 ```
 
-- Repository mounts to `/csce431/501_health` in the container for live reloads.
+- Repository mounts into the app container for live reloads.
 - Run tests with `docker compose run --rm web ruby run_tests.rb`.
+- Docker should be treated as the default setup path unless the maintainer already has Ruby `3.4.6` working locally.
 - Postgres data persists across restarts via the named Docker volume `db-data`.
    - To guarantee a completely clean DB (no leftover/non-seeded records): `docker compose down --volumes --remove-orphans`.
    - Then re-run: `docker compose run --rm -T web bin/rails db:prepare`.
 - Seeding behavior: in non-production, `db/seeds.rb` may generate demo/sample data unless disabled.
    - To seed ONLY baseline data (no demo/sample generated responses/users): `docker compose run --rm -T -e SEED_DEMO_DATA=0 web bin/rails db:prepare`.
 - OneDrive tip: exclude `vendor/bundle` to prevent sync conflicts during builds.
+
+### Common local setup failure
+
+If you run:
+
+```bash
+bin/setup
+```
+
+and see errors like:
+
+```text
+ruby not found in PATH
+gem: command not found
+```
+
+that means the host machine does not have the Ruby toolchain installed.
+
+In that case, switch to Docker:
+
+```bash
+docker compose run --rm web bin/rails db:prepare
+docker compose up --build
+```
 
 ## Usage
 
@@ -137,26 +188,67 @@ docker compose up --build
 - **Survey lifecycle management** – build questions, assign by track, collect responses, attach evidence, archive submissions.
 - **Feedback & notifications** – advisors review student work, trigger reminders, and view audit trails.
 - **Analytics & reporting** – KPI cards, filters, PDF/Excel exports via `Reports::DataAggregator` and `CompositeReportGenerator`.
+- **Course competency imports** – faculty-facing batch import workspace with dry run, commit, rollback, duplicate protection, pending unmatched student staging, and provenance-preserving derived course ratings.
 - **Accessibility controls** – persistent text scaling, high-contrast mode, translation + TTS helpers.
 - **Automation** – Solid Queue jobs drive assignment, due, overdue, and completion alerts.
+
+## Current Admin Areas
+
+The main admin workflows in the current application are:
+
+- **People Management** – manage members and student assignments from one workspace.
+- **Program Configuration** – manage tracks, majors, cohorts, semesters, and competency target levels.
+- **Survey Builder** – create and maintain surveys, questions, and availability settings.
+- **Grade Import Batches** – process mapping workbooks and direct competency exports.
+- **Competencies** – compare self, advisor, and course-derived ratings side by side.
+- **Student Records** – review survey progress and exports by semester.
+- **Reports** – program-level visualizations and exports.
+
+## Handoff
+
+If you are onboarding to this project or taking over maintenance, start here:
+
+1. [`docs/HANDOFF.md`](docs/HANDOFF.md)
+2. [`docs/ADMIN_WALKTHROUGH.md`](docs/ADMIN_WALKTHROUGH.md)
+3. [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md)
+4. [`docs/GRADE_IMPORTS.md`](docs/GRADE_IMPORTS.md)
+5. [`docs/PERMISSIONS_AUDIT.md`](docs/PERMISSIONS_AUDIT.md)
+6. [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md)
+7. [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)
+
+Important operational notes:
+
+- course-imported competency ratings are intentionally separate from advisor feedback
+- `Grade Import Batches` supports both mapping workbooks and direct competency CSV/Excel imports
+- direct competency imports use `mastery points` as the competency level
+- unmatched import rows are staged for later reconciliation instead of being discarded
+- repeated uploads are protected by duplicate suppression
 
 ## Documentation
 
 The GitHub Wiki is the authoritative knowledge base:
 
-- [Project Overview](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Project-Overview)
-- [Architecture](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Architecture)
-- [Getting Started](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/Getting-Started)
-- [Student / Advisor / Administrator playbooks](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki)
-- [System Administration & Deployment](https://github.com/FaqiangMei/MHA-Survey-Portal/wiki/System-Administration)
+- [Project Overview](https://github.com/rockey1006/MHA-Survey-Portal/wiki/Project-Overview)
+- [Architecture](https://github.com/rockey1006/MHA-Survey-Portal/wiki/Architecture)
+- [Getting Started](https://github.com/rockey1006/MHA-Survey-Portal/wiki/Getting-Started)
+- [Student / Advisor / Administrator playbooks](https://github.com/rockey1006/MHA-Survey-Portal/wiki)
+- [System Administration & Deployment](https://github.com/rockey1006/MHA-Survey-Portal/wiki/System-Administration)
 
 `/about` in the app links directly to these articles. Update the wiki to keep in-app help accurate.
+
+Repo-local handoff docs:
+
+- [`docs/README.md`](docs/README.md)
+- [`docs/HANDOFF.md`](docs/HANDOFF.md)
+- [`docs/GRADE_IMPORTS.md`](docs/GRADE_IMPORTS.md)
+- [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md)
+- [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)
 
 ## Credits & Acknowledgements
 
 - **Program sponsor** – Texas A&M School of Public Health (MHA leadership).
 - **Faculty mentors** – Carla Stebbins, Ruoqi Wei, Hye Chung Kum.
-- **Engineering team** – CSCE 431 Fall 2025 Health cohort (see git history for contributors).
+- **Engineering team** – see git history for contributors.
 - **AI contributions** – GitHub Copilot Chat powered by **GPT-5.1-Codex (Preview)** assisted with refactors, documentation wording, and linting suggestions; humans reviewed all commits before merge.
 
 ## Third-Party Libraries
@@ -176,4 +268,4 @@ The GitHub Wiki is the authoritative knowledge base:
 - **Faculty advisor**: Pauline Wade — <paulinewade@tamu.edu>
 - **Issues & pull requests**: please open items directly in this GitHub repository.
 
-Last updated: 2025-11-19
+Last updated: 2026-04-21

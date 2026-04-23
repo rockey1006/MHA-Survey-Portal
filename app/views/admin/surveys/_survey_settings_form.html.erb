@@ -33,7 +33,7 @@
           <%= form.select :semester,
                           options_for_select(@program_semester_options, survey.semester.presence || @program_semester_options.first),
                           { include_blank: "Select semester" },
-                          class: "c-select" %>
+                          class: "c-select w-full" %>
         </div>
       <% else %>
         <%= form.text_field :semester,
@@ -51,7 +51,7 @@
         <%= select_tag "survey[track_list][]",
                        options_for_select(track_dropdown_options, survey.track_list.first),
                        id: "survey-track-list",
-                       class: "c-select" %>
+                       class: "c-select w-full" %>
       </div>
     </div>
 
@@ -112,4 +112,3 @@
     </div>
   </section>
 <% end %>
-

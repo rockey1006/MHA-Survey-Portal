@@ -224,6 +224,7 @@ class CompositeReportGenerator
       feedback_submission_by_advisor: feedback_submission_by_advisor,
       feedback_summary: feedback_summary,
       evidence_history_by_category: evidence_history_by_category,
+      grade_derived_competencies: GradeImports::DerivedScorebook.for_student(student),
       generated_at: generated_at,
       answered_count: answered_count,
       total_questions: total_questions,

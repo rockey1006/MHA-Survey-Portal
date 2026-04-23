@@ -1,0 +1,146 @@
+# frozen_string_literal: true
+
+require "csv"
+
+class Admin::CompetenciesController < ApplicationController
+  before_action :require_competency_access!
+  before_action :require_admin_for_course_rule!, only: :course_rule
+
+  def index
+    payload = competency_payload
+    @filters = payload[:filters]
+    @filter_options = payload[:filter_options]
+    @domains = payload[:domains]
+    @students = payload[:students]
+    @visible_competency_count = payload[:visible_competency_count]
+    @active_course_competency_rule = payload[:course_competency_rule]
+    @active_course_competency_rule_label = payload[:course_competency_rule_label]
+    @course_competency_rule_options = payload[:course_competency_rule_options]
+  end
+
+  def export
+    payload = competency_payload
+
+    send_data competencies_csv(payload),
+              filename: "competencies-matrix-#{Time.current.strftime('%Y%m%d-%H%M')}.csv",
+              type: "text/csv"
+  end
+
+  def course_rule
+    rule = SiteSetting.set_course_competency_rule!(params[:course_competency_rule])
+    redirect_to admin_competencies_path,
+                notice: "Course competency rule updated to #{CourseCompetencyRule.label_for(rule)}."
+  end
+
+  private
+
+  def competency_payload
+    Admin::CompetencyMatrix.new(params: competency_filter_params, actor_user: current_user).call
+  end
+
+  def require_competency_access!
+    return if current_user&.role_admin? || current_user&.role_advisor?
+
+    if current_user&.role_student?
+      redirect_to dashboard_path
+    else
+      redirect_to dashboard_path, alert: "Access denied. Admin or advisor privileges required."
+    end
+  end
+
+  def competency_filter_params
+    params.permit(:q, :track, :program_year, :advisor_id, :semester, :domain, competencies: [])
+  end
+
+  def competencies_csv(payload)
+    rows = payload[:students].flat_map do |student|
+      domain_rows = payload[:domains].flat_map do |domain|
+        domain[:competencies].map do |competency|
+          ratings = student.dig(:ratings, competency[:title]) || {}
+
+          {
+            student_id: student[:id],
+            student_name: student[:name],
+            student_email: student[:email],
+            uin: student[:uin],
+            track: student[:track],
+            program_year: student[:program_year],
+            advisor_name: student[:advisor_name],
+            domain: domain[:name],
+            competency: competency[:title],
+            self_rating: ratings[:self_rating],
+            advisor_rating: ratings[:advisor_rating],
+            course_rating: ratings[:course_rating],
+            course_rule: payload[:course_competency_rule_label],
+            semester_filter: payload.dig(:filters, :semester).presence || "All semesters"
+          }
+        end
+      end
+
+      next domain_rows if domain_rows.any?
+
+      [
+        {
+          student_id: student[:id],
+          student_name: student[:name],
+          student_email: student[:email],
+          uin: student[:uin],
+          track: student[:track],
+          program_year: student[:program_year],
+          advisor_name: student[:advisor_name],
+          domain: nil,
+          competency: nil,
+          self_rating: nil,
+          advisor_rating: nil,
+          course_rating: nil,
+          course_rule: payload[:course_competency_rule_label],
+          semester_filter: payload.dig(:filters, :semester).presence || "All semesters"
+        }
+      ]
+    end
+
+    CSV.generate(headers: true) do |csv|
+      csv << [
+        "Student ID",
+        "Student Name",
+        "Student Email",
+        "UIN",
+        "Track",
+        "Program Year",
+        "Advisor",
+        "Domain",
+        "Competency",
+        "Self Rating",
+        "Advisor Rating",
+        "Course Rating",
+        "Course Competency Rule",
+        "Semester Filter"
+      ]
+
+      rows.sort_by { |row| [ row[:student_name].to_s.downcase, row[:domain].to_s.downcase, row[:competency].to_s.downcase ] }.each do |row|
+        csv << row.values_at(
+          :student_id,
+          :student_name,
+          :student_email,
+          :uin,
+          :track,
+          :program_year,
+          :advisor_name,
+          :domain,
+          :competency,
+          :self_rating,
+          :advisor_rating,
+          :course_rating,
+          :course_rule,
+          :semester_filter
+        )
+      end
+    end
+  end
+
+  def require_admin_for_course_rule!
+    return if current_user&.role_admin?
+
+    redirect_to dashboard_path, alert: "Access denied. Admin privileges required."
+  end
+end

@@ -1,0 +1,73 @@
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <%= link_to "Back to batches", admin_grade_import_batches_path, class: tailwind_button_classes(:secondary) %>
+    </div>
+  </div>
+
+  <div class="c-container c-container--wide c-page">
+    <section class="c-card p-8 md:p-10 u-stack u-stack--xl">
+      <header class="c-page-header">
+        <div>
+          <p class="c-eyebrow">Faculty imports</p>
+          <h1 class="c-page-title c-page-title--brand text-3xl font-semibold">New Grade Import Batch</h1>
+          <p class="c-page-subtitle">Upload faculty gradebooks, review a preview, then rerun to commit. Advisor feedback stays untouched and grade-derived ratings remain a separate source.</p>
+        </div>
+      </header>
+
+      <section class="u-stack u-stack--md">
+        <div>
+          <h2 class="c-section-title c-heading-inline">Upload workbook</h2>
+          <p class="c-page-subtitle">Start with a preview to review matches, pending students, duplicates, and derived ratings before making the batch reportable.</p>
+        </div>
+
+        <div class="c-card c-card--tight c-card--muted u-stack u-stack--sm">
+          <p class="c-section-title c-heading-inline">Workbook contract</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5">
+            <li>One Canvas-style gradebook sheet with student identifiers, course section, assignment columns, and a points-possible row.</li>
+            <li>One sheet named <code>mapping</code> with assignment-to-competency rules and grade-to-level ranges.</li>
+            <li>Direct competency exports are also supported in <code>.csv</code> or Excel: use <code>Student SIS ID</code> / <code>Student ID</code>, ignore <code>HPMC</code> columns, and the importer will read <code>EMHA</code> / <code>RMHA</code> competency <code>result</code> columns without a mapping sheet.</li>
+            <li>For direct exports, the course code is derived from the sheet or file name, for example <code>PHPM_633_700</code> becomes <code>PHPM-633-700</code>.</li>
+            <li>Your uploaded <code>2026_comp.xlsx</code> now matches this contract.</li>
+          </ul>
+        </div>
+
+        <%= form_with url: admin_grade_import_batches_path, method: :post, local: true, multipart: true, class: "u-stack u-stack--lg" do %>
+          <div class="u-grid" style="--u-grid-min: 320px">
+            <div class="c-kv c-kv--compact">
+              <div class="c-field">
+                <%= label_tag "files[]", "Import files", class: "c-label" %>
+                <%= file_field_tag "files[]", multiple: true, accept: ".xlsx,.xlsm,.csv", class: "c-input" %>
+                <small class="c-help">Use this for one or more Excel or CSV imports.</small>
+              </div>
+            </div>
+
+            <div class="c-kv c-kv--compact">
+              <div class="c-field">
+                <%= label_tag "folder_files[]", "Folder upload", class: "c-label" %>
+                <%= file_field_tag "folder_files[]", multiple: true, webkitdirectory: true, directory: true, class: "c-input" %>
+                <small class="c-help">Useful when faculty send one workbook per course.</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="c-card c-card--tight">
+            <label class="c-toggle cursor-pointer">
+              <%= check_box_tag :dry_run, "1", true, class: "c-toggle__input" %>
+              <span class="c-toggle__track" aria-hidden="true"><span class="c-toggle__thumb"></span></span>
+              <span class="space-y-0.5">
+                <span class="c-toggle__label block">Start with a preview</span>
+                <span class="block text-sm text-slate-600">Preview matches, duplicates, failed rows, and derived ratings without using the batch in downstream views.</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="c-form-actions u-actions u-actions--start">
+            <%= submit_tag "Run Import", class: tailwind_button_classes(:primary) %>
+            <%= link_to "Back to batches", admin_grade_import_batches_path, class: tailwind_button_classes(:secondary) %>
+          </div>
+        <% end %>
+      </section>
+    </section>
+  </div>
+</main>

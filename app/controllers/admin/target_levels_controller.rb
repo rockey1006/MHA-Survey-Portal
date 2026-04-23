@@ -5,17 +5,19 @@
 # (matching existing admin controllers) rather than `module Admin`.
 class Admin::TargetLevelsController < Admin::BaseController
   def index
-    @post_save_warning = session.delete(:target_levels_post_save_warning)
-    load_selector_options
-    load_targets
-    @submitted_students_count = submitted_students_count_for_selected_context
+    redirect_to admin_program_setup_path(
+      tab: "targets",
+      program_semester_id: params[:program_semester_id],
+      track: params[:track],
+      class_of: params[:class_of]
+    )
   end
 
   def update
     load_selector_options
 
     unless @selected_semester_id.present? && @selected_track.present?
-      redirect_to admin_target_levels_path, alert: "Select a semester and track before updating target levels."
+      redirect_to admin_program_setup_path(tab: "targets"), alert: "Select a semester and track before updating target levels."
       return
     end
 
@@ -91,15 +93,19 @@ class Admin::TargetLevelsController < Admin::BaseController
       end
     end
 
-    redirect_to admin_target_levels_path(
+    redirect_to admin_program_setup_path(
+      tab: "targets",
       program_semester_id: @selected_semester_id,
       track: @selected_track,
       class_of: @selected_class_of
     ), notice: "Target levels updated."
   rescue ActiveRecord::RecordInvalid => e
-    load_targets
-    flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    render :index, status: :unprocessable_entity
+    redirect_to admin_program_setup_path(
+      tab: "targets",
+      program_semester_id: @selected_semester_id,
+      track: @selected_track,
+      class_of: @selected_class_of
+    ), alert: e.record.errors.full_messages.to_sentence
   end
 
   private

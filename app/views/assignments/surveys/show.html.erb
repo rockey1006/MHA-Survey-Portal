@@ -83,7 +83,7 @@
               id="student_search"
               type="text"
               placeholder="Search by name or email"
-              class="c-input c-search-input"
+              class="c-input c-search-input w-full pr-16"
               data-assignment-students-target="search"
               data-action="input->assignment-students#filterRows"
             >
@@ -94,7 +94,7 @@
             <%= select_tag :bulk_track_filter,
                            options_for_select([ ["Select all tracks", ""], ["Residential", "Residential"], ["Executive", "Executive"] ], @default_track_label),
                            id: "bulk_track_filter",
-                           class: "c-select",
+                           class: "c-select w-full",
                            data: { assignment_students_target: "trackFilter", action: "change->assignment-students#applyFiltersToSelection" } %>
           </div>
 
@@ -103,7 +103,7 @@
             <%= select_tag :bulk_year_filter,
                            options_for_select([ ["All years", ""] ] + recent_year_options.map { |year| [year, year] }),
                            id: "bulk_year_filter",
-                           class: "c-select",
+                           class: "c-select w-full",
                            data: { assignment_students_target: "yearFilter", action: "change->assignment-students#applyFiltersToSelection" } %>
           </div>
 

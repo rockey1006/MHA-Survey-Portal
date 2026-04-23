@@ -2,13 +2,40 @@ import { Controller } from "@hotwired/stimulus"
 
 // Adds common markdown keyboard shortcuts for textarea-style editors.
 export default class extends Controller {
+  static targets = ["previewInput", "previewOutput"]
+
+  static values = {
+    previewUrl: String,
+    wrapperClass: String,
+    minHeadingLevel: Number,
+    emptyHtml: String
+  }
+
   connect() {
     this.handleShortcut = this.handleShortcut.bind(this)
+    this.queuePreviewRender = this.queuePreviewRender.bind(this)
+    this.renderPreview = this.renderPreview.bind(this)
+    this.abortController = null
+    this.renderTimeout = null
+    this.requestSequence = 0
+
     this.element.addEventListener("keydown", this.handleShortcut)
+
+    if (this.hasPreviewInputTarget) {
+      this.previewInputTarget.addEventListener("input", this.queuePreviewRender)
+      this.renderPreview()
+    }
   }
 
   disconnect() {
     this.element.removeEventListener("keydown", this.handleShortcut)
+
+    if (this.hasPreviewInputTarget) {
+      this.previewInputTarget.removeEventListener("input", this.queuePreviewRender)
+    }
+
+    if (this.renderTimeout) clearTimeout(this.renderTimeout)
+    if (this.abortController) this.abortController.abort()
   }
 
   handleShortcut(event) {
@@ -139,5 +166,57 @@ export default class extends Controller {
 
   dispatchInput(target) {
     target.dispatchEvent(new Event("input", { bubbles: true }))
+  }
+
+  queuePreviewRender() {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout)
+    this.renderTimeout = setTimeout(this.renderPreview, 180)
+  }
+
+  async renderPreview() {
+    if (!this.hasPreviewInputTarget || !this.hasPreviewOutputTarget || !this.hasPreviewUrlValue) return
+
+    const text = this.previewInputTarget.value || ""
+    if (!text.trim().length) {
+      this.previewOutputTarget.innerHTML = this.emptyHtmlValue || ""
+      return
+    }
+
+    if (this.abortController) this.abortController.abort()
+    this.abortController = new AbortController()
+    const requestId = ++this.requestSequence
+
+    try {
+      const response = await fetch(this.previewUrlValue, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": this.csrfToken()
+        },
+        body: JSON.stringify({
+          text,
+          wrapper_class: this.wrapperClassValue || "guidance-text",
+          min_heading_level: this.hasMinHeadingLevelValue ? this.minHeadingLevelValue : 3
+        }),
+        signal: this.abortController.signal
+      })
+
+      if (!response.ok) throw new Error(`Markdown preview failed with ${response.status}`)
+
+      const payload = await response.json()
+      if (requestId !== this.requestSequence) return
+
+      this.previewOutputTarget.innerHTML = payload.html || ""
+    } catch (error) {
+      if (error.name === "AbortError") return
+
+      this.previewOutputTarget.innerHTML = '<div class="c-markdown-preview__error">Preview unavailable right now.</div>'
+    }
+  }
+
+  csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || ""
   }
 }

@@ -854,6 +854,87 @@ function initHoverDropdownDetails() {
   })
 }
 
+// -----------------------------
+// Server-backed markdown preview
+// -----------------------------
+
+function initServerMarkdownPreviews() {
+  document.querySelectorAll("[data-server-markdown-preview='true']").forEach((container) => {
+    if (container.dataset.serverMarkdownPreviewInitialized === "true") return
+    container.dataset.serverMarkdownPreviewInitialized = "true"
+
+    const input = container.querySelector("[data-preview-input='true']")
+    const output = container.querySelector("[data-preview-output='true']")
+    const previewUrl = container.dataset.previewUrl
+    const wrapperClass = container.dataset.previewWrapperClass || "guidance-text"
+    const minHeadingLevel = Number(container.dataset.previewMinHeadingLevel || "3")
+    const emptyHtml = container.dataset.previewEmptyHtml || ""
+
+    if (!input || !output || !previewUrl) return
+
+    let timeoutId = null
+    let abortController = null
+    let requestSequence = 0
+
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || ""
+
+    const setEmpty = () => {
+      output.innerHTML = emptyHtml
+    }
+
+    const renderPreview = async () => {
+      const text = input.value || ""
+      if (!text.trim().length) {
+        setEmpty()
+        return
+      }
+
+      if (abortController) abortController.abort()
+      abortController = new AbortController()
+      const requestId = ++requestSequence
+
+      try {
+        const response = await fetch(previewUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken()
+          },
+          body: JSON.stringify({
+            text,
+            wrapper_class: wrapperClass,
+            min_heading_level: minHeadingLevel
+          }),
+          signal: abortController.signal
+        })
+
+        if (!response.ok) throw new Error(`Markdown preview failed with ${response.status}`)
+
+        const payload = await response.json()
+        if (requestId !== requestSequence) return
+
+        output.innerHTML = payload.html || ""
+      } catch (error) {
+        if (error.name === "AbortError") return
+        output.innerHTML = '<div class="c-markdown-preview__error">Preview unavailable right now.</div>'
+      }
+    }
+
+    const scheduleRender = () => {
+      if (timeoutId) window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => {
+        timeoutId = null
+        renderPreview()
+      }, 180)
+    }
+
+    input.addEventListener("input", scheduleRender)
+    renderPreview()
+  })
+}
+
 
 // -----------------------------
 // Hook into Turbo / DOM load
@@ -870,6 +951,7 @@ function initAccessibilityFeatures() {
   initImpersonationReadOnlyUI()
   initDisableSubmitIfUnchanged()
   initHoverDropdownDetails()
+  initServerMarkdownPreviews()
 }
 
 document.addEventListener("turbo:load", initAccessibilityFeatures)

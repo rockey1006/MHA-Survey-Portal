@@ -1,47 +1,51 @@
-<main class="px-4 py-8">
-  <div class="c-container c-container--wide">
-    <div class="c-page space-y-6">
-    <header class="c-page-header space-y-2">
-      <h1 class="c-page-title c-page-title--brand text-3xl font-semibold">Student Records</h1>
-      <% intro_text = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
-        "Browse survey progress across all students."
-      elsif current_user&.respond_to?(:role_advisor?) && current_user.role_advisor?
-        "Browse survey progress by semester for the students you advise."
-      else
-        "Browse survey progress by semester."
-      end %>
-      <p class="text-sm text-slate-600"><%= intro_text %></p>
-    </header>
-
-    <div class="c-toolbar">
-      <div class="c-toolbar__row w-full justify-between gap-3">
-        <div class="shrink-0">
-          <% if defined?(advisor_dashboard_path) && current_user&.respond_to?(:role_advisor?) && current_user.role_advisor? %>
-            <%= link_to "← Back",
-                        advisor_dashboard_path,
-                        class: tailwind_button_classes(:secondary),
-                        data: { turbo: false } %>
-          <% elsif defined?(admin_dashboard_path) && current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
-            <%= link_to "← Back",
-                        admin_dashboard_path,
-                        class: tailwind_button_classes(:secondary),
-                        data: { turbo: false } %>
-          <% else %>
-            <%= link_to "← Back",
-                        dashboard_path,
-                        class: tailwind_button_classes(:secondary),
-                        data: { turbo: false } %>
-          <% end %>
-        </div>
-
-        <div class="shrink-0">
-          <%= link_to "Export Excel",
-                      export_student_records_excel_path(request.query_parameters),
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row w-full justify-between gap-3">
+      <div class="shrink-0">
+        <% if defined?(advisor_dashboard_path) && current_user&.respond_to?(:role_advisor?) && current_user.role_advisor? %>
+          <%= link_to "← Back",
+                      advisor_dashboard_path,
                       class: tailwind_button_classes(:secondary),
                       data: { turbo: false } %>
-        </div>
+        <% elsif defined?(admin_dashboard_path) && current_user&.respond_to?(:role_admin?) && current_user.role_admin? %>
+          <%= link_to "← Back",
+                      admin_dashboard_path,
+                      class: tailwind_button_classes(:secondary),
+                      data: { turbo: false } %>
+        <% else %>
+          <%= link_to "← Back",
+                      dashboard_path,
+                      class: tailwind_button_classes(:secondary),
+                      data: { turbo: false } %>
+        <% end %>
+      </div>
+
+      <div class="shrink-0">
+        <%= link_to "Export Excel",
+                    export_student_records_excel_path(request.query_parameters),
+                    class: tailwind_button_classes(:secondary),
+                    data: { turbo: false } %>
       </div>
     </div>
+  </div>
+
+  <div class="c-container c-container--wide">
+    <div class="c-page">
+    <section class="c-card p-8 md:p-10 u-stack u-stack--xl">
+    <header class="c-page-header space-y-2">
+      <div>
+        <p class="c-eyebrow">Reporting</p>
+        <h1 class="c-page-title c-page-title--brand text-3xl font-semibold">Student Records</h1>
+        <% intro_text = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
+          "Browse survey progress across all students."
+        elsif current_user&.respond_to?(:role_advisor?) && current_user.role_advisor?
+          "Browse survey progress by semester for the students you advise."
+        else
+          "Browse survey progress by semester."
+        end %>
+        <p class="text-sm text-slate-600"><%= intro_text %></p>
+      </div>
+    </header>
 
     <div class="c-toolbar">
       <div class="c-toolbar__row w-full">
@@ -52,7 +56,7 @@
               <%= label_tag :survey_id, "Survey", class: "block text-xs font-semibold uppercase tracking-wide text-slate-500" %>
               <%= select_tag :survey_id,
                              options_for_select([["All surveys", ""]] + Array(@survey_filter_options), @survey_filter_id),
-                             class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                             class: "c-select w-full" %>
             </div>
 
             <div class="min-w-[12rem]">
@@ -62,7 +66,7 @@
                                [["All semesters", ""]] + Array(@semester_filter_options).map { |name| [name, name] },
                                @semester_filter
                              ),
-                             class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                             class: "c-select w-full" %>
             </div>
 
             <div class="min-w-[12rem]">
@@ -72,7 +76,7 @@
                                 [["All", ""], ["Completed", "completed"], ["Assigned", "assigned"]],
                                @status_filter
                              ),
-                             class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                             class: "c-select w-full" %>
             </div>
 
             <div class="min-w-[12rem]">
@@ -82,7 +86,7 @@
                                [["All tracks", ""]] + Array(@track_filter_options).map { |track| [track, track] },
                                @track_filter
                              ),
-                             class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                             class: "c-select w-full" %>
             </div>
 
             <div class="min-w-[12rem]">
@@ -92,7 +96,7 @@
                                [["All years", ""]] + Array(@program_year_options).map { |year| [year, year] },
                                @program_year_filter
                              ),
-                             class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                             class: "c-select w-full" %>
             </div>
 
             <div class="min-w-[14rem]">
@@ -112,7 +116,7 @@
                                ],
                                @sort_key
                              ),
-                             class: "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                             class: "c-select w-full" %>
             </div>
           </div>
 
@@ -122,7 +126,7 @@
               <%= text_field_tag :q,
                                  @search_query,
                                  placeholder: "Search by name, email, or UIN",
-                                 class: "c-input c-search-input w-full" %>
+                                 class: "c-input c-search-input w-full pr-16" %>
             </div>
 
             <div class="min-w-[18rem] flex-1">
@@ -130,7 +134,7 @@
               <%= text_field_tag :survey_query,
                                   @survey_query,
                                   placeholder: "Filter surveys by title",
-                                  class: "c-input c-search-input w-full" %>
+                                  class: "c-input c-search-input w-full pr-16" %>
             </div>
 
             <div class="flex items-center gap-2 min-w-[12rem]">
@@ -158,7 +162,7 @@
       <div class="space-y-6">
         <% @student_records.each do |semester_block| %>
           <details class="c-surface overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" open>
-            <summary class="flex cursor-pointer items-center justify-between gap-3 bg-slate-100 px-6 py-4 text-left text-slate-800">
+            <summary class="c-disclosure-summary">
               <span class="text-lg font-semibold"><%= semester_block[:semester] %></span>
               <span class="text-sm text-slate-500"><%= pluralize(semester_block[:surveys].size, "survey") %></span>
             </summary>
@@ -178,7 +182,7 @@
                   else
                     "Due dates vary"
                   end %>
-                  <summary class="flex cursor-pointer flex-col gap-1 bg-slate-100 px-5 py-4 text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                  <summary class="c-disclosure-summary c-disclosure-summary--compact c-disclosure-summary--stacked">
                     <span class="flex items-center gap-2 text-base font-semibold text-slate-800">
                       <span><%= survey.title %></span>
                       <span class="<%= survey_lifecycle_badge_classes(survey_lifecycle) %>"><%= survey_lifecycle %></span>
@@ -191,8 +195,8 @@
                   </summary>
 
                   <%= render TableComponent.new(
-                    headers: ["#", "Student", "Advisor", "Track", "Program year", "Completion", "Feedback", "Advisor Feedback", "Download", ""],
-                    right_align: [9]
+                    headers: ["#", "Student", "Advisor", "Completion", "Feedback", "Advisor Feedback", "Actions"],
+                    right_align: [6]
                   ) do %>
                         <% if filtered_rows.blank? %>
                           <% empty_track_message = if current_user&.respond_to?(:role_admin?) && current_user.role_admin?
@@ -201,7 +205,7 @@
                             "No student records for this survey are assigned to you."
                           end %>
                           <tr>
-                            <td colspan="10" class="px-4 py-6 text-center text-sm text-slate-500">
+                            <td colspan="7" class="px-4 py-6 text-center text-sm text-slate-500">
                               <%= empty_track_message %>
                             </td>
                           </tr>
@@ -220,6 +224,7 @@
                             <% has_feedback            = feedback_entries.any? %>
                             <% feedback_status_label   = row[:feedback_status_label] %>
                             <% feedback_status_ts      = row[:feedback_status_timestamp] %>
+                            <% grade_derived          = row[:grade_derived] || {} %>
                             <% survey_archived         = survey.respond_to?(:is_active?) && !survey.is_active? %>
                             <% has_completed          = status_text == "Completed" %>
                             <% is_assigned           = status_text == "Assigned" %>
@@ -238,9 +243,16 @@
 
                               <td class="min-w-[14rem] px-4 py-3 text-sm text-slate-700">
                                 <div class="font-semibold text-slate-900"><%= student.user&.name || "Unknown Student" %></div>
+                                <% graduation_year = if student.respond_to?(:has_attribute?) && student.has_attribute?(:class_of) && student[:class_of].present?
+                                  student[:class_of]
+                                else
+                                  student.program_year
+                                end %>
                                 <div class="mt-1 text-xs text-slate-500 space-y-1">
                                   <% if student.uin.present? %><div><%= student.uin %></div><% end %>
                                   <% if student.user&.email.present? %><div><%= student.user.email %></div><% end %>
+                                  <div>Track: <%= student.track.present? ? student.track.titleize : "Unknown" %></div>
+                                  <div>Program year: <%= graduation_year.present? ? graduation_year : "—" %></div>
                                 </div>
                               </td>
 
@@ -258,28 +270,6 @@
                                   </div>
                                 <% else %>
                                   <div class="font-semibold text-rose-600">Unassigned</div>
-                                <% end %>
-                              </td>
-
-                              <td class="px-4 py-3 text-sm text-slate-700">
-                                <% if student.track.present? %>
-                                  <div class="font-semibold text-slate-900"><%= student.track.titleize %></div>
-                                <% else %>
-                                  <div class="font-semibold text-slate-400">Track unknown</div>
-                                <% end %>
-                              </td>
-
-                              <td class="px-4 py-3 text-sm text-slate-700">
-                                <% graduation_year = if student.respond_to?(:has_attribute?) && student.has_attribute?(:class_of) && student[:class_of].present?
-                                  student[:class_of]
-                                else
-                                  student.program_year
-                                end %>
-
-                                <% if graduation_year.present? %>
-                                  <div class="font-semibold text-slate-900"><%= graduation_year %></div>
-                                <% else %>
-                                  <div class="font-semibold text-slate-400">—</div>
                                 <% end %>
                               </td>
 
@@ -329,49 +319,51 @@
                               </td>
 
                               <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <% if has_completed %>
-                                  <% if can_open %>
-                                    <% if survey_archived %>
-                                      <% if review_only_link.present? %>
-                                        <%= link_to "Review",
-                                                    review_only_link,
-                                                    class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
-                                      <% else %>
-                                        <span class="text-xs text-slate-500">—</span>
-                                      <% end %>
-                                    <% else %>
-                                      <%= link_to survey_label,
-                                                  survey_link,
-                                                  class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
-                                    <% end %>
-                                  <% else %>
-                                    <span
-                                      class="<%= "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>"
-                                      aria-disabled="true"
-                                      title="Only the student's advisor or an admin can open this survey">
-                                      <%= survey_label || "Review" %>
-                                    </span>
+                                <% if grade_derived.present? %>
+                                  <% latest_grade_update = grade_derived.values.filter_map { |entry| entry[:latest_updated_at] }.max %>
+                                  <div class="font-semibold text-slate-900"><%= pluralize(grade_derived.size, "competency") %></div>
+                                  <div class="mt-1 text-xs text-slate-500">Max rule across <%= grade_derived.values.sum { |entry| entry[:evidence_count].to_i } %> evidence rows</div>
+                                  <% if latest_grade_update.present? %>
+                                    <div class="mt-1 text-xs text-slate-500">Updated <%= l(latest_grade_update, format: :long) %></div>
                                   <% end %>
                                 <% else %>
-                                  <span class="text-xs text-slate-500">—</span>
+                                  <span class="text-xs text-slate-500">No imported ratings yet</span>
                                 <% end %>
                               </td>
 
                               <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
                                 <% show_actions = has_completed && can_open %>
                                 <div class="flex flex-nowrap items-center justify-end gap-2">
+                                  <% if has_completed %>
+                                    <% if can_open %>
+                                      <% if survey_archived %>
+                                        <% if review_only_link.present? %>
+                                          <%= link_to "Review",
+                                                      review_only_link,
+                                                      class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
+                                        <% end %>
+                                      <% else %>
+                                        <%= link_to survey_label,
+                                                    survey_link,
+                                                    class: "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>
+                                      <% end %>
+                                    <% else %>
+                                      <span
+                                        class="<%= "#{tailwind_button_classes(:secondary)} whitespace-nowrap" %>"
+                                        aria-disabled="true"
+                                        title="Only the student's advisor or an admin can open this survey">
+                                        <%= survey_label || "Review" %>
+                                      </span>
+                                    <% end %>
+                                  <% end %>
+
                                   <% if show_actions && survey_response.present? %>
                                     <%= link_to "Download PDF",
                                                 download_survey_response_path(survey_response, token: download_token),
                                                 class: tailwind_button_classes(:primary),
                                                 target: "_blank", rel: "noopener noreferrer" %>
                                   <% end %>
-                                </div>
-                              </td>
 
-                              <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                                <% show_actions = has_completed && can_open %>
-                                <div class="flex flex-nowrap items-center justify-end gap-2">
                                   <% if show_actions && survey_response.present? && admin_can_open %>
                                     <details class="relative">
                                       <summary
@@ -411,6 +403,7 @@
       </div>
     <% end %>
 
+    </section>
     </div>
   </div>
 </main>

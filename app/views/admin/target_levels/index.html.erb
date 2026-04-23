@@ -2,7 +2,7 @@
   <div class="c-toolbar">
     <div class="c-toolbar__row items-center w-full gap-3">
       <div class="shrink-0">
-        <%= link_to "Cancel", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
+        <%= link_to "Back", admin_dashboard_path, class: tailwind_button_classes(:secondary), data: { turbo: false } %>
       </div>
     </div>
   </div>
@@ -30,7 +30,7 @@
             <div class="c-select-wrapper mt-1">
               <%= select_tag :program_semester_id,
                 options_for_select([["Select a semester", ""]] + @semesters.map { |s| [s.name, s.id] }, @selected_semester_id),
-                class: "c-select" %>
+                class: "c-select w-full" %>
             </div>
           </div>
 
@@ -39,7 +39,7 @@
             <div class="c-select-wrapper mt-1">
               <%= select_tag :track,
                 options_for_select([["Select a track", ""]] + @tracks.map { |t| [t, t] }, @selected_track),
-                class: "c-select" %>
+                class: "c-select w-full" %>
             </div>
           </div>
 
@@ -48,7 +48,7 @@
             <div class="c-select-wrapper mt-1">
               <%= select_tag :class_of,
                 options_for_select(@class_of_options, @selected_class_of.to_s),
-                class: "c-select" %>
+                class: "c-select w-full" %>
             </div>
           </div>
 
@@ -167,7 +167,7 @@
       </div>
 
       <div class="c-card c-card--tight mt-6 flex flex-wrap items-center justify-end gap-3">
-        <%= link_to "Cancel", admin_dashboard_path, class: tailwind_button_classes(:secondary), data: { turbo: false } %>
+        <%= link_to "Back", admin_dashboard_path, class: tailwind_button_classes(:secondary), data: { turbo: false } %>
       </div>
     <% end %>
   </section>

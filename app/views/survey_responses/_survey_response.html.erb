@@ -296,7 +296,7 @@
                                    include_blank: true,
                                    disabled: input_disabled,
                                    id: "question-#{question.id}",
-                                   class: "w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" %>
+                                   class: "c-select w-full max-w-sm" %>
 
                     <% option_pairs.each do |label, value| %>
                       <% next unless question.answer_option_requires_text?(value) %>

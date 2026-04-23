@@ -27,21 +27,12 @@
         <% end %>
       </div>
 
-      <!-- Target Levels -->
-      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
-        <%= link_to admin_target_levels_path, class: "c-tile__link" do %>
-          <div class="c-tile__icon">🎯</div>
-          <div class="c-tile__title">Target Levels</div>
-          <div class="c-tile__description">Configure competency targets</div>
-        <% end %>
-      </div>
-
-      <!-- Program Setup -->
+      <!-- Program Configuration -->
       <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_program_setup_path, class: "c-tile__link" do %>
           <div class="c-tile__icon">🧩</div>
-          <div class="c-tile__title">Program Setup</div>
-          <div class="c-tile__description">Tracks, majors, years, semesters</div>
+          <div class="c-tile__title">Program Configuration</div>
+          <div class="c-tile__description">Tracks, majors, semesters, and competency targets</div>
         <% end %>
       </div>
 
@@ -54,6 +45,15 @@
         <% end %>
       </div>
 
+      <!-- Competencies -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to admin_competencies_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🧠</div>
+          <div class="c-tile__title">Competencies</div>
+          <div class="c-tile__description">Compare self, advisor, and course ratings</div>
+        <% end %>
+      </div>
+
       <!-- Students Records -->
       <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to student_records_path, class: "c-tile__link" do %>
@@ -63,21 +63,12 @@
         <% end %>
       </div>
 
-      <!-- Manage Students -->
+      <!-- People Management -->
       <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
-        <%= link_to manage_students_path, class: "c-tile__link" do %>
-          <div class="c-tile__icon">⚙️</div>
-          <div class="c-tile__title">Manage Students</div>
-          <div class="c-tile__description"><%= pluralize(@advisee_count, "assigned student") %></div>
-        <% end %>
-      </div>
-
-      <!-- Members -->
-      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
-        <%= link_to manage_members_path, class: "c-tile__link" do %>
-          <div class="c-tile__icon">🧑‍💼</div>
-          <div class="c-tile__title">Member Management</div>
-          <div class="c-tile__description"><%= @role_counts[:advisor] || 0 %> advisors</div>
+        <%= link_to people_management_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🧑‍🤝‍🧑</div>
+          <div class="c-tile__title">People Management</div>
+          <div class="c-tile__description">Members, students, advisors, and assignments</div>
         <% end %>
       </div>
 
@@ -87,6 +78,15 @@
           <div class="c-tile__icon">📚</div>
           <div class="c-tile__title">Recent Activities</div>
           <div class="c-tile__description">Survey and submission logs</div>
+        <% end %>
+      </div>
+
+      <!-- Grade Imports -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to admin_grade_import_batches_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">📥</div>
+          <div class="c-tile__title">Grade Imports</div>
+          <div class="c-tile__description">Upload faculty workbooks</div>
         <% end %>
       </div>
 

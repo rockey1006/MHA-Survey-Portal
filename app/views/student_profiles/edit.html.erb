@@ -128,7 +128,7 @@
                     <%= form.select :program_year,
                         options_for_select(program_year_options, @student.program_year.to_i.presence),
                         { prompt: "Select your graduation year" },
-                        { required: true, class: "c-input" } %>
+                        { required: true, class: "c-select w-full" } %>
                     <small class="c-help">Select your graduation year (e.g., 2026). Used to determine which surveys to assign.</small>
                   </div>
                 </div>
@@ -142,7 +142,7 @@
                           @student.major.to_s
                         ),
                         { prompt: "Select your major" },
-                        { required: true, class: "c-input" } %>
+                        { required: true, class: "c-select w-full" } %>
                   </div>
                 </div>
 
@@ -153,7 +153,7 @@
                     <%= form.select :track,
                         options_for_select(track_options, @student.track.to_s),
                         { prompt: "Select your track" },
-                        { required: true, class: "c-input" } %>
+                        { required: true, class: "c-select w-full" } %>
                     <small class="c-help">Pick the cohort you belong to</small>
                   </div>
                 </div>
@@ -164,7 +164,7 @@
                     <%= form.select :advisor_id,
                         options_from_collection_for_select(@advisors, :advisor_id, :name, @student.advisor_id),
                         { prompt: "Select your advisor (optional)" },
-                        { class: "c-input" } %>
+                        { class: "c-select w-full" } %>
                   </div>
                 </div>
               </div>

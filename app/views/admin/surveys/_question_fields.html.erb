@@ -204,7 +204,7 @@
         <%= question_fields.select :parent_question_id,
                                    options_for_select(parent_options, question.parent_question_id),
                                    {},
-                                   class: "#{input_classes} c-select form-select",
+                                   class: "#{input_classes} c-select w-full form-select",
                                    disabled: persisted_parent_candidates.empty? %>
         <% if persisted_parent_candidates.empty? %>
           <p class="text-xs text-slate-500">Save first, then re-parent using this selector.</p>
@@ -243,7 +243,7 @@
           <%= question_fields.select :prompt_format,
             options_for_select([["Plain text", "plain_text"], ["Rich text", "rich_text"]], question.prompt_format.presence || "plain_text"),
             {},
-            class: "#{input_classes} c-select form-select",
+            class: "#{input_classes} c-select w-full form-select",
             data: { question_preview_target: "promptFormatSelect" } %>
         </div>
 

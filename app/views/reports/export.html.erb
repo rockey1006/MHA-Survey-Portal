@@ -92,24 +92,31 @@
       <% if competencies.any? %>
         <div class="chart-block">
           <h3><%= percent_mode ? "% Meeting Program Target by Domain" : "Average Score by Domain" %></h3>
-          <div class="chart-legend">
-            <span class="chart-legend__item">
-              <span class="chart-legend__swatch" style="background-color: #500000"></span>
-              <%= percent_mode ? "Student %" : "Student Avg" %>
-            </span>
-            <span class="chart-legend__item">
-              <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
-              <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
-            </span>
-          </div>
-          <div class="space-y-3">
-            <% competencies.each do |entry| %>
-              <% student_value = percent_mode ? entry[:student_target_percent].to_f : entry[:student_average].to_f %>
-              <% advisor_value = percent_mode ? entry[:advisor_target_percent].to_f : entry[:advisor_average].to_f %>
-              <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
-              <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
-              <% student_width = [[student_width, 0.0].max, 100.0].min %>
-              <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
+        <div class="chart-legend">
+          <span class="chart-legend__item">
+            <span class="chart-legend__swatch" style="background-color: #500000"></span>
+            <%= percent_mode ? "Student %" : "Student Avg" %>
+          </span>
+          <span class="chart-legend__item">
+            <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
+            <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
+          </span>
+          <span class="chart-legend__item">
+            <span class="chart-legend__swatch" style="background-color: #c2410c"></span>
+            <%= percent_mode ? "Course %" : "Course Avg" %>
+          </span>
+        </div>
+        <div class="space-y-3">
+          <% competencies.each do |entry| %>
+            <% student_value = percent_mode ? entry[:student_target_percent].to_f : entry[:student_average].to_f %>
+            <% advisor_value = percent_mode ? entry[:advisor_target_percent].to_f : entry[:advisor_average].to_f %>
+            <% course_value = percent_mode ? entry[:course_target_percent].to_f : entry[:course_average].to_f %>
+            <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
+            <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
+            <% course_width = score_scale.positive? ? (course_value / score_scale * 100.0) : 0.0 %>
+            <% student_width = [[student_width, 0.0].max, 100.0].min %>
+            <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
+            <% course_width = [[course_width, 0.0].max, 100.0].min %>
 
               <div style="border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem;">
                 <div style="font-weight: 600; margin-bottom: 0.35rem; color: #0f172a;">
@@ -132,6 +139,14 @@
                       </div>
                     </div>
                   </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Course %" : "Course Avg" %></span>
+                    <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                      <div style="background-color: #c2410c; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', course_width) %>%; min-width: 2rem;">
+                        <%= percent_mode ? number_to_percentage(course_value, precision: 1) : number_with_precision(entry[:course_average], precision: 2) %>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             <% end %>
@@ -147,6 +162,10 @@
             <th>Competency</th>
             <th>Student Avg</th>
             <th>Advisor Avg</th>
+            <th>Course Avg</th>
+            <th>Student % Meeting Target</th>
+            <th>Advisor % Meeting Target</th>
+            <th>Course % Meeting Target</th>
             <th>Gap</th>
             <th>Trend %</th>
             <th>Status</th>
@@ -164,6 +183,10 @@
               <td><%= entry[:name] %></td>
               <td><%= number_with_precision(entry[:student_average], precision: 2) %></td>
               <td><%= number_with_precision(entry[:advisor_average], precision: 2) %></td>
+              <td><%= number_with_precision(entry[:course_average], precision: 2) %></td>
+              <td><%= entry[:student_target_percent].present? ? number_to_percentage(entry[:student_target_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:advisor_target_percent].present? ? number_to_percentage(entry[:advisor_target_percent], precision: 1) : "—" %></td>
+              <td><%= entry[:course_target_percent].present? ? number_to_percentage(entry[:course_target_percent], precision: 1) : "—" %></td>
               <td><%= number_with_precision(entry[:gap], precision: 2) %></td>
               <td><%= entry[:change].present? ? number_to_percentage(entry[:change], precision: 1) : "—" %></td>
               <td><%= entry[:status].to_s.titleize %></td>
@@ -203,15 +226,22 @@
             <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
             <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
           </span>
+          <span class="chart-legend__item">
+            <span class="chart-legend__swatch" style="background-color: #c2410c"></span>
+            <%= percent_mode ? "Course %" : "Course Avg" %>
+          </span>
         </div>
         <div class="space-y-3">
           <% competency_items.each do |item| %>
             <% student_value = percent_mode ? item[:student_target_percent].to_f : item[:student_average].to_f %>
             <% advisor_value = percent_mode ? item[:advisor_target_percent].to_f : item[:advisor_average].to_f %>
+            <% course_value = percent_mode ? item[:course_target_percent].to_f : item[:course_average].to_f %>
             <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
             <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
+            <% course_width = score_scale.positive? ? (course_value / score_scale * 100.0) : 0.0 %>
             <% student_width = [[student_width, 0.0].max, 100.0].min %>
             <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
+            <% course_width = [[course_width, 0.0].max, 100.0].min %>
 
             <div style="border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem;">
               <div style="font-weight: 600; margin-bottom: 0.35rem; color: #0f172a;">
@@ -234,6 +264,14 @@
                     </div>
                   </div>
                 </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Course %" : "Course Avg" %></span>
+                  <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                    <div style="background-color: #c2410c; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', course_width) %>%; min-width: 2rem;">
+                      <%= percent_mode ? number_to_percentage(course_value, precision: 1) : number_with_precision(item[:course_average], precision: 2) %>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           <% end %>
@@ -248,6 +286,10 @@
             <th>Domain</th>
             <th>Student Avg</th>
             <th>Advisor Avg</th>
+            <th>Course Avg</th>
+            <th>Student % Meeting Target</th>
+            <th>Advisor % Meeting Target</th>
+            <th>Course % Meeting Target</th>
             <th>Gap</th>
             <th>Achieved</th>
             <th>Not Met</th>
@@ -264,6 +306,10 @@
               <td><%= item[:domain_name] %></td>
               <td><%= number_with_precision(item[:student_average], precision: 2) %></td>
               <td><%= number_with_precision(item[:advisor_average], precision: 2) %></td>
+              <td><%= number_with_precision(item[:course_average], precision: 2) %></td>
+              <td><%= item[:student_target_percent].present? ? number_to_percentage(item[:student_target_percent], precision: 1) : "—" %></td>
+              <td><%= item[:advisor_target_percent].present? ? number_to_percentage(item[:advisor_target_percent], precision: 1) : "—" %></td>
+              <td><%= item[:course_target_percent].present? ? number_to_percentage(item[:course_target_percent], precision: 1) : "—" %></td>
               <td><%= number_with_precision(item[:gap], precision: 2) %></td>
               <td><%= item[:achieved_count] %></td>
               <td><%= item[:not_met_count] %></td>
@@ -556,16 +602,23 @@
               <span class="chart-legend__swatch" style="background-color: #2563eb"></span>
               <%= percent_mode ? "Advisor %" : "Advisor Avg" %>
             </span>
+            <span class="chart-legend__item">
+              <span class="chart-legend__swatch" style="background-color: #c2410c"></span>
+              <%= percent_mode ? "Course %" : "Course Avg" %>
+            </span>
           </div>
 
           <div class="space-y-3">
             <% timeline_points.each do |point| %>
               <% student_value = percent_mode ? point[:student_target_percent].to_f : point[:student].to_f %>
               <% advisor_value = percent_mode ? point[:advisor_target_percent].to_f : point[:advisor].to_f %>
+              <% course_value = percent_mode ? point[:course_target_percent].to_f : point[:course].to_f %>
               <% student_width = score_scale.positive? ? (student_value / score_scale * 100.0) : 0.0 %>
               <% advisor_width = score_scale.positive? ? (advisor_value / score_scale * 100.0) : 0.0 %>
+              <% course_width = score_scale.positive? ? (course_value / score_scale * 100.0) : 0.0 %>
               <% student_width = [[student_width, 0.0].max, 100.0].min %>
               <% advisor_width = [[advisor_width, 0.0].max, 100.0].min %>
+              <% course_width = [[course_width, 0.0].max, 100.0].min %>
 
               <div style="border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem;">
                 <div style="font-weight: 600; margin-bottom: 0.35rem; color: #0f172a;">
@@ -588,6 +641,14 @@
                       </div>
                     </div>
                   </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="flex: 0 0 110px; font-size: 0.85rem; color: #475569;"><%= percent_mode ? "Course %" : "Course Avg" %></span>
+                    <div style="flex: 1; background-color: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                      <div style="background-color: #c2410c; color: #fff; padding: 0.15rem 0.6rem; font-size: 0.85rem; width: <%= format('%.2f', course_width) %>%; min-width: 2rem;">
+                        <%= percent_mode ? number_to_percentage(course_value, precision: 1) : number_with_precision(course_value, precision: 2) %>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             <% end %>
@@ -602,6 +663,7 @@
             <th>Month</th>
             <th>Student % Meeting Target</th>
             <th>Advisor % Meeting Target</th>
+            <th>Course % Meeting Target</th>
           </tr>
         </thead>
         <tbody>
@@ -610,6 +672,7 @@
               <td><%= point[:label] %></td>
               <td><%= point[:student_target_percent].present? ? number_to_percentage(point[:student_target_percent], precision: 1) : "—" %></td>
               <td><%= point[:advisor_target_percent].present? ? number_to_percentage(point[:advisor_target_percent], precision: 1) : "—" %></td>
+              <td><%= point[:course_target_percent].present? ? number_to_percentage(point[:course_target_percent], precision: 1) : "—" %></td>
             </tr>
           <% end %>
         </tbody>

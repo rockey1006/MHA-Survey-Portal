@@ -36,6 +36,7 @@ Rails.application.routes.draw do
 
   get "manage_students", to: "dashboards#manage_students", as: :manage_students
   patch "manage_students", to: "dashboards#update_student_advisors", as: :update_student_advisors
+  get "people_management", to: "dashboards#people_management", as: :people_management
 
   # Reporting hub shared by admins and advisors
   get "reports", to: "reports#show", as: :reports
@@ -58,8 +59,23 @@ Rails.application.routes.draw do
   namespace :admin do
     resource :maintenance, only: %i[show update]
     get "program_setup", to: "program_setups#show", as: :program_setup
+    resources :competencies, only: :index do
+      collection do
+        get :export
+        patch :course_rule
+      end
+    end
     get "target_levels", to: "target_levels#index", as: :target_levels
     patch "target_levels", to: "target_levels#update"
+    resources :grade_import_batches, only: %i[index new create show] do
+      member do
+        post :commit
+        post :rollback
+        post :recommit
+        get :export_ratings
+        get :error_report
+      end
+    end
     resources :program_tracks, only: %i[create update destroy]
     resources :majors, only: %i[create update destroy]
     resources :program_years, only: %i[create update destroy]
@@ -144,6 +160,7 @@ Rails.application.routes.draw do
   end
 
   namespace :api do
+    post "markdown_preview", to: "markdown_previews#create", as: :markdown_preview
     get "reports/filters", to: "reports#filters"
     get "reports/competency-summary", to: "reports#competency_summary"
     get "reports/competency-detail", to: "reports#competency_detail"

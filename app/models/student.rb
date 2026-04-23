@@ -11,6 +11,7 @@ class Student < ApplicationRecord
   has_many :questions, through: :student_questions
   has_many :feedbacks, foreign_key: :student_id
   has_many :survey_assignments, foreign_key: :student_id, primary_key: :student_id, dependent: :destroy
+  has_many :reconciled_grade_import_pending_rows, class_name: "GradeImportPendingRow", foreign_key: :matched_student_id, primary_key: :student_id, dependent: :nullify
 
   delegate :email, :email=, :name, :name=, :avatar_url, :avatar_url=, to: :user
 
@@ -30,6 +31,7 @@ class Student < ApplicationRecord
   validates :program_year, numericality: { only_integer: true, greater_than_or_equal_to: 2026, less_than_or_equal_to: 3000 }, allow_nil: true
 
   after_commit :auto_assign_track_survey, if: -> { saved_change_to_track? || saved_change_to_program_year? }
+  after_commit :reconcile_pending_grade_import_rows, on: [ :create, :update ], if: :should_reconcile_pending_grade_import_rows?
 
   # Checks if the student has completed their profile setup
   #
@@ -100,5 +102,15 @@ class Student < ApplicationRecord
     SurveyAssignments::AutoAssigner.call(student: self)
   rescue StandardError => e
     Rails.logger.error("Track auto-assign failed for student #{student_id}: #{e.class}: #{e.message}")
+  end
+
+  def should_reconcile_pending_grade_import_rows?
+    previous_changes.key?("student_id") || previous_changes.key?("uin")
+  end
+
+  def reconcile_pending_grade_import_rows
+    GradeImports::PendingRowReconciler.call(student: self)
+  rescue StandardError => e
+    Rails.logger.error("Pending grade import reconciliation failed for student #{student_id}: #{e.class}: #{e.message}")
   end
 end

@@ -23,7 +23,7 @@
   </div>
   <div>
     <%= form.label :status, style: "display: block" %>
-    <%= form.select :status, SurveyResponse.statuses.values.map { |value| [value, value] }, include_blank: true %>
+    <%= form.select :status, SurveyResponse.statuses.values.map { |value| [value, value] }, { include_blank: true }, { class: "c-select w-full" } %>
   </div>
 
   <!-- Survey questions -->
@@ -51,7 +51,7 @@
                 <%= qr_form.select :response_value,
                                   options_for_select(question.answer_option_pairs, qr.response_value.to_s),
                                   { include_blank: true },
-                                  class: "w-full border rounded px-2 py-1" %>
+                                  class: "c-select w-full" %>
               <% end %>
             <% when "evidence" %>
               <%= form.fields_for :question_responses, qr do |qr_form| %>

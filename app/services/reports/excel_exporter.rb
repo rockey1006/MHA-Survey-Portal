@@ -62,12 +62,13 @@ module Reports
 
         sheet.add_row []
         sheet.add_row [ "Timeline" ]
-        sheet.add_row [ "Month", "Student % Meeting Target", "Advisor % Meeting Target" ]
+        sheet.add_row [ "Month", "Student % Meeting Target", "Advisor % Meeting Target", "Course % Meeting Target" ]
         timeline.each do |point|
           sheet.add_row [
             point[:label],
             format_number(point[:student_target_percent], 1, suffix: "%"),
-            format_number(point[:advisor_target_percent], 1, suffix: "%")
+            format_number(point[:advisor_target_percent], 1, suffix: "%"),
+            format_number(point[:course_target_percent], 1, suffix: "%")
           ]
         end
       end
@@ -80,8 +81,12 @@ module Reports
         sheet.add_row [
           "Domain",
           "Program Target Level",
+          "Student Avg",
+          "Advisor Avg",
+          "Course Avg",
           "Student % Meeting Target",
           "Advisor % Meeting Target",
+          "Course % Meeting Target",
           "Trend %",
           "Status",
           "Student Sample",
@@ -102,8 +107,12 @@ module Reports
           sheet.add_row [
             entry[:name],
             format_number(entry[:program_target_level], 2),
+            format_number(entry[:student_average], 2),
+            format_number(entry[:advisor_average], 2),
+            format_number(entry[:course_average], 2),
             format_number(entry[:student_target_percent], 1, suffix: "%"),
             format_number(entry[:advisor_target_percent], 1, suffix: "%"),
+            format_number(entry[:course_target_percent], 1, suffix: "%"),
             formatted_change(entry[:change], "percent"),
             entry[:status].to_s.titleize,
             entry[:student_sample],
@@ -127,8 +136,12 @@ module Reports
           "Competency",
           "Domain",
           "Program Target Level",
+          "Student Avg",
+          "Advisor Avg",
+          "Course Avg",
           "Student % Meeting Target",
           "Advisor % Meeting Target",
+          "Course % Meeting Target",
           "Achieved",
           "Not Met",
           "Not Assessed",
@@ -146,8 +159,12 @@ module Reports
             item[:name],
             item[:domain_name],
             format_number(item[:program_target_level], 2),
+            format_number(item[:student_average], 2),
+            format_number(item[:advisor_average], 2),
+            format_number(item[:course_average], 2),
             format_number(item[:student_target_percent], 1, suffix: "%"),
             format_number(item[:advisor_target_percent], 1, suffix: "%"),
+            format_number(item[:course_target_percent], 1, suffix: "%"),
             item[:achieved_count],
             item[:not_met_count],
             item[:not_assessed_count],

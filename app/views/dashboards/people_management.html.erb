@@ -1,0 +1,54 @@
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center justify-between w-full gap-3">
+      <div class="shrink-0">
+        <%= link_to "← Back", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-container">
+    <section class="c-page c-card p-8 md:p-10 u-stack u-stack--xl">
+      <header class="c-page-header">
+        <div>
+          <p class="c-eyebrow">People admin</p>
+          <h1 class="c-page-title">People Management</h1>
+          <p class="c-page-subtitle">Manage member access and student assignments from one workspace.</p>
+        </div>
+      </header>
+
+      <% tabs = [
+        ["Members", "members", "Roles, permissions, and account cleanup"],
+        ["Students", "students", "Advisors, tracks, and assignment groups"]
+      ] %>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <% tabs.each do |label, value, description| %>
+          <% active = (@people_tab == value) %>
+          <%= link_to people_management_path(tab: value), class: [
+            "c-card block p-5 transition",
+            ("ring-2 ring-slate-900 shadow-md" if active)
+          ].compact.join(" ") do %>
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <div class="text-base font-semibold text-slate-900"><%= label %></div>
+                <div class="text-sm text-slate-600"><%= description %></div>
+              </div>
+              <% if active %>
+                <span class="status-badge status-badge--success">Open</span>
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+
+      <div>
+        <% if @people_tab == "students" %>
+          <%= render "dashboards/people_students_tab" %>
+        <% else %>
+          <%= render "dashboards/people_members_tab" %>
+        <% end %>
+      </div>
+    </section>
+  </div>
+</main>

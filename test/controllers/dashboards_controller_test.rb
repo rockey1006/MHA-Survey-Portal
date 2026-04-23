@@ -79,6 +79,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "manage_members requires admin" do
     sign_in @student
     get manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
+    follow_redirect!
     assert_redirected_to dashboard_path
     follow_redirect!
     assert_nil flash[:alert]
@@ -89,15 +91,60 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     get manage_members_path
 
+    assert_redirected_to people_management_path(tab: "members")
+    follow_redirect!
     assert_redirected_to dashboard_path
+    follow_redirect!
     assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
+  test "people_management requires admin for students" do
+    sign_in @student
+
+    get people_management_path
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_nil flash[:alert]
+  end
+
+  test "people_management requires admin for advisors" do
+    sign_in @advisor
+
+    get people_management_path
+
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match(/access denied/i, flash[:alert].to_s)
+  end
+
+  test "people_management loads members tab for admin" do
+    sign_in @admin
+
+    get people_management_path, params: { tab: "members" }
+
+    assert_response :success
+    assert_includes response.body, "People Management"
+    assert_includes response.body, "Member Management"
+  end
+
+  test "people_management loads students tab for admin" do
+    sign_in @admin
+
+    get people_management_path, params: { tab: "students" }
+
+    assert_response :success
+    assert_includes response.body, "People Management"
+    assert_includes response.body, "Student Advisor Management"
   end
 
   test "manage_members lists users for admin" do
     sign_in @admin
     get manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
+    follow_redirect!
     assert_response :success
-  assert_includes response.body, @student.email
+    assert_includes response.body, @student.email
   end
 
   test "manage_members supports searching" do
@@ -105,6 +152,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     get manage_members_path, params: { q: "student@example.com" }
 
+    assert_redirected_to people_management_path(tab: "members", q: "student@example.com")
+    follow_redirect!
     assert_response :success
     assert_includes response.body, "student@example.com"
   end
@@ -112,7 +161,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "update_roles handles empty submission" do
     sign_in @admin
     patch update_roles_path, params: { role_updates: {} }
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match "No role changes were submitted", flash[:alert]
   end
@@ -127,7 +176,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     }
 
     patch update_roles_path, params: { role_updates: payload }
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
   assert_match "Updated", flash[:notice]
   assert_match "cannot change your own role", flash[:notice]
@@ -162,7 +211,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_roles_path, params: { role_updates: payload }
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/role update errors/i, flash[:alert].to_s)
   end
@@ -172,7 +221,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_roles_path, params: { role_updates: { @student.id => "student" } }
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/no role changes were needed/i, flash[:notice].to_s)
   end
@@ -184,7 +233,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       delete remove_member_path(@other_student)
     end
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/removed member/i, flash[:notice].to_s)
   end
@@ -196,7 +245,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       delete remove_member_path(@admin)
     end
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/cannot remove your own account/i, flash[:alert].to_s)
   end
@@ -208,7 +257,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       delete remove_members_path, params: { user_ids: [ @other_student.id ] }
     end
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/removed 1 member/i, flash[:notice].to_s)
   end
@@ -231,7 +280,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       delete remove_member_path(users(:student))
     end
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/removed member/i, flash[:notice].to_s)
   end
@@ -294,16 +343,25 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert payload.key?("role_counts")
   end
 
-  test "manage_students lists advisees for advisor" do
+  test "manage_students redirects advisors to admin-only people workspace" do
     sign_in @advisor
+
     get manage_students_path
-    assert_response :success
-    assert_includes response.body, students(:student).user.name
+
+    assert_redirected_to people_management_path(tab: "students")
+    follow_redirect!
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_match(/access denied/i, flash[:alert].to_s)
   end
 
   test "manage_students for admin shows assignment controls" do
     sign_in @admin
+
     get manage_students_path
+
+    assert_redirected_to people_management_path(tab: "students")
+    follow_redirect!
     assert_response :success
     assert_includes response.body, "Save Changes"
     assert_includes response.body, "advisor-management-form"
@@ -315,6 +373,8 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     get manage_students_path, params: { q: students(:student).user.email }
 
+    assert_redirected_to people_management_path(tab: "students", q: students(:student).user.email)
+    follow_redirect!
     assert_response :success
     assert_includes response.body, students(:student).user.email
   end
@@ -333,11 +393,21 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "advisor dashboard includes competencies tile" do
+    sign_in @advisor
+
+    get advisor_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Competencies"
+    assert_includes response.body, admin_competencies_path
+  end
+
   test "update_student_advisor updates assignment" do
     sign_in @admin
     student = students(:student)
     patch update_student_advisor_path(student), params: { student: { advisor_id: advisors(:other_advisor).advisor_id } }
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     assert_match "Advisor updated successfully", flash[:notice]
     assert_equal advisors(:other_advisor).advisor_id, student.reload.advisor_id
   ensure
@@ -372,7 +442,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     }
 
     patch update_student_advisors_path, params: { advisor_updates: payload }
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match "Updated", flash[:notice]
     assert_equal advisors(:other_advisor).advisor_id, student.reload.advisor_id
@@ -391,7 +461,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       patch update_student_advisors_path, params: { track_updates: { student.student_id => "executive" } }
     end
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match "Updated 1 track", flash[:notice]
     assert_equal "executive", student.reload.track
@@ -406,7 +476,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_student_advisors_path, params: { track_updates: { student.student_id => "not-a-track" } }
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/track update errors/i, flash[:alert].to_s)
     assert_match(/invalid track selection/i, flash[:alert].to_s)
@@ -419,7 +489,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_student_advisors_path, params: { track_updates: { student.student_id => "" } }
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/track update errors/i, flash[:alert].to_s)
     assert_match(/track selection is required/i, flash[:alert].to_s)
@@ -430,7 +500,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_student_advisors_path, params: {}
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/no student changes were submitted/i, flash[:alert].to_s)
   end
@@ -445,7 +515,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       track_updates: { missing_id => "executive" }
     }
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/student ##{missing_id} not found/i, flash[:alert].to_s)
   end
@@ -457,7 +527,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_student_advisors_path, params: { advisor_updates: { student.student_id => "999999" } }
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/advisor update errors/i, flash[:alert].to_s)
     assert_match(/advisor not found/i, flash[:alert].to_s)
@@ -773,7 +843,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       track_updates: { student.student_id => student.track }
     }
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/no student changes were needed/i, flash[:notice].to_s)
   end
@@ -788,7 +858,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       track_updates: { student.student_id => "" }
     }
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/no student changes were needed/i, flash[:notice].to_s)
     assert_nil flash[:alert]
@@ -805,7 +875,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       patch update_student_advisors_path, params: { track_updates: { student.student_id => "executive" } }
     end
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/track update errors/i, flash[:alert].to_s)
     assert_match(/boom/i, flash[:alert].to_s)
@@ -827,7 +897,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       Student.define_method(:update!, original_update)
     end
 
-    assert_redirected_to manage_students_path
+    assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match(/advisor update errors/i, flash[:alert].to_s)
     assert_match(/boom/i, flash[:alert].to_s)
@@ -863,7 +933,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
       patch update_roles_path, params: { role_updates: { target.id => "advisor" } }
     end
 
-    assert_redirected_to manage_members_path
+    assert_redirected_to people_management_path(tab: "members")
     follow_redirect!
     assert_match(/role update errors/i, flash[:alert].to_s)
     assert_match(/boom/i, flash[:alert].to_s)
@@ -916,6 +986,22 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_includes response.body, "Recent Activities"
     assert_includes response.body, admin_activities_path
+  end
+
+  test "admin dashboard includes new navigation tiles" do
+    sign_in @admin
+
+    get admin_dashboard_path
+
+    assert_response :success
+    assert_includes response.body, "Program Configuration"
+    assert_includes response.body, admin_program_setup_path
+    assert_includes response.body, "People Management"
+    assert_includes response.body, people_management_path
+    assert_includes response.body, "Grade Imports"
+    assert_includes response.body, admin_grade_import_batches_path
+    assert_includes response.body, "Competencies"
+    assert_includes response.body, admin_competencies_path
   end
 
   private

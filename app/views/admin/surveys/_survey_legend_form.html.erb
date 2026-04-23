@@ -1,4 +1,13 @@
 <% input_classes = "c-input" %>
+<% preview_dom_id = "legend-markdown-preview-#{survey.id || 'new'}" %>
+<% textarea_dom_id = "legend-markdown-input-#{survey.id || 'new'}" %>
+<% preview_url = api_markdown_preview_path %>
+
+<% empty_preview = capture do %>
+  <div class="guidance-text">
+    <p class="text-slate-400">Legend preview will appear here.</p>
+  </div>
+<% end %>
 
 <section class="c-card space-y-6"
          data-controller="markdown-editor">
@@ -18,19 +27,99 @@
                                        placeholder: "Rating Scale Reference" %>
         </div>
 
-        <div class="c-field">
-          <div class="flex items-center justify-between gap-3">
-            <%= legend_fields.label :body, "Legend body", class: "c-label" %>
-            <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">Markdown supported</span>
+        <div class="c-markdown-preview">
+          <div class="c-markdown-preview__pane">
+            <div class="c-markdown-preview__pane-header">
+              <%= legend_fields.label :body, "Legend body", class: "c-label" %>
+              <span class="c-markdown-preview__badge">Markdown supported</span>
+            </div>
+            <%= legend_fields.text_area :body,
+                                         class: "#{input_classes} min-h-[500px] font-mono leading-6",
+                                         id: textarea_dom_id,
+                                         rows: 18,
+                                         placeholder: "Add the full rating scale text shown to students." %>
+            <p class="c-help">Uses the same Markdown renderer as the survey experience. Shortcuts: Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link.</p>
           </div>
-          <%= legend_fields.text_area :body,
-                                       class: "#{input_classes} min-h-[500px] font-mono leading-6",
-                                       rows: 18,
-                                       placeholder: "Add the full rating scale text shown to students." %>
-          <p class="text-xs text-slate-500">Supports real Markdown. Shortcuts: Ctrl/Cmd+B bold, Ctrl/Cmd+I italic, Ctrl/Cmd+K link.</p>
+
+          <div class="c-markdown-preview__pane c-markdown-preview__pane--preview">
+            <div class="c-markdown-preview__pane-header">
+              <span class="c-label">Preview</span>
+            </div>
+            <div class="c-markdown-preview__surface" id="<%= preview_dom_id %>">
+              <%= empty_preview %>
+            </div>
+          </div>
         </div>
       <% end %>
       </div>
     </div>
   </div>
 </section>
+
+<%= javascript_tag nonce: content_security_policy_nonce do %>
+  (() => {
+    const textarea = document.getElementById("<%= textarea_dom_id %>")
+    const preview = document.getElementById("<%= preview_dom_id %>")
+    if (!textarea || !preview) return
+
+    const emptyHtml = <%= raw(empty_preview.to_json) %>
+    let timeoutId = null
+    let abortController = null
+    let requestSequence = 0
+
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || ""
+
+    const renderPreview = async () => {
+      const text = textarea.value || ""
+      if (!text.trim().length) {
+        preview.innerHTML = emptyHtml
+        return
+      }
+
+      if (abortController) abortController.abort()
+      abortController = new AbortController()
+      const requestId = ++requestSequence
+
+      try {
+        const response = await fetch("<%= preview_url %>", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken()
+          },
+          body: JSON.stringify({
+            text,
+            wrapper_class: "guidance-text",
+            min_heading_level: 3
+          }),
+          signal: abortController.signal
+        })
+
+        if (!response.ok) throw new Error(`Legend preview failed with ${response.status}`)
+
+        const payload = await response.json()
+        if (requestId !== requestSequence) return
+
+        preview.innerHTML = payload.html || emptyHtml
+      } catch (error) {
+        if (error.name === "AbortError") return
+
+        preview.innerHTML = '<div class="c-markdown-preview__error">Preview unavailable right now.</div>'
+      }
+    }
+
+    const scheduleRender = () => {
+      if (timeoutId) window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => {
+        timeoutId = null
+        renderPreview()
+      }, 180)
+    }
+
+    textarea.removeEventListener("input", scheduleRender)
+    textarea.addEventListener("input", scheduleRender)
+    renderPreview()
+  })()
+<% end %>

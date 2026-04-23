@@ -9,6 +9,7 @@ const EXCEEDS_THRESHOLD = 4.5
 const COLORS = {
   student: "#500000",
   advisor: "#2563eb",
+  course: "#c2410c",
   achieved: "#16a34a",
   notMet: "#dc2626",
   exceeds: "#6366f1",
@@ -468,6 +469,16 @@ const TrendChart = ({ timeline, yAxisMode }) => {
             borderWidth: 2,
             pointBackgroundColor: COLORS.advisor,
             pointRadius: 4
+          },
+          {
+            label: "Course",
+            data: timeline.map((point) => percentMode ? point.course_target_percent : point.course),
+            borderColor: COLORS.course,
+            backgroundColor: "rgba(194, 65, 12, 0.15)",
+            tension: 0.3,
+            borderWidth: 2,
+            pointBackgroundColor: COLORS.course,
+            pointRadius: 4
           }
         ]
       },
@@ -519,32 +530,43 @@ const CompetencyAchievementChart = ({ items, yAxisMode }) => {
 
     const percentMode = yAxisMode === "percent"
     const metricUnit = percentMode ? "percent" : "score"
+    const datasets = [
+      {
+        label: percentMode ? "Student %" : "Student Avg",
+        data: items.map((item) => {
+          if (percentMode) return safeNumber(item.student_target_percent) ?? 0
+          return item.student_average || 0
+        }),
+        backgroundColor: COLORS.student,
+        borderRadius: 6
+      },
+      {
+        label: percentMode ? "Advisor %" : "Advisor Avg",
+        data: items.map((item) => {
+          if (percentMode) return safeNumber(item.advisor_target_percent) ?? 0
+          return item.advisor_average || 0
+        }),
+        backgroundColor: COLORS.advisor,
+        borderRadius: 6
+      }
+    ]
+
+    datasets.push({
+      label: percentMode ? "Course %" : "Course Avg",
+      data: items.map((item) => {
+        if (percentMode) return safeNumber(item.course_target_percent) ?? 0
+        return item.course_average || 0
+      }),
+      backgroundColor: COLORS.course,
+      borderRadius: 6
+    })
 
     const labels = items.map((item) => item.name)
     const chart = new Chart(canvasRef.current.getContext("2d"), {
       type: "bar",
       data: {
         labels,
-        datasets: [
-          {
-            label: percentMode ? "Student %" : "Student Avg",
-            data: items.map((item) => {
-              if (percentMode) return safeNumber(item.student_target_percent) ?? 0
-              return item.student_average || 0
-            }),
-            backgroundColor: COLORS.student,
-            borderRadius: 6
-          },
-          {
-            label: percentMode ? "Advisor %" : "Advisor Avg",
-            data: items.map((item) => {
-              if (percentMode) return safeNumber(item.advisor_target_percent) ?? 0
-              return item.advisor_average || 0
-            }),
-            backgroundColor: COLORS.advisor,
-            borderRadius: 6
-          }
-        ]
+        datasets
       },
       options: {
         responsive: true,
@@ -601,32 +623,43 @@ const DomainAverageChart = ({ items, yAxisMode }) => {
 
     const percentMode = yAxisMode === "percent"
     const metricUnit = percentMode ? "percent" : "score"
+    const datasets = [
+      {
+        label: percentMode ? "Student %" : "Student Avg",
+        data: items.map((item) => {
+          if (percentMode) return safeNumber(item.student_target_percent) ?? 0
+          return item.student_average || 0
+        }),
+        backgroundColor: COLORS.student,
+        borderRadius: 6
+      },
+      {
+        label: percentMode ? "Advisor %" : "Advisor Avg",
+        data: items.map((item) => {
+          if (percentMode) return safeNumber(item.advisor_target_percent) ?? 0
+          return item.advisor_average || 0
+        }),
+        backgroundColor: COLORS.advisor,
+        borderRadius: 6
+      }
+    ]
+
+    datasets.push({
+      label: percentMode ? "Course %" : "Course Avg",
+      data: items.map((item) => {
+        if (percentMode) return safeNumber(item.course_target_percent) ?? 0
+        return item.course_average || 0
+      }),
+      backgroundColor: COLORS.course,
+      borderRadius: 6
+    })
 
     const labels = items.map((item) => item.name)
     const chart = new Chart(canvasRef.current.getContext("2d"), {
       type: "bar",
       data: {
         labels,
-        datasets: [
-          {
-            label: percentMode ? "Student %" : "Student Avg",
-            data: items.map((item) => {
-              if (percentMode) return safeNumber(item.student_target_percent) ?? 0
-              return item.student_average || 0
-            }),
-            backgroundColor: COLORS.student,
-            borderRadius: 6
-          },
-          {
-            label: percentMode ? "Advisor %" : "Advisor Avg",
-            data: items.map((item) => {
-              if (percentMode) return safeNumber(item.advisor_target_percent) ?? 0
-              return item.advisor_average || 0
-            }),
-            backgroundColor: COLORS.advisor,
-            borderRadius: 6
-          }
-        ]
+        datasets
       },
       options: {
         responsive: true,
@@ -696,6 +729,12 @@ const CompetencyDetailChart = ({ data, selectedDomain, onDomainChange, sort, onS
             label: "Advisor Avg",
             data: data.items.map((entry) => entry.advisor_average),
             backgroundColor: COLORS.advisor,
+            borderRadius: 6
+          },
+          {
+            label: "Course Avg",
+            data: data.items.map((entry) => entry.course_average),
+            backgroundColor: COLORS.course,
             borderRadius: 6
           }
         ]
@@ -1293,7 +1332,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       key: "competency",
       label: "Competency",
       title: "Num Achieved by Competency",
-      description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per competency.",
+      description: "Side-by-side comparison of student self-ratings, advisor ratings, and course-derived ratings averaged per competency.",
       axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
       toolbar: h(SectionExportButtons, { onExport: handleExport, section: "competency" }),
       content: h(CompetencyAchievementChart, { items: competencyAchievementItems, yAxisMode }),
@@ -1307,7 +1346,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       key: "domain",
       label: "Domain",
       title: "Num Achieved by Domain",
-      description: "Side-by-side comparison of student self-ratings and advisor ratings averaged per domain.",
+      description: "Side-by-side comparison of student self-ratings, advisor ratings, and course-derived ratings averaged per domain.",
       axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
       toolbar: h(SectionExportButtons, { onExport: handleExport, section: "domain" }),
       content: h(DomainAverageChart, { items: competencies, yAxisMode }),
@@ -1336,7 +1375,7 @@ const ReportsApp = ({ exportUrls = {} }) => {
       key: "trend",
       label: "Trend",
       title: "Progress Over Time",
-      description: "Monthly average scores for students and advisors so you can spot improvements or regression at a glance.",
+      description: "Monthly average scores for students, advisors, and course ratings so you can spot improvements or regression at a glance.",
       axisToggle: h(YAxisToggle, { mode: yAxisMode, onChange: setYAxisMode }),
       toolbar: h(SectionExportButtons, { onExport: handleExport, section: "trend" }),
       content: timeline.length > 0

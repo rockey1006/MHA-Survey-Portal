@@ -178,22 +178,26 @@ class DashboardsController < ApplicationController
     @maintenance_enabled = SiteSetting.maintenance_enabled?
   end
 
+  # Provides a single admin workspace for member and student management.
+  #
+  # @return [void]
+  def people_management
+    return unless ensure_admin!
+
+    @people_tab = params[:tab].to_s.presence_in(%w[members students]) || "members"
+
+    if @people_tab == "students"
+      load_student_management_state
+    else
+      load_member_management_state
+    end
+  end
+
   # Lists all members and role counts for admin management.
   #
   # @return [void]
   def manage_members
-    ensure_admin!
-    if params[:q].present?
-      q = params[:q].strip
-      @users = User.where("name ILIKE :q OR email ILIKE :q OR uid::text ILIKE :q", q: "%#{q}%").order(:name, :email)
-    else
-      @users = User.order(:name, :email)
-    end
-    @role_counts = {
-      student: User.students.count,
-      advisor: User.advisors.count,
-      admin: User.admins.count
-    }
+    redirect_to people_management_path(tab: "members", q: params[:q].presence)
   end
 
   # Applies role updates submitted by admins, reporting successes and failures.
@@ -204,7 +208,7 @@ class DashboardsController < ApplicationController
 
     role_updates = params[:role_updates] || {}
     if role_updates.empty?
-      redirect_to manage_members_path, alert: "No role changes were submitted."
+      redirect_to people_management_path(tab: "members"), alert: "No role changes were submitted."
       return
     end
 
@@ -252,7 +256,7 @@ class DashboardsController < ApplicationController
         description: message,
         metadata: log_metadata
       ) if log_metadata.present?
-      redirect_to manage_members_path, notice: message
+      redirect_to people_management_path(tab: "members"), notice: message
     elsif failed_updates.present?
       error_message = "Role update errors: #{failed_updates.join(', ')}"
       AdminActivityLog.record!(
@@ -261,9 +265,9 @@ class DashboardsController < ApplicationController
         description: error_message,
         metadata: log_metadata
       ) if log_metadata.present?
-      redirect_to manage_members_path, alert: error_message
+      redirect_to people_management_path(tab: "members"), alert: error_message
     else
-      redirect_to manage_members_path, notice: "No role changes were needed."
+      redirect_to people_management_path(tab: "members"), notice: "No role changes were needed."
     end
   end
 
@@ -275,12 +279,12 @@ class DashboardsController < ApplicationController
 
     user = User.find_by(id: params[:id])
     unless user
-      redirect_to manage_members_path, alert: "Member not found."
+      redirect_to people_management_path(tab: "members"), alert: "Member not found."
       return
     end
 
     if user == current_user
-      redirect_to manage_members_path, alert: "You cannot remove your own account."
+      redirect_to people_management_path(tab: "members"), alert: "You cannot remove your own account."
       return
     end
 
@@ -301,10 +305,10 @@ class DashboardsController < ApplicationController
       }
     )
 
-    redirect_to manage_members_path, notice: "Removed member #{removed_email}."
+    redirect_to people_management_path(tab: "members"), notice: "Removed member #{removed_email}."
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::InvalidForeignKey => e
     Rails.logger.error "Failed to remove user #{params[:id]}: #{e.class} #{e.message}"
-    redirect_to manage_members_path, alert: "Unable to remove member: #{e.message}"
+    redirect_to people_management_path(tab: "members"), alert: "Unable to remove member: #{e.message}"
   end
 
   # Removes multiple member accounts from the system.
@@ -315,7 +319,7 @@ class DashboardsController < ApplicationController
 
     member_ids = normalize_member_ids(params[:user_ids])
     if member_ids.empty?
-      redirect_to manage_members_path, alert: "No members were selected for removal."
+      redirect_to people_management_path(tab: "members"), alert: "No members were selected for removal."
       return
     end
 
@@ -363,9 +367,9 @@ class DashboardsController < ApplicationController
     if removed.present?
       message = "Removed #{removed.size} member#{'s' if removed.size != 1}."
       message += " Failures: #{failed.join(', ')}" if failed.present?
-      redirect_to manage_members_path, notice: message
+      redirect_to people_management_path(tab: "members"), notice: message
     else
-      redirect_to manage_members_path, alert: "Unable to remove selected members: #{failed.join(', ')}"
+      redirect_to people_management_path(tab: "members"), alert: "Unable to remove selected members: #{failed.join(', ')}"
     end
   end
 
@@ -474,24 +478,7 @@ class DashboardsController < ApplicationController
   #
   # @return [void]
   def manage_students
-    @students = load_students
-    if params[:q].present?
-      q = params[:q].strip
-      @students = @students.where(
-        "users.name ILIKE :q OR users.email ILIKE :q OR users.uid::text ILIKE :q OR students.student_id::text ILIKE :q",
-        q: "%#{q}%"
-      )
-    end
-    @advisors = Advisor.left_joins(:user).includes(:user).order(Arel.sql("LOWER(users.name) ASC"))
-    @advisor_select_options = [ [ "Unassigned", "" ] ] + @advisors.map { |advisor| [ advisor.display_name, advisor.advisor_id.to_s ] }
-    @track_select_options = Student.tracks.keys.map { |key| [ key.titleize, key ] }
-    @assignment_group_select_options = build_assignment_group_select_options
-    @assignment_stats = {
-      total: @students.size,
-      assigned: @students.count { |student| student.advisor_id.present? },
-      unassigned: @students.count { |student| student.advisor_id.blank? }
-    }
-    @can_manage = current_user.role_admin?
+    redirect_to people_management_path(tab: "students", q: params[:q].presence)
   end
 
   # Updates the advisor assigned to a student.
@@ -511,9 +498,9 @@ class DashboardsController < ApplicationController
           new_advisor_id: @student.advisor_id
         }
       )
-      redirect_to manage_students_path, notice: "Advisor updated successfully."
+      redirect_to people_management_path(tab: "students"), notice: "Advisor updated successfully."
     else
-      redirect_to manage_students_path, alert: "Failed to update advisor."
+      redirect_to people_management_path(tab: "students"), alert: "Failed to update advisor."
     end
   end
 
@@ -528,7 +515,7 @@ class DashboardsController < ApplicationController
     assignment_group_updates = normalize_student_updates(params[:assignment_group_updates])
 
     if advisor_updates.blank? && track_updates.blank? && assignment_group_updates.blank?
-      redirect_to manage_students_path, alert: "No student changes were submitted."
+      redirect_to people_management_path(tab: "students"), alert: "No student changes were submitted."
       return
     end
 
@@ -621,10 +608,46 @@ class DashboardsController < ApplicationController
     flash[:notice] = notice_parts.join(" ") if notice_parts.any?
     flash[:alert] = alert_parts.join(" ") if alert_parts.any?
 
-    redirect_to manage_students_path
+    redirect_to people_management_path(tab: "students")
   end
 
   private
+
+  def load_member_management_state
+    if params[:q].present?
+      q = params[:q].strip
+      @users = User.where("name ILIKE :q OR email ILIKE :q OR uid::text ILIKE :q", q: "%#{q}%").order(:name, :email)
+    else
+      @users = User.order(:name, :email)
+    end
+
+    @role_counts = {
+      student: User.students.count,
+      advisor: User.advisors.count,
+      admin: User.admins.count
+    }
+  end
+
+  def load_student_management_state
+    @students = load_students
+    if params[:q].present?
+      q = params[:q].strip
+      @students = @students.where(
+        "users.name ILIKE :q OR users.email ILIKE :q OR users.uid::text ILIKE :q OR students.student_id::text ILIKE :q",
+        q: "%#{q}%"
+      )
+    end
+    @advisors = Advisor.left_joins(:user).includes(:user).order(Arel.sql("LOWER(users.name) ASC"))
+    @advisor_select_options = [ [ "Unassigned", "" ] ] + @advisors.map { |advisor| [ advisor.display_name, advisor.advisor_id.to_s ] }
+    @track_select_options = Student.tracks.keys.map { |key| [ key.titleize, key ] }
+    @assignment_group_select_options = build_assignment_group_select_options
+    @assignment_stats = {
+      total: @students.size,
+      assigned: @students.count { |student| student.advisor_id.present? },
+      unassigned: @students.count { |student| student.advisor_id.blank? }
+    }
+    @can_manage = current_user.role_admin?
+  end
 
   # Ensures the current user has the necessary profile record for their role.
   #

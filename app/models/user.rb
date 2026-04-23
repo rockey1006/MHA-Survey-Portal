@@ -21,6 +21,7 @@ class User < ApplicationRecord
   validates :text_scale_percent, numericality: { only_integer: true, greater_than_or_equal_to: 100, less_than_or_equal_to: 200 }, allow_nil: true
 
   after_commit :ensure_role_profile!, on: [ :create, :update ]
+  after_commit :reconcile_pending_grade_import_rows_for_student, on: [ :create, :update ], if: :should_reconcile_pending_grade_import_rows_for_student?
 
   scope :students, -> { where(role: roles[:student]) }
   scope :advisors, -> { where(role: roles[:advisor]) }
@@ -93,5 +94,17 @@ class User < ApplicationRecord
     when self.class.roles[:student]
       student_profile || create_student_profile!
     end
+  end
+
+  def should_reconcile_pending_grade_import_rows_for_student?
+    role_student? && previous_changes.key?("email")
+  end
+
+  def reconcile_pending_grade_import_rows_for_student
+    return unless student_profile.present?
+
+    GradeImports::PendingRowReconciler.call(student: student_profile)
+  rescue StandardError => e
+    Rails.logger.error("Pending grade import reconciliation failed for user #{id}: #{e.class}: #{e.message}")
   end
 end

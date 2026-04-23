@@ -59,12 +59,17 @@
     <% feedback_for_question = Array(feedbacks_by_category[cat.id]).find { |fb| fb.question_id.to_i == question.id } %>
     <% advisor_rating_numeric = feedback_for_question ? normalize_proficiency_value(feedback_for_question.average_score) : nil %>
     <% advisor_rating_numeric = advisor_rating_numeric.to_s[/\d+/] if advisor_rating_numeric.present? %>
+    <% grade_derived_entry = grade_derived_competencies[question.question_text.to_s] || {} %>
 
     <% competency_rows << {
       competency: question.question_text.to_s,
       target_level: target_level,
       student_rating: student_rating_numeric,
-      advisor_rating: advisor_rating_numeric
+      advisor_rating: advisor_rating_numeric,
+      grade_derived_rating: grade_derived_entry[:aggregated_level],
+      grade_derived_evidence_count: grade_derived_entry[:evidence_count],
+      grade_derived_latest_at: grade_derived_entry[:latest_updated_at],
+      grade_derived_provenance: Array(grade_derived_entry[:provenance])
     } %>
     <% competency_rating_question_ids << question.id %>
   <% end %>
@@ -87,6 +92,7 @@
           <th>End of Program Target Level</th>
           <th>Student Rating</th>
           <th>Advisor Rating</th>
+          <th>Grade-Derived Rating</th>
         </tr>
       </thead>
       <tbody>
@@ -96,7 +102,26 @@
             <td class="numeric"><%= row[:target_level].present? ? row[:target_level] : "—" %></td>
             <td class="numeric"><%= row[:student_rating].present? ? row[:student_rating] : "—" %></td>
             <td class="numeric"><%= row[:advisor_rating].present? ? row[:advisor_rating] : "—" %></td>
+            <td class="numeric">
+              <% if row[:grade_derived_rating].present? %>
+                <%= row[:grade_derived_rating] %>
+                <div class="muted"><%= row[:grade_derived_evidence_count] %> contributing grades</div>
+                <% if row[:grade_derived_latest_at].present? %>
+                  <div class="muted"><%= row[:grade_derived_latest_at].strftime("%Y-%m-%d") %></div>
+                <% end %>
+              <% else %>
+                —
+              <% end %>
+            </td>
           </tr>
+          <% if row[:grade_derived_provenance].any? %>
+            <tr>
+              <td colspan="5">
+                <strong>Grade provenance:</strong>
+                <%= row[:grade_derived_provenance].map { |item| [item[:course_code], item[:assignment_name], "level #{item[:mapped_level]}"].compact.join(" · ") }.join(" | ") %>
+              </td>
+            </tr>
+          <% end %>
         <% end %>
 
         <tr>
@@ -104,6 +129,7 @@
           <td class="numeric"><%= avg_target ? format("%.2f", avg_target) : "—" %></td>
           <td class="numeric"><%= avg_student ? format("%.2f", avg_student) : "—" %></td>
           <td class="numeric"><%= avg_advisor ? format("%.2f", avg_advisor) : "—" %></td>
+          <td class="numeric">—</td>
         </tr>
       </tbody>
     </table>

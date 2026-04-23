@@ -1,0 +1,304 @@
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <%= link_to "Back to batches", admin_grade_import_batches_path, class: tailwind_button_classes(:secondary) %>
+    </div>
+  </div>
+
+  <div class="c-container c-container--wide c-page">
+    <section class="c-card p-8 md:p-10 u-stack u-stack--xl">
+      <header class="c-page-header">
+        <div>
+          <p class="c-eyebrow">Faculty imports</p>
+          <h1 class="c-page-title c-page-title--brand text-3xl font-semibold">Grade Import Batch #<%= @batch.id %></h1>
+          <p class="c-page-subtitle">
+              <span class="font-medium text-slate-900"><%= @batch.dry_run? ? "Preview batch" : "Committed batch" %></span>
+              uploaded by <%= @batch.uploaded_by&.email %>.
+              <% if @batch.summary["rolled_back_at"].present? %>
+                Rolled back at <%= @batch.summary["rolled_back_at"] %>.
+              <% end %>
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            <% if @batch.committable_dry_run? %>
+              <%= button_to "Commit preview", commit_admin_grade_import_batch_path(@batch), method: :post, class: tailwind_button_classes(:primary), form: { data: { turbo_confirm: "Publish this preview so its course competency ratings appear in the app?" } } %>
+            <% end %>
+            <% if @batch.recommittable_rollback? %>
+              <%= button_to "Recommit batch", recommit_admin_grade_import_batch_path(@batch), method: :post, class: tailwind_button_classes(:primary), form: { data: { turbo_confirm: "Make this rolled-back batch visible in the app again?" } } %>
+            <% end %>
+            <%= link_to "Export CSV", export_ratings_admin_grade_import_batch_path(@batch, format: :csv), class: tailwind_button_classes(:secondary) %>
+            <%= link_to "Error report", error_report_admin_grade_import_batch_path(@batch), class: tailwind_button_classes(:secondary) %>
+            <% unless @batch.rolled_back? || @batch.dry_run? %>
+              <%= button_to "Rollback batch", rollback_admin_grade_import_batch_path(@batch), method: :post, class: tailwind_button_classes(:danger), form: { data: { turbo_confirm: "Hide this committed batch from competencies, reports, and other downstream views?" } } %>
+            <% end %>
+        </div>
+      </header>
+
+      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div class="c-card p-5">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</div>
+          <div class="mt-2 text-2xl font-semibold text-slate-900"><%= @batch.status.humanize %></div>
+        </div>
+        <div class="c-card p-5">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Processed Rows</div>
+          <div class="mt-2 text-2xl font-semibold text-slate-900"><%= @processed_row_count %></div>
+        </div>
+        <div class="c-card p-5">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Failed Rows</div>
+          <div class="mt-2 text-2xl font-semibold text-slate-900"><%= @failed_row_count %></div>
+        </div>
+        <div class="c-card p-5">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Pending Matches</div>
+          <div class="mt-2 text-2xl font-semibold text-slate-900"><%= @pending_row_count %></div>
+        </div>
+        <div class="c-card p-5">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Match Rate</div>
+          <div class="mt-2 text-2xl font-semibold text-slate-900"><%= @match_rate ? "#{@match_rate}%" : "—" %></div>
+        </div>
+        <div class="c-card p-5">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Derived Ratings</div>
+          <div class="mt-2 text-2xl font-semibold text-slate-900"><%= @batch.rating_count %></div>
+          <div class="mt-1 text-xs text-slate-500"><%= pluralize(@duplicate_warnings, "duplicate suppressed row") %></div>
+        </div>
+      </section>
+
+      <section class="c-card p-6">
+        <h2 class="text-lg font-semibold text-slate-900">File Results</h2>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-slate-600">
+              <tr>
+                <th class="px-4 py-3 font-semibold">File</th>
+                <th class="px-4 py-3 font-semibold">Status</th>
+                <th class="px-4 py-3 font-semibold">Rows</th>
+                <th class="px-4 py-3 font-semibold">Pending</th>
+                <th class="px-4 py-3 font-semibold">Matched students</th>
+                <th class="px-4 py-3 font-semibold">Duplicates</th>
+                <th class="px-4 py-3 font-semibold">Errors</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              <% @files.each do |file| %>
+                <% debug = file.parsed_content["grade_sheet_debug"] || {} %>
+                <tr>
+                  <td class="px-4 py-3 text-slate-900"><%= file.file_name %></td>
+                  <td class="px-4 py-3 text-slate-700"><%= file.status %></td>
+                  <td class="px-4 py-3 text-slate-700"><%= "#{file.imported_rows}/#{file.total_rows}" %></td>
+                  <td class="px-4 py-3 text-slate-700"><%= file.pending_rows %></td>
+                  <td class="px-4 py-3 text-slate-700"><%= debug["matched_student_count"] || "—" %></td>
+                  <td class="px-4 py-3 text-slate-700"><%= debug["duplicate_warning_count"] || 0 %></td>
+                  <td class="px-4 py-3 text-slate-700">
+                    <% if file.parse_errors.present? %>
+                      <details>
+                        <summary class="cursor-pointer font-medium text-rose-700"><%= pluralize(file.parse_errors.size, "issue") %></summary>
+                        <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
+                          <% file.parse_errors.first(20).each do |err| %>
+                            <li>Row <%= err["row"] || "—" %>: <%= err["message"] || err %></li>
+                          <% end %>
+                        </ul>
+                      </details>
+                    <% else %>
+                      None
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="c-card p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Pending Student Matches</h2>
+        <p class="mt-1 text-sm text-slate-600">These rows were saved even though the student account did not exist yet. They will be reconciled automatically once a matching student profile is created or updated.</p>
+        <% grouped_pending_rows = @pending_rows.group_by { |row| [row.student_name.presence || row.student_identifier.presence || "Unknown Student", row.student_uin.presence || row.student_email.presence || row.student_identifier] } %>
+        <% if grouped_pending_rows.empty? %>
+          <div class="mt-4 c-card c-card--tight c-card--dashed empty-state">
+            <p class="empty-state__body">
+              <% if @duplicate_warnings.positive? && @processed_row_count.zero? && @failed_row_count.zero? %>
+                No pending student matches were created because this upload only repeated rows that were already imported, so they were suppressed as duplicates.
+              <% else %>
+                No pending student matches were created for this batch.
+              <% end %>
+            </p>
+          </div>
+        <% else %>
+          <div class="mt-4 space-y-3">
+            <% grouped_pending_rows.each do |(student_label, student_identifier), pending_rows| %>
+              <details class="overflow-hidden rounded-2xl border border-amber-200 bg-white">
+                <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-3 bg-amber-50 px-4 py-3 text-sm text-slate-800">
+                  <span class="font-semibold"><%= student_label %></span>
+                  <span class="text-slate-500">
+                    <%= student_identifier.presence || "No identifier" %>
+                    ·
+                    <%= pluralize(pending_rows.size, "pending competency row") %>
+                  </span>
+                </summary>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50 text-left text-slate-600">
+                      <tr>
+                        <th class="px-4 py-3 font-semibold">Course</th>
+                        <th class="px-4 py-3 font-semibold">Assignment</th>
+                        <th class="px-4 py-3 font-semibold">Raw Grade</th>
+                        <th class="px-4 py-3 font-semibold">Competency</th>
+                        <th class="px-4 py-3 font-semibold">Level</th>
+                        <th class="px-4 py-3 font-semibold">Status</th>
+                        <th class="px-4 py-3 font-semibold">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                      <% pending_rows.each do |pending_row| %>
+                        <tr>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.course_code %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.assignment_name %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.raw_grade %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.competency_title %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.mapped_level %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.status.humanize %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= pending_row.grade_import_file&.file_name %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            <% end %>
+        </div>
+        <% end %>
+      </section>
+
+      <section class="c-card p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Derived Competency Ratings</h2>
+        <p class="mt-1 text-sm text-slate-600">Aggregation rule: max level, plus contributing grade count and latest evidence timestamp for provenance.</p>
+        <% grouped_ratings = @ratings.group_by { |rating| [rating.student&.user&.name || "Unknown Student", rating.student_id] } %>
+        <% if grouped_ratings.empty? %>
+          <div class="mt-4 c-card c-card--tight c-card--dashed empty-state">
+            <p class="empty-state__body">
+              <% if @duplicate_warnings.positive? && @processed_row_count.zero? %>
+                No derived ratings were generated because this batch did not create any new evidence rows. The importable rows were already present and were suppressed as duplicates.
+              <% elsif @failed_row_count.positive? %>
+                No derived ratings were generated because the batch finished with row-level errors before any valid evidence could be aggregated.
+              <% else %>
+                No derived ratings were generated for this batch yet.
+              <% end %>
+            </p>
+          </div>
+        <% else %>
+          <div class="mt-4 space-y-3">
+            <% grouped_ratings.each do |(student_name, student_id), ratings| %>
+              <details class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+                  <span class="font-semibold"><%= student_name %></span>
+                  <span class="text-slate-500">
+                    ID <%= student_id %>
+                    ·
+                    <%= pluralize(ratings.size, "rating") %>
+                    ·
+                    <%= ratings.sum(&:evidence_count) %> contributing grades
+                  </span>
+                </summary>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50 text-left text-slate-600">
+                      <tr>
+                        <th class="px-4 py-3 font-semibold">Competency</th>
+                        <th class="px-4 py-3 font-semibold">Level</th>
+                        <th class="px-4 py-3 font-semibold">Contributing Grades</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                      <% ratings.each do |rating| %>
+                        <tr>
+                          <td class="px-4 py-3 text-slate-700"><%= rating.competency_title %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= rating.aggregated_level %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= rating.evidence_count %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            <% end %>
+        </div>
+        <% end %>
+      </section>
+
+      <section class="c-card p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Evidence Preview</h2>
+        <p class="mt-1 text-sm text-slate-600">Showing up to <%= @evidences.size %> evidence rows with provenance.</p>
+        <% grouped_evidences = @evidences.group_by { |evidence| [evidence.student&.user&.name || "Unknown Student", evidence.student_id] } %>
+        <% if grouped_evidences.empty? %>
+          <div class="mt-4 c-card c-card--tight c-card--dashed empty-state">
+            <p class="empty-state__body">
+              <% if @duplicate_warnings.positive? && @processed_row_count.zero? %>
+                No new evidence rows were created because this upload only repeated rows that were already imported. Those rows were suppressed by duplicate protection.
+              <% elsif @failed_row_count.positive? %>
+                No evidence rows were created because the batch finished with row-level errors. Check the file error details above for the failing rows.
+              <% else %>
+                No evidence rows were created for this batch.
+              <% end %>
+            </p>
+          </div>
+        <% else %>
+          <div class="mt-4 space-y-3">
+            <% grouped_evidences.each do |(student_name, student_id), evidences| %>
+              <details class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+                  <span class="font-semibold"><%= student_name %></span>
+                  <span class="text-slate-500">
+                    ID <%= student_id %>
+                    ·
+                    <%= pluralize(evidences.size, "grade row") %>
+                  </span>
+                </summary>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50 text-left text-slate-600">
+                      <tr>
+                        <th class="px-4 py-3 font-semibold">Course</th>
+                        <th class="px-4 py-3 font-semibold">Assignment</th>
+                        <th class="px-4 py-3 font-semibold">Raw Grade</th>
+                        <th class="px-4 py-3 font-semibold">% of Assignment</th>
+                        <th class="px-4 py-3 font-semibold">Competency</th>
+                        <th class="px-4 py-3 font-semibold">Level</th>
+                        <th class="px-4 py-3 font-semibold">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                      <% evidences.each do |evidence| %>
+                        <% points_possible = evidence.metadata["points_possible"] %>
+                        <% percent_of_assignment = if points_possible.present? && points_possible.to_f.positive?
+                          (evidence.raw_grade.to_f / points_possible.to_f) * 100.0
+                        elsif evidence.metadata["score_basis"] == "percent"
+                          evidence.metadata["score_for_mapping"].to_f
+                        end %>
+                        <tr>
+                          <td class="px-4 py-3 text-slate-700"><%= evidence.course_code %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= evidence.assignment_name %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= evidence.raw_grade %></td>
+                          <td class="px-4 py-3 text-slate-700">
+                            <%= percent_of_assignment.present? ? "#{number_with_precision(percent_of_assignment, precision: 1, strip_insignificant_zeros: true)}%" : "—" %>
+                          </td>
+                          <td class="px-4 py-3 text-slate-700"><%= evidence.competency_title %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= evidence.mapped_level %></td>
+                          <td class="px-4 py-3 text-slate-700"><%= evidence.grade_import_file&.file_name %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            <% end %>
+        </div>
+        <% end %>
+      </section>
+
+      <div class="flex flex-wrap gap-3">
+        <%= link_to "Back to batches", admin_grade_import_batches_path, class: tailwind_button_classes(:secondary) %>
+        <%= link_to "New batch", new_admin_grade_import_batch_path, class: tailwind_button_classes(:primary) %>
+      </div>
+    </section>
+  </div>
+</main>

@@ -59,11 +59,14 @@ module Reports
       assert timeline.any?, "Expected timeline entries to be present"
 
       point = timeline.last
+      assert point.key?(:course)
       assert point.key?(:student_target_percent)
       assert point.key?(:advisor_target_percent)
+      assert point.key?(:course_target_percent)
 
       assert_in_delta 50.0, point[:student_target_percent], 0.001
       assert_in_delta 50.0, point[:advisor_target_percent], 0.001
+      assert_in_delta 0.0, point[:course_target_percent], 0.001
     end
 
     private

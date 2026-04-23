@@ -49,6 +49,7 @@ class StudentRecordsController < ApplicationController
     @program_year_options = available_program_years
 
     @students = load_students
+    @grade_derived_by_student = GradeImports::DerivedScorebook.for_students(@students.map(&:student_id))
     @student_records = build_student_records(@students)
   end
 
@@ -190,6 +191,7 @@ class StudentRecordsController < ApplicationController
                   feedback_last_updated_at: feedback_last_updated,
                   feedback_status_label: feedback_status_label,
                   feedback_status_timestamp: feedback_status_timestamp,
+                  grade_derived: @grade_derived_by_student.fetch(student.student_id, {}),
                   employment_data: employment_lookup.fetch(
                     [ student.student_id, survey.id ],
                     default_employment_export_data

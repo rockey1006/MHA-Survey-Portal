@@ -87,7 +87,7 @@
                 <%= f.select :text_scale_percent,
                       options_for_select([["100% (default)", 100], ["125%", 125], ["150%", 150], ["175%", 175], ["200%", 200]], text_scale),
                       {},
-                      class: "c-input" %>
+                      class: "c-select w-full" %>
                 <small class="c-help">Increase up to 200% for larger copy.</small>
               </div>
             </div>
@@ -98,7 +98,7 @@
                 <%= f.select :notifications_enabled,
                       options_for_select([["On", true], ["Off", false]], notifications_enabled),
                       {},
-                      class: "c-input" %>
+                      class: "c-select w-full" %>
                 <small class="c-help">Turns account notifications on or off.</small>
               </div>
             </div>

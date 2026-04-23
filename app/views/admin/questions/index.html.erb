@@ -1,19 +1,30 @@
-<main class="main-content">
-  <section class="c-card p-8 md:p-10">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <h1 class="c-section-title c-heading-inline">Question Bank</h1>
-        <p class="mt-1 text-sm leading-relaxed text-slate-600">Create, edit, and remove prompts that can be assigned to surveys.</p>
-      </div>
-      <div class="section-actions">
-        <%= link_to "New Question", new_admin_question_path, class: tailwind_button_classes(:primary) %>
-        <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
-      </div>
+<main class="main-content main-content--dashboard">
+  <div class="c-toolbar">
+    <div class="c-toolbar__row items-center w-full gap-3">
+      <%= link_to "Back to Surveys", admin_surveys_path, class: tailwind_button_classes(:secondary) %>
     </div>
+  </div>
 
-    <div class="c-card u-stack u-stack--xl">
+  <div class="c-container c-container--dashboard c-page">
+    <section class="c-card p-8 md:p-10 u-stack u-stack--xl">
+      <header class="c-page-header">
+        <div>
+          <p class="c-eyebrow">Survey admin</p>
+          <h1 class="c-page-title">Question Bank</h1>
+          <p class="c-page-subtitle">Create, edit, and remove prompts that can be assigned to surveys.</p>
+        </div>
+        <%= link_to "New Question", new_admin_question_path, class: tailwind_button_classes(:primary) %>
+      </header>
+
+    <section class="u-stack u-stack--md">
+      <div>
+        <h2 class="c-section-title c-heading-inline">Questions</h2>
+        <p class="text-sm text-slate-600">Manage reusable prompts, question types, and their survey assignments from one place.</p>
+      </div>
+
+    <div class="c-card c-card--flush">
       <% if @questions.blank? %>
-        <p class="empty-state">No questions have been created yet.</p>
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">No questions have been created yet.</div>
       <% else %>
         <div class="c-table-wrapper">
           <table class="c-table survey-table">
@@ -62,5 +73,7 @@
         </div>
       <% end %>
     </div>
-  </section>
+    </section>
+    </section>
+  </div>
 </main>

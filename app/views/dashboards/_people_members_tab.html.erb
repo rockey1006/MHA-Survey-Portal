@@ -1,0 +1,313 @@
+<section class="c-card p-8 md:p-10">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-baseline justify-between gap-4">
+      <h2 class="c-section-title c-heading-inline">Member Management</h2>
+      <div class="text-sm text-slate-500">
+        <%= pluralize(@users.size, "member") %>
+      </div>
+    </div>
+    <p class="mt-1 text-sm leading-relaxed text-slate-600">Manage member roles and permissions for the MHA Program.</p>
+  </div>
+
+  <div class="c-stats-grid grid grid-cols-1 gap-4 my-6 items-stretch sm:grid-cols-3">
+    <div class="c-stat c-stat--info bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl shadow p-5 flex flex-col !items-center !justify-center !text-center w-full h-full">
+      <div class="c-stat__icon mb-2 text-3xl">👨‍🎓</div>
+      <div class="c-stat__label text-base font-semibold text-blue-800">Students</div>
+      <div class="c-stat__value c-stat__value--md text-4xl font-bold text-blue-900 mt-1"><%= @role_counts[:student] %></div>
+    </div>
+
+    <div class="c-stat c-stat--success bg-gradient-to-br from-green-100 to-green-50 rounded-xl shadow p-5 flex flex-col !items-center !justify-center !text-center w-full h-full">
+      <div class="c-stat__icon mb-2 text-3xl">👨‍🏫</div>
+      <div class="c-stat__label text-base font-semibold text-green-800">Advisors</div>
+      <div class="c-stat__value c-stat__value--md text-4xl font-bold text-green-900 mt-1"><%= @role_counts[:advisor] %></div>
+    </div>
+
+    <div class="c-stat c-stat--warning bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-xl shadow p-5 flex flex-col !items-center !justify-center !text-center w-full h-full">
+      <div class="c-stat__icon mb-2 text-3xl">👨‍💼</div>
+      <div class="c-stat__label text-base font-semibold text-yellow-800">Admins</div>
+      <div class="c-stat__value c-stat__value--md text-4xl font-bold text-yellow-900 mt-1"><%= @role_counts[:admin] %></div>
+    </div>
+  </div>
+
+  <div class="my-6 c-callout">
+    <div class="mb-2 text-sm font-semibold text-slate-700">Search members</div>
+    <form class="c-toolbar__row c-toolbar__row--airy w-full md:flex-nowrap" action="<%= people_management_path %>" accept-charset="UTF-8" method="get">
+      <input type="hidden" name="tab" value="members">
+      <div class="c-toolbar__item relative flex-1">
+        <label class="sr-only" for="q">Search</label>
+        <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, or UID" class="c-input c-search-input w-full pr-16">
+      </div>
+      <div class="c-toolbar__item flex items-center gap-2">
+        <button name="button" type="submit" class="btn btn-secondary">Search</button>
+        <% if params[:q].present? %>
+          <%= link_to "Reset", people_management_path(tab: "members"), class: "btn btn-subtle" %>
+        <% end %>
+      </div>
+    </form>
+  </div>
+
+  <%= form_with url: update_roles_path, method: :patch, local: true, id: "role-management-form", data: { turbo: false }, remote: false do |form| %>
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+
+    <div class="c-card c-card--flush c-table-wrapper">
+      <table class="c-table">
+        <thead>
+          <tr>
+            <th class="table-header-select">Select</th>
+            <th class="table-header-avatar">Avatar</th>
+            <th class="table-header-name">Name</th>
+            <th class="table-header-current-role">
+              Role
+              <div class="text-xs text-slate-500 font-normal">
+                Click a role tag to change the role.
+              </div>
+            </th>
+            <th class="table-header-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @users.each do |user| %>
+            <tr class="c-table-row <%= 'current-user' if user == current_user %>">
+              <td class="px-3 py-3 text-center align-middle">
+                <% if user == current_user %>
+                  <span class="c-help">-</span>
+                <% else %>
+                  <input type="checkbox"
+                         class="member-select-checkbox h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                         value="<%= user.id %>"
+                         data-user-id="<%= user.id %>"
+                         aria-label="Select <%= user.email %> for removal" />
+                <% end %>
+              </td>
+              <td class="user-avatar-cell">
+                <div class="c-table-avatar"
+                     <% if user.avatar_url.present? %>
+                       style="background-image: url('<%= user.avatar_url %>');"
+                     <% end %>>
+                  <% unless user.avatar_url.present? %>👤<% end %>
+                </div>
+              </td>
+              <td class="user-name-cell">
+                <div class="c-value"><%= user.full_name || "N/A" %></div>
+                <div class="mt-1 text-xs text-slate-500">
+                  Email: <%= user.email.presence || "—" %>
+                </div>
+              </td>
+              <td class="user-current-role-cell">
+                <div class="role-edit-container" data-user-id="<%= user.id %>">
+                  <div class="role-badge <%= user.role || 'student' %> inline-flex role-badge-clickable" id="role_badge_<%= user.id %>" tabindex="0" style="cursor:pointer;">
+                    <%= (user.role || 'student').upcase %>
+                  </div>
+                  <% if user == current_user %>
+                    <div class="mt-2">
+                      <span class="c-help">Role Locked</span>
+                    </div>
+                  <% else %>
+                    <div class="mt-2 c-select-wrapper" id="role_select_wrapper_<%= user.id %>" style="display:none;">
+                      <%= select_tag "role_updates[#{user.id}]",
+                          options_for_select(User.roles.map { |key, value| [key.titleize, key] }, user.role || 'student'),
+                          {
+                            class: 'c-select w-full',
+                            data: {
+                              user_id: user.id,
+                              current_role: user.role || 'student',
+                              original_role: user.role || 'student'
+                            },
+                            id: "role_select_#{user.id}"
+                          } %>
+                    </div>
+                  <% end %>
+                </div>
+              </td>
+              <td class="user-actions-cell">
+                <% if user == current_user %>
+                  <span class="c-help">You</span>
+                <% else %>
+                  <span class="c-change-indicator" data-user-id="<%= user.id %>">
+                    No changes
+                  </span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="c-toolbar mt-6">
+      <div class="c-toolbar__row items-center w-full gap-3 justify-between">
+        <div class="shrink-0">
+          <%= link_to "Back", admin_dashboard_path, class: tailwind_button_classes(:secondary) %>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="text-sm text-slate-600" id="changes-summary" style="display: none;">
+            <span id="role-changes-count" class="c-change-indicator changed whitespace-nowrap">0 changes pending</span>
+          </div>
+          <%= button_tag "Delete Selected",
+                         type: :submit,
+                         form: "batch-remove-form",
+                         class: tailwind_button_classes(:danger),
+                         id: "delete-selected-btn",
+                         disabled: true %>
+          <%= form.submit "Save Changes", class: tailwind_button_classes(:primary), id: "save-changes-btn", disabled: true %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%= form_with url: remove_members_path,
+                method: :delete,
+                local: true,
+                id: "batch-remove-form",
+                data: { turbo: false } do %>
+    <%= hidden_field_tag :user_ids, "", id: "batch-remove-user-ids" %>
+  <% end %>
+</section>
+
+<script>
+  (function() {
+    function initManageMembers() {
+      const form = document.getElementById('role-management-form');
+      if (!form || form.dataset.initialized === 'true') {
+        return;
+      }
+
+      form.dataset.initialized = 'true';
+
+      const saveButton = document.getElementById('save-changes-btn');
+      const changesSummary = document.getElementById('changes-summary');
+      const changesCount = document.getElementById('role-changes-count');
+      const batchRemoveForm = document.getElementById('batch-remove-form');
+      const batchRemoveInput = document.getElementById('batch-remove-user-ids');
+      const batchRemoveButton = document.getElementById('delete-selected-btn');
+      const memberCheckboxes = Array.from(form.querySelectorAll('.member-select-checkbox'));
+
+      if (!saveButton || !changesSummary || !changesCount) {
+        return;
+      }
+
+      const pendingChanges = {};
+
+      function findIndicator(userId) {
+        return form.querySelector(`.c-change-indicator[data-user-id="${userId}"]`);
+      }
+
+      function updateUI() {
+        const changeCount = Object.keys(pendingChanges).length;
+
+        if (changeCount > 0) {
+          saveButton.disabled = false;
+          saveButton.style.opacity = '1';
+          saveButton.style.cursor = 'pointer';
+          changesSummary.style.display = 'block';
+          changesCount.textContent = `${changeCount} change${changeCount > 1 ? 's' : ''} pending`;
+          saveButton.setAttribute('data-has-changes', 'true');
+        } else {
+          saveButton.disabled = true;
+          saveButton.style.opacity = '0.5';
+          saveButton.style.cursor = 'not-allowed';
+          changesSummary.style.display = 'none';
+          saveButton.removeAttribute('data-has-changes');
+        }
+      }
+
+      function selectedMemberIds() {
+        return memberCheckboxes
+          .filter(checkbox => checkbox.checked)
+          .map(checkbox => checkbox.value);
+      }
+
+      function updateBatchRemoveUI() {
+        const selectedIds = selectedMemberIds();
+
+        if (batchRemoveInput) {
+          batchRemoveInput.value = selectedIds.join(',');
+        }
+
+        if (batchRemoveButton) {
+          batchRemoveButton.disabled = selectedIds.length === 0;
+          batchRemoveButton.textContent = selectedIds.length > 0
+            ? `Delete Selected (${selectedIds.length})`
+            : 'Delete Selected';
+        }
+
+        memberCheckboxes.forEach(checkbox => {
+          const userId = checkbox.dataset.userId;
+          const indicator = findIndicator(userId);
+          if (!indicator || pendingChanges[userId]) return;
+
+          if (checkbox.checked) {
+            indicator.textContent = 'Selected for removal';
+            indicator.className = 'c-change-indicator changed';
+          } else {
+            indicator.textContent = 'No changes';
+            indicator.className = 'c-change-indicator';
+          }
+        });
+      }
+
+      form.querySelectorAll('select[id^="role_select_"]').forEach(select => {
+        select.addEventListener('change', () => {
+          const userId = select.dataset.userId;
+          const originalRole = select.dataset.originalRole;
+          const selectedRole = select.value;
+          const badge = document.getElementById(`role_badge_${userId}`);
+          const indicator = findIndicator(userId);
+
+          if (!userId || !badge) return;
+
+          if (selectedRole === originalRole) {
+            delete pendingChanges[userId];
+            badge.textContent = originalRole.toUpperCase();
+            badge.className = `role-badge ${originalRole || 'student'} inline-flex role-badge-clickable`;
+            if (indicator && !memberCheckboxes.find(box => box.dataset.userId === userId && box.checked)) {
+              indicator.textContent = 'No changes';
+              indicator.className = 'c-change-indicator';
+            }
+          } else {
+            pendingChanges[userId] = selectedRole;
+            badge.textContent = selectedRole.toUpperCase();
+            badge.className = `role-badge ${selectedRole || 'student'} inline-flex role-badge-clickable`;
+            if (indicator) {
+              indicator.textContent = `${originalRole} → ${selectedRole}`;
+              indicator.className = 'c-change-indicator changed';
+            }
+          }
+
+          updateUI();
+          updateBatchRemoveUI();
+        });
+      });
+
+      form.querySelectorAll('.role-badge-clickable').forEach(badge => {
+        badge.addEventListener('click', () => {
+          const userId = badge.id.replace('role_badge_', '');
+          const wrapper = document.getElementById(`role_select_wrapper_${userId}`);
+          if (wrapper) {
+            wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+          }
+        });
+      });
+
+      memberCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBatchRemoveUI);
+      });
+
+      if (batchRemoveForm) {
+        batchRemoveForm.addEventListener('submit', event => {
+          const selectedIds = selectedMemberIds();
+          if (selectedIds.length === 0) {
+            event.preventDefault();
+          }
+        });
+      }
+
+      updateUI();
+      updateBatchRemoveUI();
+    }
+
+    document.addEventListener('turbo:load', initManageMembers);
+    document.addEventListener('DOMContentLoaded', initManageMembers);
+  })();
+</script>
+

@@ -6,22 +6,6 @@
                 <%= link_to "← Back", admin_dashboard_path, class: "btn btn-secondary", data: { turbo: false } %>
             </div>
         </div>
-        <div class="c-toolbar__row w-full">
-            <div class="c-callout w-full">
-                <form class="c-toolbar__row c-toolbar__row--airy w-full md:flex-nowrap" action="<%= manage_students_path %>" accept-charset="UTF-8" method="get">
-                    <div class="c-toolbar__item relative flex-1">
-                        <label class="sr-only" for="q">Search</label>
-                        <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, UID, or student ID" class="c-input c-search-input w-full pr-16">
-                    </div>
-                    <div class="c-toolbar__item flex items-center gap-2">
-                        <button name="button" type="submit" class="btn btn-secondary">Search</button>
-                        <% if params[:q].present? %>
-                            <%= link_to "Reset", manage_students_path, class: "btn btn-subtle" %>
-                        <% end %>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
 
     <section class="c-card p-8 md:p-10">
@@ -32,7 +16,7 @@
                     <%= pluralize(@students.size, "student") %>
                 </div>
             </div>
-            <p class="mt-1 text-sm leading-relaxed text-slate-600">Review advisees and assign advisors across the program.</p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-600">Review advisees and assign advisors, tracks, and assignment groups across the program.</p>
         </div>
 
         <div class="c-stats-grid grid grid-cols-1 sm:grid-cols-3 gap-4 my-6 items-stretch">
@@ -53,6 +37,22 @@
                 <div class="c-stat__label text-base font-semibold text-yellow-800">Unassigned</div>
                 <div class="c-stat__value c-stat__value--md text-4xl font-bold text-yellow-900 mt-1"><%= @assignment_stats[:unassigned] %></div>
             </div>
+        </div>
+
+        <div class="my-6 c-callout">
+            <div class="mb-2 text-sm font-semibold text-slate-700">Search students</div>
+            <form class="c-toolbar__row c-toolbar__row--airy w-full md:flex-nowrap" action="<%= manage_students_path %>" accept-charset="UTF-8" method="get">
+                <div class="c-toolbar__item relative flex-1">
+                    <label class="sr-only" for="q">Search</label>
+                    <input type="text" name="q" id="q" value="<%= params[:q].to_s %>" placeholder="Search by name, email, UID, or student ID" class="c-input c-search-input w-full pr-16">
+                </div>
+                <div class="c-toolbar__item flex items-center gap-2">
+                    <button name="button" type="submit" class="btn btn-secondary">Search</button>
+                    <% if params[:q].present? %>
+                        <%= link_to "Reset", manage_students_path, class: "btn btn-subtle" %>
+                    <% end %>
+                </div>
+            </form>
         </div>
 
             <% if @students.blank? %>
@@ -130,7 +130,7 @@
                                         <div class="mt-2 c-select-wrapper" id="track_select_wrapper_<%= student.student_id %>" style="display:none;">
                                             <%= select_tag "track_updates[#{student.student_id}]",
                                                     options_for_select(track_select_options, track_key),
-                                                    class: "c-select track-select w-full",
+                                                    class: "c-select w-full track-select",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_track: track_key,
@@ -146,7 +146,7 @@
                                         <div class="mt-2 c-select-wrapper" id="assignment_group_select_wrapper_<%= student.student_id %>" style="display:none;">
                                             <%= select_tag "assignment_group_updates[#{student.student_id}]",
                                                     options_for_select(@assignment_group_select_options, assignment_group_value),
-                                                    class: "c-select assignment-group-select w-full",
+                                                    class: "c-select w-full assignment-group-select",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_assignment_group: assignment_group_value,
@@ -162,7 +162,7 @@
                                         <div class="mt-2 c-select-wrapper" id="advisor_select_wrapper_<%= student.student_id %>" style="display:none;">
                                             <%= select_tag "advisor_updates[#{student.student_id}]",
                                                     options_for_select(@advisor_select_options, current_advisor_id),
-                                                    class: "c-select advisor-select w-full",
+                                                    class: "c-select w-full advisor-select",
                                                     data: {
                                                         student_id: student.student_id,
                                                         original_advisor: current_advisor_id,

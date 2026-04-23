@@ -823,9 +823,9 @@ module Reports
     end
 
     def build_timeline
-      return [] if dataset_rows.empty?
+      return [] if dataset_rows.empty? && course_rating_rows.empty?
 
-      buckets = Hash.new { |hash, key| hash[key] = { student_rows: [], advisor_rows: [] } }
+      buckets = Hash.new { |hash, key| hash[key] = { student_rows: [], advisor_rows: [], course_rows: [] } }
 
       dataset_rows.each do |row|
         month = row[:updated_at].in_time_zone.beginning_of_month
@@ -837,20 +837,30 @@ module Reports
         end
       end
 
+      course_rating_rows.each do |row|
+        month = row[:updated_at].in_time_zone.beginning_of_month
+        buckets[month][:course_rows] << row
+      end
+
       buckets.keys.sort.last(TIMELINE_MONTHS).map do |month|
         student_rows = buckets[month][:student_rows]
         advisor_rows = buckets[month][:advisor_rows]
+        course_rows = buckets[month][:course_rows]
         student_avg = average(student_rows.map { |row| row[:score] })
         advisor_avg = average(advisor_rows.map { |row| row[:score] })
+        course_avg = average(course_rows.map { |row| row[:score] })
 
         student_target_percent = target_percent_for_rows(student_rows)
         advisor_target_percent = target_percent_for_rows(advisor_rows)
+        course_target_percent = target_percent_for_rows(course_rows)
         {
           label: month.strftime("%b %Y"),
           student: student_avg,
           advisor: advisor_avg,
+          course: course_avg,
           student_target_percent: student_target_percent,
           advisor_target_percent: advisor_target_percent,
+          course_target_percent: course_target_percent,
           alignment: alignment_percent(student_avg, advisor_avg)
         }
       end
@@ -949,6 +959,8 @@ module Reports
         advisor_attainment_counts = attainment_counts_for_group(advisor_group, total_students: assigned_total_students)
         advisor_attainment_percentages = attainment_percentages(advisor_attainment_counts)
         course_breakdown = build_competency_course_breakdown(rows)
+        course_average = course_domain_average_lookup[slug]
+        course_target_percent = course_domain_target_percent_lookup[slug]
 
         student_target_percent = target_percent_for_rows(student_rows)
         advisor_target_percent = target_percent_for_rows(advisor_rows)
@@ -960,6 +972,7 @@ module Reports
           category_ids: data[:category_ids].uniq,
           student_average: student_avg,
           advisor_average: advisor_avg,
+          course_average: course_average,
           gap: advisor_avg && student_avg ? (advisor_avg - student_avg) : nil,
           change: percent_change_for_category(rows),
           status: student_avg && target_level && student_avg >= target_level ? "on_track" : "watch",
@@ -973,6 +986,7 @@ module Reports
           not_assessed_percent: attainment_percentages[:not_assessed_percent],
           student_target_percent: student_target_percent,
           advisor_target_percent: advisor_target_percent,
+          course_target_percent: course_target_percent,
           program_target_level: target_level,
           total_students: attainment_counts[:total_students],
           courses: course_breakdown
@@ -1045,6 +1059,8 @@ module Reports
         advisor_group = group_student_rows(advisor_rows)
         advisor_attainment_counts = attainment_counts_for_group(advisor_group, total_students: assigned_total_students)
         advisor_attainment_percentages = attainment_percentages(advisor_attainment_counts)
+        course_average = course_competency_average_lookup[title]
+        course_target_percent = course_competency_target_percent_lookup[title]
 
         student_target_percent = target_percent_for_rows(student_rows)
         advisor_target_percent = target_percent_for_rows(advisor_rows)
@@ -1057,6 +1073,7 @@ module Reports
           domain_name: bucket&.dig(:domain_name),
           student_average: student_avg,
           advisor_average: advisor_avg,
+          course_average: course_average,
           gap: advisor_avg && student_avg ? (advisor_avg - student_avg) : nil,
           achieved_count: attainment_counts[:achieved_count],
           not_met_count: attainment_counts[:not_met_count],
@@ -1066,6 +1083,7 @@ module Reports
           not_assessed_percent: attainment_percentages[:not_assessed_percent],
           student_target_percent: student_target_percent,
           advisor_target_percent: advisor_target_percent,
+          course_target_percent: course_target_percent,
           program_target_level: target_level,
           total_students: attainment_counts[:total_students]
         }
@@ -1241,6 +1259,111 @@ module Reports
       @competency_lookup ||= available_competencies.index_by { |entry| entry[:id] }
     end
 
+    def course_competency_average_lookup
+      @course_competency_average_lookup ||= begin
+        grouped = reportable_course_rating_scope.group_by(&:competency_title)
+        grouped.transform_values do |ratings|
+          levels = ratings.filter_map { |rating| rating.aggregated_level&.to_f }
+          CourseCompetencyRule.aggregate(levels, rule_key: active_course_competency_rule)
+        end
+      end
+    end
+
+    def course_competency_target_percent_lookup
+      @course_competency_target_percent_lookup ||= begin
+        grouped = course_rating_rows.group_by { |row| normalized_competency_title(row[:question_text]) }
+        grouped.transform_values { |rows| target_percent_for_rows(rows) }
+      end
+    end
+
+    def course_domain_average_lookup
+      @course_domain_average_lookup ||= begin
+        grouped = Hash.new { |hash, key| hash[key] = [] }
+
+        course_competency_average_lookup.each do |title, avg|
+          next if avg.nil?
+
+          slug = domain_slug_for_competency(title)
+          next if slug.blank?
+
+          grouped[slug] << avg
+        end
+
+        grouped.transform_values { |values| average(values) }
+      end
+    end
+
+    def course_domain_target_percent_lookup
+      @course_domain_target_percent_lookup ||= begin
+        grouped = Hash.new { |hash, key| hash[key] = [] }
+
+        course_rating_rows.each do |row|
+          slug = domain_slug_for_competency(row[:question_text])
+          next if slug.blank?
+
+          grouped[slug] << row
+        end
+
+        grouped.transform_values { |rows| target_percent_for_rows(rows) }
+      end
+    end
+
+    def reportable_course_rating_scope
+      @reportable_course_rating_scope ||= begin
+        scope = GradeCompetencyRating
+          .joins(:grade_import_batch, student: :user)
+          .merge(GradeImportBatch.reportable)
+          .where(student_id: accessible_student_relation.select(:student_id))
+
+        scope = scope.where(students: { track: filters[:track] }) if filters[:track]
+        scope = scope.where(students: { advisor_id: filters[:advisor_id] }) if filters[:advisor_id]
+        scope = scope.where(student_id: filters[:student_id]) if filters[:student_id]
+
+        if filters[:competency]
+          competency_name = competency_lookup[filters[:competency]]&.dig(:name)
+          scope = scope.where(competency_title: competency_name) if competency_name.present?
+        elsif filters[:category_id]
+          scope = scope.where(competency_title: competency_titles_for_domain_filter)
+        end
+
+        scope.to_a
+      end
+    end
+
+    def competency_titles_for_domain_filter
+      slug = filters[:category_id]
+      return COMPETENCY_TITLES if slug.blank?
+
+      COMPETENCY_TITLES.select { |title| domain_slug_for_competency(title) == slug }
+    end
+
+    def domain_slug_for_competency(title)
+      slug = competency_slug(title)
+      return nil if slug.blank?
+
+      return @domain_slug_for_competency[slug] if defined?(@domain_slug_for_competency) && @domain_slug_for_competency.key?(slug)
+
+      @domain_slug_for_competency ||= {}
+
+      domain_name = competency_detail_domain_lookup[slug]
+      @domain_slug_for_competency[slug] = normalize_domain_slug(domain_name)
+    end
+
+    def competency_detail_domain_lookup
+      @competency_detail_domain_lookup ||= begin
+        lookup = {}
+
+        dataset_rows.each do |row|
+          slug = competency_slug(row[:question_text])
+          next if slug.blank? || row[:category_name].blank?
+
+          lookup[slug] ||= row[:category_name]
+        end
+
+        lookup
+      end
+    end
+
     def domain_slug(value)
       value.to_s.parameterize(separator: "_")
     end
@@ -1335,9 +1458,18 @@ module Reports
         advisor: filters[:advisor_id] ? advisor_map[filters[:advisor_id]]&.dig(:name) : "All advisors",
         domain: filters[:category_id] ? category_map[filters[:category_id]]&.dig(:name) : "All domains",
         competency: filters[:competency] ? competency_map[filters[:competency]]&.dig(:name) : "All competencies",
+        course_competency_rule: active_course_competency_rule_label,
         survey: filters[:survey_id] ? format_survey_label(survey_map[filters[:survey_id]]) : "All surveys",
         student: filters[:student_id] ? student_map[filters[:student_id]]&.dig(:name) : "All students"
       }
+    end
+
+    def active_course_competency_rule
+      @active_course_competency_rule ||= SiteSetting.course_competency_rule
+    end
+
+    def active_course_competency_rule_label
+      CourseCompetencyRule.label_for(active_course_competency_rule)
     end
 
     def format_survey_label(entry)
@@ -1415,6 +1547,96 @@ module Reports
         student_id: record.student_primary_id,
         advisor_id: record.owning_advisor_id || record.advisor_id
       }
+    end
+
+    def course_rating_rows
+      @course_rating_rows ||= reportable_course_rating_scope.filter_map do |rating|
+        target_level = course_target_level_for_rating(rating)
+        next if target_level.nil?
+
+        {
+          student_id: rating.student_id,
+          score: rating.aggregated_level.to_f,
+          advisor_entry: false,
+          updated_at: rating.updated_at,
+          category_id: nil,
+          category_name: competency_detail_domain_lookup[competency_slug(rating.competency_title)],
+          question_text: rating.competency_title,
+          program_target_level: target_level,
+          survey_id: nil,
+          survey_title: nil,
+          survey_semester: nil,
+          track: rating.student&.track,
+          advisor_id: rating.student&.advisor_id
+        }
+      end
+    end
+
+    def course_target_level_for_rating(rating)
+      student = rating.student
+      return nil unless student
+
+      title = normalized_competency_title(rating.competency_title)
+      target_from_dataset = course_target_level_from_dataset(student_id: student.student_id, competency_title: title)
+      return target_from_dataset if target_from_dataset.present?
+
+      fallback_course_target_level(student: student, competency_title: title)
+    end
+
+    def course_target_level_from_dataset(student_id:, competency_title:)
+      matching_rows = dataset_rows.select do |row|
+        row[:student_id] == student_id && normalized_competency_title(row[:question_text]) == competency_title
+      end
+
+      average(matching_rows.map { |row| row[:program_target_level] }.compact.map(&:to_f))
+    end
+
+    def fallback_course_target_level(student:, competency_title:)
+      track = student[:track].to_s.strip
+      return nil if track.blank? || competency_title.blank?
+
+      records = competency_target_records_by_track_and_title[[ track, competency_title ]] || []
+      return nil if records.blank?
+
+      class_of = student.class_of
+      program_year = student.program_year
+
+      if class_of.present?
+        exact_class = records.find { |record| record.class_of.present? && record.class_of.to_i == class_of.to_i }
+        return exact_class.target_level if exact_class
+      end
+
+      class_fallback = records.find { |record| record.class_of.nil? }
+      return class_fallback.target_level if class_fallback
+
+      if program_year.present?
+        exact_year = records.find { |record| record.program_year.present? && record.program_year.to_i == program_year.to_i }
+        return exact_year.target_level if exact_year
+      end
+
+      year_fallback = records.find { |record| record.program_year.nil? }
+      return year_fallback.target_level if year_fallback
+
+      records.first&.target_level
+    end
+
+    def competency_target_records_by_track_and_title
+      @competency_target_records_by_track_and_title ||= begin
+        records = CompetencyTargetLevel
+          .select(:program_semester_id, :track, :program_year, :class_of, :competency_title, :target_level)
+          .to_a
+
+        records.group_by { |record| [ record.track.to_s.strip, normalized_competency_title(record.competency_title) ] }
+               .transform_values do |rows|
+          rows.sort_by do |row|
+            [
+              row.class_of.present? ? 0 : 1,
+              row.program_year.present? ? 0 : 1,
+              row.program_semester_id || Float::INFINITY
+            ]
+          end
+        end
+      end
     end
 
     def competency_target_level_for_record(record)

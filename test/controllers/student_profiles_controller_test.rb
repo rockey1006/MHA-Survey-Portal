@@ -196,7 +196,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
 
   test "update allows changing track" do
     sign_in @student_user
-    original_track = @student.track
+    original_track = @student.track_key
 
     patch student_profile_path, params: {
       student: valid_student_params(track: "Executive")
@@ -204,7 +204,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to student_dashboard_path
     @student.reload
-    assert_equal "executive", @student.track
+    assert_equal "Executive", @student.track
   ensure
     @student.update!(track: original_track) if original_track
   end
@@ -331,7 +331,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   # Survey Auto-Assignment
   test "update auto-assigns when track changes" do
     sign_in @student_user
-    current_track_value = Student.tracks[@student.track] || @student.track
+    current_track_value = Student.tracks[@student.track_key] || @student.track
     target_track = current_track_value == "Residential" ? "Executive" : "Residential"
     auto_assign_called = false
 
@@ -583,7 +583,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
   # Track Values
   test "update accepts valid track values" do
     sign_in @student_user
-    original_track = @student.track
+    original_track = @student.track_key
     valid_tracks = [ "Residential", "Executive" ]
 
     valid_tracks.each do |track|
@@ -593,7 +593,7 @@ class StudentProfilesControllerTest < ActionDispatch::IntegrationTest
 
       assert_redirected_to student_dashboard_path
       @student.reload
-      assert_equal track.downcase, @student.track
+      assert_equal track, @student.track
     end
   ensure
     @student.update!(track: original_track) if original_track

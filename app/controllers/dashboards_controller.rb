@@ -37,9 +37,9 @@ class DashboardsController < ApplicationController
     surveys = surveys_for_student(@student)
 
     @offerings_by_survey_id = {}
-    if SurveyOffering.data_source_ready? && @student.program_year.present? && @student.track.present? && surveys.any?
+    if SurveyOffering.data_source_ready? && @student.program_year.present? && @student.track_key.present? && surveys.any?
       offerings = SurveyOffering
-                    .for_student(track_key: @student.track, class_of: @student.program_year)
+                    .for_student(track_key: @student.track_key, class_of: @student.program_year)
                     .where(survey_id: surveys.map(&:id))
 
       grouped = offerings.group_by(&:survey_id)
@@ -834,10 +834,10 @@ class DashboardsController < ApplicationController
       return
     end
 
-    return if student.track == new_track_key
+    return if student.track_key == new_track_key
 
-    previous_track = student.track
-    previous_label = previous_track.present? ? previous_track.titleize : "Unassigned"
+    previous_track = student.track_key
+    previous_label = ProgramTrack.name_for_key(previous_track) || previous_track.to_s.titleize.presence || "Unassigned"
     new_label = new_track_key.titleize
 
     student.update!(track: new_track_key)

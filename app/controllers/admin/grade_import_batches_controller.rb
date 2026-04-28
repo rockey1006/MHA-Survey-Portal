@@ -22,6 +22,7 @@ class Admin::GradeImportBatchesController < Admin::BaseController
 
     @batch = GradeImportBatch.create!(
       uploaded_by: current_user,
+      program_semester_id: grade_import_batch_params[:program_semester_id].presence,
       summary: { "dry_run" => dry_run_requested? }
     )
 
@@ -134,6 +135,10 @@ class Admin::GradeImportBatchesController < Admin::BaseController
 
   def dry_run_requested?
     ActiveModel::Type::Boolean.new.cast(params[:dry_run])
+  end
+
+  def grade_import_batch_params
+    params.permit(:program_semester_id)
   end
 
   def match_rate_for(files)

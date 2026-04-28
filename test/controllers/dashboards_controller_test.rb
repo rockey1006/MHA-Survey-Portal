@@ -455,7 +455,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     student = students(:student)
-    original_track = student.track
+    original_track = student.track_key
 
     assert_difference -> { AdminActivityLog.where(action: "track_update").count }, 1 do
       patch update_student_advisors_path, params: { track_updates: { student.student_id => "executive" } }
@@ -464,7 +464,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to people_management_path(tab: "students")
     follow_redirect!
     assert_match "Updated 1 track", flash[:notice]
-    assert_equal "executive", student.reload.track
+    assert_equal "Executive", student.reload.track
   ensure
     student.update!(track: original_track)
   end
@@ -840,7 +840,7 @@ class DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     patch update_student_advisors_path, params: {
       advisor_updates: { student.student_id => student.advisor_id.to_s },
-      track_updates: { student.student_id => student.track }
+      track_updates: { student.student_id => student.track_key }
     }
 
     assert_redirected_to people_management_path(tab: "students")

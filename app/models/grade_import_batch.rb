@@ -2,6 +2,7 @@ class GradeImportBatch < ApplicationRecord
   STATUSES = %w[pending processing completed completed_with_errors failed rolled_back].freeze
 
   belongs_to :uploaded_by, class_name: "User"
+  belongs_to :program_semester, optional: true
   has_many :grade_import_files, dependent: :destroy
   has_many :grade_competency_evidences, dependent: :destroy
   has_many :grade_competency_ratings, dependent: :destroy

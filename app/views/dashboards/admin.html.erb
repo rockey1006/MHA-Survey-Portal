@@ -45,6 +45,15 @@
         <% end %>
       </div>
 
+      <!-- Portfolio Export -->
+      <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
+        <%= link_to student_portfolio_export_path, class: "c-tile__link" do %>
+          <div class="c-tile__icon">🔗</div>
+          <div class="c-tile__title">Portfolio Export</div>
+          <div class="c-tile__description">Export student Google Sites portfolio URLs</div>
+        <% end %>
+      </div>
+
       <!-- Competencies -->
       <div class="c-card c-card--interactive c-card--hover c-card--lift c-tile">
         <%= link_to admin_competencies_path, class: "c-tile__link" do %>

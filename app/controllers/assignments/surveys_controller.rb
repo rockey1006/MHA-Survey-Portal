@@ -22,14 +22,14 @@ module Assignments
 
       track_key =
         if @survey.respond_to?(:track) && @survey.track.present?
-          @survey.track.to_s.downcase
+          ProgramTrack.canonical_key(@survey.track)
         else
           t = @survey.title.to_s.downcase
           t.include?("executive") ? "executive" : (t.include?("residential") ? "residential" : nil)
         end
 
       if track_key.present? && Student.tracks.key?(track_key)
-        @students = @students.where(track: Student.tracks[track_key])
+        @students = @students.where("LOWER(track) = ?", track_key)
       end
 
       @track_options = ProgramTrack.names
@@ -377,7 +377,7 @@ module Assignments
       key = survey_track_key
       return scope.none unless key.present? && Student.tracks.key?(key)
 
-      scope.where(track: Student.tracks[key])
+      scope.where("LOWER(track) = ?", key)
     end
 
     def students_for_bulk_action(track_filter:, year_filter:)
@@ -385,8 +385,7 @@ module Assignments
 
       if track_filter.present?
         canonical = ProgramTrack.canonical_key(track_filter)
-        track_label = ProgramTrack.name_for_key(canonical) || track_filter.to_s.strip
-        students = students.where(track: track_label)
+        students = students.where("LOWER(track) = ?", canonical) if canonical.present?
       end
 
       if year_filter.present?
@@ -395,7 +394,7 @@ module Assignments
 
       if track_filter.blank? && year_filter.blank?
         key = survey_track_key
-        return students.where(track: Student.tracks[key]) if key.present? && Student.tracks.key?(key)
+        return students.where("LOWER(track) = ?", key) if key.present? && Student.tracks.key?(key)
 
         return students
       end
@@ -406,7 +405,7 @@ module Assignments
     def survey_track_key
       @survey_track_key ||= begin
         if @survey.respond_to?(:track) && @survey.track.present?
-          @survey.track.to_s.downcase
+          ProgramTrack.canonical_key(@survey.track)
         else
           t = @survey.title.to_s.downcase
           t.include?("executive") ? "executive" : (t.include?("residential") ? "residential" : nil)
@@ -433,7 +432,7 @@ module Assignments
       default_available_until = @survey.available_until
 
       if SurveyOffering.data_source_ready? && student.track.present? && student.program_year.present?
-        offerings = SurveyOffering.for_student(track_key: student.track, class_of: student.program_year)
+        offerings = SurveyOffering.for_student(track_key: student.track_key, class_of: student.program_year)
                                  .where(survey_id: @survey.id)
         if offerings.exists?
           exact = offerings.find { |row| row.class_of.present? && row.class_of.to_i == student.program_year.to_i }

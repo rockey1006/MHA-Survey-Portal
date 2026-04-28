@@ -33,6 +33,9 @@ Rails.application.routes.draw do
 
   get "student_records", to: "student_records#index", as: :student_records
   get "student_records/export_excel", to: "student_records#export_excel", as: :export_student_records_excel
+  resource :student_competencies, only: :show
+  get "student_portfolio_export", to: "student_portfolio_exports#index", as: :student_portfolio_export
+  get "student_portfolio_export/download", to: "student_portfolio_exports#show", as: :download_student_portfolio_export
 
   get "manage_students", to: "dashboards#manage_students", as: :manage_students
   patch "manage_students", to: "dashboards#update_student_advisors", as: :update_student_advisors
@@ -67,6 +70,7 @@ Rails.application.routes.draw do
     end
     get "target_levels", to: "target_levels#index", as: :target_levels
     patch "target_levels", to: "target_levels#update"
+    resources :course_grade_release_dates, only: %i[index new create edit update destroy]
     resources :grade_import_batches, only: %i[index new create show] do
       member do
         post :commit

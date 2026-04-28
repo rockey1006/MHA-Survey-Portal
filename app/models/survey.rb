@@ -13,6 +13,7 @@ class Survey < ApplicationRecord
   has_many :questions, through: :categories
   has_many :track_assignments, class_name: "SurveyTrackAssignment", inverse_of: :survey, dependent: :destroy
   has_many :offerings, class_name: "SurveyOffering", inverse_of: :survey, dependent: :destroy
+  has_one :course_grade_release_date, dependent: :destroy
   has_many :survey_response_versions, dependent: :delete_all
   has_many :survey_assignments, inverse_of: :survey, dependent: :destroy
   has_many :survey_change_logs, dependent: :nullify

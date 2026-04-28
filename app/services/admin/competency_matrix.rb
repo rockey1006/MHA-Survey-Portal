@@ -109,7 +109,7 @@ class Admin::CompetencyMatrix
     end
 
     if normalized_filters[:track].present?
-      scope = scope.where(track: normalized_filters[:track])
+      scope = scope.where("LOWER(track) = ?", normalized_filters[:track])
     end
 
     if normalized_filters[:program_year].present?
@@ -224,7 +224,7 @@ class Admin::CompetencyMatrix
   end
 
   def track_options
-    base_student_scope.where.not(track: nil).distinct.order(:track).pluck(:track)
+    Student.tracks.values
   end
 
   def program_year_options
@@ -263,7 +263,7 @@ class Admin::CompetencyMatrix
     value = params[:track].to_s.strip
     return nil if value.blank?
 
-    ProgramTrack.name_for_key(ProgramTrack.canonical_key(value)) || value
+    ProgramTrack.canonical_key(value)
   end
 
   def normalized_program_year
@@ -295,7 +295,7 @@ class Admin::CompetencyMatrix
   end
 
   def track_label_for(student)
-    student[:track].presence || student.track.presence
+    student.track.presence || student[:track].to_s.strip.titleize.presence
   end
 
   def competency_slug(value)

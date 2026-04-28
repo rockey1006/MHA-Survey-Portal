@@ -151,7 +151,7 @@
                     <%= form.label :track, "Program track", class: "c-label" %>
                     <% track_options = Student.tracks.map { |key, label| [label, key] } %>
                     <%= form.select :track,
-                        options_for_select(track_options, @student.track.to_s),
+                      options_for_select(track_options, @student.track_key.to_s),
                         { prompt: "Select your track" },
                         { required: true, class: "c-select w-full" } %>
                     <small class="c-help">Pick the cohort you belong to</small>

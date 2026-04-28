@@ -10,7 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
+  create_schema "_heroku"
+
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -61,6 +63,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
     t.index ["survey_section_id"], name: "index_categories_on_survey_section_id"
   end
 
+  create_table "competencies", force: :cascade do |t|
+    t.bigint "domain_id", null: false
+    t.string "title", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["domain_id", "position"], name: "index_competencies_on_domain_id_and_position"
+    t.index ["domain_id"], name: "index_competencies_on_domain_id"
+    t.index ["title"], name: "index_competencies_on_title", unique: true
+  end
+
   create_table "competency_target_levels", force: :cascade do |t|
     t.bigint "program_semester_id", null: false
     t.string "track", null: false
@@ -86,6 +99,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
     t.index ["student_id", "survey_id", "advisor_id"], name: "index_confidential_notes_on_student_survey_advisor", unique: true
     t.index ["student_id"], name: "index_confidential_advisor_notes_on_student_id"
     t.index ["survey_id"], name: "index_confidential_advisor_notes_on_survey_id"
+  end
+
+  create_table "course_grade_release_dates", force: :cascade do |t|
+    t.bigint "survey_id", null: false
+    t.datetime "release_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["release_at"], name: "index_course_grade_release_dates_on_release_at"
+    t.index ["survey_id"], name: "index_course_grade_release_dates_on_survey_id", unique: true
+  end
+
+  create_table "domains", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_domains_on_name", unique: true
+    t.index ["position"], name: "index_domains_on_position"
   end
 
   create_table "feedback", force: :cascade do |t|
@@ -156,6 +187,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
     t.jsonb "summary", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "program_semester_id"
+    t.index ["program_semester_id"], name: "index_grade_import_batches_on_program_semester_id"
     t.index ["status"], name: "index_grade_import_batches_on_status"
     t.index ["uploaded_by_id"], name: "index_grade_import_batches_on_uploaded_by_id"
   end
@@ -461,10 +494,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
   add_foreign_key "advisors", "users", column: "advisor_id", on_delete: :cascade
   add_foreign_key "categories", "survey_sections", on_delete: :nullify
   add_foreign_key "categories", "surveys"
+  add_foreign_key "competencies", "domains"
   add_foreign_key "competency_target_levels", "program_semesters"
   add_foreign_key "confidential_advisor_notes", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "confidential_advisor_notes", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "confidential_advisor_notes", "surveys", on_delete: :cascade
+  add_foreign_key "course_grade_release_dates", "surveys"
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
   add_foreign_key "feedback", "questions"
@@ -475,6 +510,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_14_090000) do
   add_foreign_key "grade_competency_evidences", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "grade_competency_ratings", "grade_import_batches", on_delete: :cascade
   add_foreign_key "grade_competency_ratings", "students", primary_key: "student_id", on_delete: :cascade
+  add_foreign_key "grade_import_batches", "program_semesters"
   add_foreign_key "grade_import_batches", "users", column: "uploaded_by_id", on_delete: :cascade
   add_foreign_key "grade_import_files", "grade_import_batches", on_delete: :cascade
   add_foreign_key "grade_import_pending_rows", "grade_import_batches", on_delete: :cascade

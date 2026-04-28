@@ -21,8 +21,8 @@ class Student < ApplicationRecord
   validates :uin, presence: true, on: :profile_completion
   validates :uin, format: { with: UIN_FORMAT, message: "must be exactly 9 digits" }, allow_nil: true
   validates :major, presence: true, on: :profile_completion
-  validates :track, presence: true, on: :profile_completion
-  validates :track,
+  validates :track_key, presence: true, on: :profile_completion
+  validates :track_key,
             inclusion: { in: ->(_student) { ProgramTrack.keys } },
             allow_blank: true,
             on: :profile_completion
@@ -37,7 +37,7 @@ class Student < ApplicationRecord
   #
   # @return [Boolean]
   def profile_complete?
-    user.name.present? && uin.present? && major.present? && track.present? && program_year.present?
+    user.name.present? && uin.present? && major.present? && track_key.present? && program_year.present?
   end
 
   # Backwards-compat: treat legacy class_of as program_year.
@@ -55,18 +55,33 @@ class Student < ApplicationRecord
     user.full_name
   end
 
-  # Database stores the track label (e.g., "Residential").
-  # Public API returns the canonical key (e.g., "residential") to preserve
-  # behavior previously provided by the enum.
+  # Database stores the canonical key (e.g., "residential").
+  # Public API returns the display label (e.g., "Residential") for UI use.
   def track
-    ProgramTrack.canonical_key(self[:track])
+    ProgramTrack.name_for_key(track_key) || self[:track].to_s.strip.presence&.titleize
+  end
+
+  # Returns the canonical key used for filtering and persistence.
+  # @return [String, nil]
+  def track_key
+    ProgramTrack.canonical_key(self[:track]) || self[:track].to_s.strip.downcase.presence
   end
 
   # Accepts either a key ("residential") or label ("Residential") and stores
-  # the canonical label in the DB.
+  # the canonical key in the DB.
   def track=(value)
     key = ProgramTrack.canonical_key(value)
-    self[:track] = key.present? ? ProgramTrack.name_for_key(key) : value.to_s.strip.presence
+    current_track = self[:track].to_s.strip
+
+    if key.present? && ProgramTrack.canonical_key(current_track) == key
+      return
+    end
+
+    if key.blank? && current_track == value.to_s.strip
+      return
+    end
+
+    self[:track] = key.presence || value.to_s.strip.presence
   end
 
   # Compatibility shim for code that used the enum mapping.

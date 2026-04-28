@@ -3,6 +3,7 @@ class ProgramSemester < ApplicationRecord
   DEFAULT_CURRENT_NAME = "Fall 2025".freeze
 
   has_many :surveys, dependent: :destroy
+  has_one :course_grade_release_date, dependent: :destroy
 
   before_validation :normalize_name
   after_commit :ensure_single_current!, if: -> { saved_change_to_current? && current? }

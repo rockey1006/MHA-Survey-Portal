@@ -98,8 +98,8 @@
                                 <% current_advisor = student.advisor %>
                                 <% current_advisor_name = current_advisor&.display_name || "Unassigned" %>
                                 <% current_advisor_id = student.advisor_id.present? ? student.advisor_id.to_s : "" %>
-                                <% track_key = student.track.presence || "" %>
-                                <% track_label = track_key.present? ? track_key.titleize : "Unassigned" %>
+                                <% track_key = student.track_key.presence || "" %>
+                                <% track_label = student.track.presence || "Unassigned" %>
                                 <% assignment_group_value = student.respond_to?(:assignment_group) ? student.assignment_group.to_s.strip : "" %>
                                 <% assignment_group_value = assignment_group_value.presence || "" %>
                                 <% assignment_group_label = assignment_group_value.present? ? assignment_group_value : "Unassigned" %>

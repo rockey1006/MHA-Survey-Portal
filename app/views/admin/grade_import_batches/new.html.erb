@@ -7,91 +7,78 @@
 
   <div class="c-container c-container--wide c-page">
     <section class="u-stack u-stack--lg">
-      <header class="c-card p-8 md:p-10 overflow-hidden relative">
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700"></div>
-        <div class="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-400/20 blur-2xl"></div>
-        <div class="absolute -left-10 -bottom-20 h-56 w-56 rounded-full bg-amber-300/20 blur-2xl"></div>
-
-        <div class="relative">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Faculty imports</p>
-          <h1 class="mt-2 text-3xl font-semibold text-white md:text-4xl">New Grade Import Batch</h1>
-          <p class="mt-3 max-w-3xl text-sm text-slate-100 md:text-base">
-            Upload faculty gradebooks, run a preview first, and then commit with confidence.
-            Advisor feedback remains untouched and grade-derived ratings stay isolated as a separate source.
-          </p>
-
-          <div class="mt-5 flex flex-wrap gap-2">
-            <span class="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white">Preview-first workflow</span>
-            <span class="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white">CSV + Excel support</span>
-            <span class="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white">Duplicate protection</span>
-          </div>
+      <header class="c-card p-6 md:p-8 bg-slate-50 border border-slate-200">
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-900">New Grade Import Batch</h1>
+          <p class="mt-2 text-sm text-slate-600">Upload workbooks and preview matches before committing.</p>
         </div>
       </header>
 
-      <div class="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <section class="c-card p-6 md:p-8 u-stack u-stack--lg">
+      <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <section class="c-card p-6 md:p-8 u-stack u-stack--md">
           <div>
-            <h2 class="c-section-title c-heading-inline">Upload workbook</h2>
-            <p class="c-page-subtitle">Start with a preview to review matches, pending students, duplicates, and derived ratings before making the batch reportable.</p>
+            <h2 class="c-section-title c-heading-inline">Upload & Preview</h2>
           </div>
 
-          <%= form_with url: admin_grade_import_batches_path, method: :post, local: true, multipart: true, class: "u-stack u-stack--lg" do %>
+          <%= form_with url: admin_grade_import_batches_path, method: :post, local: true, multipart: true, class: "u-stack u-stack--md" do %>
             <div class="u-grid" style="--u-grid-min: 320px">
-              <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                <div class="c-field">
-                  <%= label_tag "files[]", "Import files", class: "c-label" %>
-                  <%= file_field_tag "files[]", multiple: true, accept: ".xlsx,.xlsm,.csv", class: "c-input" %>
-                  <small class="c-help">Use this for one or more Excel or CSV imports.</small>
-                </div>
+              <div class="c-field">
+                <%= label_tag :program_semester_id, "Program semester", class: "c-label" %>
+                <%= select_tag :program_semester_id,
+                      options_from_collection_for_select(ProgramSemester.ordered, :id, :name, ProgramSemester.current&.id),
+                      include_blank: "No semester",
+                      class: "c-input" %>
+                <small class="c-help">Used to associate competency sources on the student dashboard.</small>
               </div>
 
-              <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                <div class="c-field">
-                  <%= label_tag "folder_files[]", "Folder upload", class: "c-label" %>
-                  <%= file_field_tag "folder_files[]", multiple: true, webkitdirectory: true, directory: true, class: "c-input" %>
-                  <small class="c-help">Useful when faculty send one workbook per course.</small>
-                </div>
+              <div class="c-field">
+                <%= label_tag "files[]", "Upload files (Excel or CSV)", class: "c-label" %>
+                <%= file_field_tag "files[]", multiple: true, accept: ".xlsx,.xlsm,.csv", class: "c-input" %>
+                <small class="c-help">Select one or more files.</small>
+              </div>
+
+              <div class="c-field">
+                <%= label_tag "folder_files[]", "Or upload a folder", class: "c-label" %>
+                <%= file_field_tag "folder_files[]", multiple: true, webkitdirectory: true, directory: true, class: "c-input" %>
+                <small class="c-help">One workbook per course.</small>
               </div>
             </div>
 
-            <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <div class="border-t pt-4">
               <label class="c-toggle cursor-pointer">
                 <%= check_box_tag :dry_run, "1", true, class: "c-toggle__input" %>
                 <span class="c-toggle__track" aria-hidden="true"><span class="c-toggle__thumb"></span></span>
                 <span class="space-y-0.5">
-                  <span class="c-toggle__label block">Start with a preview</span>
-                  <span class="block text-sm text-slate-600">Preview matches, duplicates, failed rows, and derived ratings without using the batch in downstream views.</span>
+                  <span class="c-toggle__label block">Preview first</span>
+                  <span class="block text-xs text-slate-600">Review matches and derived ratings before committing.</span>
                 </span>
               </label>
             </div>
 
             <div class="c-form-actions u-actions u-actions--start">
               <%= submit_tag "Run Import", class: tailwind_button_classes(:primary) %>
-              <%= link_to "Back to batches", admin_grade_import_batches_path, class: tailwind_button_classes(:secondary) %>
             </div>
           <% end %>
         </section>
 
-        <aside class="u-stack u-stack--md xl:sticky xl:top-4 xl:self-start">
-          <div class="c-card c-card--tight border border-slate-200 bg-slate-50/70 u-stack u-stack--sm">
-            <p class="c-section-title c-heading-inline">Import instructions</p>
-            <p class="text-sm text-slate-700">Choose one path for each upload:</p>
-            <ul class="space-y-1 pl-5 text-sm text-slate-700 list-disc">
-              <li><strong>Option 1: Canvas direct grade export</strong> with a <code>mapping</code> sheet to convert assignment scores into competency levels.</li>
-              <li><strong>Option 2: Canvas competency export</strong> when Canvas already outputs competency result columns directly.</li>
+        <aside class="u-stack u-stack--sm">
+          <div class="c-card c-card--tight border border-slate-200 bg-slate-50/70 u-stack u-stack--xs">
+            <p class="text-sm font-semibold text-slate-900">Upload options</p>
+            <ul class="text-xs text-slate-700 space-y-1">
+              <li><strong>Canvas grades:</strong> Direct export with mapping sheet</li>
+              <li><strong>Canvas competencies:</strong> Direct competency export</li>
             </ul>
           </div>
 
-          <div class="c-card c-card--tight u-stack u-stack--sm">
-            <p class="c-section-title c-heading-inline">Download example files</p>
-            <p class="text-sm text-slate-600">Share these with faculty as a formatting reference.</p>
-            <div class="u-actions u-actions--start">
-              <%= link_to "Example Canvas Grade Export (.xlsx)",
+          <div class="c-card c-card--tight u-stack u-stack--xs">
+            <p class="text-sm font-semibold text-slate-900">Examples</p>
+            <div class="u-actions u-actions--start space-y-2 flex flex-col">
+              <%= link_to "Grade Export",
                           "/grade-import-examples/Example%20Canvas%20Grade%20Export.xlsx",
                           class: tailwind_button_classes(:secondary),
                           data: { turbo: false },
                           download: true %>
-              <%= link_to "Example Canvas Competency Export (.csv)",
+              <%= link_to "Competency Export",
                           "/grade-import-examples/Example%20Canvas%20Competency%20Export.csv",
                           class: tailwind_button_classes(:secondary),
                           data: { turbo: false },
@@ -99,39 +86,27 @@
             </div>
           </div>
 
-          <details class="c-card c-card--tight c-card--muted u-stack u-stack--sm" open>
-            <summary class="cursor-pointer text-sm font-semibold text-slate-900">View full formatting guide</summary>
-            <div class="rounded-lg bg-white p-4 text-xs text-slate-700" data-controller="markdown-render">
+          <details class="c-card c-card--tight c-card--muted u-stack u-stack--xs">
+            <summary class="cursor-pointer text-xs font-semibold text-slate-900">View guide</summary>
+            <div class="rounded-lg bg-white p-3 text-xs text-slate-700 mt-2" data-controller="markdown-render">
               <textarea class="hidden" data-markdown-render-target="source"># Grade Import Guide
 
-Use this guide for batch uploads.
+## Option 1: Canvas direct grade export
+- Include Student ID and assignment columns
+- Add a `mapping` sheet with:
+  - `assignment_match_type` (exact/contains/regex)
+  - `assignment_match_value` (name or pattern)
+  - `course_code` (format ABCD-000-000)
+  - `competency_title` (exact match required)
+  - `score_basis` (points or percent)
+  - `min_score`, `max_score`, `competency_level`
 
-## Option 1: Canvas direct grade export (with mapping)
-- Keep the Canvas grade sheet structure unchanged.
-- Include Student SIS ID or Student ID, assignment columns, and the points-possible row.
-- Add a sheet named exactly `mapping`.
+## Option 2: Canvas competency export
+- Keep Student ID and competency result columns
+- Course code derived from file/sheet name
+- No mapping sheet required
 
-### Required mapping columns
-- `assignment_match_type`: `exact`, `contains`, or `regex`
-- `assignment_match_value`: assignment name or keyword pattern
-- `course_code`: format `ABCD-000-000`
-- `competency_title`: must match approved competency titles exactly
-- `score_basis`: `points` or `percent`
-- `min_score`, `max_score`, `competency_level`
-- `active`: `TRUE` or `FALSE`
-- `notes`: optional
-
-Example grouping: for multiple SQL quizzes, use `assignment_match_type=contains` and `assignment_match_value=SQL`.
-
-## Option 2: Canvas competency export (direct)
-- Use this when Canvas competency mapping is already configured.
-- Keep Student SIS ID or Student ID columns.
-- Keep EMHA and RMHA competency `result` columns.
-- HPMC columns are ignored.
-- A mapping sheet is not required.
-- Course code can be derived from file/sheet names, for example `PHPM_633_700` becomes `PHPM-633-700`.
-
-## Approved competency titles (exact match)
+## Approved competency titles
 - Public and Population Health Assessment
 - Delivery, Organization, and Financing of Health Services and Health Systems
 - Policy Analysis
@@ -150,15 +125,14 @@ Example grouping: for multiple SQL quizzes, use `assignment_match_type=contains`
 - Data Analysis and Information Management
 - Quantitative Methods for Health Services Delivery
 
-## Recommended upload workflow
-1. Run as Preview first.
-2. Review matches, pending rows, duplicate suppression, and derived ratings.
-3. Re-upload to commit after validation.</textarea>
+## Workflow
+1. Run as Preview to review matches and ratings
+2. Make corrections if needed
+3. Re-upload to commit</textarea>
               <div class="guidance-text" data-markdown-render-target="output"></div>
             </div>
           </details>
         </aside>
-      </div>
     </section>
   </div>
 </main>

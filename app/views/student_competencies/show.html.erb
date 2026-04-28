@@ -1,0 +1,140 @@
+<main class="main-content">
+  <div class="c-toolbar c-toolbar--spaced">
+    <div class="c-toolbar__row w-full items-center justify-between gap-3">
+      <div class="space-y-1">
+        <h1 class="c-page-title">My Competencies</h1>
+        <p class="c-page-subtitle">Review self, advisor, course, and target competency levels by semester.</p>
+      </div>
+
+      <%= link_to "Export CSV", student_competencies_path(format: :csv, semester: @payload.dig(:filters, :semester)), class: tailwind_button_classes(:secondary), data: { turbo: false } %>
+    </div>
+  </div>
+
+  <section class="c-card">
+    <%= form_with url: student_competencies_path, method: :get, local: true, data: { turbo: false }, class: "flex flex-wrap items-end gap-3" do %>
+      <div>
+        <label class="c-label" for="semester">Semester</label>
+        <%= select_tag :semester,
+              options_for_select(@payload[:semesters], @payload.dig(:filters, :semester)),
+              class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" %>
+      </div>
+      <%= submit_tag "Apply", class: tailwind_button_classes(:primary) %>
+      <span class="meta-chip">Course results: <%= @payload[:release_label] %></span>
+    <% end %>
+  </section>
+
+  <section class="grid gap-6 lg:grid-cols-2">
+    <div class="c-card">
+      <h2 class="c-section-title c-heading-inline">Competency Snapshot</h2>
+      <div class="mt-4" style="height: 420px;">
+        <canvas id="competencyRadarChart"></canvas>
+      </div>
+    </div>
+
+    <div class="c-card">
+      <h2 class="c-section-title c-heading-inline">Semester Trend</h2>
+      <div class="mt-4" style="height: 420px;">
+        <canvas id="competencyTrendChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="u-stack u-stack--lg">
+    <% @payload[:domains].each do |domain| %>
+      <div class="c-card">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 class="c-section-title c-heading-inline"><%= domain[:name] %></h2>
+          <span class="meta-chip"><%= pluralize(domain[:competencies].size, "competency") %></span>
+        </div>
+
+        <div class="c-table-wrapper mt-4">
+          <table class="c-table">
+            <thead>
+              <tr>
+                <th>Competency</th>
+                <th>Self</th>
+                <th>Advisor</th>
+                <th>Course</th>
+                <th>Course Target</th>
+                <th>Course Sources</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% domain[:competencies].each do |competency| %>
+                <tr>
+                  <td><%= competency[:title] %></td>
+                  <td><%= competency[:self_rating] || "—" %></td>
+                  <td><%= competency[:advisor_rating] || "—" %></td>
+                  <td><%= @payload[:course_released] ? (competency[:course_rating] || "—") : "Embargoed" %></td>
+                  <td><%= @payload[:course_released] ? (competency[:course_target] || "—") : "Embargoed" %></td>
+                  <td>
+                    <% if !@payload[:course_released] %>
+                      Embargoed
+                    <% elsif competency[:course_sources].present? %>
+                      <details>
+                        <summary class="cursor-pointer font-medium text-blue-700">
+                          <%= pluralize(competency[:course_sources].size, "source") %>
+                        </summary>
+                        <div class="mt-2 space-y-2">
+                          <% competency[:course_sources].each do |source| %>
+                            <div class="rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700">
+                              <div class="font-semibold text-slate-900"><%= source[:course_code] %></div>
+                              <div>Competency level <%= source[:mapped_level] %></div>
+                              <div>Target level <%= competency[:course_target] || "—" %></div>
+                            </div>
+                          <% end %>
+                        </div>
+                      </details>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
+  </section>
+</main>
+
+<script type="module">
+  import Chart from "chart.js/auto"
+
+  const radarPayload = <%= raw @payload[:radar_chart].to_json %>
+  const trendPayload = <%= raw @payload[:trend_chart].to_json %>
+  const colors = {
+    Self: ["rgba(80, 0, 0, 0.18)", "#500000"],
+    Advisor: ["rgba(37, 99, 235, 0.16)", "#2563eb"],
+    Course: ["rgba(5, 150, 105, 0.16)", "#059669"],
+    Target: ["rgba(234, 88, 12, 0.12)", "#ea580c"]
+  }
+
+  const decorate = (dataset) => {
+    const [backgroundColor, borderColor] = colors[dataset.label] || ["rgba(15, 23, 42, 0.1)", "#0f172a"]
+    return { ...dataset, backgroundColor, borderColor, borderWidth: 2, pointRadius: 2, spanGaps: true }
+  }
+
+  new Chart(document.getElementById("competencyRadarChart"), {
+    type: "radar",
+    data: { labels: radarPayload.labels, datasets: radarPayload.datasets.map(decorate) },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } },
+      plugins: { legend: { position: "bottom" } }
+    }
+  })
+
+  new Chart(document.getElementById("competencyTrendChart"), {
+    type: "line",
+    data: { labels: trendPayload.labels, datasets: trendPayload.datasets.map(decorate) },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } },
+      plugins: { legend: { position: "bottom" } }
+    }
+  })
+</script>

@@ -190,7 +190,7 @@
               data-assignment-students-target="row"
               data-student-name="<%= student.full_name.presence || student.email %>"
               data-student-email="<%= student.email %>"
-              data-student-track="<%= student.track.to_s %>"
+              data-student-track="<%= student.track_key.to_s %>"
               data-student-program-year="<%= student.program_year.to_s %>"
             >
               <td class="px-4 py-3 text-sm text-slate-700">
@@ -211,7 +211,7 @@
                 </div>
               </td>
 
-              <td class="px-4 py-3 text-sm text-slate-700"><%= student.track.present? ? student.track.titleize : "—" %></td>
+              <td class="px-4 py-3 text-sm text-slate-700"><%= student.track.presence || "—" %></td>
 
               <td class="px-4 py-3 text-sm text-slate-700"><%= student.program_year.presence || "—" %></td>
 

@@ -32,6 +32,7 @@ module GradeImports
                   course_code: row.course_code,
                   assignment_name: row.assignment_name,
                   mapped_level: row.mapped_level,
+                  course_target_level: row.course_target_level,
                   raw_grade: row.raw_grade,
                   updated_at: row.updated_at,
                   import_file: row.grade_import_file&.file_name

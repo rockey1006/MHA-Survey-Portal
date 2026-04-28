@@ -29,6 +29,10 @@ class ProgramSemester < ApplicationRecord
     where("LOWER(name) = ?", value.to_s.downcase).first
   end
 
+  def is_current?
+    current?
+  end
+
   private
 
   def normalize_name

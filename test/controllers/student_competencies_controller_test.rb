@@ -19,6 +19,41 @@ class StudentCompetenciesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, @competency_title
   end
 
+  test "student dashboard hides advisor column when advisor competencies are empty" do
+    sign_in @student_user
+
+    get student_competencies_path(semester: @survey.semester)
+
+    assert_response :success
+    assert_select "th", text: "Advisor", count: 0
+    refute_includes response.body, "\"label\":\"Advisor\""
+  end
+
+  test "student dashboard shows advisor column when advisor competencies exist" do
+    category = @survey.categories.create!(name: "Advisor Competency")
+    question = category.questions.create!(
+      question_text: @competency_title,
+      question_type: "integer",
+      question_order: 1
+    )
+    Feedback.create!(
+      student: @student,
+      advisor: advisors(:advisor),
+      category: category,
+      question: question,
+      survey: @survey,
+      average_score: 4
+    )
+
+    sign_in @student_user
+
+    get student_competencies_path(semester: @survey.semester)
+
+    assert_response :success
+    assert_select "th", text: "Advisor"
+    assert_includes response.body, "\"label\":\"Advisor\""
+  end
+
   test "student can export competencies as csv" do
     sign_in @student_user
 
@@ -43,7 +78,7 @@ class StudentCompetenciesControllerTest < ActionDispatch::IntegrationTest
       aggregation_rule: "max",
       evidence_count: 1
     )
-    @survey.create_course_grade_release_date!(release_at: 2.days.from_now)
+    @survey.program_semester.create_course_grade_release_date!(release_date: 2.days.from_now)
 
     sign_in @student_user
 
@@ -81,6 +116,7 @@ class StudentCompetenciesControllerTest < ActionDispatch::IntegrationTest
       competency_title: @competency_title,
       raw_grade: 71,
       mapped_level: 1,
+      course_target_level: 3,
       row_number: 2,
       source_key: "source-community-assessment",
       import_fingerprint: "fingerprint-community-assessment"
@@ -93,6 +129,7 @@ class StudentCompetenciesControllerTest < ActionDispatch::IntegrationTest
       competency_title: @competency_title,
       raw_grade: 98,
       mapped_level: 5,
+      course_target_level: 4,
       row_number: 3,
       source_key: "source-population-final",
       import_fingerprint: "fingerprint-population-final"
@@ -103,14 +140,46 @@ class StudentCompetenciesControllerTest < ActionDispatch::IntegrationTest
     get student_competencies_path(semester: @survey.semester)
 
     assert_response :success
+    refute_includes response.body, "<th>Course Sources</th>"
+    assert_select "td details.c-cell-details", count: 1
+    assert_select "td details.c-cell-details[open]", count: 0
     assert_includes response.body, "2 sources"
     assert_includes response.body, "PHPM-601-700"
     assert_includes response.body, "Competency level 1"
+    assert_includes response.body, "Target level 3"
     assert_includes response.body, "PHPM-633-700"
     assert_includes response.body, "Competency level 5"
+    assert_includes response.body, "Target level 4"
     refute_includes response.body, "Community Assessment"
     refute_includes response.body, "Raw 71.0"
     refute_includes response.body, "PHPM-601.xlsx"
+  end
+
+  test "student dashboard shows end of program target from competency targets for student track and year" do
+    CompetencyTargetLevel.create!(
+      program_semester: @survey.program_semester,
+      track: @student.track,
+      class_of: @student.program_year.to_i + 1,
+      competency_title: @competency_title,
+      target_level: 2
+    )
+    CompetencyTargetLevel.create!(
+      program_semester: @survey.program_semester,
+      track: @student.track,
+      class_of: @student.program_year,
+      competency_title: @competency_title,
+      target_level: 5
+    )
+
+    sign_in @student_user
+
+    get student_competencies_path(semester: @survey.semester)
+
+    assert_response :success
+    assert_select "th", "End of Program Target"
+    refute_includes response.body, "<th>Course Target</th>"
+    assert_select ".c-score-pill--program", text: "5"
+    assert_select ".c-score-pill--program", text: "2", count: 0
   end
 
   test "student dashboard hides sources from other semesters" do
@@ -152,6 +221,57 @@ class StudentCompetenciesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     refute_includes response.body, "PHPM-999-700"
+  end
+
+  test "student dashboard defaults to current semester and includes earlier enrollment semesters" do
+    student = students(:other_student)
+    student.update!(program_year: 2027, track: "Residential")
+    batch = GradeImportBatch.create!(
+      uploaded_by: @admin,
+      program_semester: program_semesters(:spring_2025),
+      status: "completed",
+      summary: { "dry_run" => false }
+    )
+    file = batch.grade_import_files.create!(
+      file_name: "PHPM-650.xlsx",
+      file_checksum: "student-data-semester-checksum",
+      status: "processed"
+    )
+    batch.grade_competency_ratings.create!(
+      student: student,
+      competency_title: @competency_title,
+      aggregated_level: 4,
+      aggregation_rule: "max",
+      evidence_count: 1
+    )
+    batch.grade_competency_evidences.create!(
+      grade_import_file: file,
+      student: student,
+      assignment_name: "Course Evidence",
+      course_code: "PHPM-650-700",
+      competency_title: @competency_title,
+      raw_grade: 90,
+      mapped_level: 4,
+      course_target_level: 5,
+      row_number: 5,
+      source_key: "source-student-data-semester",
+      import_fingerprint: "fingerprint-student-data-semester"
+    )
+
+    sign_in users(:other_student)
+
+    get student_competencies_path
+
+    assert_response :success
+    assert_select "select[name='semester'] option", "Spring 2025"
+    assert_select "select[name='semester'] option[selected='selected']", ProgramSemester.current.name
+    refute_includes response.body, "PHPM-650-700"
+
+    get student_competencies_path(semester: "Spring 2025")
+
+    assert_response :success
+    assert_includes response.body, "PHPM-650-700"
+    assert_includes response.body, "Competency level 4"
   end
 
   test "admin cannot view student competency dashboard" do

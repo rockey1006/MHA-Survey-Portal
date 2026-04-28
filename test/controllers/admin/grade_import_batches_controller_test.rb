@@ -136,6 +136,152 @@ class Admin::GradeImportBatchesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_acceptable
   end
 
+  test "show displays course target levels for evidence rows" do
+    batch = GradeImportBatch.create!(
+      uploaded_by: @admin,
+      status: "completed",
+      summary: { "dry_run" => false }
+    )
+    file = batch.grade_import_files.create!(
+      file_name: "target-sample.xlsx",
+      file_checksum: "checksum-target-show",
+      status: "processed"
+    )
+    batch.grade_competency_evidences.create!(
+      grade_import_file: file,
+      student: @student,
+      assignment_name: "Target Case",
+      course_code: "PHPM-701-001",
+      competency_title: "Performance Improvement",
+      raw_grade: 88,
+      mapped_level: 3,
+      course_target_level: 4,
+      row_number: 7,
+      source_key: "source-target-show",
+      import_fingerprint: "fingerprint-target-show"
+    )
+    batch.grade_competency_ratings.create!(
+      student: @student,
+      competency_title: "Performance Improvement",
+      aggregated_level: 3,
+      aggregation_rule: "max",
+      evidence_count: 1
+    )
+
+    get admin_grade_import_batch_path(batch)
+
+    assert_response :success
+    assert_includes response.body, "Course Target"
+    assert_includes response.body, "PHPM-701-001"
+    assert_includes response.body, "UIN #{@student.uin}"
+    refute_includes response.body, "ID #{@student.student_id}"
+    assert_select ".c-score-pill--program", text: "4"
+  end
+
+  test "show renders pending student matches as compact student list" do
+    batch = GradeImportBatch.create!(
+      uploaded_by: @admin,
+      status: "completed",
+      summary: { "dry_run" => false }
+    )
+    file = batch.grade_import_files.create!(
+      file_name: "pending-students.xlsx",
+      file_checksum: "checksum-pending-students",
+      status: "processed"
+    )
+    batch.grade_import_pending_rows.create!(
+      grade_import_file: file,
+      student_name: "Missing Student",
+      student_uin: "123456789",
+      assignment_name: "Hidden Assignment",
+      course_code: "PHPM-701-001",
+      competency_title: "Performance Improvement",
+      raw_grade: 88,
+      mapped_level: 3,
+      course_target_level: 4,
+      row_number: 7,
+      source_key: "source-pending-students",
+      import_fingerprint: "fingerprint-pending-students"
+    )
+
+    get admin_grade_import_batch_path(batch)
+
+    assert_response :success
+    assert_includes response.body, "Missing Student"
+    assert_includes response.body, "123456789"
+    refute_includes response.body, "Hidden Assignment"
+    refute_includes response.body, "PHPM-701-001"
+  end
+
+  test "destroy deletes batch import rows and frees duplicate fingerprints" do
+    batch = GradeImportBatch.create!(
+      uploaded_by: @admin,
+      status: "completed",
+      summary: { "dry_run" => false }
+    )
+    file = batch.grade_import_files.create!(
+      file_name: "duplicate-reset.xlsx",
+      file_checksum: "checksum-duplicate-reset",
+      status: "processed"
+    )
+    evidence = batch.grade_competency_evidences.create!(
+      grade_import_file: file,
+      student: @student,
+      assignment_name: "Duplicate Reset",
+      course_code: "PHPM-701-001",
+      competency_title: "Performance Improvement",
+      raw_grade: 88,
+      mapped_level: 3,
+      course_target_level: 4,
+      row_number: 7,
+      source_key: "source-duplicate-reset",
+      import_fingerprint: "fingerprint-duplicate-reset"
+    )
+    rating = batch.grade_competency_ratings.create!(
+      student: @student,
+      competency_title: "Performance Improvement",
+      aggregated_level: 3,
+      aggregation_rule: "max",
+      evidence_count: 1
+    )
+
+    assert_difference "GradeImportBatch.count", -1 do
+      delete admin_grade_import_batch_path(batch)
+    end
+
+    assert_redirected_to admin_grade_import_batches_path
+    refute GradeImportFile.exists?(file.id)
+    refute GradeCompetencyEvidence.exists?(evidence.id)
+    refute GradeCompetencyRating.exists?(rating.id)
+
+    replacement_batch = GradeImportBatch.create!(
+      uploaded_by: @admin,
+      status: "completed",
+      summary: { "dry_run" => false }
+    )
+    replacement_file = replacement_batch.grade_import_files.create!(
+      file_name: "duplicate-reset.xlsx",
+      file_checksum: "checksum-duplicate-reset-2",
+      status: "processed"
+    )
+
+    replacement = replacement_batch.grade_competency_evidences.create!(
+      grade_import_file: replacement_file,
+      student: @student,
+      assignment_name: "Duplicate Reset",
+      course_code: "PHPM-701-001",
+      competency_title: "Performance Improvement",
+      raw_grade: 88,
+      mapped_level: 3,
+      course_target_level: 4,
+      row_number: 7,
+      source_key: "source-duplicate-reset",
+      import_fingerprint: "fingerprint-duplicate-reset"
+    )
+
+    assert replacement.persisted?
+  end
+
   test "rollback and recommit toggle matrix visibility for batch-derived ratings" do
     competency_title = Reports::DataAggregator::COMPETENCY_TITLES.first
     batch = GradeImportBatch.create!(

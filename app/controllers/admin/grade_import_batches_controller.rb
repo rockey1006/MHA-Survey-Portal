@@ -3,7 +3,7 @@ require "csv"
 class Admin::GradeImportBatchesController < Admin::BaseController
   IMPORT_EXTENSIONS = %w[.xlsx .xlsm .csv].freeze
 
-  before_action :set_batch, only: %i[show commit rollback recommit export_ratings error_report]
+  before_action :set_batch, only: %i[show commit rollback recommit destroy export_ratings error_report]
 
   def index
     @batches = GradeImportBatch.includes(:uploaded_by, :grade_import_files).order(created_at: :desc).limit(100)
@@ -108,6 +108,13 @@ class Admin::GradeImportBatchesController < Admin::BaseController
     )
 
     redirect_to admin_grade_import_batch_path(@batch), notice: "Batch recommitted. Its course competency data is visible in the app again."
+  end
+
+  def destroy
+    batch_id = @batch.id
+    @batch.destroy!
+
+    redirect_to admin_grade_import_batches_path, notice: "Grade import batch ##{batch_id} was deleted. Its files, evidence, ratings, pending rows, and duplicate fingerprints were removed."
   end
 
   def export_ratings

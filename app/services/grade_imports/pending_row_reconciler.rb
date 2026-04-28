@@ -33,6 +33,7 @@ module GradeImports
               assignment_name: pending_row.assignment_name,
               raw_grade: pending_row.raw_grade,
               mapped_level: pending_row.mapped_level,
+              course_target_level: pending_row.course_target_level,
               row_number: pending_row.row_number,
               import_fingerprint: pending_row.import_fingerprint,
               metadata: pending_row.metadata.merge(

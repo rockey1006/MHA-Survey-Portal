@@ -6,8 +6,9 @@ class GradeImportPendingRow < ApplicationRecord
   belongs_to :matched_student, class_name: "Student", foreign_key: :matched_student_id, primary_key: :student_id, optional: true
 
   validates :status, inclusion: { in: STATUSES }
-  validates :assignment_name, :competency_title, :raw_grade, :mapped_level, :source_key, :import_fingerprint, presence: true
+  validates :competency_title, :raw_grade, :mapped_level, :source_key, :import_fingerprint, presence: true
   validates :import_fingerprint, uniqueness: true
+  validates :course_target_level, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 5 }, allow_nil: true
 
   scope :pending_student_match, -> { where(status: "pending_student_match") }
   scope :reconciled, -> { where(status: "reconciled") }

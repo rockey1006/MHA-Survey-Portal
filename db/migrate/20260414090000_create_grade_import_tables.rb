@@ -43,7 +43,7 @@ class CreateGradeImportTables < ActiveRecord::Migration[8.0]
       t.bigint :student_id, null: false
       t.string :competency_title, null: false
       t.string :course_code
-      t.string :assignment_name, null: false
+      t.string :assignment_name
       t.decimal :raw_grade, precision: 8, scale: 2, null: false
       t.integer :mapped_level, null: false
       t.integer :row_number
@@ -84,7 +84,7 @@ class CreateGradeImportTables < ActiveRecord::Migration[8.0]
       t.string :student_name
       t.string :competency_title, null: false
       t.string :course_code
-      t.string :assignment_name, null: false
+      t.string :assignment_name
       t.decimal :raw_grade, precision: 8, scale: 2, null: false
       t.integer :mapped_level, null: false
       t.integer :row_number

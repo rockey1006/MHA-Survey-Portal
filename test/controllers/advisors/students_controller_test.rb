@@ -22,7 +22,8 @@ class Advisors::StudentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to advisors_student_path(@student)
-    assert_equal "executive", @student.reload.track
+    assert_equal "executive", @student.reload.track_key
+    assert_equal "Executive", @student.track
     assert_match "Track changed", flash[:notice]
   ensure
     @student.update!(track: "residential")

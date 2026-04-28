@@ -23,7 +23,7 @@ class StudentPortfolioExporterTest < ActiveSupport::TestCase
     workbook = exporter.workbook.workbook
     sheet = workbook.worksheets.first
 
-    assert_equal ["UIN", "Name", "Email", "Track", "Cohort", "Advisor", "Google Sites URL", "Submitted At"],
+    assert_equal [ "UIN", "Name", "Email", "Track", "Cohort", "Advisor", "Google Sites URL", "Submitted At" ],
                  sheet.rows.first.cells.map(&:value)
     assert_equal @student.uin, sheet.rows.second.cells.first.value
   end

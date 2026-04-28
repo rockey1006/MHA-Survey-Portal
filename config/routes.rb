@@ -71,7 +71,7 @@ Rails.application.routes.draw do
     get "target_levels", to: "target_levels#index", as: :target_levels
     patch "target_levels", to: "target_levels#update"
     resources :course_grade_release_dates, only: %i[index new create edit update destroy]
-    resources :grade_import_batches, only: %i[index new create show] do
+    resources :grade_import_batches, only: %i[index new create show destroy] do
       member do
         post :commit
         post :rollback

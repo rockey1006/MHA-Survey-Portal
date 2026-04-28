@@ -335,7 +335,7 @@ module GradeImports
       student_sis_id_header = headers.find { |header| normalize_key(header) == "student_sis_id" }
       competency_columns = direct_competency_columns(headers)
       course_code = normalized_direct_course_code(source_name.presence || fallback_source_name)
-      assignment_name = course_code.presence || "Course competency outcome"
+      assignment_name = ""
 
       imported_rows = 0
       pending_rows = 0
@@ -373,13 +373,19 @@ module GradeImports
 
         competency_columns.each do |column|
           result_value = row[column[:result_header]]
+          result_level = parse_level_value(result_value)
           raw_points = parse_decimal(result_value)
-          mastery_points = parse_decimal(row[column[:mastery_points_header]])
-          next if raw_points.nil? && mastery_points.nil?
+          course_target_level = parse_level_value(row[column[:mastery_points_header]])
+          next if result_level.nil? && course_target_level.nil?
 
           row_had_value = true
-          mapped_level = parse_integer(row[column[:mastery_points_header]])
-          if mapped_level.nil? || !(1..5).cover?(mapped_level)
+          if result_level.nil? || !(1..5).cover?(result_level)
+            error_rows += 1
+            errors << row_error(row_number, "#{column[:competency_title]} result must be an integer between 1 and 5")
+            next
+          end
+
+          if course_target_level.present? && !(1..5).cover?(course_target_level)
             error_rows += 1
             errors << row_error(row_number, "#{column[:competency_title]} mastery points must be an integer between 1 and 5")
             next
@@ -414,12 +420,13 @@ module GradeImports
               student_name: student_name,
               assignment_name: assignment_name,
               course_code: course_code,
-              raw_points: raw_points || mastery_points,
-              mapped_level: mapped_level,
+              raw_points: raw_points || result_level,
+              mapped_level: result_level,
+              course_target_level: course_target_level,
               competency_title: column[:competency_title],
               row_number: row_number,
-              score_for_mapping: mastery_points,
-              score_basis: "direct_mastery_points",
+              score_for_mapping: raw_points || result_level,
+              score_basis: "direct_result",
               points_possible: nil,
               source_key: source_key,
               import_fingerprint: import_fingerprint
@@ -441,12 +448,13 @@ module GradeImports
             import_fingerprint: import_fingerprint,
             assignment_name: assignment_name,
             course_code: course_code,
-            raw_points: raw_points || mastery_points,
-            mapped_level: mapped_level,
+            raw_points: raw_points || result_level,
+            mapped_level: result_level,
+            course_target_level: course_target_level,
             competency_title: column[:competency_title],
             row_number: row_number,
-            score_for_mapping: mastery_points,
-            score_basis: "direct_mastery_points",
+            score_for_mapping: raw_points || result_level,
+            score_basis: "direct_result",
             points_possible: nil,
             student_identifiers: {
               student_uin: student_sis_id.presence,
@@ -916,6 +924,14 @@ module GradeImports
       nil
     end
 
+    def parse_level_value(value)
+      decimal = parse_decimal(value)
+      return nil if decimal.nil?
+      return nil unless decimal.frac.zero?
+
+      decimal.to_i
+    end
+
     def filter_by_course_code(mappings, course_code)
       normalized = normalize_key(course_code)
       return mappings if normalized.blank?
@@ -978,7 +994,8 @@ module GradeImports
             import_fingerprint = build_import_fingerprint(
               grade_file: grade_file,
               row_number: row_number,
-              competency_title: applied_mapping[:mapping][:competency_title]
+              competency_title: applied_mapping[:mapping][:competency_title],
+              assignment_name: assignment_name
             )
             if import_already_recorded?(import_fingerprint)
               duplicate_warnings << row_error(row_number, "Duplicate import suppressed for #{assignment_name} / #{applied_mapping[:mapping][:competency_title]}")
@@ -1013,7 +1030,8 @@ module GradeImports
           import_fingerprint = build_import_fingerprint(
             grade_file: grade_file,
             row_number: row_number,
-            competency_title: applied_mapping[:mapping][:competency_title]
+            competency_title: applied_mapping[:mapping][:competency_title],
+            assignment_name: assignment_name
           )
           if import_already_recorded?(import_fingerprint)
             duplicate_warnings << row_error(row_number, "Duplicate import suppressed for #{assignment_name} / #{applied_mapping[:mapping][:competency_title]}")
@@ -1144,10 +1162,102 @@ module GradeImports
         debug_student_not_found += 1 if student.nil?
         matched_students << student.student_id if student
 
+        row_assignments = assignment_columns.filter_map do |assignment|
+          raw_points = parse_decimal(row_values[assignment[:index]])
+          next if raw_points.nil?
+
+          {
+            name: assignment[:name].to_s.strip,
+            raw_points: raw_points,
+            points_possible: parse_decimal(points_row[assignment[:index]])
+          }
+        end
+
+        applied_contains_mapping_groups(
+          assignments: row_assignments,
+          course_code: section,
+          mapping_rows: mapping_rows
+        ).each do |applied_mapping|
+          assignment_name = applied_mapping[:assignment_name]
+          source_key = build_source_key(
+            identifier: identifier,
+            course_code: section.presence || applied_mapping[:mapping][:course_code],
+            assignment_name: assignment_name,
+            competency_title: applied_mapping[:mapping][:competency_title],
+            row_number: row_number
+          )
+          import_fingerprint = build_import_fingerprint(
+            grade_file: grade_file,
+            row_number: row_number,
+            competency_title: applied_mapping[:mapping][:competency_title],
+            assignment_name: assignment_name
+          )
+          if import_already_recorded?(import_fingerprint)
+            duplicate_warnings << row_error(row_number, "Duplicate import suppressed for #{assignment_name} / #{applied_mapping[:mapping][:competency_title]}")
+            next
+          end
+
+          if student.nil?
+            create_pending_row!(
+              grade_file: grade_file,
+              identifier: identifier,
+              identifier_type: "uin",
+              student_uin: identifier,
+              student_email: nil,
+              student_name: row_values[id_index[:student_name]].to_s.strip.presence,
+              assignment_name: assignment_name,
+              course_code: section.presence || applied_mapping[:mapping][:course_code],
+              raw_points: applied_mapping[:raw_points],
+              mapped_level: applied_mapping[:mapping][:competency_level],
+              competency_title: applied_mapping[:mapping][:competency_title],
+              row_number: row_number,
+              score_for_mapping: applied_mapping[:score_for_mapping],
+              score_basis: applied_mapping[:mapping][:score_basis],
+              points_possible: applied_mapping[:points_possible],
+              source_key: source_key,
+              import_fingerprint: import_fingerprint
+            )
+            pending_rows += 1
+            next
+          end
+
+          duplicate_key = [ student.student_id, section, assignment_name, applied_mapping[:mapping][:competency_title] ]
+          seen_rows[duplicate_key] += 1
+          if seen_rows[duplicate_key] > 1
+            duplicate_warnings << row_error(row_number, "Duplicate evidence row for #{assignment_name} / #{applied_mapping[:mapping][:competency_title]}")
+          end
+
+          create_evidence!(
+            grade_file: grade_file,
+            student: student,
+            source_key: source_key,
+            import_fingerprint: import_fingerprint,
+            assignment_name: assignment_name,
+            course_code: section.presence || applied_mapping[:mapping][:course_code],
+            raw_points: applied_mapping[:raw_points],
+            mapped_level: applied_mapping[:mapping][:competency_level],
+            competency_title: applied_mapping[:mapping][:competency_title],
+            row_number: row_number,
+            score_for_mapping: applied_mapping[:score_for_mapping],
+            score_basis: applied_mapping[:mapping][:score_basis],
+            points_possible: applied_mapping[:points_possible],
+            student_identifiers: {
+              student_uin: identifier,
+              canvas_id: canvas_id,
+              student_email: nil,
+              assignment_count: applied_mapping[:assignment_count],
+              assignment_names: applied_mapping[:assignment_names]
+            }
+          )
+          imported_rows += 1
+        end
+
+        non_contains_mapping_rows = mapping_rows.reject { |mapping| mapping[:assignment_match_type] == "contains" }
+
         assignment_columns.each do |assignment|
           assignment_name = assignment[:name].to_s.strip
           raw_points = parse_decimal(row_values[assignment[:index]])
-          next if raw_points.nil?
+            next if raw_points.nil?
 
           points_possible = parse_decimal(points_row[assignment[:index]])
 
@@ -1156,7 +1266,7 @@ module GradeImports
             course_code: section,
             raw_points: raw_points,
             points_possible: points_possible,
-            mapping_rows: mapping_rows
+            mapping_rows: non_contains_mapping_rows
           )
           next if applied.empty?
 
@@ -1171,7 +1281,8 @@ module GradeImports
             import_fingerprint = build_import_fingerprint(
               grade_file: grade_file,
               row_number: row_number,
-              competency_title: applied_mapping[:mapping][:competency_title]
+              competency_title: applied_mapping[:mapping][:competency_title],
+              assignment_name: assignment_name
             )
             if import_already_recorded?(import_fingerprint)
               duplicate_warnings << row_error(row_number, "Duplicate import suppressed for #{assignment_name} / #{applied_mapping[:mapping][:competency_title]}")
@@ -1421,6 +1532,60 @@ module GradeImports
       end
     end
 
+    def applied_contains_mapping_groups(assignments:, course_code:, mapping_rows:)
+      contains_rows = mapping_rows.select { |mapping| mapping[:assignment_match_type] == "contains" }
+      return [] if contains_rows.empty? || assignments.empty?
+
+      contains_rows
+        .group_by { |mapping| [ normalize_key(mapping[:assignment_match_value]), mapping[:competency_title], mapping[:score_basis] ] }
+        .filter_map do |_group_key, rows|
+          applicable_rows = filter_by_course_code(rows, course_code)
+          representative = applicable_rows.first
+          next if representative.nil?
+
+          matching_assignments = assignments.filter_map do |assignment|
+            next unless assignment_matches?(mapping: representative, assignment_name: assignment[:name])
+
+            score_for_mapping = case representative[:score_basis]
+            when "percent"
+              percent_score(raw_points: assignment[:raw_points], points_possible: assignment[:points_possible])
+            else
+              assignment[:raw_points]
+            end
+            next if score_for_mapping.nil?
+
+            assignment.merge(score_for_mapping: score_for_mapping)
+          end
+          next if matching_assignments.empty?
+
+          average_score = average_decimal(matching_assignments.map { |assignment| assignment[:score_for_mapping] })
+          mapping = applicable_rows.find { |row| average_score >= row[:min_grade] && average_score <= row[:max_grade] }
+          next if mapping.nil?
+
+          assignment_names = matching_assignments.map { |assignment| assignment[:name] }
+          {
+            mapping: mapping,
+            assignment_name: grouped_assignment_name(mapping[:assignment_match_value], assignment_names.size),
+            assignment_names: assignment_names,
+            assignment_count: assignment_names.size,
+            raw_points: average_score,
+            score_for_mapping: average_score,
+            points_possible: nil
+          }
+        end
+    end
+
+    def average_decimal(values)
+      numeric_values = Array(values).compact
+      return nil if numeric_values.empty?
+
+      numeric_values.sum(BigDecimal("0")) / numeric_values.size
+    end
+
+    def grouped_assignment_name(match_value, count)
+      "#{match_value} (#{count} #{'assignment'.pluralize(count)})"
+    end
+
     def assignment_matches?(mapping:, assignment_name:)
       lhs = assignment_name.to_s.strip
       rhs = mapping[:assignment_match_value].to_s.strip
@@ -1445,7 +1610,7 @@ module GradeImports
       BigDecimal([ raw_percent, 100.0 ].min.to_s)
     end
 
-    def create_evidence!(grade_file:, student:, source_key:, import_fingerprint:, assignment_name:, course_code:, raw_points:, mapped_level:, competency_title:, row_number:, score_for_mapping:, score_basis:, points_possible:, student_identifiers:)
+    def create_evidence!(grade_file:, student:, source_key:, import_fingerprint:, assignment_name:, course_code:, raw_points:, mapped_level:, competency_title:, row_number:, score_for_mapping:, score_basis:, points_possible:, student_identifiers:, course_target_level: nil)
       batch.grade_competency_evidences.create!(
         grade_import_file: grade_file,
         student_id: student.student_id,
@@ -1454,6 +1619,7 @@ module GradeImports
         assignment_name: assignment_name,
         raw_grade: raw_points,
         mapped_level: mapped_level,
+        course_target_level: course_target_level,
         row_number: row_number,
         source_key: source_key,
         import_fingerprint: import_fingerprint,
@@ -1465,7 +1631,7 @@ module GradeImports
       )
     end
 
-    def create_pending_row!(grade_file:, identifier:, identifier_type:, student_uin:, student_email:, student_name:, assignment_name:, course_code:, raw_points:, mapped_level:, competency_title:, row_number:, score_for_mapping:, score_basis:, points_possible:, source_key: nil, import_fingerprint:)
+    def create_pending_row!(grade_file:, identifier:, identifier_type:, student_uin:, student_email:, student_name:, assignment_name:, course_code:, raw_points:, mapped_level:, competency_title:, row_number:, score_for_mapping:, score_basis:, points_possible:, source_key: nil, import_fingerprint:, course_target_level: nil)
       batch.grade_import_pending_rows.create!(
         grade_import_file: grade_file,
         status: "pending_student_match",
@@ -1479,6 +1645,7 @@ module GradeImports
         assignment_name: assignment_name,
         raw_grade: raw_points,
         mapped_level: mapped_level,
+        course_target_level: course_target_level,
         row_number: row_number,
         source_key: source_key || build_source_key(
           identifier: identifier,
@@ -1557,12 +1724,13 @@ module GradeImports
       ].join(":")
     end
 
-    def build_import_fingerprint(grade_file:, row_number:, competency_title:)
+    def build_import_fingerprint(grade_file:, row_number:, competency_title:, assignment_name: nil)
       [
         grade_file.file_checksum,
         row_number.to_i,
+        normalize_key(assignment_name),
         normalize_key(competency_title)
-      ].join(":")
+      ].compact_blank.join(":")
     end
 
     def import_already_recorded?(import_fingerprint)

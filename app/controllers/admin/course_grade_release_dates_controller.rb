@@ -4,7 +4,7 @@ class Admin::CourseGradeReleaseDatesController < Admin::BaseController
   def index
     @semesters = ProgramSemester.ordered
     @release_dates = CourseGradeReleaseDate.all.index_by(&:program_semester_id)
-    
+
     # Count surveys per semester
     @survey_counts = Survey.joins(:program_semester)
                            .group(:program_semester_id)
@@ -33,7 +33,7 @@ class Admin::CourseGradeReleaseDatesController < Admin::BaseController
   def create
     @semester = ProgramSemester.find(release_date_params[:program_semester_id])
     @release_date = CourseGradeReleaseDate.new(release_date_params)
-    
+
     if @release_date.save
       redirect_to admin_course_grade_release_dates_path, notice: "Course grade release date created."
     else

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_28_101251) do
   create_schema "_heroku"
 
   # These are extensions that must be enabled in order to support this database
@@ -102,12 +102,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
   end
 
   create_table "course_grade_release_dates", force: :cascade do |t|
-    t.bigint "survey_id", null: false
-    t.datetime "release_at"
+    t.bigint "program_semester_id", null: false
+    t.datetime "release_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["release_at"], name: "index_course_grade_release_dates_on_release_at"
-    t.index ["survey_id"], name: "index_course_grade_release_dates_on_survey_id", unique: true
+    t.index ["program_semester_id"], name: "index_course_grade_release_dates_on_program_semester_id"
+    t.index ["program_semester_id"], name: "index_course_release_dates_on_program_semester_unique", unique: true
+    t.index ["release_date"], name: "index_course_grade_release_dates_on_release_date"
   end
 
   create_table "domains", force: :cascade do |t|
@@ -143,7 +144,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
     t.bigint "student_id", null: false
     t.string "competency_title", null: false
     t.string "course_code"
-    t.string "assignment_name", null: false
+    t.string "assignment_name"
     t.decimal "raw_grade", precision: 8, scale: 2, null: false
     t.integer "mapped_level", null: false
     t.integer "row_number"
@@ -152,6 +153,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "course_target_level"
     t.index ["grade_import_batch_id", "competency_title"], name: "index_grade_evidence_on_batch_competency"
     t.index ["grade_import_batch_id", "source_key"], name: "index_grade_evidence_on_batch_source_key", unique: true
     t.index ["grade_import_batch_id", "student_id"], name: "index_grade_evidence_on_batch_student"
@@ -224,7 +226,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
     t.string "student_name"
     t.string "competency_title", null: false
     t.string "course_code"
-    t.string "assignment_name", null: false
+    t.string "assignment_name"
     t.decimal "raw_grade", precision: 8, scale: 2, null: false
     t.integer "mapped_level", null: false
     t.integer "row_number"
@@ -234,6 +236,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "course_target_level"
     t.index ["grade_import_batch_id", "source_key"], name: "index_grade_pending_rows_on_batch_source_key", unique: true
     t.index ["grade_import_batch_id", "status"], name: "index_grade_pending_rows_on_batch_status"
     t.index ["grade_import_batch_id", "student_email"], name: "index_grade_pending_rows_on_batch_email"
@@ -499,7 +502,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_28_102651) do
   add_foreign_key "confidential_advisor_notes", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "confidential_advisor_notes", "students", primary_key: "student_id", on_delete: :cascade
   add_foreign_key "confidential_advisor_notes", "surveys", on_delete: :cascade
-  add_foreign_key "course_grade_release_dates", "surveys"
+  add_foreign_key "course_grade_release_dates", "program_semesters"
   add_foreign_key "feedback", "advisors", primary_key: "advisor_id", on_delete: :cascade
   add_foreign_key "feedback", "categories", on_delete: :cascade
   add_foreign_key "feedback", "questions"

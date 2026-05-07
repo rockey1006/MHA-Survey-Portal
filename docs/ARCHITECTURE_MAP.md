@@ -180,9 +180,9 @@ When a student does not yet exist locally, import rows are staged instead of dis
 
 ## Files to understand first
 
-- [app/services/grade_imports/batch_processor.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/grade_imports/batch_processor.rb)
-- [app/services/admin/competency_matrix.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/admin/competency_matrix.rb)
-- [app/services/reports/data_aggregator.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/reports/data_aggregator.rb)
-- [app/controllers/admin/grade_import_batches_controller.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/controllers/admin/grade_import_batches_controller.rb)
-- [app/views/admin/program_setups/show.html.erb](/home/rainsuds/codespace/MHA-Survey-Portal/app/views/admin/program_setups/show.html.erb)
-- [app/views/dashboards/people_management.html.erb](/home/rainsuds/codespace/MHA-Survey-Portal/app/views/dashboards/people_management.html.erb)
+- [app/services/grade_imports/batch_processor.rb](../app/services/grade_imports/batch_processor.rb)
+- [app/services/admin/competency_matrix.rb](../app/services/admin/competency_matrix.rb)
+- [app/services/reports/data_aggregator.rb](../app/services/reports/data_aggregator.rb)
+- [app/controllers/admin/grade_import_batches_controller.rb](../app/controllers/admin/grade_import_batches_controller.rb)
+- [app/views/admin/program_setups/show.html.erb](../app/views/admin/program_setups/show.html.erb)
+- [app/views/dashboards/people_management.html.erb](../app/views/dashboards/people_management.html.erb)

@@ -50,7 +50,7 @@ Need deeper walkthroughs for environment variables, setup screenshots, or deploy
 | `ENABLE_ROLE_SWITCH` | QA-only impersonation toggle. |
 | `PORT` | Custom dev server port (defaults to `3000`). |
 
-Encrypted credentials live in `config/credentials/*.yml.enc`; request `config/master.key` from a maintainer when onboarding.
+Encrypted credentials live in `config/credentials/*.yml.enc`; request the `config/master.key` value from a maintainer through a secure channel when onboarding. The key is intentionally ignored and should not be committed.
 
 ## Installation & Setup
 
@@ -209,12 +209,13 @@ The main admin workflows in the current application are:
 If you are onboarding to this project or taking over maintenance, start here:
 
 1. [`docs/HANDOFF.md`](docs/HANDOFF.md)
-2. [`docs/ADMIN_WALKTHROUGH.md`](docs/ADMIN_WALKTHROUGH.md)
-3. [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md)
-4. [`docs/GRADE_IMPORTS.md`](docs/GRADE_IMPORTS.md)
-5. [`docs/PERMISSIONS_AUDIT.md`](docs/PERMISSIONS_AUDIT.md)
-6. [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md)
-7. [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)
+2. [`docs/TECHNICAL_HANDOFF.md`](docs/TECHNICAL_HANDOFF.md)
+3. [`docs/ADMIN_WALKTHROUGH.md`](docs/ADMIN_WALKTHROUGH.md)
+4. [`docs/ARCHITECTURE_MAP.md`](docs/ARCHITECTURE_MAP.md)
+5. [`docs/GRADE_IMPORTS.md`](docs/GRADE_IMPORTS.md)
+6. [`docs/PERMISSIONS_AUDIT.md`](docs/PERMISSIONS_AUDIT.md)
+7. [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md)
+8. [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)
 
 Important operational notes:
 
@@ -240,6 +241,7 @@ Repo-local handoff docs:
 
 - [`docs/README.md`](docs/README.md)
 - [`docs/HANDOFF.md`](docs/HANDOFF.md)
+- [`docs/TECHNICAL_HANDOFF.md`](docs/TECHNICAL_HANDOFF.md)
 - [`docs/GRADE_IMPORTS.md`](docs/GRADE_IMPORTS.md)
 - [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md)
 - [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)
@@ -268,4 +270,4 @@ Repo-local handoff docs:
 - **Faculty advisor**: Pauline Wade — <paulinewade@tamu.edu>
 - **Issues & pull requests**: please open items directly in this GitHub repository.
 
-Last updated: 2026-04-21
+Last updated: 2026-05-07

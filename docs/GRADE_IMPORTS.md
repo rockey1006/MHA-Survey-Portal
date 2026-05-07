@@ -175,21 +175,24 @@ Both normalize to the canonical competency title used by reports.
 
 ## Important files
 
-- [app/services/grade_imports/batch_processor.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/grade_imports/batch_processor.rb)
-- [app/services/grade_imports/pending_row_reconciler.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/grade_imports/pending_row_reconciler.rb)
-- [app/services/grade_imports/batch_rating_rebuilder.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/grade_imports/batch_rating_rebuilder.rb)
-- [app/controllers/admin/grade_import_batches_controller.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/controllers/admin/grade_import_batches_controller.rb)
+- [app/services/grade_imports/batch_processor.rb](../app/services/grade_imports/batch_processor.rb)
+- [app/services/grade_imports/pending_row_reconciler.rb](../app/services/grade_imports/pending_row_reconciler.rb)
+- [app/services/grade_imports/batch_rating_rebuilder.rb](../app/services/grade_imports/batch_rating_rebuilder.rb)
+- [app/controllers/admin/grade_import_batches_controller.rb](../app/controllers/admin/grade_import_batches_controller.rb)
 
 ## Sample files
 
-Useful sample files currently in the repo/workspace:
+Useful sample files currently in the repo:
 
-- [2026_comp.xlsx](/home/rainsuds/codespace/MHA-Survey-Portal/2026_comp.xlsx)
-- [local_import_samples/Outcomes-26_SPRING_PHPM_633_700__HEALTH_LAW__ETHICS.csv](/home/rainsuds/codespace/MHA-Survey-Portal/local_import_samples/Outcomes-26_SPRING_PHPM_633_700__HEALTH_LAW__ETHICS.csv)
+- [public/grade-import-examples/Example Canvas Grade Export.xlsx](../public/grade-import-examples/Example%20Canvas%20Grade%20Export.xlsx)
+- [public/grade-import-examples/Example Canvas Competency Export.csv](../public/grade-import-examples/Example%20Canvas%20Competency%20Export.csv)
+- [local_import_samples/folder_run_samples/folder_run_canvas_sample.xlsx](../local_import_samples/folder_run_samples/folder_run_canvas_sample.xlsx)
+- [local_import_samples/folder_run_samples/folder_run_direct_sample.xlsx](../local_import_samples/folder_run_samples/folder_run_direct_sample.xlsx)
 
 Note:
 
-- the direct competency sample currently has blank student identifiers, so it is useful for parser validation but not successful student matching
+- samples are intended for parser and operator workflow validation; successful student matching still depends on identifiers existing in the target environment
+- additional dated outputs from sample-generation runs should be treated as local artifacts and not committed
 
 ## Smoke-test checklist
 

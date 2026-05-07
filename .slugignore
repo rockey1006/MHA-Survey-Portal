@@ -8,8 +8,11 @@ script/
 # Local tooling and documentation not required at runtime
 .github/
 .kamal/
+docs/
+local_import_samples/
 Dockerfile
 docker-compose.yml
 run_tests.rb
 set_heroku_env.ps1
 TEST_DOCUMENTATION.md
+STYLE_MIGRATION.md

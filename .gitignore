@@ -72,3 +72,6 @@ mkcert_development_CA_*.crt
 .copilot-instructions.md
 
 MHA-Survey-Portal.wiki/
+
+# Generated grade import sample runs; keep canonical sample files only.
+/local_import_samples/folder_run_samples/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.xlsx

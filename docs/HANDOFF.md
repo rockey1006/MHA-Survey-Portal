@@ -33,13 +33,14 @@ The most operationally important admin areas are:
 
 ## Recommended first read order
 
-1. [README.md](/home/rainsuds/codespace/MHA-Survey-Portal/README.md)
-2. [docs/ADMIN_WALKTHROUGH.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/ADMIN_WALKTHROUGH.md)
-3. [docs/ARCHITECTURE_MAP.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/ARCHITECTURE_MAP.md)
-4. [docs/GRADE_IMPORTS.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/GRADE_IMPORTS.md)
-5. [docs/PERMISSIONS_AUDIT.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/PERMISSIONS_AUDIT.md)
-6. [docs/KNOWN_ISSUES.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/KNOWN_ISSUES.md)
-7. [docs/NEXT_STEPS.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/NEXT_STEPS.md)
+1. [README.md](../README.md)
+2. [docs/TECHNICAL_HANDOFF.md](TECHNICAL_HANDOFF.md)
+3. [docs/ADMIN_WALKTHROUGH.md](ADMIN_WALKTHROUGH.md)
+4. [docs/ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md)
+5. [docs/GRADE_IMPORTS.md](GRADE_IMPORTS.md)
+6. [docs/PERMISSIONS_AUDIT.md](PERMISSIONS_AUDIT.md)
+7. [docs/KNOWN_ISSUES.md](KNOWN_ISSUES.md)
+8. [docs/NEXT_STEPS.md](NEXT_STEPS.md)
 
 ## Local development
 
@@ -94,7 +95,7 @@ Important:
 5. commit the dry run when the results look correct
 6. use rollback only if the batch must be fully removed
 
-See [docs/GRADE_IMPORTS.md](/home/rainsuds/codespace/MHA-Survey-Portal/docs/GRADE_IMPORTS.md) for details.
+See [docs/GRADE_IMPORTS.md](GRADE_IMPORTS.md) for details.
 
 ### Competencies review workflow
 

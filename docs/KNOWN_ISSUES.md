@@ -31,7 +31,7 @@ Current mitigation:
 
 ### Grade import processor is large
 
-[app/services/grade_imports/batch_processor.rb](/home/rainsuds/codespace/MHA-Survey-Portal/app/services/grade_imports/batch_processor.rb) handles:
+[app/services/grade_imports/batch_processor.rb](../app/services/grade_imports/batch_processor.rb) handles:
 
 - batch orchestration
 - file format detection

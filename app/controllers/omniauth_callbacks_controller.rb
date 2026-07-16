@@ -14,7 +14,7 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     email = auth.info.email.to_s.downcase
 
-    unless tamu_email?(email)
+    if tamu_restriction_enabled? && !tamu_email?(email)
       Rails.logger.warn "Blocked OAuth login for non-TAMU email: #{email}"
       flash[:alert] = "Please sign in with your TAMU email (@tamu.edu)."
       redirect_to after_omniauth_failure_path_for(:user) and return
@@ -116,5 +116,11 @@ class OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     normalized_email = email.downcase
     normalized_email.ends_with?("@tamu.edu") || normalized_email.ends_with?("@email.tamu.edu")
+  end
+
+  # Returns true unless RESTRICT_LOGIN_TO_TAMU is explicitly set to "false".
+  # Default (unset) keeps production behavior: TAMU-only login.
+  def tamu_restriction_enabled?
+    ENV.fetch("RESTRICT_LOGIN_TO_TAMU", "true").downcase != "false"
   end
 end

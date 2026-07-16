@@ -154,6 +154,19 @@ if seed_demo_data
     admin_users << seed_user.call(email: "admin@tamu.edu", name: "MHA Admin", role: :admin)
   end
 
+  # Deterministic UIN generator — seeded so re-runs produce the same values.
+  # Tracks used UIns (including ones already in the DB) to guarantee uniqueness.
+  uin_rng = Random.new(20_251_201)
+  used_uins = Student.where.not(uin: nil).pluck(:uin).to_set
+  generate_unique_uin = lambda do
+    loop do
+      candidate = format("%09d", uin_rng.rand(100_000_000..999_999_999))
+      next if used_uins.include?(candidate)
+      used_uins << candidate
+      break candidate
+    end
+  end
+
   puts "• Creating sample students"
   students_data_path = Rails.root.join("db", "data", "sample_students.yml")
   unless File.exist?(students_data_path)
@@ -191,6 +204,7 @@ if seed_demo_data
     user = seed_user.call(email: email, name: name, role: :student)
     profile = user.student_profile || Student.new(student_id: user.id)
     profile.assign_attributes(track: track, advisor: advisor_user.advisor_profile, program_year: program_year)
+    profile.uin ||= generate_unique_uin.call
     # Bypass validations for seed data; first-login flow will collect required fields
     profile.save!(validate: false)
 
@@ -200,6 +214,13 @@ if seed_demo_data
   students = students_with_metadata.map { |entry| entry[:profile] }
   pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
   multi_semester_student_ids = students_with_metadata.select { |entry| entry[:multi_semester] }.map { |entry| entry[:profile].student_id }
+
+  # Backfill UIns for any students that already existed before this seed run.
+  leftover_without_uin = Student.where(uin: nil)
+  if leftover_without_uin.exists?
+    puts "• Backfilling UIns for #{leftover_without_uin.count} existing students"
+    leftover_without_uin.find_each { |s| s.update_column(:uin, generate_unique_uin.call) }
+  end
 
   # Backfill legacy seed values (1/2) to cohort years so re-running seeds fixes
   # existing dev/test databases.
@@ -915,6 +936,28 @@ students.each do |student|
       puts "   • Prepared #{survey.questions.count} questions for #{student.user.name} (#{track_label})"
       puts "     ↳ High performer calibration applied" if high_performer_ids.include?(student.student_id)
       puts "     ↳ Auto-assign will sync survey tasks from offerings"
+
+      # Seed advisor feedback ratings for competency questions so reports show
+      # advisor-student alignment. One Feedback row per competency question.
+      advisor_profile = student.advisor
+      if advisor_profile.present?
+        high_performer = high_performer_ids.include?(student.student_id)
+        advisor_score_pool = high_performer ? [4, 4, 4, 5, 5] : [2, 3, 3, 4, 4, 5]
+
+        survey.questions.includes(:category).where(question_type: %w[multiple_choice dropdown]).find_each do |question|
+          next unless competency_title_lookup.include?(question.question_text.to_s.strip)
+
+          feedback = Feedback.find_or_initialize_by(
+            student_id: student.student_id,
+            advisor_id: advisor_profile.advisor_id,
+            question_id: question.id,
+            survey_id: survey.id
+          )
+          feedback.category_id = question.category_id
+          feedback.average_score = advisor_score_pool.sample(random: response_rng).to_f
+          feedback.save!
+        end
+      end
 
       # Seed completion history for most Year-1 students on the Spring 2026 survey.
       # This helps exercise UI states that depend on completed assignments.

@@ -44,7 +44,8 @@ class User < ApplicationRecord
     user.name = name if name.present?
     user.avatar_url = avatar_url if avatar_url.present?
 
-    normalized_role = normalize_role(role) || user.role || roles[:student]
+    default_role = ENV.fetch("DEFAULT_USER_ROLE", "student")
+    normalized_role = normalize_role(role) || user.role || normalize_role(default_role) || roles[:student]
     user.role = normalized_role
 
     user.save!

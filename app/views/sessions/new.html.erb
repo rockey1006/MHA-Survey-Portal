@@ -42,6 +42,25 @@
                         class: button_classes(:primary, extra_classes: "btn-block") %>
       <% end %>
     </div>
+
+    <% if ENV["SHOW_ADMIN_LOGIN"] == "1" %>
+      <div class="mx-auto hidden h-full w-px bg-slate-200 md:mx-0 md:block"></div>
+      <div class="mx-auto h-px w-3/4 bg-slate-200 md:hidden"></div>
+
+      <div id="admin-login" class="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-4 md:px-10">
+        <h2 class="c-h2">Admin Login</h2>
+        <p class="u-max-w-sm text-sm leading-6 text-slate-600">Full system access — manage users, surveys, imports, and program configuration.</p>
+        <%= form_with url: user_google_oauth2_omniauth_authorize_path,
+                      method: :post,
+                      data: { turbo: "false" },
+                      html: { id: "admin-login-form" },
+                      class: "u-w-full max-w-xs" do |form| %>
+          <%= form.hidden_field :role, value: 'admin' %>
+          <%= form.submit "Sign in with Google",
+                          class: button_classes(:primary, extra_classes: "btn-block") %>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 </section>
 

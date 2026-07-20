@@ -22,7 +22,16 @@ else
 
   to_delete = visitors.where.not(id: ids_to_skip)
   count = to_delete.count
-  to_delete.destroy_all
+
+  to_delete.each do |user|
+    # Some accounts may have been students previously (before a role change) and
+    # still hold a student_profile with survey_response_versions pointing to it.
+    # That FK has no cascade in the schema, so we clear the rows before destroying.
+    if (student = user.student_profile)
+      SurveyResponseVersion.where(student_id: student.student_id).delete_all
+    end
+    user.destroy!
+  end
 
   puts "Deleted #{count} visitor account(s)."
   puts "Skipped #{ids_to_skip.size} account(s) with advisees." if ids_to_skip.any?

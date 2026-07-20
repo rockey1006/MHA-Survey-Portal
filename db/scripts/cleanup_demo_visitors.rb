@@ -24,12 +24,17 @@ else
   count = to_delete.count
 
   to_delete.each do |user|
-    # Some accounts may have been students previously (before a role change) and
-    # still hold a student_profile with survey_response_versions pointing to it.
-    # That FK has no cascade in the schema, so we clear the rows before destroying.
+    # survey_response_versions.student_id has no cascade in the schema
     if (student = user.student_profile)
       SurveyResponseVersion.where(student_id: student.student_id).delete_all
     end
+
+    # survey_change_logs.admin_id is NOT NULL in the DB so the model's
+    # dependent: :nullify would violate the constraint — delete instead
+    if (admin = user.admin_profile)
+      SurveyChangeLog.where(admin_id: admin.admin_id).delete_all
+    end
+
     user.destroy!
   end
 

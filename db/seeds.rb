@@ -215,6 +215,29 @@ if seed_demo_data
   pending_student_ids = students_with_metadata.select { |entry| entry[:pending] }.map { |entry| entry[:profile].student_id }
   multi_semester_student_ids = students_with_metadata.select { |entry| entry[:multi_semester] }.map { |entry| entry[:profile].student_id }
 
+  puts "• Creating fake demo advisors and admins"
+  demo_advisor_accounts = [
+    { email: "jordan.ellis@demo.example.com", name: "Jordan Ellis" },
+    { email: "morgan.hayes@demo.example.com", name: "Morgan Hayes" },
+    { email: "casey.rivera@demo.example.com", name: "Casey Rivera" },
+  ]
+  demo_admin_accounts = [
+    { email: "avery.kim@demo.example.com",   name: "Avery Kim" },
+    { email: "quinn.patel@demo.example.com", name: "Quinn Patel" },
+  ]
+
+  demo_advisors = demo_advisor_accounts.map do |attrs|
+    seed_user.call(email: attrs[:email], name: attrs[:name], role: :advisor)
+  end
+  demo_admin_accounts.each do |attrs|
+    seed_user.call(email: attrs[:email], name: attrs[:name], role: :admin)
+  end
+
+  puts "• Reassigning demo students to fake advisors"
+  students.each_with_index do |student, i|
+    student.update_column(:advisor_id, demo_advisors[i % demo_advisors.size].advisor_profile.advisor_id)
+  end
+
   # Backfill UIns for any students that already existed before this seed run.
   leftover_without_uin = Student.where(uin: nil)
   if leftover_without_uin.exists?
